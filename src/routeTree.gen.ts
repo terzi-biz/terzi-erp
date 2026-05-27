@@ -9,8 +9,68 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorksRouteImport } from './routes/works'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as ScreedRouteImport } from './routes/screed'
+import { Route as RoofingRouteImport } from './routes/roofing'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as MaterialsRouteImport } from './routes/materials'
+import { Route as InsulationRouteImport } from './routes/insulation'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as DemolitionRouteImport } from './routes/demolition'
+import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
 
+const WorksRoute = WorksRouteImport.update({
+  id: '/works',
+  path: '/works',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScreedRoute = ScreedRouteImport.update({
+  id: '/screed',
+  path: '/screed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoofingRoute = RoofingRouteImport.update({
+  id: '/roofing',
+  path: '/roofing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaterialsRoute = MaterialsRouteImport.update({
+  id: '/materials',
+  path: '/materials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsulationRoute = InsulationRouteImport.update({
+  id: '/insulation',
+  path: '/insulation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DemolitionRoute = DemolitionRouteImport.update({
+  id: '/demolition',
+  path: '/demolition',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BrandingRoute = BrandingRouteImport.update({
+  id: '/branding',
+  path: '/branding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -19,28 +79,172 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/branding': typeof BrandingRoute
+  '/demolition': typeof DemolitionRoute
+  '/history': typeof HistoryRoute
+  '/insulation': typeof InsulationRoute
+  '/materials': typeof MaterialsRoute
+  '/reports': typeof ReportsRoute
+  '/roofing': typeof RoofingRoute
+  '/screed': typeof ScreedRoute
+  '/settings': typeof SettingsRoute
+  '/works': typeof WorksRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/branding': typeof BrandingRoute
+  '/demolition': typeof DemolitionRoute
+  '/history': typeof HistoryRoute
+  '/insulation': typeof InsulationRoute
+  '/materials': typeof MaterialsRoute
+  '/reports': typeof ReportsRoute
+  '/roofing': typeof RoofingRoute
+  '/screed': typeof ScreedRoute
+  '/settings': typeof SettingsRoute
+  '/works': typeof WorksRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/branding': typeof BrandingRoute
+  '/demolition': typeof DemolitionRoute
+  '/history': typeof HistoryRoute
+  '/insulation': typeof InsulationRoute
+  '/materials': typeof MaterialsRoute
+  '/reports': typeof ReportsRoute
+  '/roofing': typeof RoofingRoute
+  '/screed': typeof ScreedRoute
+  '/settings': typeof SettingsRoute
+  '/works': typeof WorksRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/branding'
+    | '/demolition'
+    | '/history'
+    | '/insulation'
+    | '/materials'
+    | '/reports'
+    | '/roofing'
+    | '/screed'
+    | '/settings'
+    | '/works'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/branding'
+    | '/demolition'
+    | '/history'
+    | '/insulation'
+    | '/materials'
+    | '/reports'
+    | '/roofing'
+    | '/screed'
+    | '/settings'
+    | '/works'
+  id:
+    | '__root__'
+    | '/'
+    | '/branding'
+    | '/demolition'
+    | '/history'
+    | '/insulation'
+    | '/materials'
+    | '/reports'
+    | '/roofing'
+    | '/screed'
+    | '/settings'
+    | '/works'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BrandingRoute: typeof BrandingRoute
+  DemolitionRoute: typeof DemolitionRoute
+  HistoryRoute: typeof HistoryRoute
+  InsulationRoute: typeof InsulationRoute
+  MaterialsRoute: typeof MaterialsRoute
+  ReportsRoute: typeof ReportsRoute
+  RoofingRoute: typeof RoofingRoute
+  ScreedRoute: typeof ScreedRoute
+  SettingsRoute: typeof SettingsRoute
+  WorksRoute: typeof WorksRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/works': {
+      id: '/works'
+      path: '/works'
+      fullPath: '/works'
+      preLoaderRoute: typeof WorksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/screed': {
+      id: '/screed'
+      path: '/screed'
+      fullPath: '/screed'
+      preLoaderRoute: typeof ScreedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roofing': {
+      id: '/roofing'
+      path: '/roofing'
+      fullPath: '/roofing'
+      preLoaderRoute: typeof RoofingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/materials': {
+      id: '/materials'
+      path: '/materials'
+      fullPath: '/materials'
+      preLoaderRoute: typeof MaterialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insulation': {
+      id: '/insulation'
+      path: '/insulation'
+      fullPath: '/insulation'
+      preLoaderRoute: typeof InsulationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/demolition': {
+      id: '/demolition'
+      path: '/demolition'
+      fullPath: '/demolition'
+      preLoaderRoute: typeof DemolitionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/branding': {
+      id: '/branding'
+      path: '/branding'
+      fullPath: '/branding'
+      preLoaderRoute: typeof BrandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -53,6 +257,16 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BrandingRoute: BrandingRoute,
+  DemolitionRoute: DemolitionRoute,
+  HistoryRoute: HistoryRoute,
+  InsulationRoute: InsulationRoute,
+  MaterialsRoute: MaterialsRoute,
+  ReportsRoute: ReportsRoute,
+  RoofingRoute: RoofingRoute,
+  ScreedRoute: ScreedRoute,
+  SettingsRoute: SettingsRoute,
+  WorksRoute: WorksRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
