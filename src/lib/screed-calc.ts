@@ -57,10 +57,12 @@ export interface NormsPerM3 {
   dieselLPerM3: number;      // L (station)
 }
 
+// Note: plasticizerLPerM3 is 10/7 ≈ 1.4286 (displayed as ~1.43) so the
+// control scenario (7 m³ → 10 L plast) lands exactly on the spec.
 export const PROFILE_NORMS: Record<Exclude<Profile, "manual">, NormsPerM3 & { cementType: "m500" | "m400" }> = {
-  econom:     { cementType: "m400", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 1.43, fiberPacksPerM3: 1.0, dieselLPerM3: 3.14 },
-  standard:   { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 1.43, fiberPacksPerM3: 1.5, dieselLPerM3: 3.14 },
-  reinforced: { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 1.43, fiberPacksPerM3: 2.0, dieselLPerM3: 3.14 },
+  econom:     { cementType: "m400", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.0, dieselLPerM3: 3.14 },
+  standard:   { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.5, dieselLPerM3: 3.14 },
+  reinforced: { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 2.0, dieselLPerM3: 3.14 },
 };
 
 export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
