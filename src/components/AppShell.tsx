@@ -1,10 +1,14 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useI18n, useT } from "@/lib/i18n";
-import { useUserRole } from "@/lib/store";
-import { LayoutDashboard, Layers, Home, Snowflake, Hammer, Package, Wrench, History, Palette, Settings, BarChart3 } from "lucide-react";
+import { useAuth } from "@/lib/auth";
+import { LayoutDashboard, Layers, Home, Snowflake, Hammer, Package, Wrench, History, Palette, Settings, BarChart3, LogOut } from "lucide-react";
 import type { ReactNode } from "react";
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { profile, user, roles, signOut } = useAuth();
+  const primaryRole = roles[0] ?? "manager";
+  const roleLabels: Record<string, string> = { admin: "Адмін", director: "Директор", manager: "Менеджер", finance: "Фінансист" };
+  const displayName = profile?.display_name || user?.email || "Користувач";
   const t = useT();
   const { lang, setLang } = useI18n();
   const { role, setRole } = useUserRole();
