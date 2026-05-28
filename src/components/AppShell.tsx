@@ -11,7 +11,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const displayName = profile?.display_name || user?.email || "Користувач";
   const t = useT();
   const { lang, setLang } = useI18n();
-  const { role, setRole } = useUserRole();
+  
   const loc = useLocation();
 
   const nav = [
@@ -57,12 +57,24 @@ export function AppShell({ children }: { children: ReactNode }) {
               <button key={l} onClick={() => setLang(l)} className={`flex-1 py-1.5 rounded font-semibold uppercase ${lang === l ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-accent"}`}>{l}</button>
             ))}
           </div>
-          <select value={role} onChange={(e) => setRole(e.target.value as any)} className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-xs">
-            <option value="admin">Адмін</option>
-            <option value="director">Директор</option>
-            <option value="manager">Менеджер</option>
-            <option value="finance">Фінансист</option>
-          </select>
+          <div className="bg-secondary/60 border border-border rounded-md p-2.5">
+            <div className="flex items-center gap-2">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt="" className="w-8 h-8 rounded-full object-cover" />
+              ) : (
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground grid place-items-center text-xs font-bold">
+                  {displayName.slice(0, 1).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="text-xs font-semibold truncate">{displayName}</div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabels[primaryRole]}</div>
+              </div>
+            </div>
+            <button onClick={() => signOut()} className="mt-2 w-full flex items-center justify-center gap-1.5 bg-background hover:bg-accent border border-border rounded py-1.5 text-[11px] font-semibold">
+              <LogOut className="w-3 h-3" /> Вийти
+            </button>
+          </div>
         </div>
       </aside>
       <main className="flex-1 min-w-0">{children}</main>
