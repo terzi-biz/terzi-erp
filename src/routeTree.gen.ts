@@ -15,6 +15,7 @@ import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as RoofingRouteImport } from './routes/roofing'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as MaterialsRouteImport } from './routes/materials'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as DemolitionRouteImport } from './routes/demolition'
@@ -51,6 +52,11 @@ const MaterialsRoute = MaterialsRouteImport.update({
   path: '/materials',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InsulationRoute = InsulationRouteImport.update({
   id: '/insulation',
   path: '/insulation',
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/demolition': typeof DemolitionRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/login': typeof LoginRoute
   '/materials': typeof MaterialsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/demolition': typeof DemolitionRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/login': typeof LoginRoute
   '/materials': typeof MaterialsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/demolition': typeof DemolitionRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/login': typeof LoginRoute
   '/materials': typeof MaterialsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/history'
     | '/insulation'
+    | '/login'
     | '/materials'
     | '/reports'
     | '/roofing'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/history'
     | '/insulation'
+    | '/login'
     | '/materials'
     | '/reports'
     | '/roofing'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/history'
     | '/insulation'
+    | '/login'
     | '/materials'
     | '/reports'
     | '/roofing'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   DemolitionRoute: typeof DemolitionRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
+  LoginRoute: typeof LoginRoute
   MaterialsRoute: typeof MaterialsRoute
   ReportsRoute: typeof ReportsRoute
   RoofingRoute: typeof RoofingRoute
@@ -217,6 +230,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MaterialsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/insulation': {
       id: '/insulation'
       path: '/insulation'
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemolitionRoute: DemolitionRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
+  LoginRoute: LoginRoute,
   MaterialsRoute: MaterialsRoute,
   ReportsRoute: ReportsRoute,
   RoofingRoute: RoofingRoute,
@@ -271,13 +292,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
