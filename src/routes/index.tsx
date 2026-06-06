@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import { formatUah } from "@/lib/screed-calc";
-import { Layers, Home, Snowflake, Hammer, Plus, History, Package, Wrench, Palette, BarChart3 } from "lucide-react";
+import { Layers, Home, Snowflake, Hammer, Plus, History, Users, Palette, BarChart3, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
@@ -16,18 +16,18 @@ function Dashboard() {
 
   const modules = [
     { to: "/screed", icon: Layers, label: t("screed"), active: true, desc: "Напівсуха машинна стяжка" },
-    { to: "/roofing", icon: Home, label: t("roofing"), active: false, desc: "Плоска покрівля, ремонт, ПВХ" },
+    { to: "/roofing", icon: Home, label: t("roofing"), active: false, desc: "Плоска покрівля, ПВХ-мембрана" },
     { to: "/insulation", icon: Snowflake, label: t("insulation"), active: false, desc: "EPS, XPS, мінвата, полістиролбетон" },
-    { to: "/demolition", icon: Hammer, label: t("demolition"), active: false, desc: "Демонтаж стяжки, плитки, покрівлі" },
+    { to: "/demolition", icon: Hammer, label: t("demolition"), active: false, desc: "Стяжка, плитка, покрівля, перегородки" },
   ];
 
   const quick = [
     { to: "/screed", icon: Plus, label: t("newEstimate") },
+    { to: "/clients", icon: Users, label: "Клієнти" },
     { to: "/history", icon: History, label: t("history") },
-    { to: "/materials", icon: Package, label: t("materials") },
-    { to: "/works", icon: Wrench, label: t("works") },
-    { to: "/branding", icon: Palette, label: t("branding") },
     { to: "/reports", icon: BarChart3, label: t("managerReport") },
+    { to: "/branding", icon: Palette, label: t("branding") },
+    { to: "/settings", icon: Settings, label: t("settings") },
   ];
 
   return (
