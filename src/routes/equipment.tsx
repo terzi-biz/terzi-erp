@@ -6,10 +6,10 @@ const search = z.object({
   module: z.enum(["screed", "roofing", "insulation", "demolition", "common"]).default("screed"),
 });
 
-export const Route = createFileRoute("/works")({
+export const Route = createFileRoute("/equipment")({
   validateSearch: (s) => search.parse(s),
   component: () => {
     const { module } = Route.useSearch();
-    return <CatalogPage module={module} kind="work" />;
+    return <CatalogPage module={module} kind="equipment" />;
   },
 });
