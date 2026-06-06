@@ -14,6 +14,170 @@ export type Database = {
   }
   public: {
     Tables: {
+      catalog_items: {
+        Row: {
+          buy_price: number
+          code: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_custom: boolean
+          kind: string
+          lifetime_months: number | null
+          module: string
+          name: string
+          sell_price: number
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          buy_price?: number
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_custom?: boolean
+          kind: string
+          lifetime_months?: number | null
+          module: string
+          name: string
+          sell_price?: number
+          sort_order?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          buy_price?: number
+          code?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_custom?: boolean
+          kind?: string
+          lifetime_months?: number | null
+          module?: string
+          name?: string
+          sell_price?: number
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      clients: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          owner_id: string
+          phone: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          owner_id: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          owner_id?: string
+          phone?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      estimates: {
+        Row: {
+          address: string | null
+          area: number | null
+          client_id: string | null
+          client_name: string | null
+          client_phone: string | null
+          created_at: string
+          gross_profit: number
+          id: string
+          manager: string | null
+          margin_percent: number
+          module: string
+          number: string
+          owner_id: string
+          payload: Json
+          status: string
+          thickness_cm: number | null
+          total_client: number
+          total_cost: number
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          area?: number | null
+          client_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          gross_profit?: number
+          id?: string
+          manager?: string | null
+          margin_percent?: number
+          module: string
+          number: string
+          owner_id: string
+          payload?: Json
+          status?: string
+          thickness_cm?: number | null
+          total_client?: number
+          total_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          area?: number | null
+          client_id?: string | null
+          client_name?: string | null
+          client_phone?: string | null
+          created_at?: string
+          gross_profit?: number
+          id?: string
+          manager?: string | null
+          margin_percent?: number
+          module?: string
+          number?: string
+          owner_id?: string
+          payload?: Json
+          status?: string
+          thickness_cm?: number | null
+          total_client?: number
+          total_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
