@@ -120,7 +120,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
               </tr>
             </thead>
             <tbody>
-              {items.map((r) => {
+              {(items as Row[]).map((r) => {
                 const patch = edits[r.id!] ?? {};
                 const cur = { ...r, ...patch } as Row;
                 const dirty = Object.keys(patch).length > 0;
