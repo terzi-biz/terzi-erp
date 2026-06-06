@@ -18,7 +18,9 @@ import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as HistoryRouteImport } from './routes/history'
+import { Route as EquipmentRouteImport } from './routes/equipment'
 import { Route as DemolitionRouteImport } from './routes/demolition'
+import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
 
@@ -67,9 +69,19 @@ const HistoryRoute = HistoryRouteImport.update({
   path: '/history',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EquipmentRoute = EquipmentRouteImport.update({
+  id: '/equipment',
+  path: '/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemolitionRoute = DemolitionRouteImport.update({
   id: '/demolition',
   path: '/demolition',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BrandingRoute = BrandingRouteImport.update({
@@ -86,7 +98,9 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/branding': typeof BrandingRoute
+  '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/login': typeof LoginRoute
@@ -100,7 +114,9 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/branding': typeof BrandingRoute
+  '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/login': typeof LoginRoute
@@ -115,7 +131,9 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/branding': typeof BrandingRoute
+  '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/login': typeof LoginRoute
@@ -131,7 +149,9 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/branding'
+    | '/clients'
     | '/demolition'
+    | '/equipment'
     | '/history'
     | '/insulation'
     | '/login'
@@ -145,7 +165,9 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/branding'
+    | '/clients'
     | '/demolition'
+    | '/equipment'
     | '/history'
     | '/insulation'
     | '/login'
@@ -159,7 +181,9 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/branding'
+    | '/clients'
     | '/demolition'
+    | '/equipment'
     | '/history'
     | '/insulation'
     | '/login'
@@ -174,7 +198,9 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   BrandingRoute: typeof BrandingRoute
+  ClientsRoute: typeof ClientsRoute
   DemolitionRoute: typeof DemolitionRoute
+  EquipmentRoute: typeof EquipmentRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
   LoginRoute: typeof LoginRoute
@@ -251,11 +277,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HistoryRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/equipment': {
+      id: '/equipment'
+      path: '/equipment'
+      fullPath: '/equipment'
+      preLoaderRoute: typeof EquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demolition': {
       id: '/demolition'
       path: '/demolition'
       fullPath: '/demolition'
       preLoaderRoute: typeof DemolitionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/branding': {
@@ -278,7 +318,9 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandingRoute: BrandingRoute,
+  ClientsRoute: ClientsRoute,
   DemolitionRoute: DemolitionRoute,
+  EquipmentRoute: EquipmentRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
   LoginRoute: LoginRoute,
@@ -292,13 +334,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
