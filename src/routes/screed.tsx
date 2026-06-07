@@ -1,7 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
-import { useAppStore, useUserRole, generateEstimateNumber } from "@/lib/store";
+import { useAppStore, generateEstimateNumber } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { useModulePricing } from "@/lib/usePricing";
+import { saveEstimate } from "@/lib/estimates.functions";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementDelivery, type SandDelivery, type PaymentForm,
@@ -22,11 +27,12 @@ const defaultInput: ScreedInput = {
 function ScreedPage() {
   const t = useT();
   const lang = useI18n((s) => s.lang);
-  const { role } = useUserRole();
-  const isInternal = role !== "manager";
-  const { materialPrices, workPrices, settings, branding, addEstimate } = useAppStore();
+  const { roles, profile } = useAuth();
+  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  const { settings, branding } = useAppStore();
+  const { materialPrices, workPrices } = useModulePricing("screed");
   const [input, setInput] = useState<ScreedInput>(defaultInput);
-  const [client, setClient] = useState({ name: "", phone: "", address: "", manager: "" });
+  const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
 
   const result = useMemo(() => calculateScreed(input, materialPrices, workPrices, settings), [input, materialPrices, workPrices, settings]);
@@ -34,17 +40,32 @@ function ScreedPage() {
 
   const upd = <K extends keyof ScreedInput>(k: K, v: ScreedInput[K]) => setInput((s) => ({ ...s, [k]: v }));
 
-  const onSave = () => {
-    const id = crypto.randomUUID();
-    addEstimate({
-      id, number: generateEstimateNumber(), createdAt: Date.now(), module: "screed",
-      clientName: client.name, clientPhone: client.phone, address: client.address, manager: client.manager,
-      area: input.area, thicknessCm: result.thicknessUsed,
-      totalClient: result.totalClient, totalCost: result.totalCost, grossProfit: result.grossProfit,
-      marginPercent: result.marginPercent, status: "draft", payload: input,
-    });
-    alert("Кошторис збережено в історії");
-  };
+  const qc = useQueryClient();
+  const saveFn = useServerFn(saveEstimate);
+  const saveMut = useMutation({
+    mutationFn: () => saveFn({ data: {
+      number: generateEstimateNumber(),
+      module: "screed",
+      status: "draft",
+      client_name: client.name || null,
+      client_phone: client.phone || null,
+      address: client.address || null,
+      manager: client.manager || null,
+      area: input.area,
+      thickness_cm: result.thicknessUsed,
+      total_client: result.totalClient,
+      total_cost: result.totalCost,
+      gross_profit: result.grossProfit,
+      margin_percent: result.marginPercent,
+      payload: input as unknown as Record<string, unknown>,
+    } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      alert("Кошторис збережено на сервері");
+    },
+    onError: (e: Error) => alert("Помилка збереження: " + e.message),
+  });
+  const onSave = () => saveMut.mutate();
 
   const onPdf = async () => {
     const blob = await generateClientPdf({
