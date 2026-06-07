@@ -99,7 +99,7 @@ function ScreedPage() {
             </button>
           )}
           <button onClick={() => setInput(defaultInput)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><RotateCcw className="w-3 h-3" />{t("reset")}</button>
-          <button onClick={onSave} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><Save className="w-3 h-3" />{t("save")}</button>
+          <button onClick={onSave} disabled={saveMut.isPending} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50"><Save className="w-3 h-3" />{saveMut.isPending ? "…" : t("save")}</button>
           <button onClick={() => window.print()} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><Printer className="w-3 h-3" />{t("print")}</button>
           <button onClick={onPdf} className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2"><Download className="w-3 h-3" />{t("downloadPdf")}</button>
         </div>
