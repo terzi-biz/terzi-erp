@@ -1,18 +1,24 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
-import { useAppStore } from "@/lib/store";
 import { formatUah } from "@/lib/screed-calc";
+import { listEstimates } from "@/lib/estimates.functions";
 import { Layers, Home, Snowflake, Hammer, Plus, History, Users, Palette, BarChart3, Settings } from "lucide-react";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
+interface E { id: string; created_at: string; total_client: number; }
+
 function Dashboard() {
   const t = useT();
-  const history = useAppStore((s) => s.history);
-  const total = history.reduce((a, e) => a + e.totalClient, 0);
+  const list = useServerFn(listEstimates);
+  const { data: rows = [] } = useQuery({ queryKey: ["estimates"], queryFn: () => list() });
+  const history = rows as E[];
+  const total = history.reduce((a, e) => a + Number(e.total_client), 0);
   const avg = history.length ? total / history.length : 0;
   const today = new Date(); today.setHours(0, 0, 0, 0);
-  const todayCount = history.filter((e) => e.createdAt >= today.getTime()).length;
+  const todayCount = history.filter((e) => new Date(e.created_at).getTime() >= today.getTime()).length;
 
   const modules = [
     { to: "/screed", icon: Layers, label: t("screed"), active: true, desc: "Напівсуха машинна стяжка" },
@@ -43,7 +49,6 @@ function Dashboard() {
         </Link>
       </header>
 
-      {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: t("totalEstimates"), value: String(history.length) },
@@ -58,7 +63,6 @@ function Dashboard() {
         ))}
       </div>
 
-      {/* Modules */}
       <section>
         <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4">{t("pickModule")}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -76,7 +80,6 @@ function Dashboard() {
         </div>
       </section>
 
-      {/* Quick actions */}
       <section>
         <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4">Швидкі дії</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
