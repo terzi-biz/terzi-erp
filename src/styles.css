@@ -148,9 +148,29 @@
     border: 1px solid var(--color-border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-panel);
+    position: relative;
+    z-index: 1;
+  }
+
+  .brand-watermark::before {
+    content: "T";
+    position: fixed;
+    right: -4rem;
+    bottom: -6rem;
+    font-size: 36rem;
+    line-height: 0.8;
+    font-weight: 900;
+    color: oklch(0.72 0.17 55 / 0.04);
+    pointer-events: none;
+    z-index: 0;
+    letter-spacing: -0.05em;
+  }
+  @media (max-width: 768px) {
+    .brand-watermark::before { font-size: 20rem; right: -2rem; bottom: -3rem; }
   }
 }
 
 @media print {
   body { background: white !important; color: black !important; }
+  .brand-watermark::before { display: none !important; }
 }
