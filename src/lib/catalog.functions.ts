@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const ModuleEnum = z.enum(["screed", "roofing", "insulation", "demolition", "common"]);
-const KindEnum = z.enum(["material", "work", "equipment"]);
+const KindEnum = z.enum(["material", "work", "equipment", "logistics"]);
 
 const itemInput = z.object({
   id: z.string().uuid().optional(),
@@ -105,24 +105,45 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "bus", name: "Мікроавтобус доставки", unit: "міс.", buy_price: 600000, sell_price: 15000, lifetime_months: 84 },
     { code: "tools", name: "Ручний інструмент бригади", unit: "міс.", buy_price: 50000, sell_price: 1500, lifetime_months: 36 },
   ],
+  "screed.logistics": [
+    { code: "station_city", name: "Доставка станції — місто", unit: "шт", buy_price: 1500, sell_price: 2000 },
+    { code: "station_km", name: "Доставка за межі міста, км×2", unit: "км", buy_price: 40, sell_price: 60 },
+    { code: "cement_own", name: "Цемент — свій бус (до 80 міш.)", unit: "шт", buy_price: 0, sell_price: 1000 },
+    { code: "cement_small_manip", name: "Цемент — маленький маніпулятор", unit: "шт", buy_price: 2000, sell_price: 2500 },
+    { code: "cement_big_manip", name: "Цемент — великий маніпулятор", unit: "шт", buy_price: 2500, sell_price: 3000 },
+    { code: "sand_city", name: "Пісок — місто, 1 ходка (до 15 т)", unit: "ходка", buy_price: 1700, sell_price: 1800 },
+    { code: "sand_outskirts", name: "Пісок — околиця", unit: "ходка", buy_price: 1700, sell_price: 2000 },
+    { code: "sand_chornomorsk", name: "Пісок — Чорноморськ/Іллічівськ", unit: "ходка", buy_price: 1700, sell_price: 2500 },
+    { code: "diesel", name: "Дизель для станції", unit: "л", buy_price: 88, sell_price: 88 },
+  ],
   "roofing.material": [
-    { code: "pvc_15", name: "ПВХ-мембрана 1.5 мм", unit: "м²", buy_price: 280, sell_price: 420 },
-    { code: "geo", name: "Геотекстиль 300 г/м²", unit: "м²", buy_price: 28, sell_price: 55 },
-    { code: "xps_50", name: "XPS 50 мм", unit: "м²", buy_price: 220, sell_price: 320 },
-    { code: "rubemast", name: "Рубемаст наплавний", unit: "рул.", buy_price: 850, sell_price: 1300 },
+    { code: "rubemast", name: "Рубемаст наплавний (рулон 10 м²)", unit: "рул.", buy_price: 850, sell_price: 1300 },
     { code: "primer", name: "Бітумний праймер", unit: "л", buy_price: 65, sell_price: 110 },
-    { code: "fastener", name: "Кріплення телескоп.", unit: "шт", buy_price: 8, sell_price: 18 },
+    { code: "gas", name: "Газ пропан (балон 50 л)", unit: "бал.", buy_price: 1200, sell_price: 1600 },
+    { code: "pvc_15", name: "ПВХ-мембрана 1.5 мм", unit: "м²", buy_price: 280, sell_price: 420 },
+    { code: "geo_300", name: "Геотекстиль 300 г/м²", unit: "м²", buy_price: 28, sell_price: 55 },
+    { code: "fastener", name: "Кріплення телескопічне", unit: "шт", buy_price: 8, sell_price: 18 },
+    { code: "xps_50", name: "XPS 50 мм (розуклонка)", unit: "м²", buy_price: 220, sell_price: 320 },
   ],
   "roofing.work": [
-    { code: "membrane", name: "Монтаж ПВХ-мембрани", unit: "м²", buy_price: 120, sell_price: 280 },
+    { code: "rubemast_lay", name: "Наплавлення рубемасту (1 шар)", unit: "м²", buy_price: 90, sell_price: 200 },
+    { code: "primer_apply", name: "Праймування основи", unit: "м²", buy_price: 15, sell_price: 40 },
+    { code: "pvc_lay", name: "Монтаж ПВХ-мембрани", unit: "м²", buy_price: 120, sell_price: 280 },
+    { code: "geo_lay", name: "Укладка геотекстилю", unit: "м²", buy_price: 20, sell_price: 50 },
     { code: "slope", name: "Розуклонка XPS", unit: "м²", buy_price: 80, sell_price: 220 },
-    { code: "primer", name: "Праймування основи", unit: "м²", buy_price: 15, sell_price: 40 },
-    { code: "rubemast", name: "Наплавлення рулонної", unit: "м²", buy_price: 90, sell_price: 200 },
     { code: "demount", name: "Демонтаж старого покриття", unit: "м²", buy_price: 60, sell_price: 150 },
+    { code: "parapet", name: "Обробка парапету/примикань", unit: "п.м", buy_price: 40, sell_price: 120 },
   ],
   "roofing.equipment": [
-    { code: "gun", name: "Фен Leister", unit: "міс.", buy_price: 75000, sell_price: 2500, lifetime_months: 48 },
     { code: "burner", name: "Газовий пальник", unit: "міс.", buy_price: 25000, sell_price: 800, lifetime_months: 60 },
+    { code: "leister", name: "Фен Leister Triac", unit: "міс.", buy_price: 75000, sell_price: 2500, lifetime_months: 48 },
+    { code: "tools", name: "Ручний інструмент бригади", unit: "міс.", buy_price: 30000, sell_price: 1000, lifetime_months: 36 },
+  ],
+  "roofing.logistics": [
+    { code: "delivery_city", name: "Доставка по місту", unit: "шт", buy_price: 800, sell_price: 1200 },
+    { code: "delivery_km", name: "За межі міста, км×2", unit: "км", buy_price: 30, sell_price: 50 },
+    { code: "lift", name: "Підйом матеріалів на дах", unit: "шт", buy_price: 1500, sell_price: 2500 },
+    { code: "haul", name: "Вивіз сміття (контейнер 8 м³)", unit: "шт", buy_price: 3500, sell_price: 5000 },
   ],
   "insulation.material": [
     { code: "eps_50", name: "EPS-35 50 мм", unit: "м²", buy_price: 85, sell_price: 145 },
@@ -141,6 +162,10 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   "insulation.equipment": [
     { code: "mixer", name: "Будівельний міксер", unit: "міс.", buy_price: 12000, sell_price: 600, lifetime_months: 36 },
   ],
+  "insulation.logistics": [
+    { code: "delivery_city", name: "Доставка по місту", unit: "шт", buy_price: 800, sell_price: 1200 },
+    { code: "delivery_km", name: "За межі міста, км×2", unit: "км", buy_price: 30, sell_price: 50 },
+  ],
   "demolition.material": [
     { code: "bags", name: "Будівельні мішки 70 л", unit: "шт", buy_price: 18, sell_price: 35 },
     { code: "blade", name: "Алмазний диск 230 мм", unit: "шт", buy_price: 380, sell_price: 600 },
@@ -155,5 +180,10 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   "demolition.equipment": [
     { code: "hammer", name: "Відбійний молоток Bosch", unit: "міс.", buy_price: 45000, sell_price: 1500, lifetime_months: 48 },
     { code: "grinder", name: "Болгарка 230 мм", unit: "міс.", buy_price: 9000, sell_price: 400, lifetime_months: 36 },
+  ],
+  "demolition.logistics": [
+    { code: "container_8", name: "Контейнер 8 м³ (вивіз)", unit: "шт", buy_price: 3500, sell_price: 5000 },
+    { code: "container_27", name: "Контейнер 27 м³ (вивіз)", unit: "шт", buy_price: 7000, sell_price: 10000 },
+    { code: "delivery_km", name: "За межі міста, км×2", unit: "км", buy_price: 30, sell_price: 50 },
   ],
 };
