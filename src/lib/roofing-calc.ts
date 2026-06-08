@@ -184,30 +184,32 @@ export function calculateRoofing(
   const effectiveAreaM2 = +(area + parapetAreaM2).toFixed(2);
 
   const lines: RoofLine[] = [];
+  let rollsCount: number | undefined;
+  let gasCylinders: number | undefined;
+  let primerL: number | undefined;
+  let fastenersCount: number | undefined;
 
   if (input.system === "rubemast") {
     const layers = input.layers;
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
     const totalM2 = perLayerM2 * layers;
-    const rolls = ceil(totalM2 / c.rubemastRollAreaM2);
+    rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
     lines.push({
       key: "m_rubemast", block: "materials",
       name: `Рубемаст (${layers} ${layers === 1 ? "шар" : "шари"})`,
-      unit: "рул.", qty: rolls,
+      unit: "рул.", qty: rollsCount,
       pricePerUnit: prices.rubemast.sell, costPerUnit: prices.rubemast.buy,
-      sum: rolls * prices.rubemast.sell, cost: rolls * prices.rubemast.buy,
+      sum: rollsCount * prices.rubemast.sell, cost: rollsCount * prices.rubemast.buy,
     });
 
     // Gas
     const gasKg = totalM2 * c.rubemastGasKgPerLayerM2;
-    const cylinders = ceil(gasKg / c.rubemastGasCylinderKg);
+    gasCylinders = ceil(gasKg / c.rubemastGasCylinderKg);
     lines.push({
       key: "m_gas", block: "materials", name: "Газ пропан", unit: "бал.",
-      qty: cylinders, pricePerUnit: prices.gas.sell, costPerUnit: prices.gas.buy,
-      sum: cylinders * prices.gas.sell, cost: cylinders * prices.gas.buy,
+      qty: gasCylinders, pricePerUnit: prices.gas.sell, costPerUnit: prices.gas.buy,
+      sum: gasCylinders * prices.gas.sell, cost: gasCylinders * prices.gas.buy,
     });
-
-    var primerL = 0, gasCylinders = cylinders, rollsCount = rolls, fastenersCount: number | undefined;
 
     if (input.withPrimer) {
       primerL = ceil(effectiveAreaM2 * c.rubemastPrimerLPerM2);
@@ -254,11 +256,11 @@ export function calculateRoofing(
       });
     }
 
-    const fasteners = ceil(area * c.pvcFastenersPerM2);
+    fastenersCount = ceil(area * c.pvcFastenersPerM2);
     lines.push({
       key: "m_fast", block: "materials", name: "Кріплення телескопічне", unit: "шт",
-      qty: fasteners, pricePerUnit: prices.fastener.sell, costPerUnit: prices.fastener.buy,
-      sum: fasteners * prices.fastener.sell, cost: fasteners * prices.fastener.buy,
+      qty: fastenersCount, pricePerUnit: prices.fastener.sell, costPerUnit: prices.fastener.buy,
+      sum: fastenersCount * prices.fastener.sell, cost: fastenersCount * prices.fastener.buy,
     });
 
     lines.push({
@@ -266,8 +268,6 @@ export function calculateRoofing(
       qty: area, pricePerUnit: works.pvc_lay, costPerUnit: 0,
       sum: area * works.pvc_lay, cost: 0,
     });
-
-    var primerL = 0, gasCylinders: number | undefined, rollsCount: number | undefined, fastenersCount = fasteners;
   }
 
   // Common works
@@ -369,7 +369,7 @@ export function calculateRoofing(
 
   return {
     effectiveAreaM2,
-    rolls: rollsCount, fasteners: fastenersCount, primerL: primerL || undefined, gasCylinders,
+    rolls: rollsCount, fasteners: fastenersCount, primerL, gasCylinders,
     lines, warnings,
     materialsSell, worksSell, logisticsSell, subtotalSell: materialsSell + worksSell + logisticsSell,
     discountAmount, complexityAmount, partnerCommission: input.partnerCommission,
