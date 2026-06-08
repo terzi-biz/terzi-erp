@@ -1,3 +1,252 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ModuleStub } from "@/components/ModuleStub";
-export const Route = createFileRoute("/roofing")({ component: () => <ModuleStub title="Покрівля" desc="Плоска покрівля, ремонт, ПВХ-мембрана, рубероїд, утеплення, розуклонка." /> });
+import { useState, useMemo } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useAppStore, generateEstimateNumber } from "@/lib/store";
+import { useAuth } from "@/lib/auth";
+import { useModulePricing } from "@/lib/usePricing";
+import { saveEstimate } from "@/lib/estimates.functions";
+import {
+  calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
+  type RoofingInput, type RoofSystem, type PaymentForm,
+} from "@/lib/roofing-calc";
+import { formatUah, formatNum } from "@/lib/screed-calc";
+import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff } from "lucide-react";
+
+export const Route = createFileRoute("/roofing")({ component: RoofingPage });
+
+const defaultInput: RoofingInput = {
+  area: 100, perimeter: 40, parapetHeightCm: 30,
+  system: "pvc", layers: 2,
+  withPrimer: true, withSlope: false, slopeAvgThicknessMm: 50,
+  withDemount: false, withGeotextile: true, withParapetWork: true,
+  cityDelivery: true, outOfCityKm: 0, withLift: true, haulContainers: 0,
+  payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
+};
+
+function RoofingPage() {
+  const { roles, profile } = useAuth();
+  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  const { roofingCoeffs } = useAppStore();
+  const { materialPrices, workPrices } = useModulePricing("roofing");
+  const [input, setInput] = useState<RoofingInput>(defaultInput);
+  const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
+  const [showInternal, setShowInternal] = useState(isInternal);
+
+  const worksMapped = useMemo(() => {
+    const w = { ...DEFAULT_ROOFING_WORKS };
+    const wp = workPrices as unknown as Record<string, number>;
+    for (const k of Object.keys(w) as (keyof typeof w)[]) {
+      if (wp[k]) w[k] = wp[k];
+    }
+    return w;
+  }, [workPrices]);
+
+  const result = useMemo(
+    () => calculateRoofing(input, materialPrices, worksMapped, DEFAULT_ROOFING_LOGISTICS, roofingCoeffs),
+    [input, materialPrices, worksMapped, roofingCoeffs],
+  );
+
+  const upd = <K extends keyof RoofingInput>(k: K, v: RoofingInput[K]) => setInput((s) => ({ ...s, [k]: v }));
+
+  const qc = useQueryClient();
+  const saveFn = useServerFn(saveEstimate);
+  const saveMut = useMutation({
+    mutationFn: () => saveFn({ data: {
+      number: generateEstimateNumber(), module: "roofing", status: "draft",
+      client_name: client.name || null, client_phone: client.phone || null,
+      address: client.address || null, manager: client.manager || null,
+      area: input.area, thickness_cm: null,
+      total_client: result.totalClient, total_cost: result.totalCost,
+      gross_profit: result.grossProfit, margin_percent: result.marginPercent,
+      payload: input as unknown as Record<string, unknown>,
+    } }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["estimates"] }); alert("Кошторис покрівлі збережено"); },
+    onError: (e: Error) => alert("Помилка: " + e.message),
+  });
+
+  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+  );
+  const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
+
+  return (
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 relative">
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-border pb-4">
+        <div>
+          <div className="hatch-accent h-1 w-16 mb-2 rounded" />
+          <h1 className="text-xl md:text-2xl font-black">Калькулятор покрівлі</h1>
+          <p className="text-xs text-muted-foreground mt-1">Рубемаст 1–3 шари або ПВХ-мембрана 1.5 мм</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {isInternal && (
+            <button onClick={() => setShowInternal((v) => !v)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+              {showInternal ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+              {showInternal ? "Управлінський" : "Клієнтський"}
+            </button>
+          )}
+          <button onClick={() => setInput(defaultInput)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><RotateCcw className="w-3 h-3" />Скинути</button>
+          <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50"><Save className="w-3 h-3" />{saveMut.isPending ? "…" : "Зберегти"}</button>
+          <button onClick={() => window.print()} className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2"><Printer className="w-3 h-3" />Друк</button>
+        </div>
+      </header>
+
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+        <div className="space-y-4 md:space-y-6">
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <Field label="Замовник"><input className={inp} value={client.name} onChange={(e) => setClient({ ...client, name: e.target.value })} /></Field>
+              <Field label="Телефон"><input className={inp} value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} /></Field>
+              <Field label="Адреса"><input className={inp} value={client.address} onChange={(e) => setClient({ ...client, address: e.target.value })} /></Field>
+              <Field label="Менеджер"><input className={inp} value={client.manager} onChange={(e) => setClient({ ...client, manager: e.target.value })} /></Field>
+            </div>
+          </section>
+
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Система покрівлі</h2>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              {(["rubemast", "pvc"] as RoofSystem[]).map((s) => (
+                <button key={s} onClick={() => upd("system", s)}
+                  className={`p-3 rounded-md border-2 text-sm font-semibold transition ${input.system === s ? "border-primary bg-primary/10 text-primary" : "border-border bg-secondary/40 hover:border-primary/50"}`}>
+                  {s === "rubemast" ? "🔥 Рубемаст" : "🛡️ ПВХ-мембрана"}
+                </button>
+              ))}
+            </div>
+            {input.system === "rubemast" && (
+              <Field label="Кількість шарів">
+                <div className="flex gap-2">
+                  {([1, 2, 3] as const).map((n) => (
+                    <button key={n} onClick={() => upd("layers", n)}
+                      className={`flex-1 py-2 rounded font-bold ${input.layers === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                      {n} {n === 1 ? "шар" : "шари"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            )}
+          </section>
+
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
+              <Field label="Периметр, п.м"><input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
+              <Field label="Парапет, см"><input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} /></Field>
+            </div>
+          </section>
+
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Додатково</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {input.system === "rubemast" && (
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withPrimer} onChange={(e) => upd("withPrimer", e.target.checked)} />Бітумний праймер</label>
+              )}
+              {input.system === "pvc" && (
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withGeotextile} onChange={(e) => upd("withGeotextile", e.target.checked)} />Геотекстиль 300 г/м²</label>
+              )}
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withDemount} onChange={(e) => upd("withDemount", e.target.checked)} />Демонтаж старого покриття</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />Розуклонка XPS</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withParapetWork} onChange={(e) => upd("withParapetWork", e.target.checked)} />Обробка парапету</label>
+            </div>
+          </section>
+
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Логістика</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />Місто</label>
+              <Field label="За містом, км в один бік"><input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Підйом матеріалів на дах</label>
+              <Field label="Контейнери на вивіз (8 м³)"><input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} /></Field>
+            </div>
+          </section>
+
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Комерційні умови</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Field label="Оплата">
+                <select className={inp} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
+                  <option value="cash">Готівка</option>
+                  <option value="cashless">Безготівково</option>
+                  <option value="fop">ФОП (+6%)</option>
+                </select>
+              </Field>
+              <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={input.withVAT} onChange={(e) => upd("withVAT", e.target.checked)} />ПДВ на матеріали</label>
+              <Field label="Комісія партнера, грн"><input type="number" className={inp} value={input.partnerCommission} onChange={(e) => upd("partnerCommission", +e.target.value)} /></Field>
+              <Field label="Знижка, %"><input type="number" className={inp} value={input.discountPercent} onChange={(e) => upd("discountPercent", +e.target.value)} /></Field>
+              <Field label="Складність, %"><input type="number" className={inp} value={input.complexityPercent} onChange={(e) => upd("complexityPercent", +e.target.value)} /></Field>
+            </div>
+          </section>
+        </div>
+
+        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">Результати</h2>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <Stat label="Робоча площа" value={`${formatNum(result.effectiveAreaM2, 1)} м²`} />
+              <Stat label="Система" value={input.system === "rubemast" ? `Рубемаст ×${input.layers}` : "ПВХ 1.5 мм"} />
+              <Stat label="Ціна клієнту" value={formatUah(result.totalClient)} highlight />
+              <Stat label="Ціна за м²" value={`${formatNum(result.pricePerM2, 0)} грн/м²`} />
+              {showInternal && (<>
+                <Stat label="Собівартість" value={formatUah(result.totalCost)} />
+                <Stat label="Прибуток" value={formatUah(result.grossProfit)} />
+                <Stat label="Маржа" value={`${formatNum(result.marginPercent, 1)} %`} highlight={result.marginPercent >= roofingCoeffs.marginThreshold} warn={result.marginPercent < roofingCoeffs.marginThreshold} />
+              </>)}
+            </div>
+            {result.warnings.length > 0 && (
+              <div className="mt-4 space-y-2">
+                {result.warnings.map((w, i) => (
+                  <div key={i} className="flex items-start gap-2 p-2 rounded bg-warning/10 text-warning text-xs">
+                    <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />{w}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section className="panel p-4 md:p-5 max-h-[420px] overflow-auto">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">Кошторис</h2>
+            <table className="w-full text-xs">
+              <thead className="text-muted-foreground border-b border-border">
+                <tr><th className="text-left py-1">Найм.</th><th>К-сть</th><th className="text-right">Сума</th></tr>
+              </thead>
+              <tbody>
+                {(["materials", "works", "logistics"] as const).map((b) => {
+                  const labels = { materials: "Матеріали", works: "Роботи", logistics: "Логістика" };
+                  const rows = result.lines.filter((l) => l.block === b);
+                  return (
+                    <tr key={b + "_wrap"}>
+                      <td colSpan={3} className="p-0">
+                        <div className="pt-3 pb-1 font-bold uppercase text-[10px] tracking-widest text-primary">{labels[b]}</div>
+                        <table className="w-full">
+                          <tbody>
+                            {rows.map((l) => (
+                              <tr key={l.key} className="border-b border-border/40">
+                                <td className="py-1 pr-2">{l.name}</td>
+                                <td className="text-center whitespace-nowrap text-muted-foreground px-2">{formatNum(l.qty, 1)} {l.unit}</td>
+                                <td className="text-right">{formatUah(l.sum)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Stat({ label, value, highlight, warn }: { label: string; value: string; highlight?: boolean; warn?: boolean }) {
+  return (
+    <div className={`p-2 rounded ${warn ? "bg-destructive/10" : highlight ? "bg-primary/10" : "bg-secondary/40"}`}>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`font-bold ${warn ? "text-destructive" : highlight ? "text-primary" : ""}`}>{value}</div>
+    </div>
+  );
+}

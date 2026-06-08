@@ -5,7 +5,7 @@ import { Plus, Trash2, RotateCcw, Save } from "lucide-react";
 import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults } from "@/lib/catalog.functions";
 
 type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
-type Kind = "material" | "work" | "equipment";
+type Kind = "material" | "work" | "equipment" | "logistics";
 
 interface Row {
   id?: string;
@@ -25,7 +25,9 @@ interface Row {
 const MODULE_LABEL: Record<Module, string> = {
   screed: "Стяжка", roofing: "Покрівля", insulation: "Утеплення", demolition: "Демонтаж", common: "Спільні",
 };
-const KIND_LABEL: Record<Kind, string> = { material: "Матеріали", work: "Роботи", equipment: "Обладнання" };
+const KIND_LABEL: Record<Kind, string> = {
+  material: "Матеріали", work: "Роботи", equipment: "Обладнання", logistics: "Логістика",
+};
 
 function margin(buy: number, sell: number) {
   if (!sell) return 0;
@@ -79,14 +81,16 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const isEquip = kind === "equipment";
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="flex items-end justify-between border-b border-border pb-4 mb-6">
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-border pb-4 mb-6">
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
-          <h1 className="text-2xl font-black">{MODULE_LABEL[module]} · {KIND_LABEL[kind]}</h1>
-          <p className="text-sm text-muted-foreground mt-1">
+          <h1 className="text-xl md:text-2xl font-black">{MODULE_LABEL[module]} · {KIND_LABEL[kind]}</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
             {isEquip
               ? "Назва, вартість придбання, термін експлуатації, місячна амортизація для клієнта."
+              : kind === "logistics"
+              ? "Доставки, підйоми, вивіз сміття. Закупка / продаж — для маржинальності."
               : "Назва, одиниця, закупка, продаж, маржинальність. Можна додавати кастомні позиції."}
           </p>
         </div>
@@ -99,24 +103,24 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
           )}
           <button onClick={onAdd}
             className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
-            <Plus className="w-3 h-3" /> Додати позицію
+            <Plus className="w-3 h-3" /> Додати
           </button>
         </div>
       </div>
 
       {isLoading ? <div className="text-muted-foreground text-sm">Завантаження…</div> : (
         <div className="panel overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm min-w-[640px]">
             <thead className="bg-secondary text-xs uppercase tracking-wider">
               <tr>
                 <th className="text-left p-3">Назва</th>
                 <th className="text-left p-3 w-20">Од.</th>
-                <th className="text-right p-3 w-32">{isEquip ? "Вартість" : "Закупка"}</th>
-                <th className="text-right p-3 w-32">{isEquip ? "Амортиз./міс." : "Продаж"}</th>
-                {isEquip && <th className="text-right p-3 w-24">Термін, міс.</th>}
-                <th className="text-right p-3 w-24">Маржа</th>
-                <th className="text-center p-3 w-24">Тип</th>
-                <th className="p-3 w-24" />
+                <th className="text-right p-3 w-28">{isEquip ? "Вартість" : "Закупка"}</th>
+                <th className="text-right p-3 w-28">{isEquip ? "Амортиз./міс." : "Продаж"}</th>
+                {isEquip && <th className="text-right p-3 w-20">Міс.</th>}
+                <th className="text-right p-3 w-20">Маржа</th>
+                <th className="text-center p-3 w-20">Тип</th>
+                <th className="p-3 w-20" />
               </tr>
             </thead>
             <tbody>
