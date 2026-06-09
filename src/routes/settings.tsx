@@ -136,7 +136,7 @@ function SettingsPage() {
         ))}
         {tab === "roofing" && ROOFING_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
-            getVal={(k) => (roofingCoeffs as Record<string, number>)[k]}
+            getVal={(k) => (roofingCoeffs as unknown as Record<string, number>)[k]}
             onChange={(k, v) => updateRoofingCoeffs({ [k]: v } as Partial<typeof roofingCoeffs>)} />
         ))}
         {tab === "common" && (
