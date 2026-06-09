@@ -58,11 +58,11 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   const footerTop = drawFooter();
 
   // Title row
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT, "bold");
   doc.setFontSize(14);
   doc.setTextColor(15, 23, 42);
   doc.text(`${input.lang === "ua" ? "Комерційна пропозиція" : "Коммерческое предложение"} № ${input.number}`, margin, y + 4);
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT, "normal");
   doc.setFontSize(9);
   doc.text(`${input.lang === "ua" ? "Дата" : "Дата"}: ${input.date}`, pageW - margin, y + 4, { align: "right" });
   y += 10;
@@ -89,7 +89,7 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   doc.setFillColor(15, 23, 42);
   doc.setTextColor(255, 255, 255);
   doc.rect(margin, y, pageW - margin * 2, 7, "F");
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT, "bold");
   doc.setFontSize(9);
   doc.text(input.lang === "ua" ? "Найменування" : "Наименование", margin + 2, y + 5);
   doc.text(t("unit", input.lang), 120, y + 5);
@@ -98,7 +98,7 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   doc.text(t("sum", input.lang), pageW - margin - 2, y + 5, { align: "right" });
   y += 9;
 
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT, "normal");
   doc.setTextColor(20, 20, 20);
 
   const blocks: Array<{ title: string; block: "materials" | "works" | "logistics" }> = [
@@ -111,13 +111,13 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
     const rows = input.result.lines.filter((l) => l.block === b.block && l.showToClient);
     if (!rows.length) continue;
 
-    doc.setFont("helvetica", "bold");
+    doc.setFont(FONT, "bold");
     doc.setFillColor(235, 235, 240);
     doc.rect(margin, y, pageW - margin * 2, 5.5, "F");
     doc.setTextColor(15, 23, 42);
     doc.text(b.title, margin + 2, y + 4);
     y += 7;
-    doc.setFont("helvetica", "normal");
+    doc.setFont(FONT, "normal");
     doc.setTextColor(30, 30, 30);
 
     for (const r of rows) {
@@ -138,7 +138,7 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   doc.setDrawColor(15, 23, 42);
   doc.line(margin, y, pageW - margin, y);
   y += 5;
-  doc.setFont("helvetica", "bold");
+  doc.setFont(FONT, "bold");
   doc.setFontSize(11);
   doc.setTextColor(15, 23, 42);
   doc.text(t("total", input.lang) + ":", margin + 2, y);
@@ -147,7 +147,7 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   y += 6;
   doc.setFontSize(9);
   doc.setTextColor(80, 80, 80);
-  doc.setFont("helvetica", "normal");
+  doc.setFont(FONT, "normal");
   doc.text(`${t("pricePerM2", input.lang)}: ${Math.round(input.result.pricePerM2)} грн/м²`, margin + 2, y);
   y += 6;
 
