@@ -36,6 +36,7 @@ const loadImage = (src: string): Promise<HTMLImageElement> =>
 
 export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  await attachCyrillicFonts(doc);
   const pageW = 210;
   const margin = 10;
   const [hdr, ftr] = await Promise.all([loadImage(headerImg), loadImage(footerImg)]);
