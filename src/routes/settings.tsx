@@ -145,7 +145,7 @@ function SettingsPage() {
               getVal={(k) => (settings as Record<string, number>)[k]}
               onChange={(k, v) => updateSettings({ [k]: v } as Partial<typeof settings>)} />
             <Group title="Покрівля — спільні" fields={COMMON_FIELDS}
-              getVal={(k) => (roofingCoeffs as Record<string, number>)[k]}
+              getVal={(k) => (roofingCoeffs as unknown as Record<string, number>)[k]}
               onChange={(k, v) => updateRoofingCoeffs({ [k]: v } as Partial<typeof roofingCoeffs>)} />
           </>
         )}
