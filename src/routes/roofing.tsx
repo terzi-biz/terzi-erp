@@ -37,10 +37,8 @@ function RoofingPage() {
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
 
-  // Auto-set drip edge default = perimeter, if user hasn't touched it
-  useEffect(() => {
-    setInput((s) => (s.dripEdgeMeters === 0 ? { ...s, dripEdgeMeters: 0 } : s));
-  }, []);
+
+
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_ROOFING_WORKS };
