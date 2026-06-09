@@ -8,18 +8,22 @@ import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
-  type RoofingInput, type RoofSystem, type PaymentForm,
+  type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff } from "lucide-react";
+import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing")({ component: RoofingPage });
 
 const defaultInput: RoofingInput = {
   area: 100, perimeter: 40, parapetHeightCm: 30,
-  system: "pvc", layers: 2,
+  system: "pvc", layers: 2, pvcThickness: "1.5",
   withPrimer: true, withSlope: false, slopeAvgThicknessMm: 50,
   withDemount: false, withGeotextile: true, withParapetWork: true,
+  withGaltel: false,
+  funnelsCount: 0, aeratorsCount: 0, dripEdgeMeters: 0,
+  innerCornersCount: 0, outerCornersCount: 0, opaikaPoints: 0,
   cityDelivery: true, outOfCityKm: 0, withLift: true, haulContainers: 0,
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
@@ -32,6 +36,9 @@ function RoofingPage() {
   const [input, setInput] = useState<RoofingInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
+
+
+
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_ROOFING_WORKS };
@@ -72,11 +79,18 @@ function RoofingPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 relative">
-      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-border pb-4">
-        <div>
-          <div className="hatch-accent h-1 w-16 mb-2 rounded" />
-          <h1 className="text-xl md:text-2xl font-black">Калькулятор покрівлі</h1>
-          <p className="text-xs text-muted-foreground mt-1">Рубемаст 1–3 шари або ПВХ-мембрана 1.5 мм</p>
+      {/* Brand logo watermark */}
+      <img src={logoAsset.url} alt="" aria-hidden="true"
+        className="pointer-events-none select-none fixed right-6 bottom-6 w-40 md:w-56 opacity-[0.06] z-0" />
+
+      <header className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-border pb-4 relative z-10">
+        <div className="flex items-center gap-3">
+          <img src={logoAsset.url} alt="TERZI" className="w-12 h-12 rounded-md object-cover ring-1 ring-border" />
+          <div>
+            <div className="hatch-accent h-1 w-16 mb-2 rounded" />
+            <h1 className="text-xl md:text-2xl font-black">Калькулятор покрівлі</h1>
+            <p className="text-xs text-muted-foreground mt-1">Рубемаст 1–3 шари або ПВХ-мембрана Sika 1.5 / 1.8 мм</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           {isInternal && (
@@ -91,7 +105,7 @@ function RoofingPage() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6 relative z-10">
         <div className="space-y-4 md:space-y-6">
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
@@ -109,7 +123,7 @@ function RoofingPage() {
               {(["rubemast", "pvc"] as RoofSystem[]).map((s) => (
                 <button key={s} onClick={() => upd("system", s)}
                   className={`p-3 rounded-md border-2 text-sm font-semibold transition ${input.system === s ? "border-primary bg-primary/10 text-primary" : "border-border bg-secondary/40 hover:border-primary/50"}`}>
-                  {s === "rubemast" ? "🔥 Рубемаст" : "🛡️ ПВХ-мембрана"}
+                  {s === "rubemast" ? "🔥 Рубемаст" : "🛡️ ПВХ-мембрана Sika"}
                 </button>
               ))}
             </div>
@@ -120,6 +134,18 @@ function RoofingPage() {
                     <button key={n} onClick={() => upd("layers", n)}
                       className={`flex-1 py-2 rounded font-bold ${input.layers === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                       {n} {n === 1 ? "шар" : "шари"}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+            )}
+            {input.system === "pvc" && (
+              <Field label="Товщина мембрани Sika">
+                <div className="flex gap-2">
+                  {(["1.5", "1.8"] as PvcThickness[]).map((t) => (
+                    <button key={t} onClick={() => upd("pvcThickness", t)}
+                      className={`flex-1 py-2 rounded font-bold ${input.pvcThickness === t ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                      {t} мм
                     </button>
                   ))}
                 </div>
@@ -140,15 +166,37 @@ function RoofingPage() {
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Додатково</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {input.system === "rubemast" && (
-                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withPrimer} onChange={(e) => upd("withPrimer", e.target.checked)} />Бітумний праймер</label>
+                <>
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withPrimer} onChange={(e) => upd("withPrimer", e.target.checked)} />Бітумний праймер</label>
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withGaltel} onChange={(e) => upd("withGaltel", e.target.checked)} />Галтель по периметру (ц/п)</label>
+                </>
               )}
               {input.system === "pvc" && (
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withGeotextile} onChange={(e) => upd("withGeotextile", e.target.checked)} />Геотекстиль 300 г/м²</label>
               )}
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withDemount} onChange={(e) => upd("withDemount", e.target.checked)} />Демонтаж старого покриття</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />Розуклонка XPS</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withParapetWork} onChange={(e) => upd("withParapetWork", e.target.checked)} />Обробка парапету</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withParapetWork} onChange={(e) => upd("withParapetWork", e.target.checked)} />Обробка парапету/примикань</label>
             </div>
+          </section>
+
+          <section className="panel p-4 md:p-5">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Аксесуари / комплектація</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <Field label="Воронки, шт"><input type="number" min={0} className={inp} value={input.funnelsCount} onChange={(e) => upd("funnelsCount", +e.target.value)} /></Field>
+              {input.system === "rubemast" && (
+                <Field label="Аератори, шт"><input type="number" min={0} className={inp} value={input.aeratorsCount} onChange={(e) => upd("aeratorsCount", +e.target.value)} /></Field>
+              )}
+              <Field label="Капельники, п.м"><input type="number" min={0} className={inp} value={input.dripEdgeMeters} onChange={(e) => upd("dripEdgeMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} /></Field>
+              {input.system === "pvc" && (<>
+                <Field label="Внутрішні кути, шт"><input type="number" min={0} className={inp} value={input.innerCornersCount} onChange={(e) => upd("innerCornersCount", +e.target.value)} /></Field>
+                <Field label="Зовнішні кути, шт"><input type="number" min={0} className={inp} value={input.outerCornersCount} onChange={(e) => upd("outerCornersCount", +e.target.value)} /></Field>
+              </>)}
+              {input.system === "rubemast" && (
+                <Field label="Точки опайки, шт"><input type="number" min={0} className={inp} value={input.opaikaPoints} onChange={(e) => upd("opaikaPoints", +e.target.value)} /></Field>
+              )}
+            </div>
+            <p className="text-[11px] text-muted-foreground mt-2">Залиште 0, якщо не використовується. Капельники типово = периметру.</p>
           </section>
 
           <section className="panel p-4 md:p-5">
@@ -184,7 +232,7 @@ function RoofingPage() {
             <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">Результати</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <Stat label="Робоча площа" value={`${formatNum(result.effectiveAreaM2, 1)} м²`} />
-              <Stat label="Система" value={input.system === "rubemast" ? `Рубемаст ×${input.layers}` : "ПВХ 1.5 мм"} />
+              <Stat label="Система" value={input.system === "rubemast" ? `Рубемаст ×${input.layers}` : `ПВХ Sika ${input.pvcThickness} мм`} />
               <Stat label="Ціна клієнту" value={formatUah(result.totalClient)} highlight />
               <Stat label="Ціна за м²" value={`${formatNum(result.pricePerM2, 0)} грн/м²`} />
               {showInternal && (<>
@@ -214,6 +262,7 @@ function RoofingPage() {
                 {(["materials", "works", "logistics"] as const).map((b) => {
                   const labels = { materials: "Матеріали", works: "Роботи", logistics: "Логістика" };
                   const rows = result.lines.filter((l) => l.block === b);
+                  if (rows.length === 0) return null;
                   return (
                     <tr key={b + "_wrap"}>
                       <td colSpan={3} className="p-0">
