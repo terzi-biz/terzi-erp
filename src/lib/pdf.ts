@@ -4,8 +4,11 @@ import footerImg from "@/assets/terzi-footer.png";
 import type { CalcResult } from "./screed-calc";
 import type { Branding } from "./store";
 import { dict, type Lang } from "./i18n";
+import { attachCyrillicFonts } from "./pdfFonts";
 
+const FONT = "NotoSans";
 const t = (key: string, lang: Lang) => (dict[key as keyof typeof dict]?.[lang] ?? key);
+
 
 export interface PdfInput {
   number: string;
