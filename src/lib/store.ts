@@ -5,6 +5,8 @@ import {
   type MaterialPrice, type Settings,
 } from "./screed-calc";
 import { DEFAULT_ROOFING_COEFFS, type RoofingCoefficients } from "./roofing-calc";
+import { DEFAULT_INSULATION_COEFFS, type InsulationCoefficients } from "./insulation-calc";
+import { DEFAULT_DEMOLITION_COEFFS, type DemolitionCoefficients } from "./demolition-calc";
 
 export interface EstimateRecord {
   id: string;
@@ -35,6 +37,8 @@ interface AppState {
   workPrices: typeof DEFAULT_WORK_PRICES;
   settings: Settings;
   roofingCoeffs: RoofingCoefficients;
+  insulationCoeffs: InsulationCoefficients;
+  demolitionCoeffs: DemolitionCoefficients;
   branding: Branding;
   history: EstimateRecord[];
 
@@ -42,6 +46,8 @@ interface AppState {
   setWorkPrice: (key: keyof typeof DEFAULT_WORK_PRICES, v: number) => void;
   updateSettings: (patch: Partial<Settings>) => void;
   updateRoofingCoeffs: (patch: Partial<RoofingCoefficients>) => void;
+  updateInsulationCoeffs: (patch: Partial<InsulationCoefficients>) => void;
+  updateDemolitionCoeffs: (patch: Partial<DemolitionCoefficients>) => void;
   resetDefaults: () => void;
   updateBranding: (b: Partial<Branding>) => void;
   addEstimate: (e: EstimateRecord) => void;
@@ -75,21 +81,27 @@ export const useAppStore = create<AppState>()(
       workPrices: { ...DEFAULT_WORK_PRICES },
       settings: { ...DEFAULT_SETTINGS },
       roofingCoeffs: { ...DEFAULT_ROOFING_COEFFS },
+      insulationCoeffs: { ...DEFAULT_INSULATION_COEFFS },
+      demolitionCoeffs: { ...DEFAULT_DEMOLITION_COEFFS },
       branding: defaultBranding,
       history: [],
       setMaterialPrice: (key, p) => set((s) => ({ materialPrices: { ...s.materialPrices, [key]: p } })),
       setWorkPrice: (key, v) => set((s) => ({ workPrices: { ...s.workPrices, [key]: v } })),
       updateSettings: (patch) => set((s) => ({ settings: { ...s.settings, ...patch } })),
       updateRoofingCoeffs: (patch) => set((s) => ({ roofingCoeffs: { ...s.roofingCoeffs, ...patch } })),
+      updateInsulationCoeffs: (patch) => set((s) => ({ insulationCoeffs: { ...s.insulationCoeffs, ...patch } })),
+      updateDemolitionCoeffs: (patch) => set((s) => ({ demolitionCoeffs: { ...s.demolitionCoeffs, ...patch } })),
       resetDefaults: () => set({
         materialPrices: { ...DEFAULT_MATERIAL_PRICES }, workPrices: { ...DEFAULT_WORK_PRICES },
         settings: { ...DEFAULT_SETTINGS }, roofingCoeffs: { ...DEFAULT_ROOFING_COEFFS },
+        insulationCoeffs: { ...DEFAULT_INSULATION_COEFFS },
+        demolitionCoeffs: { ...DEFAULT_DEMOLITION_COEFFS },
       }),
       updateBranding: (b) => set((s) => ({ branding: { ...s.branding, ...b } })),
       addEstimate: (e) => set((s) => ({ history: [e, ...s.history] })),
       removeEstimate: (id) => set((s) => ({ history: s.history.filter((x) => x.id !== id) })),
     }),
-    { name: "terzi-app-store-v2" },
+    { name: "terzi-app-store-v3" },
   ),
 );
 

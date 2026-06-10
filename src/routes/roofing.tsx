@@ -1,17 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { exportElementAsPng } from "@/lib/pngExport";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
   type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
-import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon } from "lucide-react";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing")({ component: RoofingPage });
