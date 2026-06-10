@@ -5,7 +5,7 @@ import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders } from "lucide-rea
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
-type Tab = "screed" | "roofing" | "common";
+type Tab = "screed" | "roofing" | "insulation" | "demolition" | "common";
 
 const SCREED_GROUPS = [
   { title: "Норми витрат бригади", fields: [
@@ -63,6 +63,40 @@ const ROOFING_GROUPS = [
   ]},
 ];
 
+const INSULATION_GROUPS = [
+  { title: "Витрати матеріалів", fields: [
+    { key: "cutoffCoef", label: "Коеф. перевитрати плит (обрізки)", step: "0.01" },
+    { key: "glueBagsPer10M2", label: "Клей: мішків на 10 м²", step: "0.1" },
+    { key: "dowelsPerM2", label: "Дюбелі, шт/м²" },
+    { key: "meshCoef", label: "Склосітка (коеф. з нахльостом)", step: "0.01" },
+    { key: "polystyrcreteWastePercent", label: "Полістиролбетон: втрати, %" },
+  ]},
+  { title: "Бригада / амортизація", fields: [
+    { key: "brigadeMin", label: "Мін. оплата бригади, грн" },
+    { key: "brigadePerM2", label: "Бригада, грн/м²" },
+    { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
+    { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
+  ]},
+];
+
+const DEMOLITION_GROUPS = [
+  { title: "Об'єм сміття", fields: [
+    { key: "wasteM3PerM2Screed", label: "Стяжка, м³/м² (default)", step: "0.01" },
+    { key: "wasteM3PerM2Tile", label: "Плитка, м³/м²", step: "0.01" },
+    { key: "wasteM3PerM2Roof", label: "Покрівля, м³/м²", step: "0.01" },
+    { key: "wasteM3PerM2Walls", label: "Перегородки, м³/м²", step: "0.01" },
+    { key: "wasteLooseCoef", label: "Коеф. розпушення", step: "0.05" },
+    { key: "bagsPerM3", label: "Мішків на 1 м³" },
+    { key: "floorAddPercent", label: "Надбавка за поверх, %" },
+  ]},
+  { title: "Бригада / амортизація", fields: [
+    { key: "brigadeMin", label: "Мін. оплата бригади, грн" },
+    { key: "brigadePerM2", label: "Бригада, грн/м²" },
+    { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
+    { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
+  ]},
+];
+
 const COMMON_FIELDS = [
   { key: "minCheck", label: "Мінімальний чек, грн" },
   { key: "marginThreshold", label: "Поріг маржинальності, %" },
@@ -72,12 +106,20 @@ const COMMON_FIELDS = [
 ];
 
 function SettingsPage() {
-  const { settings, updateSettings, roofingCoeffs, updateRoofingCoeffs, resetDefaults } = useAppStore();
+  const {
+    settings, updateSettings,
+    roofingCoeffs, updateRoofingCoeffs,
+    insulationCoeffs, updateInsulationCoeffs,
+    demolitionCoeffs, updateDemolitionCoeffs,
+    resetDefaults,
+  } = useAppStore();
   const [tab, setTab] = useState<Tab>("screed");
 
   const tabs: { id: Tab; label: string; icon: typeof Layers }[] = [
     { id: "screed", label: "Стяжка", icon: Layers },
     { id: "roofing", label: "Покрівля", icon: RoofIcon },
+    { id: "insulation", label: "Утеплення", icon: Snowflake },
+    { id: "demolition", label: "Демонтаж", icon: Hammer },
     { id: "common", label: "Спільні", icon: Sliders },
   ];
 
@@ -120,12 +162,6 @@ function SettingsPage() {
             <tb.icon className="w-4 h-4" /> {tb.label}
           </button>
         ))}
-        <button disabled className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-secondary/40 text-muted-foreground opacity-50 whitespace-nowrap">
-          <Snowflake className="w-4 h-4" /> Утеплення (скоро)
-        </button>
-        <button disabled className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold bg-secondary/40 text-muted-foreground opacity-50 whitespace-nowrap">
-          <Hammer className="w-4 h-4" /> Демонтаж (скоро)
-        </button>
       </div>
 
       <div className="space-y-4">
@@ -139,6 +175,16 @@ function SettingsPage() {
             getVal={(k) => (roofingCoeffs as unknown as Record<string, number>)[k]}
             onChange={(k, v) => updateRoofingCoeffs({ [k]: v } as Partial<typeof roofingCoeffs>)} />
         ))}
+        {tab === "insulation" && INSULATION_GROUPS.map((g) => (
+          <Group key={g.title} title={g.title} fields={g.fields}
+            getVal={(k) => (insulationCoeffs as unknown as Record<string, number>)[k]}
+            onChange={(k, v) => updateInsulationCoeffs({ [k]: v } as Partial<typeof insulationCoeffs>)} />
+        ))}
+        {tab === "demolition" && DEMOLITION_GROUPS.map((g) => (
+          <Group key={g.title} title={g.title} fields={g.fields}
+            getVal={(k) => (demolitionCoeffs as unknown as Record<string, number>)[k]}
+            onChange={(k, v) => updateDemolitionCoeffs({ [k]: v } as Partial<typeof demolitionCoeffs>)} />
+        ))}
         {tab === "common" && (
           <>
             <Group title="Стяжка — спільні" fields={COMMON_FIELDS}
@@ -147,6 +193,12 @@ function SettingsPage() {
             <Group title="Покрівля — спільні" fields={COMMON_FIELDS}
               getVal={(k) => (roofingCoeffs as unknown as Record<string, number>)[k]}
               onChange={(k, v) => updateRoofingCoeffs({ [k]: v } as Partial<typeof roofingCoeffs>)} />
+            <Group title="Утеплення — спільні" fields={COMMON_FIELDS}
+              getVal={(k) => (insulationCoeffs as unknown as Record<string, number>)[k]}
+              onChange={(k, v) => updateInsulationCoeffs({ [k]: v } as Partial<typeof insulationCoeffs>)} />
+            <Group title="Демонтаж — спільні" fields={COMMON_FIELDS}
+              getVal={(k) => (demolitionCoeffs as unknown as Record<string, number>)[k]}
+              onChange={(k, v) => updateDemolitionCoeffs({ [k]: v } as Partial<typeof demolitionCoeffs>)} />
           </>
         )}
       </div>
