@@ -6,6 +6,21 @@ import {
   DEFAULT_MATERIAL_PRICES, DEFAULT_WORK_PRICES,
   type MaterialPrice,
 } from "@/lib/screed-calc";
+import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
+import { DEFAULT_DEMOLITION_PRICES, DEFAULT_DEMOLITION_WORKS } from "@/lib/demolition-calc";
+
+const MODULE_DEFAULT_MATERIALS: Record<string, Record<string, MaterialPrice>> = {
+  screed: DEFAULT_MATERIAL_PRICES,
+  roofing: DEFAULT_MATERIAL_PRICES, // roofing materials merged into shared defaults
+  insulation: DEFAULT_INSULATION_PRICES,
+  demolition: DEFAULT_DEMOLITION_PRICES,
+};
+const MODULE_DEFAULT_WORKS: Record<string, Record<string, number>> = {
+  screed: DEFAULT_WORK_PRICES as unknown as Record<string, number>,
+  roofing: DEFAULT_WORK_PRICES as unknown as Record<string, number>,
+  insulation: DEFAULT_INSULATION_WORKS as unknown as Record<string, number>,
+  demolition: DEFAULT_DEMOLITION_WORKS as unknown as Record<string, number>,
+};
 
 type Module = "screed" | "roofing" | "insulation" | "demolition";
 
@@ -28,24 +43,22 @@ export function useModulePricing(module: Module) {
   });
 
   const materialPrices = useMemo<Record<string, MaterialPrice>>(() => {
-    const out: Record<string, MaterialPrice> = { ...DEFAULT_MATERIAL_PRICES };
+    const out: Record<string, MaterialPrice> = { ...(MODULE_DEFAULT_MATERIALS[module] ?? {}) };
     for (const r of (mats.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
       if (!r.code) continue;
       out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
     }
     return out;
-  }, [mats.data]);
+  }, [mats.data, module]);
 
   const workPrices = useMemo(() => {
-    const out = { ...DEFAULT_WORK_PRICES };
+    const out: Record<string, number> = { ...(MODULE_DEFAULT_WORKS[module] ?? {}) };
     for (const r of (works.data ?? []) as Array<{ code: string | null; sell_price: number }>) {
       if (!r.code) continue;
-      if (r.code in out) {
-        (out as Record<string, number>)[r.code] = Number(r.sell_price) || 0;
-      }
+      out[r.code] = Number(r.sell_price) || 0;
     }
     return out;
-  }, [works.data]);
+  }, [works.data, module]);
 
   return { materialPrices, workPrices, loading: mats.isLoading || works.isLoading };
 }
