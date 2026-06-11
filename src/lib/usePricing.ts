@@ -43,24 +43,22 @@ export function useModulePricing(module: Module) {
   });
 
   const materialPrices = useMemo<Record<string, MaterialPrice>>(() => {
-    const out: Record<string, MaterialPrice> = { ...DEFAULT_MATERIAL_PRICES };
+    const out: Record<string, MaterialPrice> = { ...(MODULE_DEFAULT_MATERIALS[module] ?? {}) };
     for (const r of (mats.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
       if (!r.code) continue;
       out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
     }
     return out;
-  }, [mats.data]);
+  }, [mats.data, module]);
 
   const workPrices = useMemo(() => {
-    const out = { ...DEFAULT_WORK_PRICES };
+    const out: Record<string, number> = { ...(MODULE_DEFAULT_WORKS[module] ?? {}) };
     for (const r of (works.data ?? []) as Array<{ code: string | null; sell_price: number }>) {
       if (!r.code) continue;
-      if (r.code in out) {
-        (out as Record<string, number>)[r.code] = Number(r.sell_price) || 0;
-      }
+      out[r.code] = Number(r.sell_price) || 0;
     }
     return out;
-  }, [works.data]);
+  }, [works.data, module]);
 
   return { materialPrices, workPrices, loading: mats.isLoading || works.isLoading };
 }
