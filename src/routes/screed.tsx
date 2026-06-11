@@ -35,7 +35,7 @@ function ScreedPage() {
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
 
-  const result = useMemo(() => calculateScreed(input, materialPrices, workPrices, settings), [input, materialPrices, workPrices, settings]);
+  const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings), [input, materialPrices, workPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
 
   const upd = <K extends keyof ScreedInput>(k: K, v: ScreedInput[K]) => setInput((s) => ({ ...s, [k]: v }));
