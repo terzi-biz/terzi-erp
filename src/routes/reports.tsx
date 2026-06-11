@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatUah } from "@/lib/screed-calc";
+import { useAuth } from "@/lib/auth";
 import { listEstimates } from "@/lib/estimates.functions";
 
 export const Route = createFileRoute("/reports")({ component: ReportsPage });
@@ -12,8 +13,9 @@ interface E {
 }
 
 function ReportsPage() {
+  const { user } = useAuth();
   const list = useServerFn(listEstimates);
-  const { data: rows = [] } = useQuery({ queryKey: ["estimates"], queryFn: () => list() });
+  const { data: rows = [] } = useQuery({ queryKey: ["estimates"], queryFn: () => list(), enabled: !!user });
   const history = (rows as E[]).map((e) => ({
     ...e,
     total_client: Number(e.total_client),
