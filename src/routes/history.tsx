@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Trash2 } from "lucide-react";
 import { useT } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { formatUah } from "@/lib/screed-calc";
 import { listEstimates, deleteEstimate } from "@/lib/estimates.functions";
 
@@ -31,11 +32,12 @@ const STATUS_LABEL: Record<string, string> = {
 
 function HistoryPage() {
   const t = useT();
+  const { user } = useAuth();
   const qc = useQueryClient();
   const list = useServerFn(listEstimates);
   const del = useServerFn(deleteEstimate);
   const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["estimates"], queryFn: () => list(),
+    queryKey: ["estimates"], queryFn: () => list(), enabled: !!user,
   });
   const delMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
