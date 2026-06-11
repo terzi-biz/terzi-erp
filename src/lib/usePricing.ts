@@ -6,6 +6,21 @@ import {
   DEFAULT_MATERIAL_PRICES, DEFAULT_WORK_PRICES,
   type MaterialPrice,
 } from "@/lib/screed-calc";
+import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
+import { DEFAULT_DEMOLITION_PRICES, DEFAULT_DEMOLITION_WORKS } from "@/lib/demolition-calc";
+
+const MODULE_DEFAULT_MATERIALS: Record<string, Record<string, MaterialPrice>> = {
+  screed: DEFAULT_MATERIAL_PRICES,
+  roofing: DEFAULT_MATERIAL_PRICES, // roofing materials merged into shared defaults
+  insulation: DEFAULT_INSULATION_PRICES,
+  demolition: DEFAULT_DEMOLITION_PRICES,
+};
+const MODULE_DEFAULT_WORKS: Record<string, Record<string, number>> = {
+  screed: DEFAULT_WORK_PRICES as unknown as Record<string, number>,
+  roofing: DEFAULT_WORK_PRICES as unknown as Record<string, number>,
+  insulation: DEFAULT_INSULATION_WORKS as unknown as Record<string, number>,
+  demolition: DEFAULT_DEMOLITION_WORKS as unknown as Record<string, number>,
+};
 
 type Module = "screed" | "roofing" | "insulation" | "demolition";
 
