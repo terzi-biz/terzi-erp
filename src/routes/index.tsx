@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { formatUah } from "@/lib/screed-calc";
 import { listEstimates } from "@/lib/estimates.functions";
 import { Layers, Home, Snowflake, Hammer, Plus, History, Users, Palette, BarChart3, Settings } from "lucide-react";
@@ -12,8 +13,9 @@ interface E { id: string; created_at: string; total_client: number; }
 
 function Dashboard() {
   const t = useT();
+  const { user } = useAuth();
   const list = useServerFn(listEstimates);
-  const { data: rows = [] } = useQuery({ queryKey: ["estimates"], queryFn: () => list() });
+  const { data: rows = [] } = useQuery({ queryKey: ["estimates"], queryFn: () => list(), enabled: !!user });
   const history = rows as E[];
   const total = history.reduce((a, e) => a + Number(e.total_client), 0);
   const avg = history.length ? total / history.length : 0;
