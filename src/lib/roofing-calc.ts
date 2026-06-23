@@ -229,6 +229,8 @@ export function calculateRoofing(
 ): RoofingResult {
   // Helper: read price with fallback to DEFAULT_ROOFING_PRICES
   const px = (k: string): MaterialPrice => prices[k] ?? DEFAULT_ROOFING_PRICES[k] ?? { buy: 0, sell: 0 };
+  // Helper: brigade cost per unit for a given work key.
+  const wcost = (k: string): number => DEFAULT_ROOFING_WORK_COSTS[k] ?? 0;
 
   const warnings: string[] = [];
   const area = Math.max(0, input.area);
