@@ -85,6 +85,15 @@ function LoginPage() {
             Продовжити з Google
           </button>
 
+          <button
+            onClick={withApple}
+            disabled={busy}
+            className="w-full mt-3 flex items-center justify-center gap-3 bg-foreground text-background hover:opacity-90 border border-border rounded-md py-3 text-sm font-semibold transition-opacity disabled:opacity-50"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.49-.12-1.17.461-2.36 1.15-3.12.768-.9 2.063-1.55 3.014-1.45zM21.5 17.04c-.547 1.26-.81 1.82-1.51 2.94-.97 1.55-2.34 3.48-4.03 3.49-1.5.01-1.89-.97-3.93-.96-2.04.01-2.46.97-3.96.96-1.69-.01-2.98-1.76-3.95-3.31C1.43 16.4.74 11.27 2.96 7.96c1.41-2.1 3.64-3.33 5.73-3.33 2.13 0 3.47 1.16 5.23 1.16 1.71 0 2.75-1.16 5.21-1.16 1.86 0 3.83 1.01 5.23 2.76-4.6 2.52-3.86 9.09-2.86 9.65z"/></svg>
+            Продовжити з Apple
+          </button>
+
           <div className="flex items-center gap-3 my-6 text-xs text-muted-foreground">
             <div className="flex-1 h-px bg-border" /> або email <div className="flex-1 h-px bg-border" />
           </div>
