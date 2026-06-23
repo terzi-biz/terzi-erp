@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -19,27 +20,10 @@ const SCREED_GROUPS = [
     { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
     { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
   ]},
-  { title: "Логістика (стяжки)", fields: [
-    { key: "dieselPrice", label: "Ціна дизелю, грн/л" },
-    { key: "busFuelPer100", label: "Витрата буса, л/100км" },
-    { key: "cityStationDelivery", label: "Доставка станції по місту, грн" },
-    { key: "cementOwnBusToClient", label: "Цемент свій бус — клієнту" },
-    { key: "smallManipCost", label: "Малий маніпулятор — собівартість" },
-    { key: "smallManipClient", label: "Малий маніпулятор — клієнту" },
-    { key: "bigManipCost", label: "Великий маніпулятор — собівартість" },
-    { key: "bigManipClient", label: "Великий маніпулятор — клієнту" },
-    { key: "cementUnloadClient", label: "Вивантаження цементу — клієнту, грн/міш." },
-    { key: "cementUnloadCost", label: "Вивантаження — собівартість, грн/міш." },
-    { key: "sandTripCapacity", label: "Місткість ходки піску, т" },
-    { key: "sandCityCost", label: "Пісок місто — собівартість" },
-    { key: "sandCityClient", label: "Пісок місто — клієнту" },
-    { key: "sandOutskirtsClient", label: "Пісок околиця — клієнту" },
-    { key: "sandChornomorskClient", label: "Пісок Чорноморськ — клієнту" },
-  ]},
 ];
 
 const ROOFING_GROUPS = [
-  { title: "Рубемаст — коефіцієнти", fields: [
+  { title: "Рубемаст / євроруберойд — коефіцієнти", fields: [
     { key: "rubemastOverlapCoef", label: "Коеф. перевитрати (нахльост 10 см)", step: "0.01" },
     { key: "rubemastRollAreaM2", label: "Площа рулону, м²" },
     { key: "rubemastPrimerLPerM2", label: "Праймер, л/м²", step: "0.01" },
@@ -54,34 +38,38 @@ const ROOFING_GROUPS = [
   { title: "Геометрія", fields: [
     { key: "parapetHeightCmDefault", label: "Висота парапету за замовч., см" },
   ]},
-  { title: "Бригада / амортизація", fields: [
+  { title: "Норми витрат бригади", fields: [
     { key: "brigadeMin", label: "Мін. оплата бригади, грн" },
     { key: "brigadePerM2Rubemast", label: "Бригада: рубемаст, грн/м²" },
     { key: "brigadePerM2Pvc", label: "Бригада: ПВХ, грн/м²" },
+  ]},
+  { title: "Амортизація", fields: [
     { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
     { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
   ]},
 ];
 
 const INSULATION_GROUPS = [
-  { title: "Витрати матеріалів", fields: [
+  { title: "Норми витрат матеріалів", fields: [
     { key: "cutoffCoef", label: "Коеф. перевитрати плит (обрізки)", step: "0.01" },
     { key: "glueBagsPer10M2", label: "Клей: мішків на 10 м²", step: "0.1" },
     { key: "dowelsPerM2", label: "Дюбелі, шт/м²" },
     { key: "meshCoef", label: "Склосітка (коеф. з нахльостом)", step: "0.01" },
     { key: "polystyrcreteWastePercent", label: "Полістиролбетон: втрати, %" },
   ]},
-  { title: "Бригада / амортизація", fields: [
+  { title: "Норми витрат бригади", fields: [
     { key: "brigadeMin", label: "Мін. оплата бригади, грн" },
     { key: "brigadePerM2", label: "Бригада, грн/м²" },
+  ]},
+  { title: "Амортизація", fields: [
     { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
     { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
   ]},
 ];
 
 const DEMOLITION_GROUPS = [
-  { title: "Об'єм сміття", fields: [
-    { key: "wasteM3PerM2Screed", label: "Стяжка, м³/м² (default)", step: "0.01" },
+  { title: "Об'єм сміття (норми)", fields: [
+    { key: "wasteM3PerM2Screed", label: "Стяжка, м³/м²", step: "0.01" },
     { key: "wasteM3PerM2Tile", label: "Плитка, м³/м²", step: "0.01" },
     { key: "wasteM3PerM2Roof", label: "Покрівля, м³/м²", step: "0.01" },
     { key: "wasteM3PerM2Walls", label: "Перегородки, м³/м²", step: "0.01" },
@@ -89,9 +77,11 @@ const DEMOLITION_GROUPS = [
     { key: "bagsPerM3", label: "Мішків на 1 м³" },
     { key: "floorAddPercent", label: "Надбавка за поверх, %" },
   ]},
-  { title: "Бригада / амортизація", fields: [
+  { title: "Норми витрат бригади", fields: [
     { key: "brigadeMin", label: "Мін. оплата бригади, грн" },
     { key: "brigadePerM2", label: "Бригада, грн/м²" },
+  ]},
+  { title: "Амортизація", fields: [
     { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
     { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
   ]},
@@ -99,10 +89,10 @@ const DEMOLITION_GROUPS = [
 
 const COMMON_FIELDS = [
   { key: "minCheck", label: "Мінімальний чек, грн" },
-  { key: "marginThreshold", label: "Поріг маржинальності, %" },
-  { key: "roundStep", label: "Округлення, грн" },
-  { key: "fopRate", label: "Ставка ФОП", step: "0.01" },
-  { key: "vatRate", label: "Ставка ПДВ", step: "0.01" },
+  { key: "marginThreshold", label: "Мінімальний маржинальний %, %" },
+  { key: "roundStep", label: "Округлення суми, грн" },
+  { key: "fopRate", label: "Ставка при ФОП (наприклад 0.06)", step: "0.01" },
+  { key: "vatRate", label: "Ставка ПДВ (наприклад 0.20)", step: "0.01" },
 ];
 
 function SettingsPage() {
@@ -115,6 +105,31 @@ function SettingsPage() {
   } = useAppStore();
   const [tab, setTab] = useState<Tab>("screed");
 
+  // Local draft — changes are only committed to the store on Save.
+  const [draft, setDraft] = useState(() => ({
+    settings: { ...settings },
+    roofingCoeffs: { ...roofingCoeffs },
+    insulationCoeffs: { ...insulationCoeffs },
+    demolitionCoeffs: { ...demolitionCoeffs },
+  }));
+
+  // Re-sync if the store changes externally (e.g. resetDefaults).
+  useEffect(() => {
+    setDraft({
+      settings: { ...settings },
+      roofingCoeffs: { ...roofingCoeffs },
+      insulationCoeffs: { ...insulationCoeffs },
+      demolitionCoeffs: { ...demolitionCoeffs },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings, roofingCoeffs, insulationCoeffs, demolitionCoeffs]);
+
+  const dirty = useMemo(() => {
+    return JSON.stringify(draft) !== JSON.stringify({
+      settings, roofingCoeffs, insulationCoeffs, demolitionCoeffs,
+    });
+  }, [draft, settings, roofingCoeffs, insulationCoeffs, demolitionCoeffs]);
+
   const tabs: { id: Tab; label: string; icon: typeof Layers }[] = [
     { id: "screed", label: "Стяжка", icon: Layers },
     { id: "roofing", label: "Покрівля", icon: RoofIcon },
@@ -122,6 +137,31 @@ function SettingsPage() {
     { id: "demolition", label: "Демонтаж", icon: Hammer },
     { id: "common", label: "Спільні", icon: Sliders },
   ];
+
+  const setDraftValue = (
+    section: "settings" | "roofingCoeffs" | "insulationCoeffs" | "demolitionCoeffs",
+    key: string, value: number,
+  ) => {
+    setDraft((d) => ({ ...d, [section]: { ...d[section], [key]: value } }));
+  };
+
+  const save = () => {
+    updateSettings(draft.settings);
+    updateRoofingCoeffs(draft.roofingCoeffs);
+    updateInsulationCoeffs(draft.insulationCoeffs);
+    updateDemolitionCoeffs(draft.demolitionCoeffs);
+    toast.success("Налаштування збережено. Розрахунки перераховано.");
+  };
+
+  const discard = () => {
+    setDraft({
+      settings: { ...settings },
+      roofingCoeffs: { ...roofingCoeffs },
+      insulationCoeffs: { ...insulationCoeffs },
+      demolitionCoeffs: { ...demolitionCoeffs },
+    });
+    toast("Зміни скасовано");
+  };
 
   const Group = ({ title, fields, getVal, onChange }: {
     title: string;
@@ -136,9 +176,31 @@ function SettingsPage() {
           <label className="text-sm flex-1">{f.label}</label>
           <input type="number" step={f.step ?? "0.1"}
             className="w-28 md:w-32 bg-input border border-border rounded px-2 py-1 text-right text-sm"
-            value={getVal(f.key)} onChange={(e) => onChange(f.key, +e.target.value)} />
+            value={getVal(f.key) ?? 0} onChange={(e) => onChange(f.key, +e.target.value)} />
         </div>
       ))}
+    </div>
+  );
+
+  const ActionsBar = (
+    <div className="sticky top-0 z-10 flex items-center justify-between gap-2 panel px-3 py-2 mb-4">
+      <div className="text-xs text-muted-foreground">
+        {dirty ? <span className="text-primary font-semibold">● Є незбережені зміни</span> : "Без змін"}
+      </div>
+      <div className="flex gap-2">
+        <button onClick={discard} disabled={!dirty}
+          className="flex items-center gap-1 px-3 py-1.5 rounded bg-secondary text-xs font-semibold disabled:opacity-40">
+          <Undo2 className="w-3.5 h-3.5" /> Скасувати
+        </button>
+        <button onClick={resetDefaults}
+          className="flex items-center gap-1 px-3 py-1.5 rounded bg-secondary text-xs font-semibold">
+          <RotateCcw className="w-3.5 h-3.5" /> До дефолтів
+        </button>
+        <button onClick={save} disabled={!dirty}
+          className="flex items-center gap-1 px-3 py-1.5 rounded bg-primary text-primary-foreground text-xs font-bold disabled:opacity-40">
+          <Save className="w-3.5 h-3.5" /> Зберегти
+        </button>
+      </div>
     </div>
   );
 
@@ -149,13 +211,12 @@ function SettingsPage() {
           <div className="hatch-accent h-1 w-16 mb-3 rounded" />
           <h1 className="text-2xl md:text-3xl font-black">Налаштування калькулятора</h1>
           <p className="text-xs md:text-sm text-muted-foreground mt-1">
-            Коефіцієнти і мозок розрахунків. Ціни матеріалів/робіт — у каталозі модуля.
+            Норми витрат бригади, норми витрат матеріалів, коефіцієнти, амортизація і спільні параметри (мін. чек, маржа, округлення, ФОП, ПДВ).
           </p>
         </div>
-        <button onClick={resetDefaults} className="px-4 py-2 rounded bg-secondary text-sm font-semibold">Скинути дефолти</button>
       </div>
 
-      <div className="flex gap-1 mb-5 overflow-x-auto pb-1">
+      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
         {tabs.map((tb) => (
           <button key={tb.id} onClick={() => setTab(tb.id)}
             className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap ${tab === tb.id ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-accent"}`}>
@@ -164,41 +225,43 @@ function SettingsPage() {
         ))}
       </div>
 
+      {ActionsBar}
+
       <div className="space-y-4">
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
-            getVal={(k) => (settings as Record<string, number>)[k]}
-            onChange={(k, v) => updateSettings({ [k]: v } as Partial<typeof settings>)} />
+            getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
+            onChange={(k, v) => setDraftValue("settings", k, v)} />
         ))}
         {tab === "roofing" && ROOFING_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
-            getVal={(k) => (roofingCoeffs as unknown as Record<string, number>)[k]}
-            onChange={(k, v) => updateRoofingCoeffs({ [k]: v } as Partial<typeof roofingCoeffs>)} />
+            getVal={(k) => (draft.roofingCoeffs as unknown as Record<string, number>)[k]}
+            onChange={(k, v) => setDraftValue("roofingCoeffs", k, v)} />
         ))}
         {tab === "insulation" && INSULATION_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
-            getVal={(k) => (insulationCoeffs as unknown as Record<string, number>)[k]}
-            onChange={(k, v) => updateInsulationCoeffs({ [k]: v } as Partial<typeof insulationCoeffs>)} />
+            getVal={(k) => (draft.insulationCoeffs as unknown as Record<string, number>)[k]}
+            onChange={(k, v) => setDraftValue("insulationCoeffs", k, v)} />
         ))}
         {tab === "demolition" && DEMOLITION_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
-            getVal={(k) => (demolitionCoeffs as unknown as Record<string, number>)[k]}
-            onChange={(k, v) => updateDemolitionCoeffs({ [k]: v } as Partial<typeof demolitionCoeffs>)} />
+            getVal={(k) => (draft.demolitionCoeffs as unknown as Record<string, number>)[k]}
+            onChange={(k, v) => setDraftValue("demolitionCoeffs", k, v)} />
         ))}
         {tab === "common" && (
           <>
-            <Group title="Стяжка — спільні" fields={COMMON_FIELDS}
-              getVal={(k) => (settings as Record<string, number>)[k]}
-              onChange={(k, v) => updateSettings({ [k]: v } as Partial<typeof settings>)} />
+            <Group title="Стяжка — спільні (мін.чек, маржа, округлення, ФОП, ПДВ)" fields={COMMON_FIELDS}
+              getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
+              onChange={(k, v) => setDraftValue("settings", k, v)} />
             <Group title="Покрівля — спільні" fields={COMMON_FIELDS}
-              getVal={(k) => (roofingCoeffs as unknown as Record<string, number>)[k]}
-              onChange={(k, v) => updateRoofingCoeffs({ [k]: v } as Partial<typeof roofingCoeffs>)} />
+              getVal={(k) => (draft.roofingCoeffs as unknown as Record<string, number>)[k]}
+              onChange={(k, v) => setDraftValue("roofingCoeffs", k, v)} />
             <Group title="Утеплення — спільні" fields={COMMON_FIELDS}
-              getVal={(k) => (insulationCoeffs as unknown as Record<string, number>)[k]}
-              onChange={(k, v) => updateInsulationCoeffs({ [k]: v } as Partial<typeof insulationCoeffs>)} />
+              getVal={(k) => (draft.insulationCoeffs as unknown as Record<string, number>)[k]}
+              onChange={(k, v) => setDraftValue("insulationCoeffs", k, v)} />
             <Group title="Демонтаж — спільні" fields={COMMON_FIELDS}
-              getVal={(k) => (demolitionCoeffs as unknown as Record<string, number>)[k]}
-              onChange={(k, v) => updateDemolitionCoeffs({ [k]: v } as Partial<typeof demolitionCoeffs>)} />
+              getVal={(k) => (draft.demolitionCoeffs as unknown as Record<string, number>)[k]}
+              onChange={(k, v) => setDraftValue("demolitionCoeffs", k, v)} />
           </>
         )}
       </div>
