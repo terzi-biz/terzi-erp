@@ -110,38 +110,58 @@ export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
   vatRate: 0.22,
 };
 
+// Закупка — Прайс євроруберойд Одеса 30.03.2026 (Акваізол ЕКО-ПЕ ~150–165 грн/м², рулон 10 м²).
 export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
-  rubemast:     { buy: 850, sell: 1300 },
-  primer:       { buy: 65,  sell: 110 },
+  rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²)
+  primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
-  pvc_15_sika:  { buy: 320, sell: 480 },
-  pvc_18_sika:  { buy: 390, sell: 580 },
-  geo_300:      { buy: 28,  sell: 55 },
-  fastener:     { buy: 8,   sell: 18 },
-  xps_50:       { buy: 220, sell: 320 },
-  galtel_mix:   { buy: 8,   sell: 15 },   // грн/кг (М150)
-  funnel:       { buy: 850, sell: 1400 },
-  aerator:      { buy: 650, sell: 1100 },
-  drip_edge:    { buy: 110, sell: 190 },  // грн/п.м
-  inner_corner: { buy: 95,  sell: 180 },
-  outer_corner: { buy: 95,  sell: 180 },
-  opaika_mastic:{ buy: 180, sell: 320 },  // грн/кг бітумна мастика
+  pvc_15_sika:  { buy: 320,  sell: 480 },
+  pvc_18_sika:  { buy: 390,  sell: 580 },
+  geo_300:      { buy: 28,   sell: 55 },
+  fastener:     { buy: 8,    sell: 18 },
+  xps_50:       { buy: 220,  sell: 320 },
+  galtel_mix:   { buy: 8,    sell: 15 },
+  funnel:       { buy: 850,  sell: 1400 },
+  aerator:      { buy: 650,  sell: 1100 },
+  drip_edge:    { buy: 110,  sell: 190 },
+  inner_corner: { buy: 95,   sell: 180 },
+  outer_corner: { buy: 95,   sell: 180 },
+  opaika_mastic:{ buy: 180,  sell: 320 },
 };
 
+// Продаж клієнту (грн).
 export const DEFAULT_ROOFING_WORKS = {
-  rubemast_lay: 200,
-  primer_apply: 40,
-  pvc_lay: 280,
-  geo_lay: 50,
+  rubemast_lay: 160,   // за шар, м² (Монтаж Рубероида)
+  primer_apply: 20,
+  pvc_lay: 160,        // Монтаж ПВХ мембрани, м²
+  geo_lay: 20,
   slope: 220,
   demount: 150,
-  parapet: 120,
-  galtel: 110,         // грн/п.м
-  funnel: 600,         // грн/шт
-  aerator: 450,        // грн/шт
-  drip_edge: 80,       // грн/п.м
-  corner: 180,         // грн/шт
-  opaika: 150,         // грн/шт
+  parapet: 100,        // п.м (Монтаж ПВХ/Рубероїда на парапет)
+  galtel: 110,
+  funnel: 750,         // Монтаж і обпайка воронки, шт
+  aerator: 550,        // Монтаж і обпайка аератора, шт
+  drip_edge: 100,      // Монтаж капельника, п.м
+  corner: 180,
+  opaika: 150,
+};
+
+// Собівартість бригади — ПМЗ Майстерів (що ми платимо).
+export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
+  rubemast_lay: 80,   // 160 грн/м² за 2 шари → 80/шар
+  primer_apply: 20,
+  pvc_lay: 160,        // Монтаж ПВХ мембрани = повний продаж клієнту (бригадна послуга)
+  geo_lay: 20,
+  parapet: 100,
+  galtel: 110,
+  funnel: 750,
+  aerator: 550,
+  drip_edge: 100,
+  corner: 180,
+  opaika: 150,
+  demount: 150,
+  slope: 220,
+  prep: 20,
 };
 
 export const DEFAULT_ROOFING_LOGISTICS = {
@@ -209,6 +229,8 @@ export function calculateRoofing(
 ): RoofingResult {
   // Helper: read price with fallback to DEFAULT_ROOFING_PRICES
   const px = (k: string): MaterialPrice => prices[k] ?? DEFAULT_ROOFING_PRICES[k] ?? { buy: 0, sell: 0 };
+  // Helper: brigade cost per unit for a given work key.
+  const wcost = (k: string): number => DEFAULT_ROOFING_WORK_COSTS[k] ?? 0;
 
   const warnings: string[] = [];
   const area = Math.max(0, input.area);
@@ -255,8 +277,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_primer", block: "works", name: "Праймування основи", unit: "м²",
-        qty: area, pricePerUnit: works.primer_apply, costPerUnit: 0,
-        sum: area * works.primer_apply, cost: 0,
+        qty: area, pricePerUnit: works.primer_apply, costPerUnit: wcost("primer_apply"),
+        sum: area * works.primer_apply, cost: area  * wcost("primer_apply"),
       });
     }
 
@@ -270,8 +292,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_galtel", block: "works", name: "Влаштування галтелі по периметру", unit: "п.м",
-        qty: perimeter, pricePerUnit: works.galtel, costPerUnit: 0,
-        sum: perimeter * works.galtel, cost: 0,
+        qty: perimeter, pricePerUnit: works.galtel, costPerUnit: wcost("galtel"),
+        sum: perimeter * works.galtel, cost: perimeter  * wcost("galtel"),
       });
     }
 
@@ -284,8 +306,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_opaika", block: "works", name: "Точки опайки/локальний ремонт", unit: "шт",
-        qty: input.opaikaPoints, pricePerUnit: works.opaika, costPerUnit: 0,
-        sum: input.opaikaPoints * works.opaika, cost: 0,
+        qty: input.opaikaPoints, pricePerUnit: works.opaika, costPerUnit: wcost("opaika"),
+        sum: input.opaikaPoints * works.opaika, cost: input.opaikaPoints  * wcost("opaika"),
       });
     }
 
@@ -293,8 +315,8 @@ export function calculateRoofing(
       key: "w_rubemast", block: "works",
       name: `Наплавлення рубемасту (${layers} ${layers === 1 ? "шар" : "шари"})`,
       unit: "м²", qty: area * layers,
-      pricePerUnit: works.rubemast_lay, costPerUnit: 0,
-      sum: area * layers * works.rubemast_lay, cost: 0,
+      pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
+      sum: area * layers * works.rubemast_lay, cost: area * layers  * wcost("rubemast_lay"),
     });
   } else {
     // PVC Sika
@@ -316,8 +338,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_geo", block: "works", name: "Укладка геотекстилю", unit: "м²",
-        qty: area, pricePerUnit: works.geo_lay, costPerUnit: 0,
-        sum: area * works.geo_lay, cost: 0,
+        qty: area, pricePerUnit: works.geo_lay, costPerUnit: wcost("geo_lay"),
+        sum: area * works.geo_lay, cost: area  * wcost("geo_lay"),
       });
     }
 
@@ -338,8 +360,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_inner_corner", block: "works", name: "Монтаж внутрішніх кутів", unit: "шт",
-        qty: input.innerCornersCount, pricePerUnit: works.corner, costPerUnit: 0,
-        sum: input.innerCornersCount * works.corner, cost: 0,
+        qty: input.innerCornersCount, pricePerUnit: works.corner, costPerUnit: wcost("corner"),
+        sum: input.innerCornersCount * works.corner, cost: input.innerCornersCount * wcost("corner"),
       });
     }
     if (input.outerCornersCount > 0) {
@@ -352,15 +374,15 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_outer_corner", block: "works", name: "Монтаж зовнішніх кутів", unit: "шт",
-        qty: input.outerCornersCount, pricePerUnit: works.corner, costPerUnit: 0,
-        sum: input.outerCornersCount * works.corner, cost: 0,
+        qty: input.outerCornersCount, pricePerUnit: works.corner, costPerUnit: wcost("corner"),
+        sum: input.outerCornersCount * works.corner, cost: input.outerCornersCount * wcost("corner"),
       });
     }
 
     lines.push({
       key: "w_pvc", block: "works", name: "Монтаж ПВХ-мембрани", unit: "м²",
-      qty: area, pricePerUnit: works.pvc_lay, costPerUnit: 0,
-      sum: area * works.pvc_lay, cost: 0,
+      qty: area, pricePerUnit: works.pvc_lay, costPerUnit: wcost("pvc_lay"),
+      sum: area * works.pvc_lay, cost: area  * wcost("pvc_lay"),
     });
   }
 
@@ -375,8 +397,8 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_funnel", block: "works", name: "Монтаж воронок", unit: "шт",
-      qty: input.funnelsCount, pricePerUnit: works.funnel, costPerUnit: 0,
-      sum: input.funnelsCount * works.funnel, cost: 0,
+      qty: input.funnelsCount, pricePerUnit: works.funnel, costPerUnit: wcost("funnel"),
+      sum: input.funnelsCount * works.funnel, cost: input.funnelsCount  * wcost("funnel"),
     });
   }
   if (input.aeratorsCount > 0) {
@@ -389,8 +411,8 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_aerator", block: "works", name: "Монтаж аераторів", unit: "шт",
-      qty: input.aeratorsCount, pricePerUnit: works.aerator, costPerUnit: 0,
-      sum: input.aeratorsCount * works.aerator, cost: 0,
+      qty: input.aeratorsCount, pricePerUnit: works.aerator, costPerUnit: wcost("aerator"),
+      sum: input.aeratorsCount * works.aerator, cost: input.aeratorsCount  * wcost("aerator"),
     });
   }
   if (input.dripEdgeMeters > 0) {
@@ -403,16 +425,16 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_drip", block: "works", name: "Монтаж капельника", unit: "п.м",
-      qty: input.dripEdgeMeters, pricePerUnit: works.drip_edge, costPerUnit: 0,
-      sum: input.dripEdgeMeters * works.drip_edge, cost: 0,
+      qty: input.dripEdgeMeters, pricePerUnit: works.drip_edge, costPerUnit: wcost("drip_edge"),
+      sum: input.dripEdgeMeters * works.drip_edge, cost: input.dripEdgeMeters  * wcost("drip_edge"),
     });
   }
 
   if (input.withDemount) {
     lines.push({
       key: "w_demount", block: "works", name: "Демонтаж старого покриття", unit: "м²",
-      qty: area, pricePerUnit: works.demount, costPerUnit: 0,
-      sum: area * works.demount, cost: 0,
+      qty: area, pricePerUnit: works.demount, costPerUnit: wcost("demount"),
+      sum: area * works.demount, cost: area  * wcost("demount"),
     });
   }
   if (input.withSlope) {
@@ -424,15 +446,15 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_slope", block: "works", name: "Розуклонка XPS", unit: "м²",
-      qty: area, pricePerUnit: works.slope, costPerUnit: 0,
-      sum: area * works.slope, cost: 0,
+      qty: area, pricePerUnit: works.slope, costPerUnit: wcost("slope"),
+      sum: area * works.slope, cost: area  * wcost("slope"),
     });
   }
   if (input.withParapetWork && perimeter > 0) {
     lines.push({
       key: "w_parapet", block: "works", name: "Обробка парапету/примикань", unit: "п.м",
-      qty: perimeter, pricePerUnit: works.parapet, costPerUnit: 0,
-      sum: perimeter * works.parapet, cost: 0,
+      qty: perimeter, pricePerUnit: works.parapet, costPerUnit: wcost("parapet"),
+      sum: perimeter * works.parapet, cost: perimeter  * wcost("parapet"),
     });
   }
 
@@ -463,8 +485,9 @@ export function calculateRoofing(
     });
   }
 
-  const brigadeRate = input.system === "rubemast" ? c.brigadePerM2Rubemast : c.brigadePerM2Pvc;
-  const brigadeBaseCost = Math.max(c.brigadeMin, area * brigadeRate);
+  // Бригадна оплата тепер закладена у costPerUnit кожної роботи (ПМЗ Майстерів).
+  // Залишаємо мін. оплату як floor для дуже малих об'єктів.
+  void c.brigadePerM2Rubemast; void c.brigadePerM2Pvc;
 
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
   const worksSell = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.sum, 0);
@@ -492,7 +515,7 @@ export function calculateRoofing(
 
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = brigadeBaseCost + worksAddCost;
+  const worksCost = Math.max(c.brigadeMin, worksAddCost);
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * c.amortEquipPerM2;
   const amortTransport = area * c.amortTransportPerM2;

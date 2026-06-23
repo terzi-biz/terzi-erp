@@ -65,22 +65,23 @@ export const PROFILE_NORMS: Record<Exclude<Profile, "manual">, NormsPerM3 & { ce
   reinforced: { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 2.0, dieselLPerM3: 3.14 },
 };
 
+// Закупка / Продаж — синхронізовано з TERZI_Стяжка_v3_2.xlsx (вкладка МАТЕРІАЛИ).
 export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
-  sand:        { buy: 650, sell: 700 },
-  cement500:   { buy: 160, sell: 172 },
-  cement400:   { buy: 152, sell: 165 },
-  fiber:       { buy: 125, sell: 230 },
+  sand:        { buy: 650, sell: 690 },
+  cement500:   { buy: 165, sell: 172 },
+  cement400:   { buy: 150, sell: 162 },
+  fiber:       { buy: 100, sell: 230 },
   plast:       { buy: 70,  sell: 82 },
-  film:        { buy: 5.5, sell: 10 },
-  damper:      { buy: 6.5, sell: 12 },
-  mesh_comp_25:{ buy: 25,  sell: 50 },
-  mesh_comp_35:{ buy: 35,  sell: 70 },
+  film:        { buy: 4,   sell: 10 },
+  damper:      { buy: 8,   sell: 12 },
+  mesh_comp_25:{ buy: 30,  sell: 60 },
+  mesh_comp_35:{ buy: 55,  sell: 95 },
   mesh_met_25: { buy: 40,  sell: 80 },
   mesh_met_35: { buy: 55,  sell: 110 },
 };
 
 export const DEFAULT_WORK_PRICES = {
-  screedBase: 180,         // 4–7 cm: 180 грн/м²
+  screedBase: 180,         // 4–7 cm: 180 грн/м² (клієнт)
   screedExtraPerCm: 10,    // +10 грн/м² за кожен см понад 7
   prep: 10,
   film: 15,
@@ -92,23 +93,27 @@ export const DEFAULT_WORK_PRICES = {
   cementUnload: 10,        // клієнту
 };
 
+// Собівартість бригади — з TERZI_Стяжка_v3_2.xlsx (РОБОТИ І ОПЦІЇ, "Ми платимо").
 export const DEFAULT_SETTINGS = {
-  dieselPrice: 88,         // грн/л
+  dieselPrice: 75,         // грн/л (закупка)
   busFuelPer100: 10,       // L / 100 km
   cityStationDelivery: 2000,
   cementOwnBusToClient: 1000,
-  smallManipCost: 2000, smallManipClient: 2500,
+  smallManipCost: 1500, smallManipClient: 2000,
   bigManipCost: 2500, bigManipClient: 3000,
   cementUnloadClient: 10, cementUnloadCost: 5,
   sandTripCapacity: 15,    // t
   sandCityCost: 1700, sandCityClient: 1800,
   sandOutskirtsClient: 2000,
   sandChornomorskClient: 2500,
-  brigadeMin: 10000,
-  brigadePerM2: 100,
+  brigadeMin: 10000,       // мін. оплата бригаді за об'єкт ≤100 м²
+  brigadePerM2: 100,       // базова робота бригади 100 грн/м²
+  brigadePrepCost: 5,      // підготовка складних об'єктів
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
   brigadeUnloadCost: 5,
+  brigadeLiftCost: 1000,   // підйом матеріалу на поверх (за об'єкт)
+  brigadeLiftClient: 2000,
   amortEquipPerM2: 30,
   amortTransportPerM2: 15,
   minCheck: 30000,
@@ -262,7 +267,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     pricePerUnit: screedRate, costPerUnit: 0, sum: area * screedRate, cost: 0, showToClient: true });
 
   lines.push({ key: "w_prep", block: "works", name: "w_prep", unit: "м²", qty: area,
-    pricePerUnit: works.prep, costPerUnit: 0, sum: area * works.prep, cost: 0, showToClient: true });
+    pricePerUnit: works.prep, costPerUnit: s.brigadePrepCost, sum: area * works.prep, cost: area * s.brigadePrepCost, showToClient: true });
 
   if (input.withFilm) lines.push({ key: "w_film", block: "works", name: "w_film", unit: "м²", qty: area,
     pricePerUnit: works.film, costPerUnit: 0, sum: area * works.film, cost: 0, showToClient: true });
