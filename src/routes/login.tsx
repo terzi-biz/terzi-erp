@@ -29,6 +29,13 @@ function LoginPage() {
     if (!res.redirected) router.invalidate();
   }
 
+  async function withApple() {
+    setErr(null); setBusy(true);
+    const res = await lovable.auth.signInWithOAuth("apple", { redirect_uri: window.location.origin });
+    if (res.error) { setErr(res.error.message ?? "Помилка входу"); setBusy(false); return; }
+    if (!res.redirected) router.invalidate();
+  }
+
   async function withEmail(e: React.FormEvent) {
     e.preventDefault(); setErr(null); setBusy(true);
     const fn = mode === "signin"
