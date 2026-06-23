@@ -267,7 +267,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     pricePerUnit: screedRate, costPerUnit: 0, sum: area * screedRate, cost: 0, showToClient: true });
 
   lines.push({ key: "w_prep", block: "works", name: "w_prep", unit: "м²", qty: area,
-    pricePerUnit: works.prep, costPerUnit: 0, sum: area * works.prep, cost: 0, showToClient: true });
+    pricePerUnit: works.prep, costPerUnit: s.brigadePrepCost, sum: area * works.prep, cost: area * s.brigadePrepCost, showToClient: true });
 
   if (input.withFilm) lines.push({ key: "w_film", block: "works", name: "w_film", unit: "м²", qty: area,
     pricePerUnit: works.film, costPerUnit: 0, sum: area * works.film, cost: 0, showToClient: true });
