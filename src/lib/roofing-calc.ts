@@ -110,38 +110,58 @@ export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
   vatRate: 0.22,
 };
 
+// Закупка — Прайс євроруберойд Одеса 30.03.2026 (Акваізол ЕКО-ПЕ ~150–165 грн/м², рулон 10 м²).
 export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
-  rubemast:     { buy: 850, sell: 1300 },
-  primer:       { buy: 65,  sell: 110 },
+  rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²)
+  primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
-  pvc_15_sika:  { buy: 320, sell: 480 },
-  pvc_18_sika:  { buy: 390, sell: 580 },
-  geo_300:      { buy: 28,  sell: 55 },
-  fastener:     { buy: 8,   sell: 18 },
-  xps_50:       { buy: 220, sell: 320 },
-  galtel_mix:   { buy: 8,   sell: 15 },   // грн/кг (М150)
-  funnel:       { buy: 850, sell: 1400 },
-  aerator:      { buy: 650, sell: 1100 },
-  drip_edge:    { buy: 110, sell: 190 },  // грн/п.м
-  inner_corner: { buy: 95,  sell: 180 },
-  outer_corner: { buy: 95,  sell: 180 },
-  opaika_mastic:{ buy: 180, sell: 320 },  // грн/кг бітумна мастика
+  pvc_15_sika:  { buy: 320,  sell: 480 },
+  pvc_18_sika:  { buy: 390,  sell: 580 },
+  geo_300:      { buy: 28,   sell: 55 },
+  fastener:     { buy: 8,    sell: 18 },
+  xps_50:       { buy: 220,  sell: 320 },
+  galtel_mix:   { buy: 8,    sell: 15 },
+  funnel:       { buy: 850,  sell: 1400 },
+  aerator:      { buy: 650,  sell: 1100 },
+  drip_edge:    { buy: 110,  sell: 190 },
+  inner_corner: { buy: 95,   sell: 180 },
+  outer_corner: { buy: 95,   sell: 180 },
+  opaika_mastic:{ buy: 180,  sell: 320 },
 };
 
+// Продаж клієнту (грн).
 export const DEFAULT_ROOFING_WORKS = {
-  rubemast_lay: 200,
-  primer_apply: 40,
-  pvc_lay: 280,
-  geo_lay: 50,
+  rubemast_lay: 160,   // за шар, м² (Монтаж Рубероида)
+  primer_apply: 20,
+  pvc_lay: 160,        // Монтаж ПВХ мембрани, м²
+  geo_lay: 20,
   slope: 220,
   demount: 150,
-  parapet: 120,
-  galtel: 110,         // грн/п.м
-  funnel: 600,         // грн/шт
-  aerator: 450,        // грн/шт
-  drip_edge: 80,       // грн/п.м
-  corner: 180,         // грн/шт
-  opaika: 150,         // грн/шт
+  parapet: 100,        // п.м (Монтаж ПВХ/Рубероїда на парапет)
+  galtel: 110,
+  funnel: 750,         // Монтаж і обпайка воронки, шт
+  aerator: 550,        // Монтаж і обпайка аератора, шт
+  drip_edge: 100,      // Монтаж капельника, п.м
+  corner: 180,
+  opaika: 150,
+};
+
+// Собівартість бригади — ПМЗ Майстерів (що ми платимо).
+export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
+  rubemast_lay: 80,   // 160 грн/м² за 2 шари → 80/шар
+  primer_apply: 20,
+  pvc_lay: 160,        // Монтаж ПВХ мембрани = повний продаж клієнту (бригадна послуга)
+  geo_lay: 20,
+  parapet: 100,
+  galtel: 110,
+  funnel: 750,
+  aerator: 550,
+  drip_edge: 100,
+  corner: 180,
+  opaika: 150,
+  demount: 150,
+  slope: 220,
+  prep: 20,
 };
 
 export const DEFAULT_ROOFING_LOGISTICS = {
