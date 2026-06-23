@@ -485,8 +485,9 @@ export function calculateRoofing(
     });
   }
 
-  const brigadeRate = input.system === "rubemast" ? c.brigadePerM2Rubemast : c.brigadePerM2Pvc;
-  const brigadeBaseCost = Math.max(c.brigadeMin, area * brigadeRate);
+  // Бригадна оплата тепер закладена у costPerUnit кожної роботи (ПМЗ Майстерів).
+  // Залишаємо мін. оплату як floor для дуже малих об'єктів.
+  void c.brigadePerM2Rubemast; void c.brigadePerM2Pvc;
 
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
   const worksSell = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.sum, 0);
