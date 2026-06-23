@@ -277,8 +277,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_primer", block: "works", name: "Праймування основи", unit: "м²",
-        qty: area, pricePerUnit: works.primer_apply, costPerUnit: 0,
-        sum: area * works.primer_apply, cost: 0,
+        qty: area, pricePerUnit: works.primer_apply, costPerUnit: wcost("primer_apply"),
+        sum: area * works.primer_apply, cost: area  * wcost("primer_apply"),
       });
     }
 
@@ -292,8 +292,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_galtel", block: "works", name: "Влаштування галтелі по периметру", unit: "п.м",
-        qty: perimeter, pricePerUnit: works.galtel, costPerUnit: 0,
-        sum: perimeter * works.galtel, cost: 0,
+        qty: perimeter, pricePerUnit: works.galtel, costPerUnit: wcost("galtel"),
+        sum: perimeter * works.galtel, cost: perimeter  * wcost("galtel"),
       });
     }
 
@@ -306,8 +306,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_opaika", block: "works", name: "Точки опайки/локальний ремонт", unit: "шт",
-        qty: input.opaikaPoints, pricePerUnit: works.opaika, costPerUnit: 0,
-        sum: input.opaikaPoints * works.opaika, cost: 0,
+        qty: input.opaikaPoints, pricePerUnit: works.opaika, costPerUnit: wcost("opaika"),
+        sum: input.opaikaPoints * works.opaika, cost: input.opaikaPoints  * wcost("opaika"),
       });
     }
 
@@ -315,8 +315,8 @@ export function calculateRoofing(
       key: "w_rubemast", block: "works",
       name: `Наплавлення рубемасту (${layers} ${layers === 1 ? "шар" : "шари"})`,
       unit: "м²", qty: area * layers,
-      pricePerUnit: works.rubemast_lay, costPerUnit: 0,
-      sum: area * layers * works.rubemast_lay, cost: 0,
+      pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
+      sum: area * layers * works.rubemast_lay, cost: area * layers  * wcost("rubemast_lay"),
     });
   } else {
     // PVC Sika
@@ -338,8 +338,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_geo", block: "works", name: "Укладка геотекстилю", unit: "м²",
-        qty: area, pricePerUnit: works.geo_lay, costPerUnit: 0,
-        sum: area * works.geo_lay, cost: 0,
+        qty: area, pricePerUnit: works.geo_lay, costPerUnit: wcost("geo_lay"),
+        sum: area * works.geo_lay, cost: area  * wcost("geo_lay"),
       });
     }
 
@@ -360,8 +360,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_inner_corner", block: "works", name: "Монтаж внутрішніх кутів", unit: "шт",
-        qty: input.innerCornersCount, pricePerUnit: works.corner, costPerUnit: 0,
-        sum: input.innerCornersCount * works.corner, cost: 0,
+        qty: input.innerCornersCount, pricePerUnit: works.corner, costPerUnit: wcost("corner"),
+        sum: input.innerCornersCount * works.corner, cost: input.innerCornersCount * wcost("corner"),
       });
     }
     if (input.outerCornersCount > 0) {
@@ -374,15 +374,15 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_outer_corner", block: "works", name: "Монтаж зовнішніх кутів", unit: "шт",
-        qty: input.outerCornersCount, pricePerUnit: works.corner, costPerUnit: 0,
-        sum: input.outerCornersCount * works.corner, cost: 0,
+        qty: input.outerCornersCount, pricePerUnit: works.corner, costPerUnit: wcost("corner"),
+        sum: input.outerCornersCount * works.corner, cost: input.outerCornersCount * wcost("corner"),
       });
     }
 
     lines.push({
       key: "w_pvc", block: "works", name: "Монтаж ПВХ-мембрани", unit: "м²",
-      qty: area, pricePerUnit: works.pvc_lay, costPerUnit: 0,
-      sum: area * works.pvc_lay, cost: 0,
+      qty: area, pricePerUnit: works.pvc_lay, costPerUnit: wcost("pvc_lay"),
+      sum: area * works.pvc_lay, cost: area  * wcost("pvc_lay"),
     });
   }
 
@@ -397,8 +397,8 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_funnel", block: "works", name: "Монтаж воронок", unit: "шт",
-      qty: input.funnelsCount, pricePerUnit: works.funnel, costPerUnit: 0,
-      sum: input.funnelsCount * works.funnel, cost: 0,
+      qty: input.funnelsCount, pricePerUnit: works.funnel, costPerUnit: wcost("funnel"),
+      sum: input.funnelsCount * works.funnel, cost: input.funnelsCount  * wcost("funnel"),
     });
   }
   if (input.aeratorsCount > 0) {
@@ -411,8 +411,8 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_aerator", block: "works", name: "Монтаж аераторів", unit: "шт",
-      qty: input.aeratorsCount, pricePerUnit: works.aerator, costPerUnit: 0,
-      sum: input.aeratorsCount * works.aerator, cost: 0,
+      qty: input.aeratorsCount, pricePerUnit: works.aerator, costPerUnit: wcost("aerator"),
+      sum: input.aeratorsCount * works.aerator, cost: input.aeratorsCount  * wcost("aerator"),
     });
   }
   if (input.dripEdgeMeters > 0) {
@@ -425,16 +425,16 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_drip", block: "works", name: "Монтаж капельника", unit: "п.м",
-      qty: input.dripEdgeMeters, pricePerUnit: works.drip_edge, costPerUnit: 0,
-      sum: input.dripEdgeMeters * works.drip_edge, cost: 0,
+      qty: input.dripEdgeMeters, pricePerUnit: works.drip_edge, costPerUnit: wcost("drip_edge"),
+      sum: input.dripEdgeMeters * works.drip_edge, cost: input.dripEdgeMeters  * wcost("drip_edge"),
     });
   }
 
   if (input.withDemount) {
     lines.push({
       key: "w_demount", block: "works", name: "Демонтаж старого покриття", unit: "м²",
-      qty: area, pricePerUnit: works.demount, costPerUnit: 0,
-      sum: area * works.demount, cost: 0,
+      qty: area, pricePerUnit: works.demount, costPerUnit: wcost("demount"),
+      sum: area * works.demount, cost: area  * wcost("demount"),
     });
   }
   if (input.withSlope) {
@@ -446,15 +446,15 @@ export function calculateRoofing(
     });
     lines.push({
       key: "w_slope", block: "works", name: "Розуклонка XPS", unit: "м²",
-      qty: area, pricePerUnit: works.slope, costPerUnit: 0,
-      sum: area * works.slope, cost: 0,
+      qty: area, pricePerUnit: works.slope, costPerUnit: wcost("slope"),
+      sum: area * works.slope, cost: area  * wcost("slope"),
     });
   }
   if (input.withParapetWork && perimeter > 0) {
     lines.push({
       key: "w_parapet", block: "works", name: "Обробка парапету/примикань", unit: "п.м",
-      qty: perimeter, pricePerUnit: works.parapet, costPerUnit: 0,
-      sum: perimeter * works.parapet, cost: 0,
+      qty: perimeter, pricePerUnit: works.parapet, costPerUnit: wcost("parapet"),
+      sum: perimeter * works.parapet, cost: perimeter  * wcost("parapet"),
     });
   }
 
