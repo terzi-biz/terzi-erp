@@ -515,7 +515,7 @@ export function calculateRoofing(
 
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = brigadeBaseCost + worksAddCost;
+  const worksCost = Math.max(c.brigadeMin, worksAddCost);
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * c.amortEquipPerM2;
   const amortTransport = area * c.amortTransportPerM2;
