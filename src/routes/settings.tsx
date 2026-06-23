@@ -16,14 +16,6 @@ const SCREED_GROUPS = [
     { key: "brigadeSlopeCost", label: "Бригада: розуклонка, грн/м²" },
     { key: "brigadeUnloadCost", label: "Вивантаження цементу: бригада, грн/міш." },
   ]},
-  { title: "Норми витрат матеріалів", fields: [
-    { key: "cementBagsPerM2Per1cm", label: "Цемент, мішків на м²·см", step: "0.01" },
-    { key: "sandKgPerM2Per1cm", label: "Пісок, кг на м²·см", step: "0.1" },
-    { key: "fiberKgPerM3", label: "Фібра, кг/м³", step: "0.05" },
-    { key: "filmCoef", label: "Плівка (коеф. перевитрати)", step: "0.01" },
-    { key: "damperPerimeterCoef", label: "Демпфер: коеф. до периметру", step: "0.05" },
-    { key: "meshCoef", label: "Армосітка (коеф. з нахльостом)", step: "0.01" },
-  ]},
   { title: "Амортизація", fields: [
     { key: "amortEquipPerM2", label: "Амортизація обладнання, грн/м²" },
     { key: "amortTransportPerM2", label: "Амортизація транспорту, грн/м²" },
