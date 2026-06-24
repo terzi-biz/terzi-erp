@@ -116,23 +116,31 @@ export function EstimateView({
         </div>
       </div>
 
-      {mode === "internal" && isInternal && (
-        <>
-          {(["screed","roofing","insulation","demolition"] as const).includes(module as any) && (
-            <SchedulePanel
-              estimateId={estimateId}
-              module={module as any}
-              area={area}
-              layers={layers}
-              initial={schedule ? {
-                startAt: schedule.startAt,
-                durationDays: schedule.durationDays,
-                durationOverride: schedule.durationOverride,
-                gcalEventId: schedule.gcalEventId,
-                gcalSyncedAt: schedule.gcalSyncedAt,
-              } : undefined}
-            />
-          )}
+      {mode === "internal" && isInternal && (() => {
+        const MAP: Record<string, "screed" | "roofing" | "insulation" | "demolition"> = {
+          "Стяжка": "screed", "screed": "screed",
+          "Покрівля": "roofing", "roofing": "roofing",
+          "Утеплення": "insulation", "insulation": "insulation",
+          "Демонтаж": "demolition", "demolition": "demolition",
+        };
+        const moduleKey = MAP[module];
+        return (
+          <>
+            {moduleKey && (
+              <SchedulePanel
+                estimateId={estimateId}
+                module={moduleKey}
+                area={area}
+                layers={layers}
+                initial={schedule ? {
+                  startAt: schedule.startAt,
+                  durationDays: schedule.durationDays,
+                  durationOverride: schedule.durationOverride,
+                  gcalEventId: schedule.gcalEventId,
+                  gcalSyncedAt: schedule.gcalSyncedAt,
+                } : undefined}
+              />
+            )}
           <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
             <InternalSheet result={result} client={client} branding={branding} module={module}
               area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
