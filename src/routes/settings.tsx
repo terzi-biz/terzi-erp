@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { PriceImportDialog } from "@/components/PriceImportDialog";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
