@@ -262,8 +262,8 @@ function ClientSheet(p: SheetProps) {
             if (!rows.length) return null;
             const sub = rows.reduce((a, r) => a + r.sum, 0);
             return (
-              <>
-                <tr key={`h-${g.block}`} className="bg-slate-100">
+              <Fragment key={g.block}>
+                <tr className="bg-slate-100">
                   <td colSpan={5} className="p-1.5 font-bold uppercase text-[10px] tracking-wider">{g.label}</td>
                 </tr>
                 {rows.map((r) => (
@@ -279,7 +279,7 @@ function ClientSheet(p: SheetProps) {
                   <td colSpan={4} className="p-1 text-right text-slate-600">Підсумок {g.label.toLowerCase()}:</td>
                   <td className="p-1 text-right font-semibold">{formatUah(sub)}</td>
                 </tr>
-              </>
+              </Fragment>
             );
           })}
         </tbody>
