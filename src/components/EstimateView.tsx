@@ -4,12 +4,13 @@
  * Дві версії: внутрішня (із закуп., собівартістю, маржею, прибутком) і клієнтська (без внутрішніх цифр).
  * Кнопки: Друк PDF + Зображення (PNG).
  */
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { SchedulePanel } from "@/components/SchedulePanel";
 
 export interface EstimateLine {
   key: string;
@@ -52,6 +53,15 @@ interface Props {
   thicknessCm?: number;
   estimateNumber: string;
   isInternal: boolean;
+  estimateId?: string;
+  layers?: number;
+  schedule?: {
+    startAt?: string | null;
+    durationDays?: number | null;
+    durationOverride?: number | null;
+    gcalEventId?: string | null;
+    gcalSyncedAt?: string | null;
+  };
 }
 
 const BLOCK_LABELS: Record<string, string> = {
@@ -60,6 +70,7 @@ const BLOCK_LABELS: Record<string, string> = {
 
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
+  estimateId, layers, schedule,
 }: Props) {
   const t = useT();
   const [mode, setMode] = useState<"client" | "internal">(isInternal ? "internal" : "client");
@@ -105,13 +116,38 @@ export function EstimateView({
         </div>
       </div>
 
-      {/* Hidden non-active mode kept mounted for refs (display:none-style) */}
-      {mode === "internal" && isInternal && (
-        <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-          <InternalSheet result={result} client={client} branding={branding} module={module}
-            area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
-        </div>
-      )}
+      {mode === "internal" && isInternal && (() => {
+        const MAP: Record<string, "screed" | "roofing" | "insulation" | "demolition"> = {
+          "Стяжка": "screed", "screed": "screed",
+          "Покрівля": "roofing", "roofing": "roofing",
+          "Утеплення": "insulation", "insulation": "insulation",
+          "Демонтаж": "demolition", "demolition": "demolition",
+        };
+        const moduleKey = MAP[module];
+        return (
+          <>
+            {moduleKey && (
+              <SchedulePanel
+                estimateId={estimateId}
+                module={moduleKey}
+                area={area}
+                layers={layers}
+                initial={schedule ? {
+                  startAt: schedule.startAt,
+                  durationDays: schedule.durationDays,
+                  durationOverride: schedule.durationOverride,
+                  gcalEventId: schedule.gcalEventId,
+                  gcalSyncedAt: schedule.gcalSyncedAt,
+                } : undefined}
+              />
+            )}
+            <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
+              <InternalSheet result={result} client={client} branding={branding} module={module}
+                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+            </div>
+          </>
+        );
+      })()}
       {mode === "client" && (
         <div ref={clientRef} className="bg-white text-slate-900 p-6 rounded border border-border">
           <ClientSheet result={result} client={client} branding={branding} module={module}
@@ -235,8 +271,8 @@ function ClientSheet(p: SheetProps) {
             if (!rows.length) return null;
             const sub = rows.reduce((a, r) => a + r.sum, 0);
             return (
-              <>
-                <tr key={`h-${g.block}`} className="bg-slate-100">
+              <Fragment key={g.block}>
+                <tr className="bg-slate-100">
                   <td colSpan={5} className="p-1.5 font-bold uppercase text-[10px] tracking-wider">{g.label}</td>
                 </tr>
                 {rows.map((r) => (
@@ -252,7 +288,7 @@ function ClientSheet(p: SheetProps) {
                   <td colSpan={4} className="p-1 text-right text-slate-600">Підсумок {g.label.toLowerCase()}:</td>
                   <td className="p-1 text-right font-semibold">{formatUah(sub)}</td>
                 </tr>
-              </>
+              </Fragment>
             );
           })}
         </tbody>
