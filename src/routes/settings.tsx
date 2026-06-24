@@ -229,6 +229,22 @@ function SettingsPage() {
 
       {ActionsBar}
 
+      {tab !== "common" && (
+        <div className="panel p-3 mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-2">
+            <Upload className="w-3 h-3 inline mr-1" /> Імпорт прайсу постачальника:
+          </span>
+          <button onClick={() => setImportOpen({ module: tab, kind: "material" })}
+            className="px-3 py-1.5 rounded bg-primary text-primary-foreground text-xs font-bold">
+            Матеріали (xlsx / csv)
+          </button>
+          <button onClick={() => setImportOpen({ module: tab, kind: "work" })}
+            className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold">
+            Роботи (xlsx / csv)
+          </button>
+        </div>
+      )}
+
       <div className="space-y-4">
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
@@ -267,6 +283,14 @@ function SettingsPage() {
           </>
         )}
       </div>
+
+      {importOpen && importOpen.module !== "common" && (
+        <PriceImportDialog
+          module={importOpen.module as "screed" | "roofing" | "insulation" | "demolition"}
+          kind={importOpen.kind}
+          onClose={() => setImportOpen(null)}
+        />
+      )}
     </div>
   );
 }
