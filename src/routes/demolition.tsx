@@ -104,7 +104,24 @@ function DemolitionPage() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-6 relative z-10">
+      <div className="flex gap-1 border-b border-border relative z-10">
+        <button onClick={() => setView("calc")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <Calculator className="w-4 h-4" /> Калькулятор
+        </button>
+        <button onClick={() => setView("estimate")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <FileText className="w-4 h-4" /> Кошторис / КП
+        </button>
+      </div>
+
+      {view === "estimate" && (
+        <div className="relative z-10">
+          <EstimateView result={result} client={client} branding={branding} module="Демонтаж"
+            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} />
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6 relative z-10" style={{ display: view === "calc" ? undefined : "none" }}>
+
         <div className="space-y-4 md:space-y-6">
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
