@@ -31,16 +31,20 @@ type Module = "screed" | "roofing" | "insulation" | "demolition";
  */
 export function useModulePricing(module: Module) {
   const fetchList = useServerFn(listCatalog);
+  const { session } = useAuth();
+  const enabled = !!session?.access_token;
 
   const mats = useQuery({
     queryKey: ["catalog", module, "material"],
     queryFn: () => fetchList({ data: { module, kind: "material" } }),
     staleTime: 60_000,
+    enabled,
   });
   const works = useQuery({
     queryKey: ["catalog", module, "work"],
     queryFn: () => fetchList({ data: { module, kind: "work" } }),
     staleTime: 60_000,
+    enabled,
   });
 
   const materialPrices = useMemo<Record<string, MaterialPrice>>(() => {
