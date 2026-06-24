@@ -12,7 +12,8 @@ import {
 } from "@/lib/demolition-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng } from "@/lib/pngExport";
-import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calculator, FileText } from "lucide-react";
+import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/demolition")({ component: DemolitionPage });
@@ -27,12 +28,14 @@ const defaultInput: DemolitionInput = {
 function DemolitionPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
-  const { demolitionCoeffs } = useAppStore();
+  const { demolitionCoeffs, branding } = useAppStore();
   const { materialPrices, workPrices } = useModulePricing("demolition");
   const [input, setInput] = useState<DemolitionInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [estimateNumber] = useState(() => generateEstimateNumber());
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_DEMOLITION_WORKS };
