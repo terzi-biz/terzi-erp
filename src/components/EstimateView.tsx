@@ -141,12 +141,13 @@ export function EstimateView({
                 } : undefined}
               />
             )}
-          <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-            <InternalSheet result={result} client={client} branding={branding} module={module}
-              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
-          </div>
-        </>
-      )}
+            <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
+              <InternalSheet result={result} client={client} branding={branding} module={module}
+                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+            </div>
+          </>
+        );
+      })()}
       {mode === "client" && (
         <div ref={clientRef} className="bg-white text-slate-900 p-6 rounded border border-border">
           <ClientSheet result={result} client={client} branding={branding} module={module}
