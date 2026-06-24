@@ -2,6 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+const safeNum = (v: unknown) => {
+  const n = typeof v === "number" ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+};
+
 const estimateInput = z.object({
   id: z.string().uuid().optional(),
   number: z.string().min(1).max(100),
@@ -14,10 +19,10 @@ const estimateInput = z.object({
   manager: z.string().max(200).optional().nullable(),
   area: z.number().nonnegative().optional().nullable(),
   thickness_cm: z.number().nonnegative().optional().nullable(),
-  total_client: z.number().nonnegative().default(0),
-  total_cost: z.number().nonnegative().default(0),
-  gross_profit: z.number().default(0),
-  margin_percent: z.number().default(0),
+  total_client: z.preprocess(safeNum, z.number().nonnegative().default(0)),
+  total_cost: z.preprocess(safeNum, z.number().nonnegative().default(0)),
+  gross_profit: z.preprocess(safeNum, z.number().default(0)),
+  margin_percent: z.preprocess(safeNum, z.number().default(0)),
   payload: z.any().default({}),
 });
 
