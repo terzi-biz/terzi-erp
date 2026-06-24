@@ -1,11 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Plus, Trash2, FileText, Phone, Mail, MapPin } from "lucide-react";
 import { listClients, upsertClient, deleteClient } from "@/lib/clients.functions";
+import { supabase } from "@/integrations/supabase/client";
 
-export const Route = createFileRoute("/clients")({ component: ClientsPage });
+export const Route = createFileRoute("/clients")({
+  ssr: false,
+  beforeLoad: async () => {
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login" });
+  },
+  component: ClientsPage,
+});
 
 interface Client {
   id: string;
