@@ -13,7 +13,8 @@ import {
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
-import { AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff, Calculator, FileText } from "lucide-react";
+import { EstimateView } from "@/components/EstimateView";
 
 export const Route = createFileRoute("/screed")({ component: ScreedPage });
 
@@ -34,6 +35,8 @@ function ScreedPage() {
   const [input, setInput] = useState<ScreedInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
+  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [estimateNumber] = useState(() => generateEstimateNumber());
 
   const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings), [input, materialPrices, workPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
@@ -105,7 +108,23 @@ function ScreedPage() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-6">
+      <div className="flex gap-1 border-b border-border">
+        <button onClick={() => setView("calc")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <Calculator className="w-4 h-4" /> Калькулятор
+        </button>
+        <button onClick={() => setView("estimate")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <FileText className="w-4 h-4" /> Кошторис / КП
+        </button>
+      </div>
+
+      {view === "estimate" && (
+        <EstimateView result={result} client={client} branding={branding} module="Стяжка"
+          area={input.area} thicknessCm={result.thicknessUsed} estimateNumber={estimateNumber}
+          isInternal={isInternal} />
+      )}
+
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6" style={{ display: view === "calc" ? undefined : "none" }}>
+
         <div className="space-y-6">
           {/* Client */}
           <section className="panel p-5">

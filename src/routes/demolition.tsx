@@ -12,7 +12,8 @@ import {
 } from "@/lib/demolition-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng } from "@/lib/pngExport";
-import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff } from "lucide-react";
+import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calculator, FileText } from "lucide-react";
+import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/demolition")({ component: DemolitionPage });
@@ -27,12 +28,14 @@ const defaultInput: DemolitionInput = {
 function DemolitionPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
-  const { demolitionCoeffs } = useAppStore();
+  const { demolitionCoeffs, branding } = useAppStore();
   const { materialPrices, workPrices } = useModulePricing("demolition");
   const [input, setInput] = useState<DemolitionInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
+  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [estimateNumber] = useState(() => generateEstimateNumber());
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_DEMOLITION_WORKS };
@@ -101,7 +104,24 @@ function DemolitionPage() {
         </div>
       </header>
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-6 relative z-10">
+      <div className="flex gap-1 border-b border-border relative z-10">
+        <button onClick={() => setView("calc")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <Calculator className="w-4 h-4" /> Калькулятор
+        </button>
+        <button onClick={() => setView("estimate")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+          <FileText className="w-4 h-4" /> Кошторис / КП
+        </button>
+      </div>
+
+      {view === "estimate" && (
+        <div className="relative z-10">
+          <EstimateView result={result} client={client} branding={branding} module="Демонтаж"
+            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} />
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-[1fr_400px] gap-6 relative z-10" style={{ display: view === "calc" ? undefined : "none" }}>
+
         <div className="space-y-4 md:space-y-6">
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
