@@ -112,6 +112,11 @@ export type Database = {
           client_name: string | null
           client_phone: string | null
           created_at: string
+          duration_days: number | null
+          duration_override_days: number | null
+          gcal_calendar_id: string | null
+          gcal_event_id: string | null
+          gcal_synced_at: string | null
           gross_profit: number
           id: string
           manager: string | null
@@ -120,6 +125,8 @@ export type Database = {
           number: string
           owner_id: string
           payload: Json
+          schedule_end_at: string | null
+          schedule_start_at: string | null
           status: string
           thickness_cm: number | null
           total_client: number
@@ -133,6 +140,11 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          duration_days?: number | null
+          duration_override_days?: number | null
+          gcal_calendar_id?: string | null
+          gcal_event_id?: string | null
+          gcal_synced_at?: string | null
           gross_profit?: number
           id?: string
           manager?: string | null
@@ -141,6 +153,8 @@ export type Database = {
           number: string
           owner_id: string
           payload?: Json
+          schedule_end_at?: string | null
+          schedule_start_at?: string | null
           status?: string
           thickness_cm?: number | null
           total_client?: number
@@ -154,6 +168,11 @@ export type Database = {
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          duration_days?: number | null
+          duration_override_days?: number | null
+          gcal_calendar_id?: string | null
+          gcal_event_id?: string | null
+          gcal_synced_at?: string | null
           gross_profit?: number
           id?: string
           manager?: string | null
@@ -162,6 +181,8 @@ export type Database = {
           number?: string
           owner_id?: string
           payload?: Json
+          schedule_end_at?: string | null
+          schedule_start_at?: string | null
           status?: string
           thickness_cm?: number | null
           total_client?: number
