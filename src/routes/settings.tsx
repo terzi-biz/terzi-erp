@@ -105,6 +105,7 @@ function SettingsPage() {
     resetDefaults,
   } = useAppStore();
   const [tab, setTab] = useState<Tab>("screed");
+  const [importOpen, setImportOpen] = useState<null | { module: Tab; kind: "material" | "work" }>(null);
 
   // Local draft — changes are only committed to the store on Save.
   const [draft, setDraft] = useState(() => ({
