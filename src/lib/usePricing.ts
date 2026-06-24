@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
 import { listCatalog } from "@/lib/catalog.functions";
+import { useAuth } from "@/lib/auth";
 import {
   DEFAULT_MATERIAL_PRICES, DEFAULT_WORK_PRICES,
   type MaterialPrice,
