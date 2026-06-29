@@ -18,6 +18,12 @@ import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/demolition")({ component: DemolitionPage });
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+  );
+}
+
 const defaultInput: DemolitionInput = {
   area: 50, thicknessCm: 7, type: "screed",
   containerSize: 8, withBags: false, floor: 1,
