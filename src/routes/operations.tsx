@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
-import { ChevronLeft, ChevronRight, Calendar as CalIcon, Filter } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { ChevronLeft, ChevronRight, Calendar as CalIcon, Filter, Plus, Pencil, Trash2, X } from "lucide-react";
 import { getOperationsSchedule, listManagers } from "@/lib/operations.functions";
+import { listBookings, upsertBooking, deleteBooking } from "@/lib/bookings.functions";
+import { BRIGADES, findBrigade } from "@/lib/brigades";
 
 export const Route = createFileRoute("/operations")({
   component: OperationsPage,
