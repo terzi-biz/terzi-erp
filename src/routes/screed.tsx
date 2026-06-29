@@ -18,6 +18,12 @@ import { EstimateView } from "@/components/EstimateView";
 
 export const Route = createFileRoute("/screed")({ component: ScreedPage });
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block"><span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+  );
+}
+
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, floor: 3, profile: "standard",
   withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: false,
@@ -82,9 +88,6 @@ function ScreedPage() {
     URL.revokeObjectURL(url);
   };
 
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <label className="block"><span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
-  );
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
   return (

@@ -18,6 +18,12 @@ import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/insulation")({ component: InsulationPage });
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+  );
+}
+
 const defaultInput: InsulationInput = {
   area: 100, perimeter: 40, thicknessCm: 5,
   zone: "facade", material: "eps_50",
@@ -73,9 +79,6 @@ function InsulationPage() {
     await exportElementAsPng(printRef.current, `TERZI-utepl-${Date.now()}.png`);
   };
 
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
-  );
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
   return (
