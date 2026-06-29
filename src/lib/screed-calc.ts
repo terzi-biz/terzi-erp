@@ -291,6 +291,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
 
   // Brigade base cost (covers screed/film/damper/cuts/grind)
   const brigadeBaseCost = area <= 100 ? s.brigadeMin : area * s.brigadePerM2;
+  const foremanCost = area <= 100 ? s.foremanMin : area * s.foremanPerM2;
 
   // ===== Logistics =====
   const stationDeliveryClient = input.cityDelivery
