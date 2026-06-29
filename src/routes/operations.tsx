@@ -211,7 +211,124 @@ function OperationsPage() {
         </table>
       </div>
 
+      {/* Brigade planning grid */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm md:text-base font-black uppercase tracking-wider">План бригад</h2>
+          <div className="text-[10px] text-muted-foreground">Натисни «+» у клітинці щоб додати запис</div>
+        </div>
+        <div className="panel overflow-x-auto">
+          <table className="w-full text-xs border-collapse min-w-[900px]">
+            <thead>
+              <tr className="bg-secondary/60">
+                <th className="text-left p-2 w-40 border-b border-border">Бригада</th>
+                {days.map((d) => (
+                  <th key={d.toISOString()} className="text-left p-2 border-b border-border min-w-[120px]">
+                    <div className="font-bold">{["Пн","Вт","Ср","Чт","Пт","Сб","Нд"][(d.getDay() + 6) % 7]}</div>
+                    <div className="text-[10px] text-muted-foreground">{d.toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit" })}</div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {BRIGADES.map((b) => (
+                <tr key={b.key} className="border-b border-border">
+                  <td className="p-2 align-top">
+                    <span className={`inline-block px-2 py-1 rounded border font-bold text-[11px] uppercase tracking-wider ${b.color}`}>{b.label}</span>
+                  </td>
+                  {days.map((d) => {
+                    const iso = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+                    const cell = (bookings as any[]).filter((x) => x.brigade_key === b.key && x.date === iso);
+                    return (
+                      <td key={iso} className="p-1.5 align-top border-l border-border">
+                        <div className="space-y-1">
+                          {cell.map((x) => (
+                            <div key={x.id} className={`p-1.5 rounded border ${b.color} group relative`}>
+                              <div className="font-bold text-[11px] truncate">{x.title}</div>
+                              {x.client && <div className="text-[10px] truncate">{x.client}</div>}
+                              {x.address && <div className="text-[10px] truncate opacity-80">{x.address}</div>}
+                              <div className="flex gap-1 mt-1 opacity-0 group-hover:opacity-100 transition">
+                                <button onClick={() => openEdit(x)} className="p-0.5 rounded bg-background/70 hover:bg-background"><Pencil className="w-3 h-3" /></button>
+                                <button onClick={() => { if (confirm("Видалити запис?")) delMut.mutate(x.id); }} className="p-0.5 rounded bg-background/70 hover:bg-background text-red-600"><Trash2 className="w-3 h-3" /></button>
+                              </div>
+                            </div>
+                          ))}
+                          <button onClick={() => openNew(b.key, d)}
+                            className="w-full flex items-center justify-center gap-1 p-1 rounded border border-dashed border-border text-[10px] text-muted-foreground hover:bg-secondary hover:text-foreground transition">
+                            <Plus className="w-3 h-3" /> додати
+                          </button>
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       {isFetching && <div className="text-xs text-muted-foreground">Завантаження…</div>}
+
+      {/* Editor modal */}
+      {editor && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => setEditor(null)}>
+          <div className="panel p-5 w-full max-w-md space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <div className="font-black uppercase tracking-wider text-sm">
+                {editor.id ? "Редагувати запис" : "Новий запис"}
+              </div>
+              <button onClick={() => setEditor(null)}><X className="w-4 h-4" /></button>
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {findBrigade(editor.brigade_key)?.label} · {new Date(editor.date).toLocaleDateString("uk-UA")}
+            </div>
+            <label className="block text-xs">
+              <div className="font-semibold mb-1">Назва / опис робіт *</div>
+              <input value={editor.title} onChange={(e) => setEditor({ ...editor, title: e.target.value })}
+                className="w-full bg-background border border-border rounded px-2 py-1.5" placeholder="напр. Стяжка 120 м²" />
+            </label>
+            <label className="block text-xs">
+              <div className="font-semibold mb-1">Клієнт</div>
+              <input value={editor.client} onChange={(e) => setEditor({ ...editor, client: e.target.value })}
+                className="w-full bg-background border border-border rounded px-2 py-1.5" />
+            </label>
+            <label className="block text-xs">
+              <div className="font-semibold mb-1">Адреса</div>
+              <input value={editor.address} onChange={(e) => setEditor({ ...editor, address: e.target.value })}
+                className="w-full bg-background border border-border rounded px-2 py-1.5" />
+            </label>
+            <label className="block text-xs">
+              <div className="font-semibold mb-1">Нотатки</div>
+              <textarea value={editor.notes} onChange={(e) => setEditor({ ...editor, notes: e.target.value })}
+                className="w-full bg-background border border-border rounded px-2 py-1.5 min-h-[60px]" />
+            </label>
+            <div className="flex justify-between gap-2 pt-2">
+              {editor.id ? (
+                <button onClick={() => { if (confirm("Видалити запис?")) { delMut.mutate(editor.id!); setEditor(null); } }}
+                  className="px-3 py-1.5 rounded border border-red-500/50 text-red-600 text-xs font-semibold">Видалити</button>
+              ) : <span />}
+              <div className="flex gap-2 ml-auto">
+                <button onClick={() => setEditor(null)} className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold">Скасувати</button>
+                <button
+                  disabled={!editor.title.trim() || saveMut.isPending}
+                  onClick={() => saveMut.mutate({
+                    id: editor.id,
+                    brigade_key: editor.brigade_key,
+                    date: editor.date,
+                    title: editor.title.trim(),
+                    client: editor.client.trim() || null,
+                    address: editor.address.trim() || null,
+                    notes: editor.notes.trim() || null,
+                  })}
+                  className="px-3 py-1.5 rounded bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+                  Зберегти
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
