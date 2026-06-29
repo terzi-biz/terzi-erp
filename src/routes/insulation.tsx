@@ -73,9 +73,6 @@ function InsulationPage() {
     await exportElementAsPng(printRef.current, `TERZI-utepl-${Date.now()}.png`);
   };
 
-  const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
-  );
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
   return (
