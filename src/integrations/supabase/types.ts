@@ -104,6 +104,51 @@ export type Database = {
         }
         Relationships: []
       }
+      crew_bookings: {
+        Row: {
+          address: string | null
+          brigade_key: string
+          brigade_label: string
+          client: string | null
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          module: string
+          notes: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          brigade_key: string
+          brigade_label: string
+          client?: string | null
+          created_at?: string
+          created_by?: string | null
+          date: string
+          id?: string
+          module: string
+          notes?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          brigade_key?: string
+          brigade_label?: string
+          client?: string | null
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          module?: string
+          notes?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estimates: {
         Row: {
           address: string | null
