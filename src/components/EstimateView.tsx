@@ -93,11 +93,16 @@ export function EstimateView({
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
+  // Редаговані позиції клієнтського КП
+  const [overrides, setOverrides] = useState<Record<string, ClientOverride>>({});
+  const [extras, setExtras] = useState<ClientExtraLine[]>([]);
+
   const activeRef = mode === "internal" ? internalRef : clientRef;
   const fname = `TERZI-${module}-${estimateNumber}-${mode === "internal" ? "internal" : "client"}`;
 
   const onPdf = () => activeRef.current && exportElementAsPdf(activeRef.current, `${fname}.pdf`);
   const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, `${fname}.png`);
+  const onResetClient = () => { setOverrides({}); setExtras([]); };
 
   const blockOrder = ["materials", "works", "logistics"];
   const grouped = blockOrder.map((b) => ({
@@ -123,6 +128,11 @@ export function EstimateView({
           </button>
         </div>
         <div className="flex gap-2">
+          {mode === "client" && (Object.keys(overrides).length > 0 || extras.length > 0) && (
+            <button onClick={onResetClient} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+              <RotateCcw className="w-3 h-3" /> Скинути правки
+            </button>
+          )}
           <button onClick={onPng} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
             <ImageIcon className="w-3 h-3" /> Зображення
           </button>
@@ -131,6 +141,12 @@ export function EstimateView({
           </button>
         </div>
       </div>
+
+      {mode === "client" && (
+        <div className="text-[11px] text-muted-foreground panel p-2 px-3">
+          У клієнтській версії ви можете редагувати назву, одиницю, кількість і ціну кожної позиції. Сума і підсумки перераховуються автоматично. Натисніть «+ позицію» у блоці, щоб додати власну, або <Trash2 className="w-3 h-3 inline" /> щоб прибрати.
+        </div>
+      )}
 
       {mode === "internal" && isInternal && (() => {
         const MAP: Record<string, "screed" | "roofing" | "insulation" | "demolition"> = {
@@ -166,13 +182,18 @@ export function EstimateView({
       })()}
       {mode === "client" && (
         <div ref={clientRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-          <ClientSheet result={result} client={client} branding={branding} module={module}
-            area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+          <ClientSheet
+            result={result} client={client} branding={branding} module={module}
+            area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+            overrides={overrides} setOverrides={setOverrides}
+            extras={extras} setExtras={setExtras}
+          />
         </div>
       )}
     </div>
   );
 }
+
 
 interface SheetProps {
   result: EstimateResultLike;
