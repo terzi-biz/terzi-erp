@@ -107,7 +107,9 @@ export const DEFAULT_SETTINGS = {
   sandOutskirtsClient: 2000,
   sandChornomorskClient: 2500,
   brigadeMin: 10000,       // мін. оплата бригаді за об'єкт ≤100 м²
-  brigadePerM2: 100,       // базова робота бригади 100 грн/м²
+  brigadePerM2: 100,       // базова робота бригади 100 грн/м² (понад 100 м²)
+  foremanMin: 1000,        // мін. оплата бригадиру за об'єкт ≤100 м²
+  foremanPerM2: 10,        // оплата бригадиру 10 грн/м² (понад 100 м²)
   brigadePrepCost: 5,      // підготовка складних об'єктів
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
@@ -289,6 +291,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
 
   // Brigade base cost (covers screed/film/damper/cuts/grind)
   const brigadeBaseCost = area <= 100 ? s.brigadeMin : area * s.brigadePerM2;
+  const foremanCost = area <= 100 ? s.foremanMin : area * s.foremanPerM2;
 
   // ===== Logistics =====
   const stationDeliveryClient = input.cityDelivery
@@ -348,7 +351,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   // Costs
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = brigadeBaseCost + worksAddCost;
+  const worksCost = brigadeBaseCost + foremanCost + worksAddCost;
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0) + dieselCost;
   const amortEquip = area * s.amortEquipPerM2;
   const amortTransport = area * s.amortTransportPerM2;
