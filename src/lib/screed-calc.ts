@@ -351,7 +351,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   // Costs
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = brigadeBaseCost + worksAddCost;
+  const worksCost = brigadeBaseCost + foremanCost + worksAddCost;
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0) + dieselCost;
   const amortEquip = area * s.amortEquipPerM2;
   const amortTransport = area * s.amortTransportPerM2;
