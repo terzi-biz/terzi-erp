@@ -13,7 +13,6 @@ export const listBookings = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => rangeInput.parse(d))
   .handler(async ({ data, context }) => {
     const from = new Date(data.fromISO).toISOString().slice(0, 10);
-    const to = new Date(data.toISOString).toISOString?.() ? data.toISO : data.toISO;
     const toDate = new Date(data.toISO).toISOString().slice(0, 10);
     const { data: rows, error } = await context.supabase
       .from("crew_bookings")
