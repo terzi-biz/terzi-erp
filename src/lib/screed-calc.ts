@@ -107,7 +107,9 @@ export const DEFAULT_SETTINGS = {
   sandOutskirtsClient: 2000,
   sandChornomorskClient: 2500,
   brigadeMin: 10000,       // мін. оплата бригаді за об'єкт ≤100 м²
-  brigadePerM2: 100,       // базова робота бригади 100 грн/м²
+  brigadePerM2: 100,       // базова робота бригади 100 грн/м² (понад 100 м²)
+  foremanMin: 1000,        // мін. оплата бригадиру за об'єкт ≤100 м²
+  foremanPerM2: 10,        // оплата бригадиру 10 грн/м² (понад 100 м²)
   brigadePrepCost: 5,      // підготовка складних об'єктів
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
