@@ -59,6 +59,47 @@ function OperationsPage() {
     } }),
   });
 
+  // ---- Brigade bookings ----
+  const qc = useQueryClient();
+  const fetchBookings = useServerFn(listBookings);
+  const saveBooking = useServerFn(upsertBooking);
+  const removeBooking = useServerFn(deleteBooking);
+
+  const weekEnd = useMemo(() => {
+    const d = new Date(weekStart); d.setDate(d.getDate() + 6); d.setHours(23, 59, 59, 999); return d;
+  }, [weekStart]);
+
+  const bookingsKey = ["bookings", weekStart.toISOString()];
+  const { data: bookings = [] } = useQuery({
+    queryKey: bookingsKey,
+    queryFn: () => fetchBookings({ data: { fromISO: weekStart.toISOString(), toISO: weekEnd.toISOString() } }),
+  });
+
+  const [editor, setEditor] = useState<null | {
+    id?: string; brigade_key: string; date: string;
+    title: string; client: string; address: string; notes: string;
+  }>(null);
+
+  const saveMut = useMutation({
+    mutationFn: (input: any) => saveBooking({ data: input }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: bookingsKey }); setEditor(null); },
+  });
+  const delMut = useMutation({
+    mutationFn: (id: string) => removeBooking({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: bookingsKey }),
+  });
+
+  function openNew(brigadeKey: string, date: Date) {
+    const iso = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+    setEditor({ brigade_key: brigadeKey, date: iso, title: "", client: "", address: "", notes: "" });
+  }
+  function openEdit(b: any) {
+    setEditor({
+      id: b.id, brigade_key: b.brigade_key, date: b.date,
+      title: b.title ?? "", client: b.client ?? "", address: b.address ?? "", notes: b.notes ?? "",
+    });
+  }
+
   const cellRows = MODULES.filter((m) => !hiddenModules.includes(m.key));
 
   function shift(d: number) {
