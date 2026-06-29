@@ -87,7 +87,7 @@ export const DEFAULT_WORK_PRICES = {
   film: 15,
   damper: 15,
   cuts: 15,
-  grind: 30,
+  grind: 40,
   mesh: 30,
   slope: 30,
   cementUnload: 10,        // клієнту
