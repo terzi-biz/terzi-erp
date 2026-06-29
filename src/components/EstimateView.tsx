@@ -4,13 +4,29 @@
  * Дві версії: внутрішня (із закуп., собівартістю, маржею, прибутком) і клієнтська (без внутрішніх цифр).
  * Кнопки: Друк PDF + Зображення (PNG).
  */
-import { Fragment, useRef, useState } from "react";
-import { Eye, EyeOff, FileDown, ImageIcon } from "lucide-react";
+import { Fragment, useMemo, useRef, useState } from "react";
+import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { SchedulePanel } from "@/components/SchedulePanel";
+
+interface ClientOverride {
+  name?: string;
+  unit?: string;
+  qty?: number;
+  pricePerUnit?: number;
+  removed?: boolean;
+}
+interface ClientExtraLine {
+  id: string;
+  block: string;
+  name: string;
+  unit: string;
+  qty: number;
+  pricePerUnit: number;
+}
 
 export interface EstimateLine {
   key: string;
