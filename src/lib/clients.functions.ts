@@ -19,7 +19,7 @@ export const listClients = createServerFn({ method: "GET" })
       .from("clients")
       .select("*")
       .order("created_at", { ascending: false });
-    if (error) throw error;
+    if (error) { console.error("listClients", error); throw new Error("Не вдалося завантажити клієнтів"); }
     return data ?? [];
   });
 
@@ -31,7 +31,7 @@ export const upsertClient = createServerFn({ method: "POST" })
     const { data: out, error } = data.id
       ? await context.supabase.from("clients").update(row).eq("id", data.id).select().single()
       : await context.supabase.from("clients").insert(row).select().single();
-    if (error) throw error;
+    if (error) { console.error("upsertClient", error); throw new Error("Не вдалося зберегти клієнта"); }
     return out;
   });
 
@@ -40,6 +40,6 @@ export const deleteClient = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("clients").delete().eq("id", data.id);
-    if (error) throw error;
+    if (error) { console.error("deleteClient", error); throw new Error("Не вдалося видалити клієнта"); }
     return { ok: true };
   });
