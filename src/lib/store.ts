@@ -56,9 +56,9 @@ interface AppState {
 
 const defaultBranding: Branding = {
   company: "TERZI",
-  tagline: "Точний кошторис. Преміальна реалізація. Якість, перевірена часом.",
-  phones: ["0 800 20 75 00", "+38 (063) 858 07 48", "+38 (093) 120 31 69"],
-  website: "terzi.ua",
+  tagline: "Створюємо простір для вашого життя та бізнесу.",
+  phones: ["0 800 20 75 00", "+38 (063) 858 07 48"],
+  website: "terzi.biz",
   address: "м. Одеса, площа 10-го квітня 1, офіс 4",
   workHours: "Пн–Пт: 09:00 – 18:00",
   advantages: [

@@ -11,6 +11,26 @@ import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { SchedulePanel } from "@/components/SchedulePanel";
+import { TERZI_LOGO_URL } from "@/components/TerziLogo";
+
+/** Diagonal repeating watermark with TERZI gold logo — fills the estimate sheet. */
+function EstimateWatermark() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 select-none"
+      style={{
+        backgroundImage: `url(${TERZI_LOGO_URL})`,
+        backgroundRepeat: "repeat",
+        backgroundSize: "220px 220px",
+        transform: "rotate(-22deg) scale(1.4)",
+        transformOrigin: "center",
+        opacity: 0.06,
+        filter: "grayscale(0.4)",
+      }}
+    />
+  );
+}
 
 interface ClientOverride {
   name?: string;
@@ -173,21 +193,27 @@ export function EstimateView({
                 } : undefined}
               />
             )}
-            <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-              <InternalSheet result={result} client={client} branding={branding} module={module}
-                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+            <div ref={internalRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+              <EstimateWatermark />
+              <div className="relative z-10">
+                <InternalSheet result={result} client={client} branding={branding} module={module}
+                  area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+              </div>
             </div>
           </>
         );
       })()}
       {mode === "client" && (
-        <div ref={clientRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-          <ClientSheet
-            result={result} client={client} branding={branding} module={module}
-            area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-            overrides={overrides} setOverrides={setOverrides}
-            extras={extras} setExtras={setExtras}
-          />
+        <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+          <EstimateWatermark />
+          <div className="relative z-10">
+            <ClientSheet
+              result={result} client={client} branding={branding} module={module}
+              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+              overrides={overrides} setOverrides={setOverrides}
+              extras={extras} setExtras={setExtras}
+            />
+          </div>
         </div>
       )}
     </div>
