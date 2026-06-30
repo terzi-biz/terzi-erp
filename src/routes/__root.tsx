@@ -28,7 +28,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   ),
   component: RootComponent,
   notFoundComponent: () => <div className="p-10"><h1 className="text-2xl font-bold">404</h1></div>,
-  errorComponent: ({ error }: { error: Error }) => <div className="p-10 text-destructive"><pre>{error.message}</pre></div>,
+  errorComponent: ({ error }: { error: Error }) => {
+    if (typeof console !== "undefined") console.error(error);
+    return <div className="p-10 text-destructive"><h1 className="text-xl font-bold mb-2">Сталася помилка</h1><p className="text-sm text-muted-foreground">Спробуйте оновити сторінку або зверніться до адміністратора.</p></div>;
+  },
 });
 
 function RootComponent() {
