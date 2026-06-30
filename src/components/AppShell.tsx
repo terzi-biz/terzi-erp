@@ -6,6 +6,7 @@ import {
   BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
+import { TerziLogo } from "./TerziLogo";
 
 type Mod = "screed" | "roofing" | "insulation" | "demolition";
 
