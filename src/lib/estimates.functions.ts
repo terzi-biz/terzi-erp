@@ -26,13 +26,37 @@ const estimateInput = z.object({
   payload: z.any().default({}),
 });
 
+async function userIsInternal(supabase: any, userId: string): Promise<boolean> {
+  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  return data === true;
+}
+
+function stripInternal<T extends Record<string, any>>(row: T): T {
+  const out: any = { ...row, total_cost: null, gross_profit: null, margin_percent: null };
+  if (out.payload && typeof out.payload === "object") {
+    const p = { ...out.payload };
+    delete p.totalCost; delete p.grossProfit; delete p.marginPercent;
+    delete p.materialsCost; delete p.worksCost; delete p.logisticsCost;
+    if (Array.isArray(p.lines)) {
+      p.lines = p.lines.map((l: any) => {
+        const { costPerUnit, cost, ...rest } = l;
+        return rest;
+      });
+    }
+    out.payload = p;
+  }
+  return out;
+}
+
 export const listEstimates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
       .from("estimates").select("*").order("created_at", { ascending: false });
-    if (error) throw error;
-    return data ?? [];
+    if (error) { console.error("listEstimates", error); throw new Error("Не вдалося завантажити кошториси"); }
+    const rows = data ?? [];
+    const internal = await userIsInternal(context.supabase, context.userId);
+    return internal ? rows : rows.map(stripInternal);
   });
 
 export const saveEstimate = createServerFn({ method: "POST" })
@@ -43,7 +67,7 @@ export const saveEstimate = createServerFn({ method: "POST" })
     const { data: out, error } = data.id
       ? await context.supabase.from("estimates").update(row).eq("id", data.id).select().single()
       : await context.supabase.from("estimates").insert(row).select().single();
-    if (error) throw error;
+    if (error) { console.error("saveEstimate", error); throw new Error("Не вдалося зберегти кошторис"); }
     return out;
   });
 
@@ -52,6 +76,6 @@ export const deleteEstimate = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("estimates").delete().eq("id", data.id);
-    if (error) throw error;
+    if (error) { console.error("deleteEstimate", error); throw new Error("Не вдалося видалити кошторис"); }
     return { ok: true };
   });

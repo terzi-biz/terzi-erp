@@ -20,6 +20,11 @@ const itemInput = z.object({
   sort_order: z.number().int().default(0),
 });
 
+async function userIsInternal(supabase: any, userId: string): Promise<boolean> {
+  const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
+  return data === true;
+}
+
 export const listCatalog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ module: ModuleEnum, kind: KindEnum }).parse(d))
@@ -31,8 +36,11 @@ export const listCatalog = createServerFn({ method: "GET" })
       .eq("kind", data.kind)
       .order("sort_order", { ascending: true })
       .order("created_at", { ascending: true });
-    if (error) throw error;
-    return rows ?? [];
+    if (error) { console.error("listCatalog", error); throw new Error("Не вдалося завантажити каталог"); }
+    const list = rows ?? [];
+    const internal = await userIsInternal(context.supabase, context.userId);
+    if (internal) return list;
+    return list.map((r: any) => ({ ...r, buy_price: null }));
   });
 
 export const upsertCatalogItem = createServerFn({ method: "POST" })
@@ -42,7 +50,7 @@ export const upsertCatalogItem = createServerFn({ method: "POST" })
     const { data: out, error } = data.id
       ? await context.supabase.from("catalog_items").update(data).eq("id", data.id).select().single()
       : await context.supabase.from("catalog_items").insert(data).select().single();
-    if (error) throw error;
+    if (error) { console.error("upsertCatalogItem", error); throw new Error("Не вдалося зберегти позицію каталогу"); }
     return out;
   });
 
@@ -51,7 +59,7 @@ export const deleteCatalogItem = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("catalog_items").delete().eq("id", data.id);
-    if (error) throw error;
+    if (error) { console.error("deleteCatalogItem", error); throw new Error("Не вдалося видалити позицію каталогу"); }
     return { ok: true };
   });
 
@@ -67,7 +75,7 @@ export const seedCatalogDefaults = createServerFn({ method: "POST" })
     if (items.length === 0) return { seeded: 0 };
     const rows = items.map((it, i) => ({ ...it, module: data.module, kind: data.kind, is_custom: false, sort_order: i }));
     const { error } = await context.supabase.from("catalog_items").insert(rows);
-    if (error) throw error;
+    if (error) { console.error("seedCatalogDefaults", error); throw new Error("Не вдалося ініціалізувати каталог"); }
     return { seeded: rows.length };
   });
 
