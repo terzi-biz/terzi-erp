@@ -3,7 +3,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
-import headerImg from "@/assets/terzi-header.jpg";
+import heroAsset from "@/assets/terzi-hero.jpeg.asset.json";
+import { TerziLogo } from "@/components/TerziLogo";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
