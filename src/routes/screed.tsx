@@ -13,14 +13,27 @@ import {
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
-import { AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff, Calculator, FileText } from "lucide-react";
+import {
+  AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff,
+  Calculator, FileText, HelpCircle, User, MapPin, Phone, Search,
+} from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
 
 export const Route = createFileRoute("/screed")({ component: ScreedPage });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block"><span className="text-xs uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+    <label className="block">
+      <span className="inline-flex items-center gap-1 text-xs uppercase tracking-wider text-muted-foreground">
+        {label}
+        {hint && (
+          <span title={hint} className="cursor-help text-muted-foreground/60 hover:text-primary transition-colors">
+            <HelpCircle className="w-3 h-3" />
+          </span>
+        )}
+      </span>
+      <div className="mt-1.5">{children}</div>
+    </label>
   );
 }
 
@@ -88,34 +101,42 @@ function ScreedPage() {
     URL.revokeObjectURL(url);
   };
 
-  const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
+  const inp = "w-full bg-input border border-border rounded-md px-3 py-2.5 text-sm focus:border-primary hover:border-border/80 outline-none transition-colors";
+  const inpWithIcon = inp + " pl-9";
+  const sel = "w-full min-w-0 bg-input border border-border rounded-md px-3 py-2.5 text-sm focus:border-primary hover:border-border/80 outline-none transition-colors appearance-none cursor-pointer";
+  const btnBase = "px-3.5 py-2 rounded-md text-xs font-semibold inline-flex items-center gap-2 transition-all duration-150 active:scale-[0.97]";
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
-      <header className="flex items-end justify-between border-b border-border pb-4">
+    <div className="p-7 lg:p-10 max-w-7xl mx-auto space-y-7">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
           <h1 className="text-2xl font-black">{t("screedTitle")}</h1>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {isInternal && (
-            <button onClick={() => setShowInternal((v) => !v)} className="px-3 py-2 rounded-md bg-secondary text-secondary-foreground text-xs font-semibold inline-flex items-center gap-2">
-              {showInternal ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+            <button
+              onClick={() => setShowInternal((v) => !v)}
+              className={`${btnBase} ${showInternal ? "bg-primary/15 text-primary border border-primary/40" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
+              title="Управлінський режим — показує собівартість, маржу та прибуток"
+            >
+              {showInternal ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
               {showInternal ? t("internalMode") : t("clientMode")}
             </button>
           )}
-          <button onClick={() => setInput(defaultInput)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><RotateCcw className="w-3 h-3" />{t("reset")}</button>
-          <button onClick={onSave} disabled={saveMut.isPending} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50"><Save className="w-3 h-3" />{saveMut.isPending ? "…" : t("save")}</button>
-          <button onClick={() => window.print()} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><Printer className="w-3 h-3" />{t("print")}</button>
-          <button onClick={onPdf} className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2"><Download className="w-3 h-3" />{t("downloadPdf")}</button>
+          <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
+          <button onClick={() => setInput(defaultInput)} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><RotateCcw className="w-3.5 h-3.5" />{t("reset")}</button>
+          <button onClick={onSave} disabled={saveMut.isPending} className={`${btnBase} bg-secondary hover:bg-secondary/80 disabled:opacity-50`}><Save className="w-3.5 h-3.5" />{saveMut.isPending ? "…" : t("save")}</button>
+          <button onClick={() => window.print()} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><Printer className="w-3.5 h-3.5" />{t("print")}</button>
+          <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
         </div>
       </header>
 
       <div className="flex gap-1 border-b border-border">
-        <button onClick={() => setView("calc")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        <button onClick={() => setView("calc")} className={`px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
           <Calculator className="w-4 h-4" /> Калькулятор
         </button>
-        <button onClick={() => setView("estimate")} className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
+        <button onClick={() => setView("estimate")} className={`px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
           <FileText className="w-4 h-4" /> Кошторис / КП
         </button>
       </div>
@@ -126,52 +147,78 @@ function ScreedPage() {
           isInternal={isInternal} />
       )}
 
-      <div className="grid lg:grid-cols-[1fr_400px] gap-6" style={{ display: view === "calc" ? undefined : "none" }}>
+      <div className="grid lg:grid-cols-[1fr_420px] gap-7" style={{ display: view === "calc" ? undefined : "none" }}>
 
-        <div className="space-y-6">
+        <div className="space-y-7">
           {/* Client */}
-          <section className="panel p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">{t("clientData")}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t("clientName")}><input className={inp} value={client.name} onChange={(e) => setClient({ ...client, name: e.target.value })} /></Field>
-              <Field label={t("clientPhone")}><input className={inp} value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} /></Field>
-              <Field label={t("address")}><input className={inp} value={client.address} onChange={(e) => setClient({ ...client, address: e.target.value })} /></Field>
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("clientData")}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label={t("clientName")}>
+                <div className="relative">
+                  <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <input className={inpWithIcon} placeholder="Ім'я Клієнта..." value={client.name} onChange={(e) => setClient({ ...client, name: e.target.value })} />
+                </div>
+              </Field>
+              <Field label={t("clientPhone")}>
+                <div className="relative">
+                  <Phone className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <input className={inpWithIcon} type="tel" placeholder="+380 (__) ___-____" value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} />
+                </div>
+              </Field>
+              <Field label={t("address")} hint="Введіть адресу — система запропонує варіанти автодоповнення">
+                <div className="relative">
+                  <MapPin className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <input className={inpWithIcon + " pr-9"} placeholder="м. Одеса, вул..." value={client.address} onChange={(e) => setClient({ ...client, address: e.target.value })} list="address-suggestions" />
+                  <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                  <datalist id="address-suggestions">
+                    <option value="м. Одеса, " />
+                    <option value="м. Чорноморськ, " />
+                    <option value="м. Южне, " />
+                    <option value="смт. Авангард, " />
+                  </datalist>
+                </div>
+              </Field>
               <Field label={t("manager")}><input className={inp} value={client.manager} onChange={(e) => setClient({ ...client, manager: e.target.value })} /></Field>
             </div>
           </section>
 
           {/* Parameters */}
-          <section className="panel p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">{t("parameters")}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("parameters")}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <Field label={t("area")}><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
-              <Field label={t("thickness")}><input type="number" step="0.5" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} /></Field>
+              <Field label={t("thickness")} hint="Робочий діапазон 4–15 см. Понад 15 см — лише з адмін-дозволом.">
+                <input type="number" step="0.5" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} />
+              </Field>
               <Field label={t("perimeter")}><input type="number" className={inp} value={input.perimeter ?? 0} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
-              <Field label={t("floor")}><input type="number" className={inp} value={input.floor} onChange={(e) => upd("floor", +e.target.value)} /></Field>
+              <Field label={t("floor")} hint="Поверх подачі суміші. Від 6-го поверху додається коефіцієнт підйому 5–50%.">
+                <input type="number" className={inp} value={input.floor} onChange={(e) => upd("floor", +e.target.value)} />
+              </Field>
             </div>
-            <div className="mt-3">
-              <Field label={t("profile")}>
-                <select className={inp} value={input.profile} onChange={(e) => upd("profile", e.target.value as Profile)}>
-                  <option value="econom">{t("profileEcon")}</option>
-                  <option value="standard">{t("profileStandard")}</option>
-                  <option value="reinforced">{t("profileReinforced")}</option>
-                  <option value="manual">{t("profileManual")}</option>
+            <div className="mt-4">
+              <Field label={t("profile")} hint="Економ — М400; Стандарт/Посилений — М500 з різною кількістю фібри.">
+                <select className={sel} value={input.profile} onChange={(e) => upd("profile", e.target.value as Profile)}>
+                  <option value="econom">{t("profileEcon")} — М400 економ</option>
+                  <option value="standard">{t("profileStandard")} (Стандарт М200 TERZI)</option>
+                  <option value="reinforced">{t("profileReinforced")} — М500 + фібра 2.0</option>
+                  <option value="manual">{t("profileManual")} — ручні норми</option>
                 </select>
               </Field>
             </div>
           </section>
 
           {/* Additions */}
-          <section className="panel p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">{t("additions")}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withFilm} onChange={(e) => upd("withFilm", e.target.checked)} />{t("withFilm")}</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withDamper} onChange={(e) => upd("withDamper", e.target.checked)} />{t("withDamper")}</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />{t("withSlope")}</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withGrind} onChange={(e) => upd("withGrind", e.target.checked)} />{t("withGrind")}</label>
-              <Field label={t("meshType")}>
-                <select className={inp} value={input.meshType} onChange={(e) => upd("meshType", e.target.value as MeshType)}>
-                  <option value="none">—</option>
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("additions")}</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withFilm} onChange={(e) => upd("withFilm", e.target.checked)} />{t("withFilm")}</label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withDamper} onChange={(e) => upd("withDamper", e.target.checked)} />{t("withDamper")}</label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />{t("withSlope")}</label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withGrind} onChange={(e) => upd("withGrind", e.target.checked)} />{t("withGrind")}</label>
+              <Field label={t("meshType")} hint="Композит — легка скло/базальт-пластикова сітка (+10% площі, легша, не іржавіє). Метал — зварна сталева (+15% площі, міцніша на згин, потрібна антикорозія).">
+                <select className={sel} value={input.meshType} onChange={(e) => upd("meshType", e.target.value as MeshType)}>
+                  <option value="none">— Без сітки</option>
                   <option value="comp25">Композит 2.5 мм</option>
                   <option value="comp35">Композит 3.5 мм</option>
                   <option value="met25">Метал 2.5 мм</option>
@@ -182,22 +229,22 @@ function ScreedPage() {
           </section>
 
           {/* Logistics */}
-          <section className="panel p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">{t("logistics")}</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />{t("city")}</label>
-              <Field label={t("outOfCity")}><input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("logistics")}</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors md:col-span-2"><input type="checkbox" className="accent-primary" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />{t("city")}</label>
+              <Field label={t("outOfCity")}><input type="number" disabled={input.cityDelivery} className={inp + " disabled:opacity-50"} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
               <Field label={t("cementDelivery")}>
-                <select className={inp} value={input.cementDelivery} onChange={(e) => upd("cementDelivery", e.target.value as CementDelivery)}>
-                  <option value="own">Свій бус (до 80 міш.)</option>
+                <select className={sel} value={input.cementDelivery} onChange={(e) => upd("cementDelivery", e.target.value as CementDelivery)}>
+                  <option value="own">Свій бус (до 80 мішків)</option>
                   <option value="smallManip">Маленький маніпулятор</option>
                   <option value="bigManip">Великий маніпулятор</option>
                   <option value="none">Не враховувати</option>
                 </select>
               </Field>
               <Field label={t("sandDelivery")}>
-                <select className={inp} value={input.sandDelivery} onChange={(e) => upd("sandDelivery", e.target.value as SandDelivery)}>
-                  <option value="city">Місто</option>
+                <select className={sel} value={input.sandDelivery} onChange={(e) => upd("sandDelivery", e.target.value as SandDelivery)}>
+                  <option value="city">Місто (Одеса)</option>
                   <option value="outskirts">Околиця</option>
                   <option value="chornomorsk">Чорноморськ / Іллічівськ</option>
                 </select>
@@ -206,17 +253,17 @@ function ScreedPage() {
           </section>
 
           {/* Commercial */}
-          <section className="panel p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Комерційні умови</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">Комерційні умови</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <Field label={t("payment")}>
-                <select className={inp} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
+                <select className={sel} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
                   <option value="cash">{t("cash")}</option>
                   <option value="cashless">{t("cashless")}</option>
-                  <option value="fop">{t("fop")}</option>
+                  <option value="fop">{t("fop")} (+6%)</option>
                 </select>
               </Field>
-              <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={input.withVAT} onChange={(e) => upd("withVAT", e.target.checked)} />{t("vat")}</label>
+              <label className="flex items-center gap-2 text-sm mt-7 cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withVAT} onChange={(e) => upd("withVAT", e.target.checked)} />{t("vat")}</label>
               <Field label={t("partnerCommission")}><input type="number" className={inp} value={input.partnerCommission} onChange={(e) => upd("partnerCommission", +e.target.value)} /></Field>
               <Field label={t("discount") + " %"}><input type="number" className={inp} value={input.discountPercent} onChange={(e) => upd("discountPercent", +e.target.value)} /></Field>
               <Field label={t("complexity")}><input type="number" className={inp} value={input.complexityPercent} onChange={(e) => upd("complexityPercent", +e.target.value)} /></Field>
@@ -225,9 +272,9 @@ function ScreedPage() {
         </div>
 
         {/* Right: results sticky */}
-        <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <section className="panel p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">{t("results")}</h2>
+        <div className="space-y-5 lg:sticky lg:top-4 lg:self-start">
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">{t("results")}</h2>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <Stat label={t("volume")} value={`${formatNum(result.volumeM3, 2)} м³`} />
               <Stat label={t("thickness")} value={`${result.thicknessUsed} см`} />
@@ -239,33 +286,57 @@ function ScreedPage() {
                 <Stat label={t("margin")} value={`${formatNum(result.marginPercent, 1)} %`} highlight={result.marginPercent >= settings.marginThreshold} warn={result.marginPercent < settings.marginThreshold} />
               </>)}
             </div>
+            {showInternal && result.marginPercent < settings.marginThreshold && (
+              <div className="mt-4 p-4 rounded-md bg-destructive/15 border border-destructive/40 text-destructive">
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  Маржинальність нижче порогу
+                </div>
+                <div className="text-xs mt-1 opacity-90">
+                  Поточна {formatNum(result.marginPercent, 1)}% &lt; {settings.marginThreshold}%. Перегляньте ціну, знижку або обсяг.
+                </div>
+              </div>
+            )}
             {result.warnings.length > 0 && (
               <div className="mt-4 space-y-2">
-                {result.warnings.map((w, i) => (
-                  <div key={i} className="flex items-start gap-2 p-2 rounded bg-warning/10 text-warning text-xs">
-                    <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />{t(w)}
+                {result.warnings.filter((w) => w !== "warnLowMargin").map((w, i) => (
+                  <div key={i} className="flex items-start gap-2 p-2.5 rounded bg-warning/10 text-warning text-xs">
+                    <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />{t(w)}
                   </div>
                 ))}
               </div>
             )}
           </section>
 
-          {/* Lines preview */}
-          <section className="panel p-5 max-h-[420px] overflow-auto">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">Кошторис</h2>
-            <table className="w-full text-xs">
+          {/* Lines preview — full height, no inner scroll */}
+          <section className="panel p-6">
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Кошторис</h2>
+            <table className="w-full text-xs table-fixed">
+              <colgroup>
+                <col />
+                <col style={{ width: "28%" }} />
+                <col style={{ width: "28%" }} />
+              </colgroup>
               <thead className="text-muted-foreground border-b border-border">
-                <tr><th className="text-left py-1">Найм.</th><th>К-сть</th><th>Сума</th></tr>
+                <tr>
+                  <th className="text-left py-1.5 font-medium">Найменування</th>
+                  <th className="text-center py-1.5 font-medium">К-сть</th>
+                  <th className="text-right py-1.5 font-medium">Сума</th>
+                </tr>
               </thead>
               <tbody>
                 {(["materials", "works", "logistics"] as const).map((b) => (
                   <>
-                    <tr key={b}><td colSpan={3} className="pt-3 pb-1 font-bold uppercase text-[10px] tracking-widest text-primary">{t(b === "materials" ? "materialsBlock" : b === "works" ? "worksBlock" : "logisticsBlock")}</td></tr>
+                    <tr key={b}>
+                      <td colSpan={3} className="pt-3 pb-1 font-bold uppercase text-[10px] tracking-widest text-primary">
+                        {t(b === "materials" ? "materialsBlock" : b === "works" ? "worksBlock" : "logisticsBlock")}
+                      </td>
+                    </tr>
                     {result.lines.filter((l) => l.block === b).map((l) => (
-                      <tr key={l.key + l.name} className="border-b border-border/40">
-                        <td className="py-1">{t(l.name)}</td>
-                        <td className="text-center">{formatNum(l.qty, 1)} {l.unit}</td>
-                        <td className="text-right">{formatUah(l.sum)}</td>
+                      <tr key={l.key + l.name} className="border-b border-border/40 hover:bg-secondary/30 transition-colors">
+                        <td className="py-1.5 truncate pr-2">{t(l.name)}</td>
+                        <td className="text-center tabular-nums">{formatNum(l.qty, 1)} {l.unit}</td>
+                        <td className="text-right tabular-nums font-medium">{formatUah(l.sum)}</td>
                       </tr>
                     ))}
                   </>
@@ -276,7 +347,7 @@ function ScreedPage() {
 
           {/* Self test */}
           {isInternal && (
-            <section className="panel p-4">
+            <section className="panel p-5">
               <div className="flex items-center gap-2 mb-2">
                 {selfTest.ok ? <CheckCircle2 className="w-4 h-4 text-success" /> : <AlertTriangle className="w-4 h-4 text-destructive" />}
                 <span className="font-bold text-xs uppercase tracking-wider">Контрольний сценарій 100м²/7см</span>
@@ -294,9 +365,9 @@ function ScreedPage() {
 
 function Stat({ label, value, highlight, warn }: { label: string; value: string; highlight?: boolean; warn?: boolean }) {
   return (
-    <div className={`p-2 rounded ${warn ? "bg-destructive/10" : highlight ? "bg-primary/10" : "bg-secondary/40"}`}>
+    <div className={`p-3 rounded-md transition-colors ${warn ? "bg-destructive/10 border border-destructive/30" : highlight ? "bg-primary/10 border border-primary/30" : "bg-secondary/40 border border-transparent"}`}>
       <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className={`font-bold ${warn ? "text-destructive" : highlight ? "text-primary" : ""}`}>{value}</div>
+      <div className={`font-bold mt-0.5 ${warn ? "text-destructive" : highlight ? "text-primary" : ""}`}>{value}</div>
     </div>
   );
 }
