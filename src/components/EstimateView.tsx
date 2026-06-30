@@ -173,21 +173,27 @@ export function EstimateView({
                 } : undefined}
               />
             )}
-            <div ref={internalRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-              <InternalSheet result={result} client={client} branding={branding} module={module}
-                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+            <div ref={internalRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+              <EstimateWatermark />
+              <div className="relative z-10">
+                <InternalSheet result={result} client={client} branding={branding} module={module}
+                  area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
+              </div>
             </div>
           </>
         );
       })()}
       {mode === "client" && (
-        <div ref={clientRef} className="bg-white text-slate-900 p-6 rounded border border-border">
-          <ClientSheet
-            result={result} client={client} branding={branding} module={module}
-            area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-            overrides={overrides} setOverrides={setOverrides}
-            extras={extras} setExtras={setExtras}
-          />
+        <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+          <EstimateWatermark />
+          <div className="relative z-10">
+            <ClientSheet
+              result={result} client={client} branding={branding} module={module}
+              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+              overrides={overrides} setOverrides={setOverrides}
+              extras={extras} setExtras={setExtras}
+            />
+          </div>
         </div>
       )}
     </div>
