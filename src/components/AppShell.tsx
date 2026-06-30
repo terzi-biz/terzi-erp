@@ -159,9 +159,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded hover:bg-sidebar-accent">
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-primary grid place-items-center text-primary-foreground font-black text-sm">T</div>
-          <div className="font-black tracking-tight">TERZI</div>
+        <div className="flex items-center gap-2 min-w-0">
+          <TerziLogo size={28} />
+          <div className="font-black tracking-tight truncate">TERZI</div>
         </div>
         <button onClick={() => signOut()} className="p-2 -mr-2 rounded hover:bg-sidebar-accent">
           <LogOut className="w-4 h-4" />
