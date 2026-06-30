@@ -56,15 +56,15 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const Sidebar = (
     <aside className="w-72 md:w-64 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full">
-      <div className="px-5 py-5 border-b border-sidebar-border flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-md bg-primary grid place-items-center text-primary-foreground font-black text-lg">T</div>
-          <div>
+      <div className="px-5 py-5 border-b border-sidebar-border flex items-center justify-between gap-2">
+        <Link to="/" className="flex items-center gap-2 min-w-0">
+          <TerziLogo size={40} />
+          <div className="min-w-0">
             <div className="font-black tracking-tight text-base leading-none">TERZI</div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Estimate System</div>
+            <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 truncate">Будівельна компанія</div>
           </div>
-        </div>
-        <button onClick={() => setMobileOpen(false)} className="md:hidden p-1 rounded hover:bg-sidebar-accent">
+        </Link>
+        <button onClick={() => setMobileOpen(false)} className="md:hidden p-1 rounded hover:bg-sidebar-accent shrink-0">
           <X className="w-5 h-5" />
         </button>
       </div>
