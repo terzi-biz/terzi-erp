@@ -11,6 +11,26 @@ import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { SchedulePanel } from "@/components/SchedulePanel";
+import { TERZI_LOGO_URL } from "@/components/TerziLogo";
+
+/** Diagonal repeating watermark with TERZI gold logo — fills the estimate sheet. */
+function EstimateWatermark() {
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none absolute inset-0 z-0 select-none"
+      style={{
+        backgroundImage: `url(${TERZI_LOGO_URL})`,
+        backgroundRepeat: "repeat",
+        backgroundSize: "220px 220px",
+        transform: "rotate(-22deg) scale(1.4)",
+        transformOrigin: "center",
+        opacity: 0.06,
+        filter: "grayscale(0.4)",
+      }}
+    />
+  );
+}
 
 interface ClientOverride {
   name?: string;
