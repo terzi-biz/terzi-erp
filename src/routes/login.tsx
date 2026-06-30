@@ -52,23 +52,29 @@ function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      <div className="hidden lg:block relative">
-        <img src={headerImg} alt="TERZI" className="absolute inset-0 w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-tr from-background/90 via-background/40 to-transparent" />
-        <div className="absolute bottom-10 left-10 right-10 text-foreground">
-          <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3">TERZI Estimate System</div>
-          <h2 className="text-3xl font-black leading-tight">Преміальна сметно-управлінська платформа для будівельних команд.</h2>
+    <div className="min-h-screen grid lg:grid-cols-[1.1fr_1fr] bg-background">
+      <div className="hidden lg:block relative overflow-hidden">
+        <img src={heroAsset.url} alt="TERZI — Будівельна компанія" className="absolute inset-0 w-full h-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-r from-background/40 via-transparent to-background/80" />
+        <div className="absolute bottom-10 left-10 right-10">
+          <div className="text-xs uppercase tracking-[0.3em] text-primary mb-3 drop-shadow-lg">TERZI · Будівельна компанія</div>
+          <h2 className="text-3xl xl:text-4xl font-black leading-tight text-white drop-shadow-2xl">
+            Створюємо простір для вашого життя та бізнесу.
+          </h2>
+          <div className="mt-6 text-sm text-white/90 space-y-1 drop-shadow-lg">
+            <div>0 800 20 75 00 · +38 (063) 858 07 48</div>
+            <div className="text-primary font-semibold">terzi.biz</div>
+          </div>
         </div>
       </div>
 
       <div className="flex items-center justify-center p-6 lg:p-12">
         <div className="w-full max-w-md">
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-11 h-11 rounded-md bg-primary grid place-items-center text-primary-foreground font-black text-xl">T</div>
+            <TerziLogo size={56} />
             <div>
               <div className="font-black text-xl tracking-tight leading-none">TERZI</div>
-              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Estimate System</div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1">Будівельна компанія</div>
             </div>
           </div>
 
