@@ -78,33 +78,34 @@ export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
   mesh_comp_35:{ buy: 55,  sell: 95 },
   mesh_met_25: { buy: 40,  sell: 80 },
   mesh_met_35: { buy: 55,  sell: 110 },
+  diesel:      { buy: 88.82, sell: 90 },
 };
 
 export const DEFAULT_WORK_PRICES = {
-  screedBase: 180,         // 4–7 cm: 180 грн/м² (клієнт)
-  screedExtraPerCm: 10,    // +10 грн/м² за кожен см понад 7
-  prep: 10,
-  film: 15,
-  damper: 15,
-  cuts: 15,
-  grind: 40,
+  screedBase: 180,         // 4–7 cm: 180 грн/м² (клієнт, укладання н/с машинної стяжки)
+  screedExtraPerCm: 20,    // +20 грн/м² за кожен см понад 7 (8см=200, 9см=220, …)
+  prep: 10,                // підготовка основи
+  film: 10,                // укладання плівки
+  damper: 10,              // укладання демпфера
+  cuts: 10,                // нарізка деформаційних швів
+  grind: 40,               // шліфовка вертольотом
   mesh: 30,
-  slope: 30,
+  slope: 40,               // розуклонка
   cementUnload: 10,        // клієнту
 };
 
 // Собівартість бригади — з TERZI_Стяжка_v3_2.xlsx (РОБОТИ І ОПЦІЇ, "Ми платимо").
 export const DEFAULT_SETTINGS = {
-  dieselPrice: 75,         // грн/л (закупка)
+  dieselPrice: 88.82,      // грн/л (закупка, використовується як cost на лінії "Дизель")
   busFuelPer100: 10,       // L / 100 km
   cityStationDelivery: 2000,
-  cementOwnBusToClient: 1000,
-  smallManipCost: 1500, smallManipClient: 2000,
+  cementOwnBusToClient: 1500, // мінімалка доставки цементу власним бусом
+  smallManipCost: 1500, smallManipClient: 2500, // >2 піддонів → малий маніпулятор
   bigManipCost: 2500, bigManipClient: 3000,
   cementUnloadClient: 10, cementUnloadCost: 5,
-  sandTripCapacity: 15,    // t
-  sandCityCost: 1700, sandCityClient: 1800,
-  sandOutskirtsClient: 2000,
+  sandTripCapacity: 15,    // т на ходку
+  sandCityCost: 1700, sandCityClient: 2000, // місто (клієнт 2000, закупка 1700)
+  sandOutskirtsClient: 2200,
   sandChornomorskClient: 2500,
   brigadeMin: 10000,       // мін. оплата бригаді за об'єкт ≤100 м²
   brigadePerM2: 100,       // базова робота бригади 100 грн/м² (понад 100 м²)
@@ -262,6 +263,17 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
       sum: meshArea * prices[pkey].sell, cost: meshArea * prices[pkey].buy, showToClient: true });
   }
 
+  // Дизель для станції — залежить від об'єму (товщина × площа) та поверху.
+  // Контроль: 100 м² × 7 см (V=7 м³), поверх 1–5 → 22 л.
+  const stationDieselL = Math.ceil(volumeM3 * norms.dieselLPerM3 * fc);
+  if (stationDieselL > 0) {
+    lines.push({ key: "m_diesel", block: "materials", name: "m_diesel", unit: "л", qty: stationDieselL,
+      pricePerUnit: prices.diesel.sell, costPerUnit: prices.diesel.buy,
+      sum: stationDieselL * prices.diesel.sell, cost: stationDieselL * prices.diesel.buy, showToClient: true });
+  }
+
+
+
   // ===== Works =====
   const screedExtra = Math.max(0, thickness - 7) * works.screedExtraPerCm;
   const screedRate = works.screedBase + screedExtra;
@@ -318,9 +330,8 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     pricePerUnit: sandPerTripClient, costPerUnit: sandPerTripCost,
     sum: sandTrips * sandPerTripClient, cost: sandTrips * sandPerTripCost, showToClient: true });
 
-  // Diesel (internal)
-  const stationDieselL = +(volumeM3 * norms.dieselLPerM3 * fc).toFixed(1);
-  const dieselCost = stationDieselL * s.dieselPrice;
+  // Дизель уже врахований як матеріальна лінія (m_diesel) вище.
+
 
   // ===== Totals =====
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
@@ -352,7 +363,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
   const worksCost = brigadeBaseCost + foremanCost + worksAddCost;
-  const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0) + dieselCost;
+  const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * s.amortEquipPerM2;
   const amortTransport = area * s.amortTransportPerM2;
   const totalCost = materialsCost + worksCost + logisticsCost + amortEquip + amortTransport + input.partnerCommission;
