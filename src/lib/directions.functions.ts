@@ -103,7 +103,7 @@ export const saveDirectionEstimate = createServerFn({ method: "POST" })
       internal_lines: internalLines as any,
       engine_version: result.engineVersion,
       payload: { inputs: numericInputs } as any,
-      user_id: context.userId,
+      owner_id: context.userId,
     }).select("id, number").single();
     if (error) { console.error("saveDirectionEstimate", error); throw new Error("Не вдалося зберегти кошторис"); }
     return row;
