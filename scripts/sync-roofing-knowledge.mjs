@@ -41,10 +41,15 @@ const toNum = (v) => {
 };
 
 // ---------- Materials ----------
+const clean = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj).filter(([, v]) => v !== "" && v !== null && !(typeof v === "number" && !Number.isFinite(v))),
+  );
+
 const materialRows = parseSection("5_Прайс_материалы");
 const materials = materialRows
   .filter((r) => r["Наименование"] && toNum(r["Цена"]) > 0)
-  .map((r) => ({
+  .map((r) => clean({
     category: r["Категория"] || "",
     name: r["Наименование"],
     unit: r["Ед."] || "",
@@ -59,7 +64,7 @@ const materials = materialRows
 const workRows = parseSection("6_Прайс_работы");
 const works = workRows
   .filter((r) => r["Наименование работ"] && toNum(r["Базовая цена"]) > 0)
-  .map((r) => ({
+  .map((r) => clean({
     name: r["Наименование работ"],
     unit: r["Ед."] || "",
     basePrice: toNum(r["Базовая цена"]),
