@@ -84,19 +84,20 @@ function extractCoeff(label) {
   return NaN;
 }
 
-const kbCoeffs = {
-  primerLPerM2:      extractCoeff("Расход праймера"),
-  gasKgPerLayerM2:   extractCoeff("Расход газа"),
-  gasCylinderKg:     extractCoeff("Баллон/емкость газа"),
-  gasPricePerKg:     extractCoeff("Цена газа"),
-  mastiKgPerNode:    extractCoeff("Расход мастики на узлах"),
-  mastiZoneWidthM:   extractCoeff("Ширина зоны мастики по примыканиям"),
-  overlapPercent:    extractCoeff("Коэф. нахлеста рулона"),
-  wastePercent:      extractCoeff("Коэф. сложности и отходов"),
-  parapetHeightM:    extractCoeff("Высота заведения на парапет"),
-  companyMarkup:     extractCoeff("Резерв/наценка компании"),
-  fopRate:           extractCoeff("ФОП / комиссия оплаты"),
-};
+const rawCoeffsEntries = [
+  ["primerLPerM2",    extractCoeff("Расход праймера")],
+  ["gasKgPerLayerM2", extractCoeff("Расход газа")],
+  ["gasCylinderKg",   extractCoeff("Баллон/емкость газа")],
+  ["gasPricePerKg",   extractCoeff("Цена газа")],
+  ["mastiKgPerNode",  extractCoeff("Расход мастики на узлах")],
+  ["mastiZoneWidthM", extractCoeff("Ширина зоны мастики по примыканиям")],
+  ["overlapPercent",  extractCoeff("Коэф. нахлеста рулона")],
+  ["wastePercent",    extractCoeff("Коэф. сложности и отходов")],
+  ["parapetHeightM",  extractCoeff("Высота заведения на парапет")],
+  ["companyMarkup",   extractCoeff("Резерв/наценка компании")],
+  ["fopRate",         extractCoeff("ФОП / комиссия оплаты")],
+];
+const kbCoeffs = Object.fromEntries(rawCoeffsEntries.filter(([, v]) => Number.isFinite(v)));
 
 // ---------- Canonical engine keys ----------
 // Map MD-derived data into the price/work keys used by src/lib/roofing-calc.ts.
