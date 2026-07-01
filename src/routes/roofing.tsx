@@ -276,10 +276,17 @@ function RoofingPage() {
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Логістика</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />Місто</label>
-              <Field label="За містом, км в один бік"><input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
+              <Field label="За містом, км в один бік" hint="Пробіг рахується × 2 (туди-назад). Тариф береться з Settings → Логістика.">
+                <input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} />
+              </Field>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Підйом матеріалів на дах</label>
-              <Field label="Контейнери на вивіз (8 м³)"><input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} /></Field>
+              <Field label="Контейнери на вивіз (8 м³)" hint="Орієнтир: 1 контейнер ≈ 30–40 м² демонтованого рубероїду або 15 м³ утеплювача. Ціна одного вивозу — в Settings.">
+                <input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} />
+              </Field>
             </div>
+            <Tip>
+              Позначте <b>Місто</b> для київських об'єктів (фіксована доставка). Для області вкажіть кілометраж — розрахунок × 2. Підйом враховує ручну подачу матеріалу на висоту без крану.
+            </Tip>
           </section>
 
           <section className="panel p-4 md:p-5">
