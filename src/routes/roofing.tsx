@@ -187,27 +187,35 @@ function RoofingPage() {
               </Field>
             )}
             {input.system === "pvc" && (
-              <Field label="Товщина мембрани Sika">
-                <div className="flex gap-2">
-                  {(["1.5", "1.8"] as PvcThickness[]).map((t) => (
-                    <button key={t} onClick={() => upd("pvcThickness", t)}
-                      className={`flex-1 py-2 rounded font-bold ${input.pvcThickness === t ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                      {t} мм
-                    </button>
-                  ))}
-                </div>
-              </Field>
+              <Tip>
+                <b>ПВХ Sika</b> — механічне кріплення телескопами. 1.5 мм — стандарт для дахів без експлуатації; 1.8 мм — для об'єктів з підвищеним навантаженням, парковок, тераc. Нахльост ≈10 см (коеф. 1.10). Обов'язково геотекстиль-розділювач.
+              </Tip>
+            )}
+            {input.system === "rubemast" && (
+              <Tip>
+                <b>Рубемаст</b> — наплавний рулон (10 м²). 1 шар — тимчасове/ремонтне рішення, 2 шари — стандарт житлової покрівлі, 3 шари — промислові дахи з тривалою гарантією. Нахльост 10 см (коеф. 1.15), витрата газу ≈0.35 кг/м² на шар.
+              </Tip>
             )}
           </section>
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
-              <Field label="Периметр, п.м"><input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
-              <Field label="Парапет, см"><input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} /></Field>
+              <Field label="Площа, м²" hint="Чиста площа даху за проєктом (без парапету). Береться з обмірного плану.">
+                <input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} />
+              </Field>
+              <Field label="Периметр, п.м" hint="Сумарна довжина всіх сторін по контуру. Використовується для парапету, галтелей та капельників.">
+                <input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} />
+              </Field>
+              <Field label="Парапет, см" hint="Висота загину матеріалу на парапет. Стандарт TERZI: +30 см. Для експлуатованих дахів — 40–50 см.">
+                <input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} />
+              </Field>
             </div>
+            <Tip>
+              Робоча площа = Площа + Периметр × Парапет. За замовчуванням парапет 30 см — уточніть з замовником, для експлуатованих дахів або терас беріть 40–50 см.
+            </Tip>
           </section>
+
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Додатково</h2>
