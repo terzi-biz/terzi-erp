@@ -12,15 +12,37 @@ import {
   type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
-import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText } from "lucide-react";
+import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing")({ component: RoofingPage });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+    <label className="block">
+      <span className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+        {label}
+        {hint && (
+          <span className="group relative inline-flex">
+            <Info className="w-3 h-3 text-primary/70 cursor-help" />
+            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-56 z-30 hidden group-hover:block bg-popover text-popover-foreground text-[11px] leading-snug border border-border rounded-md p-2 shadow-lg normal-case tracking-normal">
+              {hint}
+            </span>
+          </span>
+        )}
+      </span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+function Tip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 mt-2 p-2 rounded bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground">
+      <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+      <div>{children}</div>
+    </div>
   );
 }
 
