@@ -330,9 +330,8 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     pricePerUnit: sandPerTripClient, costPerUnit: sandPerTripCost,
     sum: sandTrips * sandPerTripClient, cost: sandTrips * sandPerTripCost, showToClient: true });
 
-  // Diesel (internal)
-  const stationDieselL = +(volumeM3 * norms.dieselLPerM3 * fc).toFixed(1);
-  const dieselCost = stationDieselL * s.dieselPrice;
+  // Дизель уже врахований як матеріальна лінія (m_diesel) вище.
+
 
   // ===== Totals =====
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
