@@ -16,11 +16,11 @@ const blockLabel: Record<string, string> = {
   materials: "Матеріали", works: "Роботи", logistics: "Транспорт та логістика", additional: "Додаткові послуги",
 };
 
-export function exportPvcPdf(
+export async function exportPvcPdf(
   m: DirectionManifest, _inputs: Record<string, number>, result: EstimateResult, client: Client, mode: Mode,
 ) {
   const doc = new jsPDF({ unit: "mm", format: "a4" });
-  registerCyrillicFont(doc);
+  await attachCyrillicFonts(doc);
   doc.setFont("Roboto", "normal");
 
   doc.setFontSize(16); doc.text("TERZI — кошторис", 14, 18);
