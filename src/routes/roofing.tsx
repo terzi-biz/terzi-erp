@@ -12,15 +12,37 @@ import {
   type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
-import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText } from "lucide-react";
+import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing")({ component: RoofingPage });
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block"><span className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</span><div className="mt-1">{children}</div></label>
+    <label className="block">
+      <span className="text-[11px] uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+        {label}
+        {hint && (
+          <span className="group relative inline-flex">
+            <Info className="w-3 h-3 text-primary/70 cursor-help" />
+            <span className="pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-1 w-56 z-30 hidden group-hover:block bg-popover text-popover-foreground text-[11px] leading-snug border border-border rounded-md p-2 shadow-lg normal-case tracking-normal">
+              {hint}
+            </span>
+          </span>
+        )}
+      </span>
+      <div className="mt-1">{children}</div>
+    </label>
+  );
+}
+
+function Tip({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-start gap-2 mt-2 p-2 rounded bg-primary/5 border border-primary/20 text-[11px] text-muted-foreground">
+      <Lightbulb className="w-3.5 h-3.5 text-primary shrink-0 mt-0.5" />
+      <div>{children}</div>
+    </div>
   );
 }
 
@@ -165,27 +187,47 @@ function RoofingPage() {
               </Field>
             )}
             {input.system === "pvc" && (
-              <Field label="Товщина мембрани Sika">
-                <div className="flex gap-2">
-                  {(["1.5", "1.8"] as PvcThickness[]).map((t) => (
-                    <button key={t} onClick={() => upd("pvcThickness", t)}
-                      className={`flex-1 py-2 rounded font-bold ${input.pvcThickness === t ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                      {t} мм
-                    </button>
-                  ))}
-                </div>
-              </Field>
+              <>
+                <Field label="Товщина мембрани Sika" hint="1.5 мм — стандарт житлових/адміністративних дахів. 1.8 мм — промислові, експлуатовані, високі механічні навантаження.">
+                  <div className="flex gap-2">
+                    {(["1.5", "1.8"] as PvcThickness[]).map((t) => (
+                      <button key={t} onClick={() => upd("pvcThickness", t)}
+                        className={`flex-1 py-2 rounded font-bold ${input.pvcThickness === t ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {t} мм
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Tip>
+                  <b>ПВХ Sika</b> — механічне кріплення телескопами (≈4 шт/м²). 1.5 мм — стандарт для дахів без експлуатації; 1.8 мм — для об'єктів з підвищеним навантаженням, парковок, терас. Нахльост ≈10 см (коеф. 1.10). Обов'язково геотекстиль-розділювач.
+                </Tip>
+              </>
+            )}
+            {input.system === "rubemast" && (
+              <Tip>
+                <b>Рубемаст</b> — наплавний рулон (10 м²). 1 шар — тимчасове/ремонтне рішення, 2 шари — стандарт житлової покрівлі, 3 шари — промислові дахи з тривалою гарантією. Нахльост 10 см (коеф. 1.15), витрата газу ≈0.35 кг/м² на шар.
+              </Tip>
             )}
           </section>
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
-              <Field label="Периметр, п.м"><input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
-              <Field label="Парапет, см"><input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} /></Field>
+              <Field label="Площа, м²" hint="Чиста площа даху за проєктом (без парапету). Береться з обмірного плану.">
+                <input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} />
+              </Field>
+              <Field label="Периметр, п.м" hint="Сумарна довжина всіх сторін по контуру. Використовується для парапету, галтелей та капельників.">
+                <input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} />
+              </Field>
+              <Field label="Парапет, см" hint="Висота загину матеріалу на парапет. Стандарт TERZI: +30 см. Для експлуатованих дахів — 40–50 см.">
+                <input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} />
+              </Field>
             </div>
+            <Tip>
+              Робоча площа = Площа + Периметр × Парапет. За замовчуванням парапет 30 см — уточніть з замовником, для експлуатованих дахів або терас беріть 40–50 см.
+            </Tip>
           </section>
+
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Додатково</h2>
@@ -203,6 +245,9 @@ function RoofingPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />Розуклонка XPS</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withParapetWork} onChange={(e) => upd("withParapetWork", e.target.checked)} />Обробка парапету/примикань</label>
             </div>
+            <Tip>
+              <b>Праймер</b> обов'язковий на бетоні/стяжці перед наплавленням. <b>Галтель</b> — цементно-піщаний перехід у кутах парапету (уникає розриву покриття). <b>Розуклонка XPS</b> — коли потрібен ухил ≥1,5% для водовідведення.
+            </Tip>
           </section>
 
           <section className="panel p-4 md:p-5">
@@ -222,16 +267,26 @@ function RoofingPage() {
               )}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">Залиште 0, якщо не використовується. Капельники типово = периметру.</p>
+            <Tip>
+              <b>Воронки</b> — 1 шт на ~150–200 м². <b>Аератори</b> (для рубемасту) — 1 шт на ~50 м² при вологій основі. <b>Кути ПВХ</b> — рахуйте по фактичних зламах парапету. <b>Опайка</b> — точки примикань до труб/парапету.
+            </Tip>
           </section>
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Логістика</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />Місто</label>
-              <Field label="За містом, км в один бік"><input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
+              <Field label="За містом, км в один бік" hint="Пробіг рахується × 2 (туди-назад). Тариф береться з Settings → Логістика.">
+                <input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} />
+              </Field>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Підйом матеріалів на дах</label>
-              <Field label="Контейнери на вивіз (8 м³)"><input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} /></Field>
+              <Field label="Контейнери на вивіз (8 м³)" hint="Орієнтир: 1 контейнер ≈ 30–40 м² демонтованого рубероїду або 15 м³ утеплювача. Ціна одного вивозу — в Settings.">
+                <input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} />
+              </Field>
             </div>
+            <Tip>
+              Позначте <b>Місто</b> для київських об'єктів (фіксована доставка). Для області вкажіть кілометраж — розрахунок × 2. Підйом враховує ручну подачу матеріалу на висоту без крану.
+            </Tip>
           </section>
 
           <section className="panel p-4 md:p-5">
