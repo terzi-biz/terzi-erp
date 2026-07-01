@@ -11,6 +11,8 @@ import { evalFormula, type Scope } from "./formula-eval";
 
 export const ENGINE_VERSION = "v1.0.0-pvc";
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+
 export interface DirectionManifest {
   direction: { id: string; name: string; category: string };
   inputs: Array<{
@@ -19,7 +21,7 @@ export interface DirectionManifest {
     type: string;
     unit?: string | null;
     required: boolean;
-    default_value: unknown;
+    default_value: JsonValue;
     sort_order: number;
     help_text?: string | null;
   }>;
