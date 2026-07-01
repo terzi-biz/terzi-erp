@@ -1,84 +1,74 @@
-## Що зробимо (крок 3)
 
-Google Calendar конектор уже підключено через gateway (scope: events read/write на акаунт terzi.deals@gmail.com). OAuth-авторизація працює централізовано через Lovable connector gateway, додаткове налаштування користувача не потрібне.
+# Пілот ERP-калькулятора: ПВХ-мембрана
 
-### Частина A — Перевірка та фікс PDF/PNG для довгих кошторисів (клієнтська версія)
+Мета: перевести один напрям (ПВХ-мембрана) на нову модель "довідники в БД + детермінований engine + дві версії кошторису + експорт". Решта 3 напрямів мігруються за тим самим патерном на наступних кроках, не ламаючи поточні `screed/roofing/insulation/demolition`.
 
-1. Відкрити `src/lib/pngExport.ts` → `exportElementAsPdf`. Перевірити:
-   - правильну розбивку по A4 при висоті > 1 сторінки;
-   - відсутність обрізання рядків таблиці посередині (додати CSS `page-break-inside: avoid` на `<tr>` та секціях);
-   - коректне масштабування при ширині > 794px;
-   - `useCORS: true`, `scale: 2` для чіткості.
-2. У `src/components/EstimateView.tsx` для клієнтської версії додати клас-обгортку `.print-block` навколо кожної секції/таблиці-групи з `break-inside: avoid` (Tailwind `break-inside-avoid`).
-3. Для PNG-експорту (`exportElementAsPng`) — якщо контент > 4000px по висоті, ділити на 2+ зображення (zip або послідовно).
-4. Додати тестову кнопку «Згенерувати тестовий довгий кошторис» у Settings (DEV) — 50+ позицій, перевірити обидва формати.
+## Що вже витягнуто з файлів
+Розпарсив `TERZI_сметный_калькулятор_ПВХ_мембрана.xlsx` (9 листів). Виявлено канонічну структуру:
+- `01_Калькулятор` — 17 вводних параметрів (площа, парапети, воронки 4 типи, аератори, коеф. продажу матеріалів/робіт, транспорт, резерв).
+- `02_Материалы` — 21 позиція з формулами кількості (`ROUNDUP`, `MAX`), `cost_price`, `sale_price = cost * K_material`.
+- `03_Работы` — 7 робіт (підготовка, геотекстиль, воронки, аератори, мембрана, парапет, капельник), `sale = cost * K_works`.
+- `04_Транспорт` — доставка/кран/розвантаження/км + 7 допробіт, `sale = cost * K_transport`.
+- `05_БазаМат` / `06_БазаРаб` — прайс з посиланнями (КП Лебер стр.1) — це source-of-truth для `cost_price`.
+- `07_Коэф` — коефіцієнти запасу (мембрана 1.10, геотекстиль 1.05, метал 1.15 тощо), нормативи (герметик 1 туба/16 м.п., диски 1/150 м²…).
+- `08_Логика` — прописані правила (площа парапету = L×(H+W); ROUNDUP; MIN пакування).
+- `09_Источники` — реєстр джерел цін.
+Файл збережено як JSON: `/mnt/documents/terzi-analysis/pvc_raw.json`.
 
-### Частина B — Google Calendar sync (estimates → events)
+## Архітектура
 
-1. **БД**: міграція `estimates` — додати колонки:
-   - `schedule_start_at timestamptz`
-   - `schedule_end_at timestamptz`
-   - `duration_days numeric` (авто-розрахунок)
-   - `duration_override_days numeric` (ручне коригування, nullable)
-   - `gcal_event_id text` (для update/delete)
-   - `gcal_calendar_id text default 'primary'`
-2. **Розрахунок тривалості** — `src/lib/duration-calc.ts`:
-   - норми продуктивності по модулях (м²/день для бригади):
-     - screed: 200 м²/день
-     - roofing PVC: 150 м²/день; ruberoid 1 шар 250, 2 шари 180, 3 шари 130
-     - insulation: 180 м²/день
-     - demolition: 120 м²/день
-   - `calcDuration(module, area, layers?) → days` (≥ 1, округлення вгору)
-   - норми зберігаються у конфіг-файлі, видимі в Settings (read-only поки).
-3. **Server fn** `src/lib/gcal.functions.ts`:
-   - `syncEstimateToCalendar({ estimateId })` — `requireSupabaseAuth`, читає `estimates`, формує event payload, дзвонить gateway `POST /calendars/primary/events` або `PATCH` якщо `gcal_event_id` є.
-   - `deleteEstimateEvent({ estimateId })` → `DELETE`.
-   - Title: `[МОДУЛЬ] Клієнт — Об'єкт (площа м²)`; Description: посилання на кошторис, менеджер, статус, сума клієнта; Location: адреса об'єкта.
-4. **UI у EstimateView (внутрішня вкладка)**:
-   - блок «Планування» з полями: дата початку, тривалість (показано auto, можна override), кнопка «Синхронізувати в Google Calendar» / «Оновити подію» / «Видалити з календаря».
-   - Показ статусу синхронізації (event_id, остання дата).
+```text
+uploads → parser (одноразово, вручну керовано) → JSON manifest
+JSON manifest → migration seed → БД довідники
+UI форма (input_fields) → serverFn engine (formulas + coefficients + prices) → EstimateResult
+EstimateResult → 2 версії: клієнт / внутрішній → PDF + Excel + збереження в estimates
+```
 
-### Частина C — Сторінка «Операційний календар»
+Engine детермінований на TypeScript, LLM не використовується для розрахунків.
 
-1. Новий route `src/routes/_authenticated/operations.tsx` — тижнева сітка:
-   - рядки: 4 модулі (Стяжка, Покрівля, Утеплення, Демонтаж);
-   - колонки: 7 днів обраного тижня;
-   - комірки: картки кошторисів, що мають `schedule_start_at` у діапазоні;
-   - картка показує: клієнт, площа, статус (badge), менеджер.
-2. Фільтри зверху: 
-   - менеджер (selector з `profiles`);
-   - статус (multi-select chips);
-   - діапазон тижнів (стрілки ‹ ›, кнопка «Сьогодні»);
-   - модулі (toggle для приховування рядків).
-3. Server fn `getOperationsSchedule({ weekStart, managerId?, statuses[] })`.
-4. Клік на картку → перехід до кошторису.
-5. Пункт меню в навігації: «Операційний календар».
+## База даних (нові таблиці)
 
-### Частина D — OAuth/конектор
+- `directions(id text pk, name, category, description, active)`
+- `input_fields(id, direction_id, field_key, label, type, unit, required, default_value, enum_values jsonb, sort_order, affects_formula)`
+- `material_items(id, direction_id, code, name, unit, cost_price, sale_coef_key, consumption_formula, supplier, source_ref, sort_order, is_optional)`
+- `work_items(id, direction_id, code, name, unit, cost_price, sale_coef_key, quantity_formula, sort_order, is_optional, is_client_visible)`
+- `logistics_items(id, direction_id, name, unit, cost_price, sale_coef_key, quantity_formula, sort_order)`
+- `additional_services(id, direction_id, name, unit, cost_price, sale_coef_key, quantity_formula, is_client_visible)`
+- `coefficients(id, direction_id, group, key, value numeric, description)` — сюди йде і `K_material/K_works/K_transport`, і всі коеф. запасу.
+- `formulas(id, direction_id, key, expression, output_unit, description)` — реєстр іменованих формул для UI-підказок.
+- `estimate_sections(id, direction_id, name, sort_order, client_visible, internal_visible)`
 
-Конектор уже підключено централізовано (`GOOGLE_CALENDAR_API_KEY` секрет доступний). Жодних додаткових кроків від користувача — всі дзвінки в API проходять через `connector-gateway.lovable.dev/google_calendar/calendar/v3` з автоматичним refresh токенів.
+Розширення до існуючих `estimates`:
+- `direction_id text`, `calculation_json jsonb`, `client_lines jsonb`, `internal_lines jsonb`, `price_book_version int`, `engine_version text`.
 
-### Файли
+RLS: читання — `authenticated`; запис прайсів/коефів — тільки `admin` (через `has_role`). GRANT + policies у тій же міграції.
 
-**Нові:**
-- `src/lib/duration-calc.ts`
-- `src/lib/gcal.functions.ts`
-- `src/lib/operations.functions.ts`
-- `src/routes/_authenticated/operations.tsx`
-- `src/components/SchedulePanel.tsx` (планування + sync кнопки)
-- міграція БД
+## Формат `expression` (безпечно виконуваний)
 
-**Редагування:**
-- `src/lib/pngExport.ts` (фікс пагінації)
-- `src/components/EstimateView.tsx` (page-break класи + SchedulePanel)
-- `src/components/AppSidebar.tsx` (пункт меню)
-- `src/routeTree.gen.ts` (авто)
+Обмежений DSL: `+ - * / ( )`, функції `ROUNDUP, MAX, MIN, IF, SUM`, посилання на `inputs.<field_key>` та `coef.<key>`. Виконує серверний парсер (whitelist AST на базі `expr-eval` або мінімальний власний). Це прямий переклад Excel-формул: `ROUNDUP((area + perimeter*(h_parapet+w_horizontal))*coef.K_MEM, 0)`.
 
-### Поза скоупом
+## План виконання (одним релізом)
 
-- Багатокористувацький OAuth (кожен користувач свій календар) — зараз single-tenant ERP, всі події в основному календарі TERZI.
-- Drag-and-drop переміщення в календарі (тільки клік для відкриття).
-- Конфлікт-детектор перетинів бригад (буде в окремому раунді).
-- Авто-нагадування/листи з календаря (керується через стандартні Google Calendar reminders).
+1. **Міграція БД** — таблиці + RLS + GRANT + `price_history` (окрема таблиця для аудиту зміни цін).
+2. **Seed ПВХ-напряму** — SQL-migration з `insert` усіх 21 матеріалу, 7 робіт, 4 транспорт-позицій, 15 коефіцієнтів. Джерело: витягнуте з xlsx, `source_ref="КП Лебер 04.05.2026 стр.1"`.
+3. **Server functions** (`src/lib/pvc.functions.ts`):
+   - `getDirectionManifest("pvc_membrane")` — повертає всі довідники (public read).
+   - `calculatePvcEstimate({ inputs })` — детермінований engine, повертає `{ client_lines, internal_lines, totals, warnings }`.
+   - `savePvcEstimate` — запис у `estimates` з обома JSON.
+4. **Engine** (`src/lib/engines/pvc-engine.ts`) + універсальний `src/lib/engines/formula-eval.ts` (whitelist AST). Юніт-тести на 3 контрольних кейсах з xlsx (200 м², 100 м², 500 м²) — числа мають зійтись.
+5. **UI** `/directions/pvc` — форма з `input_fields`, live-recalc, дві таби "Клієнту / Внутрішній", підсвітка маржі. Внутрішня таба гейтиться `has_role('admin' or 'director' or 'finance')` серверно.
+6. **Експорт**: PDF (jsPDF + вже існуючі `pdfFonts.ts` кирилиця) і Excel (`xlsx` вже встановлено) — окремі шаблони для двох версій. Водяний знак з існуючого `EstimateWatermark`.
+7. **Інтеграція**: маршрут додається окремо, старий `/roofing` лишається робочим. У сайдбарі — новий розділ "Напрями (нова модель)" з єдиним пунктом "ПВХ-мембрана". Після ОК користувача решта 3 напрямів мігруються по цьому ж патерну.
 
-Кажи «го» — і починаю з міграції БД + duration-calc.
+## Що НЕ входить у цей крок
+- Не переписуємо `screed/roofing/insulation/demolition` — вони працюють як зараз.
+- Не робимо загальний "import Excel wizard" для довільних прайсів (це вже є в `PriceImportDialog`, окремий трек).
+- Не інтегруємо з календарем/актами/договорами (окремі фази).
+- Контракти/акти/лід-картка — окремі майбутні кроки.
+
+## Конфлікти/питання для ручної перевірки (винесу в `/mnt/documents/terzi-analysis/pvc_review.md` після імпорту)
+- У поточному `src/lib/roofing-calc.ts` PVC-логіка спрощена (немає окремих типів воронок S-Scupper/S-Gully/S-Drain, немає ПВХ-металу як окремої позиції). Нова модель — точніша; при переході старі кошториси лишаються як snapshot у `estimates.payload`.
+- Коефіцієнт продажу транспорту в xlsx = 1 (без маржі); підтвердити правило.
+- Мінімальний чек у xlsx ПВХ не заданий — брати `settings.minCheck`?
+
+Після апруву — запускаю міграцію, потім seed+код в одному циклі.
