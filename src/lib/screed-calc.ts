@@ -263,6 +263,17 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
       sum: meshArea * prices[pkey].sell, cost: meshArea * prices[pkey].buy, showToClient: true });
   }
 
+  // Дизель для станції — залежить від об'єму (товщина × площа) та поверху.
+  // Контроль: 100 м² × 7 см (V=7 м³), поверх 1–5 → 22 л.
+  const stationDieselL = Math.ceil(volumeM3 * norms.dieselLPerM3 * fc);
+  if (stationDieselL > 0) {
+    lines.push({ key: "m_diesel", block: "materials", name: "m_diesel", unit: "л", qty: stationDieselL,
+      pricePerUnit: prices.diesel.sell, costPerUnit: prices.diesel.buy,
+      sum: stationDieselL * prices.diesel.sell, cost: stationDieselL * prices.diesel.buy, showToClient: true });
+  }
+
+
+
   // ===== Works =====
   const screedExtra = Math.max(0, thickness - 7) * works.screedExtraPerCm;
   const screedRate = works.screedBase + screedExtra;
