@@ -25,7 +25,6 @@ import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DirectionsPvcRouteImport } from './routes/directions.pvc'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -107,11 +106,6 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DirectionsPvcRoute = DirectionsPvcRouteImport.update({
-  id: '/directions/pvc',
-  path: '/directions/pvc',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -130,7 +124,6 @@ export interface FileRoutesByFullPath {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
-  '/directions/pvc': typeof DirectionsPvcRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -149,7 +142,6 @@ export interface FileRoutesByTo {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
-  '/directions/pvc': typeof DirectionsPvcRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -169,7 +161,6 @@ export interface FileRoutesById {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
-  '/directions/pvc': typeof DirectionsPvcRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -190,7 +181,6 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
-    | '/directions/pvc'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -209,7 +199,6 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
-    | '/directions/pvc'
   id:
     | '__root__'
     | '/'
@@ -228,7 +217,6 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
-    | '/directions/pvc'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -248,7 +236,6 @@ export interface RootRouteChildren {
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
-  DirectionsPvcRoute: typeof DirectionsPvcRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -365,13 +352,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/directions/pvc': {
-      id: '/directions/pvc'
-      path: '/directions/pvc'
-      fullPath: '/directions/pvc'
-      preLoaderRoute: typeof DirectionsPvcRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -392,18 +372,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
-  DirectionsPvcRoute: DirectionsPvcRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
