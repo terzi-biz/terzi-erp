@@ -15,6 +15,11 @@
  *  (useModulePricing("roofing")).
  */
 import type { MaterialPrice } from "./screed-calc";
+import {
+  ROOFING_KB_PRICE_OVERRIDES,
+  ROOFING_KB_WORK_OVERRIDES,
+  ROOFING_KB_COEFF_OVERRIDES,
+} from "./roofing-knowledge.generated";
 
 export type RoofSystem = "rubemast" | "pvc";
 export type PvcThickness = "1.5" | "1.8";
