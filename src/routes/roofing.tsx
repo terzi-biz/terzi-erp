@@ -245,6 +245,9 @@ function RoofingPage() {
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />Розуклонка XPS</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withParapetWork} onChange={(e) => upd("withParapetWork", e.target.checked)} />Обробка парапету/примикань</label>
             </div>
+            <Tip>
+              <b>Праймер</b> обов'язковий на бетоні/стяжці перед наплавленням. <b>Галтель</b> — цементно-піщаний перехід у кутах парапету (уникає розриву покриття). <b>Розуклонка XPS</b> — коли потрібен ухил ≥1,5% для водовідведення.
+            </Tip>
           </section>
 
           <section className="panel p-4 md:p-5">
