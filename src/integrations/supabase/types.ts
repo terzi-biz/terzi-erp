@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      additional_services: {
+        Row: {
+          code: string | null
+          conditions: Json | null
+          cost_price: number
+          created_at: string
+          direction_id: string
+          id: string
+          is_client_visible: boolean
+          name: string
+          quantity_formula: string | null
+          sale_coef_key: string | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          conditions?: Json | null
+          cost_price?: number
+          created_at?: string
+          direction_id: string
+          id?: string
+          is_client_visible?: boolean
+          name: string
+          quantity_formula?: string | null
+          sale_coef_key?: string | null
+          sort_order?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          conditions?: Json | null
+          cost_price?: number
+          created_at?: string
+          direction_id?: string
+          id?: string
+          is_client_visible?: boolean
+          name?: string
+          quantity_formula?: string | null
+          sale_coef_key?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "additional_services_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           buy_price: number
@@ -104,6 +160,47 @@ export type Database = {
         }
         Relationships: []
       }
+      coefficients: {
+        Row: {
+          coef_group: string
+          coef_key: string
+          created_at: string
+          description: string | null
+          direction_id: string
+          id: string
+          updated_at: string
+          value: number
+        }
+        Insert: {
+          coef_group: string
+          coef_key: string
+          created_at?: string
+          description?: string | null
+          direction_id: string
+          id?: string
+          updated_at?: string
+          value: number
+        }
+        Update: {
+          coef_group?: string
+          coef_key?: string
+          created_at?: string
+          description?: string | null
+          direction_id?: string
+          id?: string
+          updated_at?: string
+          value?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coefficients_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crew_bookings: {
         Row: {
           address: string | null
@@ -149,27 +246,107 @@ export type Database = {
         }
         Relationships: []
       }
+      directions: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          description?: string | null
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      estimate_sections: {
+        Row: {
+          client_visible: boolean
+          created_at: string
+          direction_id: string
+          id: string
+          internal_visible: boolean
+          section_key: string
+          section_name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          client_visible?: boolean
+          created_at?: string
+          direction_id: string
+          id?: string
+          internal_visible?: boolean
+          section_key: string
+          section_name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          client_visible?: boolean
+          created_at?: string
+          direction_id?: string
+          id?: string
+          internal_visible?: boolean
+          section_key?: string
+          section_name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_sections_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimates: {
         Row: {
           address: string | null
           area: number | null
+          calculation_json: Json | null
           client_id: string | null
+          client_lines: Json | null
           client_name: string | null
           client_phone: string | null
           created_at: string
+          direction_id: string | null
           duration_days: number | null
           duration_override_days: number | null
+          engine_version: string | null
           gcal_calendar_id: string | null
           gcal_event_id: string | null
           gcal_synced_at: string | null
           gross_profit: number
           id: string
+          internal_lines: Json | null
           manager: string | null
           margin_percent: number
           module: string
           number: string
           owner_id: string
           payload: Json
+          price_book_version: number | null
           schedule_end_at: string | null
           schedule_start_at: string | null
           status: string
@@ -181,23 +358,29 @@ export type Database = {
         Insert: {
           address?: string | null
           area?: number | null
+          calculation_json?: Json | null
           client_id?: string | null
+          client_lines?: Json | null
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          direction_id?: string | null
           duration_days?: number | null
           duration_override_days?: number | null
+          engine_version?: string | null
           gcal_calendar_id?: string | null
           gcal_event_id?: string | null
           gcal_synced_at?: string | null
           gross_profit?: number
           id?: string
+          internal_lines?: Json | null
           manager?: string | null
           margin_percent?: number
           module: string
           number: string
           owner_id: string
           payload?: Json
+          price_book_version?: number | null
           schedule_end_at?: string | null
           schedule_start_at?: string | null
           status?: string
@@ -209,23 +392,29 @@ export type Database = {
         Update: {
           address?: string | null
           area?: number | null
+          calculation_json?: Json | null
           client_id?: string | null
+          client_lines?: Json | null
           client_name?: string | null
           client_phone?: string | null
           created_at?: string
+          direction_id?: string | null
           duration_days?: number | null
           duration_override_days?: number | null
+          engine_version?: string | null
           gcal_calendar_id?: string | null
           gcal_event_id?: string | null
           gcal_synced_at?: string | null
           gross_profit?: number
           id?: string
+          internal_lines?: Json | null
           manager?: string | null
           margin_percent?: number
           module?: string
           number?: string
           owner_id?: string
           payload?: Json
+          price_book_version?: number | null
           schedule_end_at?: string | null
           schedule_start_at?: string | null
           status?: string
@@ -242,7 +431,271 @@ export type Database = {
             referencedRelation: "clients"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "estimates_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
         ]
+      }
+      formulas: {
+        Row: {
+          created_at: string
+          description: string | null
+          direction_id: string
+          expression: string
+          formula_key: string
+          id: string
+          output_unit: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          direction_id: string
+          expression: string
+          formula_key: string
+          id?: string
+          output_unit?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          direction_id?: string
+          expression?: string
+          formula_key?: string
+          id?: string
+          output_unit?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "formulas_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      input_fields: {
+        Row: {
+          affects_formula: boolean
+          created_at: string
+          default_value: Json | null
+          direction_id: string
+          enum_values: Json | null
+          field_key: string
+          help_text: string | null
+          id: string
+          label: string
+          required: boolean
+          sort_order: number
+          type: string
+          unit: string | null
+          updated_at: string
+          validation_rules: Json | null
+        }
+        Insert: {
+          affects_formula?: boolean
+          created_at?: string
+          default_value?: Json | null
+          direction_id: string
+          enum_values?: Json | null
+          field_key: string
+          help_text?: string | null
+          id?: string
+          label: string
+          required?: boolean
+          sort_order?: number
+          type?: string
+          unit?: string | null
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Update: {
+          affects_formula?: boolean
+          created_at?: string
+          default_value?: Json | null
+          direction_id?: string
+          enum_values?: Json | null
+          field_key?: string
+          help_text?: string | null
+          id?: string
+          label?: string
+          required?: boolean
+          sort_order?: number
+          type?: string
+          unit?: string | null
+          updated_at?: string
+          validation_rules?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "input_fields_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      logistics_items: {
+        Row: {
+          code: string | null
+          conditions: Json | null
+          cost_price: number
+          created_at: string
+          direction_id: string
+          id: string
+          name: string
+          quantity_formula: string | null
+          sale_coef_key: string | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          conditions?: Json | null
+          cost_price?: number
+          created_at?: string
+          direction_id: string
+          id?: string
+          name: string
+          quantity_formula?: string | null
+          sale_coef_key?: string | null
+          sort_order?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          conditions?: Json | null
+          cost_price?: number
+          created_at?: string
+          direction_id?: string
+          id?: string
+          name?: string
+          quantity_formula?: string | null
+          sale_coef_key?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "logistics_items_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      material_items: {
+        Row: {
+          category: string | null
+          code: string | null
+          consumption_formula: string | null
+          cost_price: number
+          created_at: string
+          direction_id: string
+          id: string
+          is_optional: boolean
+          name: string
+          sale_coef_key: string | null
+          sort_order: number
+          source_ref: string | null
+          supplier: string | null
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          consumption_formula?: string | null
+          cost_price?: number
+          created_at?: string
+          direction_id: string
+          id?: string
+          is_optional?: boolean
+          name: string
+          sale_coef_key?: string | null
+          sort_order?: number
+          source_ref?: string | null
+          supplier?: string | null
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          consumption_formula?: string | null
+          cost_price?: number
+          created_at?: string
+          direction_id?: string
+          id?: string
+          is_optional?: boolean
+          name?: string
+          sale_coef_key?: string | null
+          sort_order?: number
+          source_ref?: string | null
+          supplier?: string | null
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_items_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      price_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          direction_id: string | null
+          field: string
+          id: string
+          item_id: string
+          item_kind: string
+          new_value: number | null
+          old_value: number | null
+          reason: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          direction_id?: string | null
+          field: string
+          id?: string
+          item_id: string
+          item_kind: string
+          new_value?: number | null
+          old_value?: number | null
+          reason?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          direction_id?: string | null
+          field?: string
+          id?: string
+          item_id?: string
+          item_kind?: string
+          new_value?: number | null
+          old_value?: number | null
+          reason?: string | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -294,6 +747,65 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      work_items: {
+        Row: {
+          code: string | null
+          cost_price: number
+          created_at: string
+          direction_id: string
+          id: string
+          is_client_visible: boolean
+          is_optional: boolean
+          name: string
+          quantity_formula: string | null
+          sale_coef_key: string | null
+          section: string | null
+          sort_order: number
+          unit: string
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          cost_price?: number
+          created_at?: string
+          direction_id: string
+          id?: string
+          is_client_visible?: boolean
+          is_optional?: boolean
+          name: string
+          quantity_formula?: string | null
+          sale_coef_key?: string | null
+          section?: string | null
+          sort_order?: number
+          unit: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          cost_price?: number
+          created_at?: string
+          direction_id?: string
+          id?: string
+          is_client_visible?: boolean
+          is_optional?: boolean
+          name?: string
+          quantity_formula?: string | null
+          sale_coef_key?: string | null
+          section?: string | null
+          sort_order?: number
+          unit?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "work_items_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
