@@ -5,7 +5,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
-import { registerCyrillicFont } from "./pdfFonts";
+import { attachCyrillicFonts } from "./pdfFonts";
 import type { DirectionManifest, EstimateResult } from "./engines/direction-engine";
 
 type Client = { name: string; phone: string; address: string; manager: string };
