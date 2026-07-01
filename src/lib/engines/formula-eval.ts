@@ -96,6 +96,10 @@ class Parser {
 
   peek(): Tok | undefined { return this.toks[this.p]; }
   eat(): Tok { return this.toks[this.p++]; }
+  peekOp(): string | null {
+    const t = this.toks[this.p];
+    return t && t.t === "op" ? t.v : null;
+  }
 
   parse(): number {
     const v = this.or();
@@ -104,20 +108,20 @@ class Parser {
   }
   or(): number {
     let v = this.and();
-    while (this.peek()?.t === "op" && this.peek()!.v === "||") { this.eat(); const r = this.and(); v = v || r ? 1 : 0; }
+    while (this.peekOp() === "||") { this.eat(); const r = this.and(); v = v || r ? 1 : 0; }
     return v;
   }
   and(): number {
     let v = this.cmp();
-    while (this.peek()?.t === "op" && this.peek()!.v === "&&") { this.eat(); const r = this.cmp(); v = v && r ? 1 : 0; }
+    while (this.peekOp() === "&&") { this.eat(); const r = this.cmp(); v = v && r ? 1 : 0; }
     return v;
   }
   cmp(): number {
     const l = this.add();
-    const t = this.peek();
-    if (t?.t === "op" && ["<", ">", "<=", ">=", "==", "!="].includes(t.v)) {
+    const op = this.peekOp();
+    if (op && ["<", ">", "<=", ">=", "==", "!="].includes(op)) {
       this.eat(); const r = this.add();
-      switch (t.v) {
+      switch (op) {
         case "<": return l < r ? 1 : 0;
         case ">": return l > r ? 1 : 0;
         case "<=": return l <= r ? 1 : 0;
@@ -130,15 +134,17 @@ class Parser {
   }
   add(): number {
     let v = this.mul();
-    while (this.peek()?.t === "op" && (this.peek()!.v === "+" || this.peek()!.v === "-")) {
-      const op = this.eat().v as "+" | "-"; const r = this.mul(); v = op === "+" ? v + r : v - r;
+    let op: string | null;
+    while ((op = this.peekOp()) === "+" || op === "-") {
+      this.eat(); const r = this.mul(); v = op === "+" ? v + r : v - r;
     }
     return v;
   }
   mul(): number {
     let v = this.unary();
-    while (this.peek()?.t === "op" && (this.peek()!.v === "*" || this.peek()!.v === "/")) {
-      const op = this.eat().v as "*" | "/"; const r = this.unary();
+    let op: string | null;
+    while ((op = this.peekOp()) === "*" || op === "/") {
+      this.eat(); const r = this.unary();
       v = op === "*" ? v * r : (r === 0 ? 0 : v / r);
     }
     return v;
