@@ -91,7 +91,7 @@ export interface RoofingCoefficients {
   vatRate: number;
 }
 
-export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
+const RAW_ROOFING_COEFFS: RoofingCoefficients = {
   rubemastOverlapCoef: 1.15,
   rubemastRollAreaM2: 10,
   rubemastPrimerLPerM2: 0.35,
@@ -115,8 +115,20 @@ export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
   vatRate: 0.22,
 };
 
+/**
+ * Публічні DEFAULT'и — базові значення, поверх яких накладаються оверрайди з
+ * бази знань (`.lovable/knowledge/roofing-calculator.md`), згенеровані скриптом
+ * `bun run sync:roofing` у `roofing-knowledge.generated.ts`. Так ми маємо єдине
+ * джерело правди: змінюємо MD → запускаємо sync → калькулятор бачить нові
+ * ціни/коефіцієнти без ручної правки коду.
+ */
+export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
+  ...RAW_ROOFING_COEFFS,
+  ...ROOFING_KB_COEFF_OVERRIDES,
+};
+
 // Закупка — Прайс євроруберойд Одеса 30.03.2026 (Акваізол ЕКО-ПЕ ~150–165 грн/м², рулон 10 м²).
-export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
+const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
   rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²)
   primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
@@ -133,9 +145,13 @@ export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
   outer_corner: { buy: 95,   sell: 180 },
   opaika_mastic:{ buy: 180,  sell: 320 },
 };
+export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
+  ...RAW_ROOFING_PRICES,
+  ...ROOFING_KB_PRICE_OVERRIDES,
+};
 
 // Продаж клієнту (грн).
-export const DEFAULT_ROOFING_WORKS = {
+const RAW_ROOFING_WORKS = {
   rubemast_lay: 160,   // за шар, м² (Монтаж Рубероида)
   primer_apply: 20,
   pvc_lay: 160,        // Монтаж ПВХ мембрани, м²
@@ -150,6 +166,10 @@ export const DEFAULT_ROOFING_WORKS = {
   corner: 180,
   opaika: 150,
 };
+export const DEFAULT_ROOFING_WORKS = {
+  ...RAW_ROOFING_WORKS,
+  ...ROOFING_KB_WORK_OVERRIDES,
+} as typeof RAW_ROOFING_WORKS;
 
 // Собівартість бригади — ПМЗ Майстерів (що ми платимо).
 export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
