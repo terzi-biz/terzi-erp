@@ -1,74 +1,71 @@
 
-# Пілот ERP-калькулятора: ПВХ-мембрана
+## Ціль
 
-Мета: перевести один напрям (ПВХ-мембрана) на нову модель "довідники в БД + детермінований engine + дві версії кошторису + експорт". Решта 3 напрямів мігруються за тим самим патерном на наступних кроках, не ламаючи поточні `screed/roofing/insulation/demolition`.
+Дати тобі можливість самому створювати/редагувати калькулятори (напрямки) без коду: поля вводу, матеріали, роботи, логістика, коефіцієнти, формули — і одразу отримувати робочий калькулятор + кошторис. Плюс комбо-сценарії типу «Мансарда» / «Підлога-пиріг», що склеюють кілька напрямків в один об'єкт.
 
-## Що вже витягнуто з файлів
-Розпарсив `TERZI_сметный_калькулятор_ПВХ_мембрана.xlsx` (9 листів). Виявлено канонічну структуру:
-- `01_Калькулятор` — 17 вводних параметрів (площа, парапети, воронки 4 типи, аератори, коеф. продажу матеріалів/робіт, транспорт, резерв).
-- `02_Материалы` — 21 позиція з формулами кількості (`ROUNDUP`, `MAX`), `cost_price`, `sale_price = cost * K_material`.
-- `03_Работы` — 7 робіт (підготовка, геотекстиль, воронки, аератори, мембрана, парапет, капельник), `sale = cost * K_works`.
-- `04_Транспорт` — доставка/кран/розвантаження/км + 7 допробіт, `sale = cost * K_transport`.
-- `05_БазаМат` / `06_БазаРаб` — прайс з посиланнями (КП Лебер стр.1) — це source-of-truth для `cost_price`.
-- `07_Коэф` — коефіцієнти запасу (мембрана 1.10, геотекстиль 1.05, метал 1.15 тощо), нормативи (герметик 1 туба/16 м.п., диски 1/150 м²…).
-- `08_Логика` — прописані правила (площа парапету = L×(H+W); ROUNDUP; MIN пакування).
-- `09_Источники` — реєстр джерел цін.
-Файл збережено як JSON: `/mnt/documents/terzi-analysis/pvc_raw.json`.
+## Що вже є в БД (використовуємо, не переробляємо)
 
-## Архітектура
+`directions`, `input_fields`, `formulas`, `coefficients`, `material_items`, `work_items`, `logistics_items`, `catalog_items`, `estimates`, `estimate_sections`. Схема достатня — потрібен UI + рушій.
+
+## Архітектура (2 шари)
 
 ```text
-uploads → parser (одноразово, вручну керовано) → JSON manifest
-JSON manifest → migration seed → БД довідники
-UI форма (input_fields) → serverFn engine (formulas + coefficients + prices) → EstimateResult
-EstimateResult → 2 версії: клієнт / внутрішній → PDF + Excel + збереження в estimates
+Editor (Settings → Напрямки)          Runtime (/calc/:slug)
+─────────────────────────────         ─────────────────────────
+Direction  ──► input_fields           Форма з полів → inputs
+           ──► material_items         formula-eval рахує qty
+           ──► work_items             ──► lines (materials/works/logistics)
+           ──► logistics_items        ──► subtotal / cost / margin
+           ──► coefficients           ──► збереження в estimates
+           ──► formulas               ──► PDF / PNG як у стяжки
 ```
 
-Engine детермінований на TypeScript, LLM не використовується для розрахунків.
+Формули — вирази над `inputs.*`, `coeffs.*`, `materials.<key>.consumption`, з функціями `ceil/round/max/min/if`. Рушій уже стартував у `src/lib/engines/formula-eval.ts` (розширимо, а не перепишемо).
 
-## База даних (нові таблиці)
+## Фаза 1 — Конструктор напрямків (no-code)
 
-- `directions(id text pk, name, category, description, active)`
-- `input_fields(id, direction_id, field_key, label, type, unit, required, default_value, enum_values jsonb, sort_order, affects_formula)`
-- `material_items(id, direction_id, code, name, unit, cost_price, sale_coef_key, consumption_formula, supplier, source_ref, sort_order, is_optional)`
-- `work_items(id, direction_id, code, name, unit, cost_price, sale_coef_key, quantity_formula, sort_order, is_optional, is_client_visible)`
-- `logistics_items(id, direction_id, name, unit, cost_price, sale_coef_key, quantity_formula, sort_order)`
-- `additional_services(id, direction_id, name, unit, cost_price, sale_coef_key, quantity_formula, is_client_visible)`
-- `coefficients(id, direction_id, group, key, value numeric, description)` — сюди йде і `K_material/K_works/K_transport`, і всі коеф. запасу.
-- `formulas(id, direction_id, key, expression, output_unit, description)` — реєстр іменованих формул для UI-підказок.
-- `estimate_sections(id, direction_id, name, sort_order, client_visible, internal_visible)`
+Нова сторінка **Налаштування → Напрямки** (`/settings/directions`):
 
-Розширення до існуючих `estimates`:
-- `direction_id text`, `calculation_json jsonb`, `client_lines jsonb`, `internal_lines jsonb`, `price_book_version int`, `engine_version text`.
+1. **Список напрямків** з БД + кнопки «Створити», «Клонувати з стяжки/покрівлі», «Активувати/Приховати».
+2. **Редактор напрямку** з вкладками:
+   - **Загальне**: name, slug, icon, опис, статус.
+   - **Поля вводу**: тип (number/select/checkbox/text), key, label, unit, default, min/max, options, tooltip, порядок. Drag-and-drop сортування.
+   - **Матеріали**: назва, одиниця, `consumption_formula` (напр. `area * thickness/100 * 8.57`), buy/sell, показувати клієнту.
+   - **Роботи**: назва, одиниця, ставка (клієнт/бригада), `qty_formula`, умова показу (`if(withGrind, area, 0)`).
+   - **Логістика**: назва, одиниця, ціна клієнт/собівартість, `qty_formula` (`ceil(sandTons / 15)`).
+   - **Коефіцієнти**: key, значення (число або таблиця діапазонів, напр. поверх → коеф).
+   - **Формули підсумків**: markup, знижка, min check, ФОП, ПДВ — з дефолтів.
+3. **Прев'ю** справа: жива форма з поточних `input_fields`, показує лінії й підсумки — щоб ти бачив ефект без публікації.
 
-RLS: читання — `authenticated`; запис прайсів/коефів — тільки `admin` (через `has_role`). GRANT + policies у тій же міграції.
+Усе пишеться в існуючі таблиці; RLS уже налаштовані.
 
-## Формат `expression` (безпечно виконуваний)
+## Фаза 2 — Runtime `/calc/:slug`
 
-Обмежений DSL: `+ - * / ( )`, функції `ROUNDUP, MAX, MIN, IF, SUM`, посилання на `inputs.<field_key>` та `coef.<key>`. Виконує серверний парсер (whitelist AST на базі `expr-eval` або мінімальний власний). Це прямий переклад Excel-формул: `ROUNDUP((area + perimeter*(h_parapet+w_horizontal))*coef.K_MEM, 0)`.
+Одна універсальна сторінка замість чотирьох окремих (`screed`/`roofing`/`insulation`/`demolition` залишаються як були — не ламаємо). Читає `directions` за slug, рендерить поля, викликає `evalDirection(inputs)` → повертає `CalcResult` тієї ж форми, що зараз у `screed-calc`. PDF/PNG/збереження в `estimates` — використовуємо існуючий `EstimateView`.
 
-## План виконання (одним релізом)
+Так стяжка/покрівля продовжують працювати через свої typed-двигуни (там вивірена логіка), а нові напрямки — через no-code.
 
-1. **Міграція БД** — таблиці + RLS + GRANT + `price_history` (окрема таблиця для аудиту зміни цін).
-2. **Seed ПВХ-напряму** — SQL-migration з `insert` усіх 21 матеріалу, 7 робіт, 4 транспорт-позицій, 15 коефіцієнтів. Джерело: витягнуте з xlsx, `source_ref="КП Лебер 04.05.2026 стр.1"`.
-3. **Server functions** (`src/lib/pvc.functions.ts`):
-   - `getDirectionManifest("pvc_membrane")` — повертає всі довідники (public read).
-   - `calculatePvcEstimate({ inputs })` — детермінований engine, повертає `{ client_lines, internal_lines, totals, warnings }`.
-   - `savePvcEstimate` — запис у `estimates` з обома JSON.
-4. **Engine** (`src/lib/engines/pvc-engine.ts`) + універсальний `src/lib/engines/formula-eval.ts` (whitelist AST). Юніт-тести на 3 контрольних кейсах з xlsx (200 м², 100 м², 500 м²) — числа мають зійтись.
-5. **UI** `/directions/pvc` — форма з `input_fields`, live-recalc, дві таби "Клієнту / Внутрішній", підсвітка маржі. Внутрішня таба гейтиться `has_role('admin' or 'director' or 'finance')` серверно.
-6. **Експорт**: PDF (jsPDF + вже існуючі `pdfFonts.ts` кирилиця) і Excel (`xlsx` вже встановлено) — окремі шаблони для двох версій. Водяний знак з існуючого `EstimateWatermark`.
-7. **Інтеграція**: маршрут додається окремо, старий `/roofing` лишається робочим. У сайдбарі — новий розділ "Напрями (нова модель)" з єдиним пунктом "ПВХ-мембрана". Після ОК користувача решта 3 напрямів мігруються по цьому ж патерну.
+## Фаза 3 — Комбо-сценарії (Мансарда, Пиріг підлоги)
 
-## Що НЕ входить у цей крок
-- Не переписуємо `screed/roofing/insulation/demolition` — вони працюють як зараз.
-- Не робимо загальний "import Excel wizard" для довільних прайсів (це вже є в `PriceImportDialog`, окремий трек).
-- Не інтегруємо з календарем/актами/договорами (окремі фази).
-- Контракти/акти/лід-картка — окремі майбутні кроки.
+Нова сутність **Packages** (нова таблиця `packages` + `package_steps`):
 
-## Конфлікти/питання для ручної перевірки (винесу в `/mnt/documents/terzi-analysis/pvc_review.md` після імпорту)
-- У поточному `src/lib/roofing-calc.ts` PVC-логіка спрощена (немає окремих типів воронок S-Scupper/S-Gully/S-Drain, немає ПВХ-металу як окремої позиції). Нова модель — точніша; при переході старі кошториси лишаються як snapshot у `estimates.payload`.
-- Коефіцієнт продажу транспорту в xlsx = 1 (без маржі); підтвердити правило.
-- Мінімальний чек у xlsx ПВХ не заданий — брати `settings.minCheck`?
+- Пакет = впорядкований набір посилань на напрямки з переоприділенням дефолтів (напр. Мансарда: demolition → insulation-PIR → screed-thin → finish).
+- Спільні поля (area, perimeter, floor, доступ) вводяться один раз і прокидаються в усі кроки.
+- Дедуплікація: одна логістика підйому/бригадир/амортизація на об'єкт (правила «shared costs» у пакеті).
+- Результат: **один зведений кошторис із секціями** (`estimate_sections` для кожного кроку) **АБО** кілька окремих кошторисів під один об'єкт — перемикач менеджера, як ти просив.
 
-Після апруву — запускаю міграцію, потім seed+код в одному циклі.
+UI: **Кошториси → Новий → Комбо**, вибір пакета, введення спільних параметрів, крок-за-кроком коригування, підсумок з роздільною маржею і зведеною.
+
+## Порядок робіт
+
+1. **Тиждень 1** — Фаза 1 (редактор напрямків) + розширення `formula-eval` (функції, безпечний парсер, тести).
+2. **Тиждень 2** — Фаза 2 (`/calc/:slug`, збереження estimates, PDF).
+3. **Тиждень 3** — Фаза 3 (Packages, Мансарда і Пиріг підлоги як seed-пакети, дедуплікація витрат).
+
+Стяжка/покрівля/утеплення/демонтаж лишаються недоторканими протягом усього процесу. Прайси і формули existing-модулів редагуватимуться і через старі Settings-вкладки, і через новий конструктор — це та ж БД.
+
+## Що потрібно від тебе перед стартом
+
+1. Підтвердь: почати з **Фази 1** (редактор), реліз через кілька днів; далі Фаза 2 і 3.
+2. Для «Мансарди» перерахуй кроки як ти їх бачиш (демонтаж старого покриття → пароізоляція → утеплення PIR/мінвата → мембрана/стяжка → фініш) — я закладу як seed.
+3. Для «Пирога підлоги» — те саме (демонтаж → вирівнювання → утеплення → стяжка → фініш).

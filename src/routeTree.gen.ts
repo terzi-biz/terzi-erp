@@ -21,6 +21,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as EquipmentRouteImport } from './routes/equipment'
+import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
 import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
@@ -86,6 +87,11 @@ const EquipmentRoute = EquipmentRouteImport.update({
   path: '/equipment',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DirectionsEditorRoute = DirectionsEditorRouteImport.update({
+  id: '/directions-editor',
+  path: '/directions-editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemolitionRoute = DemolitionRouteImport.update({
   id: '/demolition',
   path: '/demolition',
@@ -112,6 +118,7 @@ export interface FileRoutesByFullPath {
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
@@ -130,6 +137,7 @@ export interface FileRoutesByTo {
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
@@ -149,6 +157,7 @@ export interface FileRoutesById {
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/branding'
     | '/clients'
     | '/demolition'
+    | '/directions-editor'
     | '/equipment'
     | '/history'
     | '/insulation'
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/branding'
     | '/clients'
     | '/demolition'
+    | '/directions-editor'
     | '/equipment'
     | '/history'
     | '/insulation'
@@ -205,6 +216,7 @@ export interface FileRouteTypes {
     | '/branding'
     | '/clients'
     | '/demolition'
+    | '/directions-editor'
     | '/equipment'
     | '/history'
     | '/insulation'
@@ -224,6 +236,7 @@ export interface RootRouteChildren {
   BrandingRoute: typeof BrandingRoute
   ClientsRoute: typeof ClientsRoute
   DemolitionRoute: typeof DemolitionRoute
+  DirectionsEditorRoute: typeof DirectionsEditorRoute
   EquipmentRoute: typeof EquipmentRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
@@ -324,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EquipmentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/directions-editor': {
+      id: '/directions-editor'
+      path: '/directions-editor'
+      fullPath: '/directions-editor'
+      preLoaderRoute: typeof DirectionsEditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demolition': {
       id: '/demolition'
       path: '/demolition'
@@ -360,6 +380,7 @@ const rootRouteChildren: RootRouteChildren = {
   BrandingRoute: BrandingRoute,
   ClientsRoute: ClientsRoute,
   DemolitionRoute: DemolitionRoute,
+  DirectionsEditorRoute: DirectionsEditorRoute,
   EquipmentRoute: EquipmentRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
@@ -376,13 +397,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

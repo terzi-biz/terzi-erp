@@ -3,7 +3,7 @@ import { useI18n, useT } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
-  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays,
+  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, Sparkles,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
@@ -46,6 +46,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/history", icon: History, label: t("history") },
     { to: "/reports", icon: BarChart3, label: t("reports") },
     { to: "/branding", icon: Palette, label: t("branding") },
+    { to: "/directions-editor", icon: Sparkles, label: "Конструктор напрямків" },
     { to: "/settings", icon: Settings, label: t("settings") },
   ];
 
