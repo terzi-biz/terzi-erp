@@ -11,7 +11,7 @@ import { evaluateDirection, type DirectionDefinition } from "@/lib/engines/direc
 import { evalFormula } from "@/lib/engines/formula-eval";
 import { formatUah } from "@/lib/screed-calc";
 
-export const Route = createFileRoute("/settings/directions")({
+export const Route = createFileRoute("/directions-editor")({
   component: () => <AppShell><DirectionsAdmin /></AppShell>,
 });
 
