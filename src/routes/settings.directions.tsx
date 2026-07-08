@@ -227,7 +227,7 @@ function FieldsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
     <div className="panel p-3 overflow-x-auto">
       <table className="w-full text-xs min-w-[900px]">
         <thead><tr className="text-left text-muted-foreground border-b border-border">
-          <Th>key</Th><Th>Назва</Th><Th>Тип</Th><Th>Од.</Th><Th>Default</Th><Th>Підказка</Th><Th>№</Th><Th></Th>
+          <Th>key</Th><Th>Назва</Th><Th>Тип</Th><Th>Од.</Th><Th>Default</Th><Th>Підказка</Th><Th>№</Th><Th>{" "}</Th>
         </tr></thead>
         <tbody>
           {rows.map((r, i) => (
@@ -323,7 +323,7 @@ function ItemsTab({ def, kind, onChange }: { def: DirectionDefinition; kind: Ite
       <table className="w-full text-xs min-w-[1000px]">
         <thead><tr className="text-left text-muted-foreground border-b border-border">
           <Th>code</Th><Th>Назва</Th><Th>Од.</Th><Th>Cost</Th><Th>Націнка/coef</Th><Th>{formulaLabel}</Th>
-          {kind !== "materials" && <Th>Клієнту</Th>}<Th>№</Th><Th></Th>
+          {kind !== "materials" && <Th>Клієнту</Th>}<Th>№</Th><Th>{" "}</Th>
         </tr></thead>
         <tbody>
           {rows.map((r, i) => (
@@ -378,7 +378,7 @@ function CoeffsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
     <div className="panel p-3 overflow-x-auto">
       <table className="w-full text-xs min-w-[700px]">
         <thead><tr className="text-left text-muted-foreground border-b border-border">
-          <Th>Група</Th><Th>Key</Th><Th>Значення</Th><Th>Опис</Th><Th></Th>
+          <Th>Група</Th><Th>Key</Th><Th>Значення</Th><Th>Опис</Th><Th>{" "}</Th>
         </tr></thead>
         <tbody>
           {rows.map((r, i) => (
