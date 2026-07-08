@@ -21,11 +21,11 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as EquipmentRouteImport } from './routes/equipment'
+import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
 import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as SettingsDirectionsRouteImport } from './routes/settings.directions'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -87,6 +87,11 @@ const EquipmentRoute = EquipmentRouteImport.update({
   path: '/equipment',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DirectionsEditorRoute = DirectionsEditorRouteImport.update({
+  id: '/directions-editor',
+  path: '/directions-editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DemolitionRoute = DemolitionRouteImport.update({
   id: '/demolition',
   path: '/demolition',
@@ -107,17 +112,13 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsDirectionsRoute = SettingsDirectionsRouteImport.update({
-  id: '/directions',
-  path: '/directions',
-  getParentRoute: () => SettingsRoute,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
@@ -128,15 +129,15 @@ export interface FileRoutesByFullPath {
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRouteWithChildren
+  '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
-  '/settings/directions': typeof SettingsDirectionsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
@@ -147,9 +148,8 @@ export interface FileRoutesByTo {
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRouteWithChildren
+  '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
-  '/settings/directions': typeof SettingsDirectionsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -157,6 +157,7 @@ export interface FileRoutesById {
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
+  '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
@@ -167,9 +168,8 @@ export interface FileRoutesById {
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRouteWithChildren
+  '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
-  '/settings/directions': typeof SettingsDirectionsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -178,6 +178,7 @@ export interface FileRouteTypes {
     | '/branding'
     | '/clients'
     | '/demolition'
+    | '/directions-editor'
     | '/equipment'
     | '/history'
     | '/insulation'
@@ -190,13 +191,13 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
-    | '/settings/directions'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/branding'
     | '/clients'
     | '/demolition'
+    | '/directions-editor'
     | '/equipment'
     | '/history'
     | '/insulation'
@@ -209,13 +210,13 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
-    | '/settings/directions'
   id:
     | '__root__'
     | '/'
     | '/branding'
     | '/clients'
     | '/demolition'
+    | '/directions-editor'
     | '/equipment'
     | '/history'
     | '/insulation'
@@ -228,7 +229,6 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
-    | '/settings/directions'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -236,6 +236,7 @@ export interface RootRouteChildren {
   BrandingRoute: typeof BrandingRoute
   ClientsRoute: typeof ClientsRoute
   DemolitionRoute: typeof DemolitionRoute
+  DirectionsEditorRoute: typeof DirectionsEditorRoute
   EquipmentRoute: typeof EquipmentRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
@@ -246,7 +247,7 @@ export interface RootRouteChildren {
   ReportsRoute: typeof ReportsRoute
   RoofingRoute: typeof RoofingRoute
   ScreedRoute: typeof ScreedRoute
-  SettingsRoute: typeof SettingsRouteWithChildren
+  SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
 }
 
@@ -336,6 +337,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EquipmentRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/directions-editor': {
+      id: '/directions-editor'
+      path: '/directions-editor'
+      fullPath: '/directions-editor'
+      preLoaderRoute: typeof DirectionsEditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/demolition': {
       id: '/demolition'
       path: '/demolition'
@@ -364,33 +372,15 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/directions': {
-      id: '/settings/directions'
-      path: '/directions'
-      fullPath: '/settings/directions'
-      preLoaderRoute: typeof SettingsDirectionsRouteImport
-      parentRoute: typeof SettingsRoute
-    }
   }
 }
-
-interface SettingsRouteChildren {
-  SettingsDirectionsRoute: typeof SettingsDirectionsRoute
-}
-
-const SettingsRouteChildren: SettingsRouteChildren = {
-  SettingsDirectionsRoute: SettingsDirectionsRoute,
-}
-
-const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
-  SettingsRouteChildren,
-)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandingRoute: BrandingRoute,
   ClientsRoute: ClientsRoute,
   DemolitionRoute: DemolitionRoute,
+  DirectionsEditorRoute: DirectionsEditorRoute,
   EquipmentRoute: EquipmentRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
@@ -401,7 +391,7 @@ const rootRouteChildren: RootRouteChildren = {
   ReportsRoute: ReportsRoute,
   RoofingRoute: RoofingRoute,
   ScreedRoute: ScreedRoute,
-  SettingsRoute: SettingsRouteWithChildren,
+  SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
 }
 export const routeTree = rootRouteImport
