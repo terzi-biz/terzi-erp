@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Trash2, Save, Play, ChevronDown, ChevronRight } from "lucide-react";
-import { AppShell } from "@/components/AppShell";
 import {
   listDirections, upsertDirection, deleteDirection, loadDefinition,
   upsertChild, deleteChild, type DirectionRow,
@@ -12,7 +11,7 @@ import { evalFormula } from "@/lib/engines/formula-eval";
 import { formatUah } from "@/lib/screed-calc";
 
 export const Route = createFileRoute("/directions-editor")({
-  component: () => <AppShell><DirectionsAdmin /></AppShell>,
+  component: DirectionsAdmin,
 });
 
 type Tab = "general" | "fields" | "materials" | "works" | "logistics" | "coeffs" | "preview";
