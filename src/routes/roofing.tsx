@@ -154,7 +154,7 @@ function RoofingPage() {
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding}
             module={input.system === "pvc" ? `Покрівля ПВХ ${input.pvcThickness} мм` : `Покрівля рубемаст ×${input.layers}`}
-            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} />
+            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId} />
         </div>
       )}
 
