@@ -148,7 +148,7 @@ function ScreedPage() {
       {view === "estimate" && (
         <EstimateView result={result} client={client} branding={branding} module="Стяжка"
           area={input.area} thicknessCm={result.thicknessUsed} estimateNumber={estimateNumber}
-          isInternal={isInternal} />
+          isInternal={isInternal} estimateId={estimateId} />
       )}
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-7" style={{ display: view === "calc" ? undefined : "none" }}>
