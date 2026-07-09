@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
+import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
@@ -56,6 +57,7 @@ function ScreedPage() {
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
 
   const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings), [input, materialPrices, workPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
@@ -66,7 +68,8 @@ function ScreedPage() {
   const saveFn = useServerFn(saveEstimate);
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
-      number: generateEstimateNumber(),
+      id: estimateId,
+      number: estimateNumber,
       module: "screed",
       status: "draft",
       client_name: client.name || null,
@@ -81,11 +84,12 @@ function ScreedPage() {
       margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
     } }),
-    onSuccess: () => {
+    onSuccess: (row: { id?: string }) => {
+      if (row?.id) setEstimateId(row.id);
       qc.invalidateQueries({ queryKey: ["estimates"] });
-      alert("Кошторис збережено на сервері");
+      toast.success("Кошторис збережено на сервері");
     },
-    onError: (e: Error) => alert("Помилка збереження: " + e.message),
+    onError: (e: Error) => toast.error("Помилка збереження: " + e.message),
   });
   const onSave = () => saveMut.mutate();
 
@@ -144,7 +148,7 @@ function ScreedPage() {
       {view === "estimate" && (
         <EstimateView result={result} client={client} branding={branding} module="Стяжка"
           area={input.area} thicknessCm={result.thicknessUsed} estimateNumber={estimateNumber}
-          isInternal={isInternal} />
+          isInternal={isInternal} estimateId={estimateId} />
       )}
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-7" style={{ display: view === "calc" ? undefined : "none" }}>

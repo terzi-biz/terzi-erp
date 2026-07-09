@@ -169,13 +169,12 @@ export function EstimateView({
       )}
 
       {mode === "internal" && isInternal && (() => {
-        const MAP: Record<string, "screed" | "roofing" | "insulation" | "demolition"> = {
-          "Стяжка": "screed", "screed": "screed",
-          "Покрівля": "roofing", "roofing": "roofing",
-          "Утеплення": "insulation", "insulation": "insulation",
-          "Демонтаж": "demolition", "demolition": "demolition",
-        };
-        const moduleKey = MAP[module];
+        const m = module.toLowerCase();
+        const moduleKey: "screed" | "roofing" | "insulation" | "demolition" | undefined =
+          m.includes("стяжк") || m.includes("screed") ? "screed" :
+          m.includes("покрівл") || m.includes("покривл") || m.includes("рубемаст") || m.includes("пвх") || m.includes("roofing") ? "roofing" :
+          m.includes("утепл") || m.includes("insulation") ? "insulation" :
+          m.includes("демонтаж") || m.includes("demolition") ? "demolition" : undefined;
         return (
           <>
             {moduleKey && (

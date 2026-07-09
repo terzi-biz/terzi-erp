@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo, useRef } from "react";
+import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAppStore, generateEstimateNumber } from "@/lib/store";
@@ -43,6 +44,7 @@ function InsulationPage() {
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_INSULATION_WORKS };
@@ -62,7 +64,8 @@ function InsulationPage() {
   const saveFn = useServerFn(saveEstimate);
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
-      number: generateEstimateNumber(), module: "insulation", status: "draft",
+      id: estimateId,
+      number: estimateNumber, module: "insulation", status: "draft",
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: input.thicknessCm,
@@ -70,8 +73,12 @@ function InsulationPage() {
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
     } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["estimates"] }); alert("Кошторис утеплення збережено"); },
-    onError: (e: Error) => alert("Помилка: " + e.message),
+    onSuccess: (row: { id?: string }) => {
+      if (row?.id) setEstimateId(row.id);
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      toast.success("Кошторис утеплення збережено");
+    },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
   });
 
   const onPng = async () => {
@@ -120,7 +127,7 @@ function InsulationPage() {
       {view === "estimate" && (
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding} module="Утеплення"
-            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} />
+            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId} />
         </div>
       )}
 
