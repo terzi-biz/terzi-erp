@@ -43,6 +43,7 @@ function DemolitionPage() {
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_DEMOLITION_WORKS };
