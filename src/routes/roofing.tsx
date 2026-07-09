@@ -94,7 +94,8 @@ function RoofingPage() {
   const saveFn = useServerFn(saveEstimate);
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
-      number: generateEstimateNumber(), module: "roofing", status: "draft",
+      id: estimateId,
+      number: estimateNumber, module: "roofing", status: "draft",
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: null,
@@ -102,8 +103,12 @@ function RoofingPage() {
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
     } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["estimates"] }); alert("Кошторис покрівлі збережено"); },
-    onError: (e: Error) => alert("Помилка: " + e.message),
+    onSuccess: (row: { id?: string }) => {
+      if (row?.id) setEstimateId(row.id);
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      toast.success("Кошторис покрівлі збережено");
+    },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
   });
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
