@@ -127,7 +127,7 @@ function InsulationPage() {
       {view === "estimate" && (
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding} module="Утеплення"
-            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} />
+            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId} />
         </div>
       )}
 
