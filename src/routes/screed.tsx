@@ -56,6 +56,7 @@ function ScreedPage() {
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
 
   const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings), [input, materialPrices, workPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
