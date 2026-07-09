@@ -69,6 +69,7 @@ function RoofingPage() {
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
 
 
 
