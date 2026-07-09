@@ -67,7 +67,8 @@ function ScreedPage() {
   const saveFn = useServerFn(saveEstimate);
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
-      number: generateEstimateNumber(),
+      id: estimateId,
+      number: estimateNumber,
       module: "screed",
       status: "draft",
       client_name: client.name || null,
@@ -82,11 +83,12 @@ function ScreedPage() {
       margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
     } }),
-    onSuccess: () => {
+    onSuccess: (row: { id?: string }) => {
+      if (row?.id) setEstimateId(row.id);
       qc.invalidateQueries({ queryKey: ["estimates"] });
-      alert("Кошторис збережено на сервері");
+      toast.success("Кошторис збережено на сервері");
     },
-    onError: (e: Error) => alert("Помилка збереження: " + e.message),
+    onError: (e: Error) => toast.error("Помилка збереження: " + e.message),
   });
   const onSave = () => saveMut.mutate();
 
