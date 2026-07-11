@@ -393,7 +393,7 @@ function ClientSheet(p: ClientSheetProps) {
             const sub = g.rows.reduce((a, r) => a + r.sum, 0);
             return (
               <Fragment key={g.block}>
-                <tr className="bg-slate-100">
+                <tr className="bg-slate-100" data-pdf-block>
                   <td colSpan={6} className="p-1.5 font-bold uppercase text-[10px] tracking-wider">
                     <div className="flex items-center justify-between">
                       <span>{g.label}</span>
@@ -481,7 +481,7 @@ function ClientSheet(p: ClientSheetProps) {
 function FragmentRows({ g, t }: { g: { block: string; label: string; rows: EstimateLine[] }; t: ReturnType<typeof useT> }) {
   return (
     <>
-      <tr className="bg-slate-100">
+      <tr className="bg-slate-100" data-pdf-block>
         <td colSpan={8} className="p-1.5 font-bold uppercase text-[10px] tracking-wider">{g.label}</td>
       </tr>
       {g.rows.map((r) => {
