@@ -1,115 +1,155 @@
 /**
- * Експорт DOM-елементу у PNG/PDF.
- * Розумна пагінація: cut snap до найближчого "безпечного" Y-офсету
- * (елементи з data-pdf-block), щоб не різати таблиці/секції посередині.
+ * Експорт кошторису у PNG/PDF з фіксованими TERZI-колонтитулами на кожній сторінці.
+ * — PNG: єдине зображення (без поділу на half-файли), 3× DPI.
+ * — PDF: header/footer як зображення на кожній A4-сторінці, контент нарізається
+ *   між ними по «безпечних» точках (block-заголовки, subtotals, tr) на цілих
+ *   піксельних межах, щоб не було зсуву ліній таблиць.
  */
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import headerImg from "@/assets/terzi-header.jpg";
+import footerImg from "@/assets/terzi-footer.png";
+
+const HTML2CANVAS_OPTS = {
+  backgroundColor: "#ffffff" as const,
+  useCORS: true,
+  logging: false,
+  imageTimeout: 0,
+  removeContainer: true,
+};
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = src;
+  });
+}
 
 function collectSafeBreakpoints(root: HTMLElement, scale: number): number[] {
   const rootTop = root.getBoundingClientRect().top;
-  const els = root.querySelectorAll<HTMLElement>("[data-pdf-block], tr");
-  const points: number[] = [];
+  const els = root.querySelectorAll<HTMLElement>(
+    "[data-pdf-block], thead, tfoot, tr, header, footer, h1, h2, h3",
+  );
+  const pts = new Set<number>();
   els.forEach((el) => {
     const r = el.getBoundingClientRect();
-    // bottom edge of each block, у координатах canvas
-    points.push(Math.round((r.bottom - rootTop) * scale));
+    // Округлюємо ДОНИЗУ до цілого пікселя, щоб різ по границі не роздвоював border.
+    pts.add(Math.floor((r.bottom - rootTop) * scale));
   });
-  return Array.from(new Set(points)).sort((a, b) => a - b);
+  return Array.from(pts).sort((a, b) => a - b);
 }
 
 function snapCut(targetEnd: number, points: number[], minStart: number, scale: number): number {
-  // Шукаємо найбільшу безпечну точку <= targetEnd та > minStart + 50*scale (щоб не зациклитися)
-  const minAdvance = minStart + 80 * scale;
-  let best = targetEnd;
+  const minAdvance = minStart + 120 * scale;
+  let best = -1;
   for (const p of points) {
-    if (p > minStart && p <= targetEnd && p >= minAdvance) {
-      if (p > best - 1 || best === targetEnd) best = p;
-    }
+    if (p >= minAdvance && p <= targetEnd) best = p;
   }
-  // Якщо немає підходящих → лишаємо targetEnd як було
-  return best;
+  return best > 0 ? best : targetEnd;
 }
 
-export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
-  const scale = 2;
-  const canvas = await html2canvas(el, {
-    backgroundColor: "#ffffff", scale, useCORS: true, logging: false,
-  });
-  // Якщо контент дуже високий — ріжемо на кілька PNG.
-  const MAX = 6000;
-  if (canvas.height <= MAX) {
-    triggerDownload(canvas.toDataURL("image/png"), filename);
-    return;
-  }
-  const points = collectSafeBreakpoints(el, scale);
-  let offset = 0, part = 1;
-  while (offset < canvas.height) {
-    const proposed = Math.min(canvas.height, offset + MAX);
-    const cut = snapCut(proposed, points, offset, scale);
-    const sliceH = cut - offset;
-    const slice = document.createElement("canvas");
-    slice.width = canvas.width;
-    slice.height = sliceH;
-    const ctx = slice.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, slice.width, slice.height);
-    ctx.drawImage(canvas, 0, -offset);
-    triggerDownload(slice.toDataURL("image/png"), filename.replace(/\.png$/i, `-part${part}.png`));
-    offset = cut;
-    part++;
-  }
-}
-
-function triggerDownload(dataUrl: string, filename: string) {
+function triggerDownload(url: string, filename: string) {
   const a = document.createElement("a");
-  a.href = dataUrl;
+  a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
 }
 
+// ---------- PNG ----------
+export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
+  // Пробуємо scale=3 (крашно), при OOM/помилці — fallback на 2.
+  let canvas: HTMLCanvasElement;
+  try {
+    canvas = await html2canvas(el, { ...HTML2CANVAS_OPTS, scale: 3 });
+  } catch {
+    canvas = await html2canvas(el, { ...HTML2CANVAS_OPTS, scale: 2 });
+  }
+  await new Promise<void>((res) => {
+    canvas.toBlob((blob) => {
+      if (!blob) { res(); return; }
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url, filename);
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+      res();
+    }, "image/png");
+  });
+}
+
+// ---------- PDF ----------
 export async function exportElementAsPdf(el: HTMLElement, filename: string): Promise<void> {
   const scale = 2;
-  const canvas = await html2canvas(el, {
-    backgroundColor: "#ffffff", scale, useCORS: true, logging: false,
-  });
+  const [hdr, ftr, canvas] = await Promise.all([
+    loadImage(headerImg),
+    loadImage(footerImg),
+    html2canvas(el, { ...HTML2CANVAS_OPTS, scale }),
+  ]);
+
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210, pageH = 297, margin = 8;
   const usableW = pageW - margin * 2;
   const pxPerMm = canvas.width / usableW;
-  const pageContentHmm = pageH - margin * 2;
-  const pageContentPx = pageContentHmm * pxPerMm;
 
-  const ratio = canvas.height / canvas.width;
-  const imgHmm = usableW * ratio;
-
-  if (imgHmm <= pageContentHmm) {
-    pdf.addImage(canvas.toDataURL("image/png"), "PNG", margin, margin, usableW, imgHmm);
-    pdf.save(filename);
-    return;
-  }
+  const hdrHmm = (hdr.height / hdr.width) * usableW;
+  const ftrHmm = (ftr.height / ftr.width) * usableW;
+  const contentTop = margin + hdrHmm + 3;
+  const contentBottom = pageH - margin - ftrHmm - 3;
+  const contentHmm = contentBottom - contentTop;
+  const contentPx = Math.floor(contentHmm * pxPerMm);
 
   const points = collectSafeBreakpoints(el, scale);
+
+  const drawFrame = (pageNum: number, totalPages: number) => {
+    pdf.addImage(hdr, "JPEG", margin, margin, usableW, hdrHmm);
+    pdf.addImage(ftr, "PNG", margin, pageH - margin - ftrHmm, usableW, ftrHmm);
+    // Page number badge поверх футера
+    pdf.setFontSize(8);
+    pdf.setTextColor(120, 120, 120);
+    pdf.text(`${pageNum} / ${totalPages}`, pageW - margin - 2, pageH - margin - 1.5, { align: "right" });
+  };
+
+  // Спочатку розраховуємо пороги, щоб знати total pages
+  const cuts: number[] = [];
+  let probe = 0;
+  while (probe < canvas.height) {
+    const target = Math.min(canvas.height, probe + contentPx);
+    const cut = snapCut(target, points, probe, scale);
+    cuts.push(cut);
+    if (cut <= probe) break; // safety
+    probe = cut;
+  }
+  const totalPages = cuts.length || 1;
+
   let offset = 0;
-  let first = true;
-  while (offset < canvas.height) {
-    const proposed = Math.min(canvas.height, offset + pageContentPx);
-    const cut = snapCut(proposed, points, offset, scale);
+  for (let i = 0; i < cuts.length; i++) {
+    if (i > 0) pdf.addPage();
+    drawFrame(i + 1, totalPages);
+    const cut = cuts[i];
     const sliceH = cut - offset;
-    if (sliceH <= 0) break; // safety
+    if (sliceH <= 0) continue;
     const slice = document.createElement("canvas");
     slice.width = canvas.width;
     slice.height = sliceH;
     const ctx = slice.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, slice.width, slice.height);
     ctx.drawImage(canvas, 0, -offset);
-    if (!first) pdf.addPage();
-    pdf.addImage(slice.toDataURL("image/png"), "PNG", margin, margin, usableW, (sliceH / canvas.width) * usableW);
-    first = false;
+    const drawnHmm = (sliceH / canvas.width) * usableW;
+    pdf.addImage(
+      slice.toDataURL("image/jpeg", 0.92),
+      "JPEG",
+      margin,
+      contentTop,
+      usableW,
+      Math.min(drawnHmm, contentHmm),
+    );
     offset = cut;
   }
+
   pdf.save(filename);
 }
