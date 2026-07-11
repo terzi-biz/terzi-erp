@@ -1,13 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Trash2, Save, Play, ChevronDown, ChevronRight } from "lucide-react";
+import {
+  Plus, Trash2, Save, Play, ChevronDown, ChevronRight,
+  Copy, ArrowUp, ArrowDown, Download, Upload, CheckCircle2, AlertCircle,
+} from "lucide-react";
 import {
   listDirections, upsertDirection, deleteDirection, loadDefinition,
   upsertChild, deleteChild, type DirectionRow,
 } from "@/lib/directions-repo";
 import { evaluateDirection, type DirectionDefinition } from "@/lib/engines/direction-engine";
-import { evalFormula } from "@/lib/engines/formula-eval";
+import { evalFormula, tryEvalFormula } from "@/lib/engines/formula-eval";
 import { formatUah } from "@/lib/screed-calc";
 
 export const Route = createFileRoute("/directions-editor")({
@@ -44,12 +47,15 @@ function DirectionsAdmin() {
 
   return (
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <div className="hatch-accent h-1 w-16 mb-3 rounded" />
-        <h1 className="text-2xl md:text-3xl font-black">Конструктор напрямків</h1>
-        <p className="text-xs md:text-sm text-muted-foreground mt-1">
-          No-code редактор: створюйте нові калькулятори через поля, матеріали, роботи, логістику та формули.
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <div className="hatch-accent h-1 w-16 mb-3 rounded" />
+          <h1 className="text-2xl md:text-3xl font-black">Конструктор напрямків</h1>
+          <p className="text-xs md:text-sm text-muted-foreground mt-1">
+            No-code редактор: створюйте нові калькулятори через поля, матеріали, роботи, логістику та формули.
+          </p>
+        </div>
+        {def && <JsonIO def={def} onImported={reload} />}
       </div>
 
       <div className="grid md:grid-cols-[280px_1fr] gap-4">
@@ -57,6 +63,7 @@ function DirectionsAdmin() {
           dirs={dirs} selectedId={selectedId} onSelect={setSelectedId}
           onCreated={async (id) => { await refreshList(); setSelectedId(id); }}
           onDeleted={async () => { await refreshList(); setSelectedId(null); }}
+          onDuplicated={async (id) => { await refreshList(); setSelectedId(id); }}
         />
         <div className="min-w-0">
           {!currentRow && <div className="panel p-6 text-sm text-muted-foreground">Оберіть напрямок ліворуч або створіть новий.</div>}
@@ -91,11 +98,12 @@ function DirectionsAdmin() {
   );
 }
 
-function DirectionList({ dirs, selectedId, onSelect, onCreated, onDeleted }: {
+function DirectionList({ dirs, selectedId, onSelect, onCreated, onDeleted, onDuplicated }: {
   dirs: DirectionRow[]; selectedId: string | null;
   onSelect: (id: string) => void;
   onCreated: (id: string) => void;
   onDeleted: () => void;
+  onDuplicated: (id: string) => void;
 }) {
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState("");
@@ -118,11 +126,33 @@ function DirectionList({ dirs, selectedId, onSelect, onCreated, onDeleted }: {
     catch (e) { toast.error((e as Error).message); }
   };
 
+  const duplicate = async (rid: string) => {
+    const src = dirs.find((d) => d.id === rid);
+    if (!src) return;
+    const newId = prompt(`Дублювати "${src.name}" — введіть новий slug:`, `${rid}_copy`);
+    if (!newId) return;
+    const slug = newId.toLowerCase().replace(/[^a-z0-9_]/g, "_");
+    try {
+      const full = await loadDefinition(rid);
+      await upsertDirection({ id: slug, name: `${src.name} (копія)`, category: src.category, description: src.description, active: false });
+      // Скопіювати дітей паралельно
+      await Promise.all([
+        ...full.fields.map((f) => upsertChild("input_fields", { ...(f as unknown as Record<string, unknown>), id: undefined, direction_id: slug })),
+        ...full.materials.map((m) => upsertChild("material_items", { ...(m as unknown as Record<string, unknown>), id: undefined, direction_id: slug })),
+        ...full.works.map((w) => upsertChild("work_items", { ...(w as unknown as Record<string, unknown>), id: undefined, direction_id: slug })),
+        ...full.logistics.map((l) => upsertChild("logistics_items", { ...(l as unknown as Record<string, unknown>), id: undefined, direction_id: slug })),
+        ...full.coefficients.map((c) => upsertChild("coefficients", { ...(c as unknown as Record<string, unknown>), id: undefined, direction_id: slug })),
+      ]);
+      toast.success("Дубльовано");
+      onDuplicated(slug);
+    } catch (e) { toast.error((e as Error).message); }
+  };
+
   return (
     <div className="panel p-3 space-y-2">
       <div className="flex items-center justify-between">
-        <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Напрямки</div>
-        <button onClick={() => setCreating(!creating)} className="p-1 rounded hover:bg-accent"><Plus className="w-4 h-4" /></button>
+        <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Напрямки ({dirs.length})</div>
+        <button onClick={() => setCreating(!creating)} className="p-1 rounded hover:bg-accent" title="Створити"><Plus className="w-4 h-4" /></button>
       </div>
       {creating && (
         <div className="space-y-1 p-2 border border-border rounded bg-background">
@@ -144,10 +174,61 @@ function DirectionList({ dirs, selectedId, onSelect, onCreated, onDeleted }: {
               <div className="text-sm font-semibold truncate">{d.name}</div>
               <div className="text-[10px] uppercase text-muted-foreground">{d.category} {!d.active && " · off"}</div>
             </button>
-            <button onClick={() => remove(d.id)} className="p-1 opacity-40 hover:opacity-100"><Trash2 className="w-3 h-3" /></button>
+            <button onClick={() => duplicate(d.id)} className="p-1 opacity-40 hover:opacity-100" title="Дублювати"><Copy className="w-3 h-3" /></button>
+            <button onClick={() => remove(d.id)} className="p-1 opacity-40 hover:opacity-100" title="Видалити"><Trash2 className="w-3 h-3" /></button>
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function JsonIO({ def, onImported }: { def: DirectionDefinition; onImported: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const exportJson = () => {
+    const payload = {
+      direction: { id: def.id, name: def.name, category: def.category },
+      fields: def.fields, materials: def.materials, works: def.works,
+      logistics: def.logistics, coefficients: def.coefficients,
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `direction-${def.id}.json`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 3000);
+  };
+  const importJson = async (file: File) => {
+    try {
+      const text = await file.text();
+      const j = JSON.parse(text) as {
+        materials?: unknown[]; works?: unknown[]; logistics?: unknown[];
+        fields?: unknown[]; coefficients?: unknown[];
+      };
+      const jobs: Promise<unknown>[] = [];
+      const push = (table: "input_fields" | "material_items" | "work_items" | "logistics_items" | "coefficients", arr?: unknown[]) => {
+        for (const r of arr ?? []) jobs.push(upsertChild(table, { ...(r as Record<string, unknown>), id: undefined, direction_id: def.id }));
+      };
+      push("input_fields", j.fields);
+      push("material_items", j.materials);
+      push("work_items", j.works);
+      push("logistics_items", j.logistics);
+      push("coefficients", j.coefficients);
+      await Promise.all(jobs);
+      toast.success(`Імпортовано ${jobs.length} записів`);
+      onImported();
+    } catch (e) { toast.error(`Помилка імпорту: ${(e as Error).message}`); }
+  };
+  return (
+    <div className="flex gap-2">
+      <button onClick={exportJson} className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-1">
+        <Download className="w-3 h-3" /> Експорт JSON
+      </button>
+      <button onClick={() => fileRef.current?.click()} className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-1">
+        <Upload className="w-3 h-3" /> Імпорт JSON
+      </button>
+      <input ref={fileRef} type="file" accept="application/json" className="hidden"
+        onChange={(e) => e.target.files?.[0] && importJson(e.target.files[0])} />
     </div>
   );
 }
@@ -194,43 +275,71 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 // ------- Fields tab -------
 interface FieldRow { id?: string; field_key: string; label: string; type: string; unit?: string | null;
-  default_value?: unknown; help_text?: string | null; sort_order: number; }
+  default_value?: unknown; enum_values?: unknown; help_text?: string | null; sort_order: number; }
 
 function FieldsTab({ def, onChange }: { def: DirectionDefinition; onChange: () => void }) {
   const [rows, setRows] = useState<FieldRow[]>(def.fields as FieldRow[]);
   useEffect(() => setRows(def.fields as FieldRow[]), [def]);
 
   const add = () => setRows([...rows, { field_key: "", label: "", type: "number", unit: "", default_value: 0, sort_order: rows.length }]);
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    next.forEach((r, idx) => (r.sort_order = idx));
+    setRows(next);
+  };
   const update = (i: number, patch: Partial<FieldRow>) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
   const remove = async (i: number) => {
     const row = rows[i];
     if (row.id) { try { await deleteChild("input_fields", row.id); toast.success("Видалено"); onChange(); } catch (e) { toast.error((e as Error).message); } }
     setRows(rows.filter((_, idx) => idx !== i));
   };
+  const buildPayload = (r: FieldRow) => ({
+    ...(r.id ? { id: r.id } : {}),
+    direction_id: def.id,
+    field_key: r.field_key, label: r.label, type: r.type,
+    unit: r.unit || null,
+    default_value: r.default_value ?? null,
+    enum_values: r.enum_values ?? null,
+    help_text: r.help_text || null,
+    sort_order: r.sort_order,
+  });
   const save = async (i: number) => {
     const r = rows[i];
     if (!r.field_key || !r.label) { toast.error("Заповніть key та label"); return; }
-    try {
-      await upsertChild("input_fields", {
-        ...(r.id ? { id: r.id } : {}),
-        direction_id: def.id,
-        field_key: r.field_key, label: r.label, type: r.type,
-        unit: r.unit || null, default_value: r.default_value ?? null,
-        help_text: r.help_text || null, sort_order: r.sort_order,
-      });
-      toast.success("Збережено"); onChange();
-    } catch (e) { toast.error((e as Error).message); }
+    try { await upsertChild("input_fields", buildPayload(r)); toast.success("Збережено"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
+  };
+  const saveAll = async () => {
+    const invalid = rows.filter((r) => !r.field_key || !r.label);
+    if (invalid.length) { toast.error(`${invalid.length} рядків без key/label`); return; }
+    try { await Promise.all(rows.map((r) => upsertChild("input_fields", buildPayload(r)))); toast.success("Збережено всі"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
   };
 
   return (
     <div className="panel p-3 overflow-x-auto">
-      <table className="w-full text-xs min-w-[900px]">
+      <div className="flex items-center justify-between mb-2">
+        <div className="text-xs text-muted-foreground">Для типу <code>select</code> вкажіть значення через кому у полі «Options».</div>
+        <button onClick={saveAll} className="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+          <Save className="w-3 h-3" /> Зберегти всі
+        </button>
+      </div>
+      <table className="w-full text-xs min-w-[1000px]">
         <thead><tr className="text-left text-muted-foreground border-b border-border">
-          <Th>key</Th><Th>Назва</Th><Th>Тип</Th><Th>Од.</Th><Th>Default</Th><Th>Підказка</Th><Th>№</Th><Th>{" "}</Th>
+          <Th>№</Th><Th>key</Th><Th>Назва</Th><Th>Тип</Th><Th>Од.</Th><Th>Default / Options</Th><Th>Підказка</Th><Th>{" "}</Th>
         </tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-b border-border/50">
+            <tr key={r.id ?? `new-${i}`} className="border-b border-border/50">
+              <Td>
+                <div className="flex flex-col">
+                  <button onClick={() => move(i, -1)} className="opacity-50 hover:opacity-100" title="Вгору"><ArrowUp className="w-3 h-3" /></button>
+                  <button onClick={() => move(i, 1)} className="opacity-50 hover:opacity-100" title="Вниз"><ArrowDown className="w-3 h-3" /></button>
+                </div>
+              </Td>
               <Td><input value={r.field_key} onChange={(e) => update(i, { field_key: e.target.value })} className="input-xs w-28" /></Td>
               <Td><input value={r.label} onChange={(e) => update(i, { label: e.target.value })} className="input-xs w-40" /></Td>
               <Td>
@@ -240,13 +349,20 @@ function FieldsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
                 </select>
               </Td>
               <Td><input value={r.unit ?? ""} onChange={(e) => update(i, { unit: e.target.value })} className="input-xs w-16" /></Td>
-              <Td><input value={String(r.default_value ?? "")} onChange={(e) => update(i, { default_value: e.target.value })} className="input-xs w-20" /></Td>
+              <Td>
+                {r.type === "select" ? (
+                  <input value={Array.isArray(r.enum_values) ? (r.enum_values as string[]).join(",") : ""}
+                    onChange={(e) => update(i, { enum_values: e.target.value.split(",").map((s) => s.trim()).filter(Boolean) })}
+                    placeholder="a,b,c" className="input-xs w-32" />
+                ) : (
+                  <input value={String(r.default_value ?? "")} onChange={(e) => update(i, { default_value: e.target.value })} className="input-xs w-24" />
+                )}
+              </Td>
               <Td><input value={r.help_text ?? ""} onChange={(e) => update(i, { help_text: e.target.value })} className="input-xs w-48" /></Td>
-              <Td><input type="number" value={r.sort_order} onChange={(e) => update(i, { sort_order: +e.target.value })} className="input-xs w-14" /></Td>
               <Td>
                 <div className="flex gap-1">
-                  <button onClick={() => save(i)} className="p-1 rounded bg-primary text-primary-foreground"><Save className="w-3 h-3" /></button>
-                  <button onClick={() => remove(i)} className="p-1 rounded bg-destructive text-destructive-foreground"><Trash2 className="w-3 h-3" /></button>
+                  <button onClick={() => save(i)} className="p-1 rounded bg-primary text-primary-foreground" title="Зберегти"><Save className="w-3 h-3" /></button>
+                  <button onClick={() => remove(i)} className="p-1 rounded bg-destructive text-destructive-foreground" title="Видалити"><Trash2 className="w-3 h-3" /></button>
                 </div>
               </Td>
             </tr>
@@ -254,6 +370,7 @@ function FieldsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
         </tbody>
       </table>
       <button onClick={add} className="mt-2 flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded"><Plus className="w-3 h-3" /> Додати поле</button>
+      <FormulaVarsHint def={def} />
       <style>{`.input-xs{background:var(--input,#111);border:1px solid var(--border,#333);border-radius:4px;padding:2px 6px;font-size:12px}`}</style>
     </div>
   );
@@ -288,65 +405,134 @@ function ItemsTab({ def, kind, onChange }: { def: DirectionDefinition; kind: Ite
   useEffect(() => setRows(source.map(mapIn)), [def, kind]);
 
   const add = () => setRows([...rows, { code: "", name: "", unit: "шт", cost_price: 0, sale_coef_key: "1.5", formula: "", is_client_visible: true, sort_order: rows.length }]);
+  const move = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= rows.length) return;
+    const next = [...rows];
+    [next[i], next[j]] = [next[j], next[i]];
+    next.forEach((r, idx) => (r.sort_order = idx));
+    setRows(next);
+  };
   const update = (i: number, patch: Partial<ItemRow>) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
   const remove = async (i: number) => {
     const r = rows[i];
     if (r.id) { try { await deleteChild(KIND_TABLE[kind], r.id); toast.success("Видалено"); onChange(); } catch (e) { toast.error((e as Error).message); } }
     setRows(rows.filter((_, idx) => idx !== i));
   };
+  const duplicate = (i: number) => {
+    const r = rows[i];
+    const copy: ItemRow = { ...r, id: undefined, name: `${r.name} (копія)`, sort_order: rows.length };
+    setRows([...rows, copy]);
+  };
+  const buildPayload = (r: ItemRow) => {
+    const formulaField = kind === "materials" ? "consumption_formula" : "quantity_formula";
+    return {
+      ...(r.id ? { id: r.id } : {}),
+      direction_id: def.id,
+      code: r.code || null, name: r.name, unit: r.unit, cost_price: r.cost_price,
+      sale_coef_key: r.sale_coef_key || null,
+      [formulaField]: r.formula || null,
+      ...(kind !== "materials" ? { is_client_visible: r.is_client_visible ?? true } : {}),
+      sort_order: r.sort_order,
+    };
+  };
   const save = async (i: number) => {
     const r = rows[i];
     if (!r.name || !r.unit) { toast.error("Заповніть назву та од."); return; }
-    const formulaField = kind === "materials" ? "consumption_formula" : "quantity_formula";
-    try {
-      await upsertChild(KIND_TABLE[kind], {
-        ...(r.id ? { id: r.id } : {}),
-        direction_id: def.id,
-        code: r.code || null, name: r.name, unit: r.unit, cost_price: r.cost_price,
-        sale_coef_key: r.sale_coef_key || null,
-        [formulaField]: r.formula || null,
-        ...(kind !== "materials" ? { is_client_visible: r.is_client_visible ?? true } : {}),
-        sort_order: r.sort_order,
-      });
-      toast.success("Збережено"); onChange();
-    } catch (e) { toast.error((e as Error).message); }
+    try { await upsertChild(KIND_TABLE[kind], buildPayload(r)); toast.success("Збережено"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
+  };
+  const saveAll = async () => {
+    const invalid = rows.filter((r) => !r.name || !r.unit);
+    if (invalid.length) { toast.error(`${invalid.length} рядків без назви/од.`); return; }
+    try { await Promise.all(rows.map((r) => upsertChild(KIND_TABLE[kind], buildPayload(r)))); toast.success("Збережено всі"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
   };
 
   const formulaLabel = kind === "materials" ? "Формула витрати" : "Формула кількості";
 
+  // Тестовий контекст для валідації формул: field defaults + coeffs
+  const testCtx = useMemo(() => {
+    const inputs: Record<string, unknown> = {};
+    for (const f of def.fields) {
+      const d = f.default_value;
+      inputs[f.field_key] = f.type === "number" ? Number(d ?? 1) : f.type === "checkbox" ? !!d : (d ?? "");
+    }
+    const coeffs: Record<string, number> = {};
+    for (const c of def.coefficients) coeffs[c.coef_key] = Number(c.value);
+    return { ...inputs, inputs, coeffs };
+  }, [def]);
+
   return (
     <div className="panel p-3 overflow-x-auto">
-      <div className="text-xs text-muted-foreground mb-2">
-        Формули: змінні — це <code>field_key</code> полів вводу; коефіцієнти — <code>coeffs.KEY</code>. Функції: <code>ceil, floor, round, min, max, abs, if(cond,a,b)</code>. Приклад: <code>ceil(area * 1.1)</code>, <code>if(withGrind, area, 0)</code>.
+      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+        <div className="text-xs text-muted-foreground max-w-3xl">
+          Змінні — <code>field_key</code> полів. Коефіцієнти — <code>coeffs.KEY</code>. Функції: <code>ceil, floor, round, min, max, abs, sqrt, pow, if(cond,a,b)</code>. Умова у ціні: залиште <code>Націнка/coef</code> порожнім для дефолту ×1.5, введіть число (<code>2.1</code>) або ключ коеф. (<code>markup_roof</code>).
+        </div>
+        <button onClick={saveAll} className="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+          <Save className="w-3 h-3" /> Зберегти всі
+        </button>
       </div>
-      <table className="w-full text-xs min-w-[1000px]">
+      <table className="w-full text-xs min-w-[1100px]">
         <thead><tr className="text-left text-muted-foreground border-b border-border">
-          <Th>code</Th><Th>Назва</Th><Th>Од.</Th><Th>Cost</Th><Th>Націнка/coef</Th><Th>{formulaLabel}</Th>
-          {kind !== "materials" && <Th>Клієнту</Th>}<Th>№</Th><Th>{" "}</Th>
+          <Th>№</Th><Th>code</Th><Th>Назва</Th><Th>Од.</Th><Th>Cost</Th><Th>Націнка/coef</Th><Th>{formulaLabel}</Th>
+          {kind !== "materials" && <Th>Клієнту</Th>}<Th>{" "}</Th>
         </tr></thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-b border-border/50">
-              <Td><input value={r.code ?? ""} onChange={(e) => update(i, { code: e.target.value })} className="input-xs w-20" /></Td>
-              <Td><input value={r.name} onChange={(e) => update(i, { name: e.target.value })} className="input-xs w-44" /></Td>
-              <Td><input value={r.unit} onChange={(e) => update(i, { unit: e.target.value })} className="input-xs w-14" /></Td>
-              <Td><input type="number" step="0.01" value={r.cost_price} onChange={(e) => update(i, { cost_price: +e.target.value })} className="input-xs w-20 text-right" /></Td>
-              <Td><input value={r.sale_coef_key ?? ""} onChange={(e) => update(i, { sale_coef_key: e.target.value })} placeholder="1.5" className="input-xs w-20" /></Td>
-              <Td><input value={r.formula} onChange={(e) => update(i, { formula: e.target.value })} placeholder="area * 1.1" className="input-xs w-60 font-mono" /></Td>
-              {kind !== "materials" && <Td><input type="checkbox" checked={r.is_client_visible ?? true} onChange={(e) => update(i, { is_client_visible: e.target.checked })} /></Td>}
-              <Td><input type="number" value={r.sort_order} onChange={(e) => update(i, { sort_order: +e.target.value })} className="input-xs w-14" /></Td>
-              <Td>
-                <div className="flex gap-1">
-                  <button onClick={() => save(i)} className="p-1 rounded bg-primary text-primary-foreground"><Save className="w-3 h-3" /></button>
-                  <button onClick={() => remove(i)} className="p-1 rounded bg-destructive text-destructive-foreground"><Trash2 className="w-3 h-3" /></button>
-                </div>
-              </Td>
-            </tr>
-          ))}
+          {rows.map((r, i) => {
+            const check = tryEvalFormula(r.formula, testCtx);
+            return (
+              <tr key={r.id ?? `new-${i}`} className="border-b border-border/50">
+                <Td>
+                  <div className="flex flex-col">
+                    <button onClick={() => move(i, -1)} className="opacity-50 hover:opacity-100" title="Вгору"><ArrowUp className="w-3 h-3" /></button>
+                    <button onClick={() => move(i, 1)} className="opacity-50 hover:opacity-100" title="Вниз"><ArrowDown className="w-3 h-3" /></button>
+                  </div>
+                </Td>
+                <Td><input value={r.code ?? ""} onChange={(e) => update(i, { code: e.target.value })} className="input-xs w-20" /></Td>
+                <Td><input value={r.name} onChange={(e) => update(i, { name: e.target.value })} className="input-xs w-44" /></Td>
+                <Td><input value={r.unit} onChange={(e) => update(i, { unit: e.target.value })} className="input-xs w-14" /></Td>
+                <Td><input type="number" step="0.01" value={r.cost_price} onChange={(e) => update(i, { cost_price: +e.target.value })} className="input-xs w-20 text-right" /></Td>
+                <Td><input value={r.sale_coef_key ?? ""} onChange={(e) => update(i, { sale_coef_key: e.target.value })} placeholder="1.5" className="input-xs w-20" /></Td>
+                <Td>
+                  <div className="flex items-center gap-1">
+                    <input value={r.formula} onChange={(e) => update(i, { formula: e.target.value })}
+                      placeholder="area * 1.1"
+                      className={`input-xs w-56 font-mono ${!check.ok ? "border-destructive" : ""}`} />
+                    {r.formula && (check.ok
+                      ? <span className="text-[10px] text-emerald-500 inline-flex items-center gap-0.5" title={`= ${check.value.toFixed(2)}`}><CheckCircle2 className="w-3 h-3" />{check.value.toFixed(1)}</span>
+                      : <span className="text-[10px] text-destructive inline-flex items-center gap-0.5" title={check.error}><AlertCircle className="w-3 h-3" />err</span>
+                    )}
+                  </div>
+                </Td>
+                {kind !== "materials" && <Td><input type="checkbox" checked={r.is_client_visible ?? true} onChange={(e) => update(i, { is_client_visible: e.target.checked })} /></Td>}
+                <Td>
+                  <div className="flex gap-1">
+                    <button onClick={() => save(i)} className="p-1 rounded bg-primary text-primary-foreground" title="Зберегти"><Save className="w-3 h-3" /></button>
+                    <button onClick={() => duplicate(i)} className="p-1 rounded bg-secondary" title="Дублювати"><Copy className="w-3 h-3" /></button>
+                    <button onClick={() => remove(i)} className="p-1 rounded bg-destructive text-destructive-foreground" title="Видалити"><Trash2 className="w-3 h-3" /></button>
+                  </div>
+                </Td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
       <button onClick={add} className="mt-2 flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded"><Plus className="w-3 h-3" /> Додати</button>
+      <FormulaVarsHint def={def} />
       <style>{`.input-xs{background:var(--input,#111);border:1px solid var(--border,#333);border-radius:4px;padding:2px 6px;font-size:12px}`}</style>
+    </div>
+  );
+}
+
+function FormulaVarsHint({ def }: { def: DirectionDefinition }) {
+  const vars = def.fields.map((f) => f.field_key);
+  const coefs = def.coefficients.map((c) => `coeffs.${c.coef_key}`);
+  if (!vars.length && !coefs.length) return null;
+  return (
+    <div className="mt-3 p-2 border border-border/50 rounded bg-background/40 text-[10px] text-muted-foreground">
+      <div className="mb-1"><b>Змінні:</b> {vars.map((v) => <code key={v} className="mr-1 px-1 bg-secondary rounded">{v}</code>)}</div>
+      {coefs.length > 0 && <div><b>Коефіцієнти:</b> {coefs.map((v) => <code key={v} className="mr-1 px-1 bg-secondary rounded">{v}</code>)}</div>}
     </div>
   );
 }
@@ -364,24 +550,34 @@ function CoeffsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
     if (r.id) { try { await deleteChild("coefficients", r.id); toast.success("Видалено"); onChange(); } catch (e) { toast.error((e as Error).message); } }
     setRows(rows.filter((_, idx) => idx !== i));
   };
+  const buildPayload = (r: CoefRow) => ({ ...(r.id ? { id: r.id } : {}), direction_id: def.id, coef_group: r.coef_group, coef_key: r.coef_key, value: r.value, description: r.description || null });
   const save = async (i: number) => {
     const r = rows[i];
     if (!r.coef_key) { toast.error("Введіть key"); return; }
-    try {
-      await upsertChild("coefficients", { ...(r.id ? { id: r.id } : {}), direction_id: def.id, coef_group: r.coef_group, coef_key: r.coef_key, value: r.value, description: r.description || null });
-      toast.success("Збережено"); onChange();
-    } catch (e) { toast.error((e as Error).message); }
+    try { await upsertChild("coefficients", buildPayload(r)); toast.success("Збережено"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
+  };
+  const saveAll = async () => {
+    const bad = rows.filter((r) => !r.coef_key);
+    if (bad.length) { toast.error(`${bad.length} рядків без key`); return; }
+    try { await Promise.all(rows.map((r) => upsertChild("coefficients", buildPayload(r)))); toast.success("Збережено всі"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
   };
 
   return (
     <div className="panel p-3 overflow-x-auto">
+      <div className="flex justify-end mb-2">
+        <button onClick={saveAll} className="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+          <Save className="w-3 h-3" /> Зберегти всі
+        </button>
+      </div>
       <table className="w-full text-xs min-w-[700px]">
         <thead><tr className="text-left text-muted-foreground border-b border-border">
           <Th>Група</Th><Th>Key</Th><Th>Значення</Th><Th>Опис</Th><Th>{" "}</Th>
         </tr></thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-b border-border/50">
+            <tr key={r.id ?? `new-${i}`} className="border-b border-border/50">
               <Td><input value={r.coef_group} onChange={(e) => update(i, { coef_group: e.target.value })} className="input-xs w-28" /></Td>
               <Td><input value={r.coef_key} onChange={(e) => update(i, { coef_key: e.target.value })} className="input-xs w-32 font-mono" /></Td>
               <Td><input type="number" step="0.0001" value={r.value} onChange={(e) => update(i, { value: +e.target.value })} className="input-xs w-24 text-right" /></Td>
@@ -404,22 +600,16 @@ function CoeffsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
 
 // ------- Preview tab -------
 function PreviewTab({ def }: { def: DirectionDefinition }) {
-  const [inputs, setInputs] = useState<Record<string, unknown>>(() => {
+  const initial = () => {
     const o: Record<string, unknown> = {};
     for (const f of def.fields) {
       const d = f.default_value;
       o[f.field_key] = f.type === "number" ? Number(d ?? 0) : f.type === "checkbox" ? !!d : (d ?? "");
     }
     return o;
-  });
-  useEffect(() => {
-    const o: Record<string, unknown> = {};
-    for (const f of def.fields) {
-      const d = f.default_value;
-      o[f.field_key] = f.type === "number" ? Number(d ?? 0) : f.type === "checkbox" ? !!d : (d ?? "");
-    }
-    setInputs(o);
-  }, [def]);
+  };
+  const [inputs, setInputs] = useState<Record<string, unknown>>(initial);
+  useEffect(() => setInputs(initial()), [def]);
 
   const result = useMemo(() => evaluateDirection(def, inputs), [def, inputs]);
   const [showFormulas, setShowFormulas] = useState(false);
@@ -429,23 +619,32 @@ function PreviewTab({ def }: { def: DirectionDefinition }) {
       <div className="panel p-3 space-y-2">
         <div className="text-xs uppercase font-bold text-primary">Вхідні дані</div>
         {def.fields.length === 0 && <div className="text-xs text-muted-foreground">Немає полів. Додайте у вкладці «Поля вводу».</div>}
-        {def.fields.map((f) => (
-          <div key={f.field_key} className="flex items-center gap-2">
-            <label className="text-xs flex-1">{f.label}{f.unit ? ` (${f.unit})` : ""}</label>
-            {f.type === "checkbox" ? (
-              <input type="checkbox" checked={!!inputs[f.field_key]}
-                onChange={(e) => setInputs({ ...inputs, [f.field_key]: e.target.checked })} />
-            ) : f.type === "number" ? (
-              <input type="number" value={Number(inputs[f.field_key] ?? 0)}
-                onChange={(e) => setInputs({ ...inputs, [f.field_key]: +e.target.value })}
-                className="w-28 bg-input border border-border rounded px-2 py-1 text-sm text-right" />
-            ) : (
-              <input value={String(inputs[f.field_key] ?? "")}
-                onChange={(e) => setInputs({ ...inputs, [f.field_key]: e.target.value })}
-                className="w-40 bg-input border border-border rounded px-2 py-1 text-sm" />
-            )}
-          </div>
-        ))}
+        {def.fields.map((f) => {
+          const enumVals = Array.isArray(f.enum_values) ? (f.enum_values as string[]) : [];
+          return (
+            <div key={f.field_key} className="flex items-center gap-2">
+              <label className="text-xs flex-1">{f.label}{f.unit ? ` (${f.unit})` : ""}</label>
+              {f.type === "checkbox" ? (
+                <input type="checkbox" checked={!!inputs[f.field_key]}
+                  onChange={(e) => setInputs({ ...inputs, [f.field_key]: e.target.checked })} />
+              ) : f.type === "number" ? (
+                <input type="number" value={Number(inputs[f.field_key] ?? 0)}
+                  onChange={(e) => setInputs({ ...inputs, [f.field_key]: +e.target.value })}
+                  className="w-28 bg-input border border-border rounded px-2 py-1 text-sm text-right" />
+              ) : f.type === "select" && enumVals.length ? (
+                <select value={String(inputs[f.field_key] ?? "")}
+                  onChange={(e) => setInputs({ ...inputs, [f.field_key]: e.target.value })}
+                  className="w-40 bg-input border border-border rounded px-2 py-1 text-sm">
+                  {enumVals.map((v) => <option key={v} value={v}>{v}</option>)}
+                </select>
+              ) : (
+                <input value={String(inputs[f.field_key] ?? "")}
+                  onChange={(e) => setInputs({ ...inputs, [f.field_key]: e.target.value })}
+                  className="w-40 bg-input border border-border rounded px-2 py-1 text-sm" />
+              )}
+            </div>
+          );
+        })}
         <button onClick={() => setShowFormulas(!showFormulas)}
           className="mt-3 flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded">
           {showFormulas ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />} Дебаг формул
