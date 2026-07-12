@@ -1,8 +1,10 @@
 /**
  * Універсальний вигляд «Кошторис / КП».
- * Працює з будь-яким CalcResult-подібним об'єктом (стяжка / покрівля / утеплення / демонтаж).
- * Дві версії: внутрішня (із закуп., собівартістю, маржею, прибутком) і клієнтська (без внутрішніх цифр).
- * Кнопки: Друк PDF + Зображення (PNG).
+ * Обидві версії (внутрішня та клієнтська) підтримують ручне редагування:
+ * найменування, одиниця, кількість, ціна закупки (лише внутр.), ціна продажу.
+ * Можна додавати нові позиції або видаляти будь-яку існуючу.
+ * Кнопки: Друк PDF (файл локально) + Зображення (PNG високої якості).
+ * Перемикач Внутрішня/Клієнтська винесений вниз під кошторис.
  */
 import { Fragment, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
@@ -32,20 +34,22 @@ function EstimateWatermark() {
   );
 }
 
-interface ClientOverride {
+interface Override {
   name?: string;
   unit?: string;
   qty?: number;
   pricePerUnit?: number;
+  costPerUnit?: number;
   removed?: boolean;
 }
-interface ClientExtraLine {
+interface ExtraLine {
   id: string;
   block: string;
   name: string;
   unit: string;
   qty: number;
   pricePerUnit: number;
+  costPerUnit: number;
 }
 
 export interface EstimateLine {
@@ -104,6 +108,36 @@ const BLOCK_LABELS: Record<string, string> = {
   materials: "Матеріали", works: "Роботи", logistics: "Логістика",
 };
 
+/** Робимо безпечну частину імені файлу: прибираємо тільки заборонені символи, кирилицю лишаємо. */
+function sanitizeForFilename(s: string): string {
+  return (s || "")
+    .replace(/[\\/:*?"<>|\r\n\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function buildFilename(opts: {
+  mode: "internal" | "client";
+  module: string;
+  area: number;
+  address: string;
+  ext: "pdf" | "png";
+}): string {
+  const doc = opts.mode === "client" ? "КП" : "Кошторис";
+  const parts = [
+    "TERZI",
+    doc,
+    opts.module,
+    `${Math.round(opts.area)}м2`,
+    opts.address,
+  ]
+    .map(sanitizeForFilename)
+    .filter(Boolean);
+  return `${parts.join(" ")}.${opts.ext}`;
+}
+
+const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
+
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
   estimateId, layers, schedule,
@@ -113,16 +147,26 @@ export function EstimateView({
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
-  // Редаговані позиції клієнтського КП
-  const [overrides, setOverrides] = useState<Record<string, ClientOverride>>({});
-  const [extras, setExtras] = useState<ClientExtraLine[]>([]);
+  // Окремі стани редагування для кожного режиму
+  const [clientOverrides, setClientOverrides] = useState<Record<string, Override>>({});
+  const [clientExtras, setClientExtras] = useState<ExtraLine[]>([]);
+  const [internalOverrides, setInternalOverrides] = useState<Record<string, Override>>({});
+  const [internalExtras, setInternalExtras] = useState<ExtraLine[]>([]);
 
   const activeRef = mode === "internal" ? internalRef : clientRef;
-  const fname = `TERZI-${module}-${estimateNumber}-${mode === "internal" ? "internal" : "client"}`;
+  const filenamePdf = buildFilename({ mode, module, area, address: client.address, ext: "pdf" });
+  const filenamePng = buildFilename({ mode, module, area, address: client.address, ext: "png" });
 
-  const onPdf = () => activeRef.current && exportElementAsPdf(activeRef.current, `${fname}.pdf`);
-  const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, `${fname}.png`);
-  const onResetClient = () => { setOverrides({}); setExtras([]); };
+  const onPdf = () => activeRef.current && exportElementAsPdf(activeRef.current, filenamePdf);
+  const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
+  const onResetActive = () => {
+    if (mode === "client") { setClientOverrides({}); setClientExtras([]); }
+    else { setInternalOverrides({}); setInternalExtras([]); }
+  };
+
+  const hasEdits = mode === "client"
+    ? (Object.keys(clientOverrides).length > 0 || clientExtras.length > 0)
+    : (Object.keys(internalOverrides).length > 0 || internalExtras.length > 0);
 
   const blockOrder = ["materials", "works", "logistics"];
   const grouped = blockOrder.map((b) => ({
@@ -133,23 +177,14 @@ export function EstimateView({
 
   return (
     <div className="space-y-4">
-      {/* Toolbar */}
+      {/* Toolbar (без перемикача Внутр/Клієнт — його винесено вниз) */}
       <div className="flex flex-wrap items-center justify-between gap-2 panel p-3">
-        <div className="flex gap-1">
-          {isInternal && (
-            <button onClick={() => setMode("internal")}
-              className={`px-3 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "internal" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-              <Eye className="w-3 h-3" /> Внутрішня (з собівартістю)
-            </button>
-          )}
-          <button onClick={() => setMode("client")}
-            className={`px-3 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "client" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-            <EyeOff className="w-3 h-3" /> Клієнтська
-          </button>
+        <div className="text-xs text-muted-foreground">
+          Режим: <b className="text-foreground">{mode === "internal" ? "Внутрішній кошторис" : "Комерційна пропозиція"}</b>
         </div>
         <div className="flex gap-2">
-          {mode === "client" && (Object.keys(overrides).length > 0 || extras.length > 0) && (
-            <button onClick={onResetClient} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+          {hasEdits && (
+            <button onClick={onResetActive} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
               <RotateCcw className="w-3 h-3" /> Скинути правки
             </button>
           )}
@@ -162,11 +197,10 @@ export function EstimateView({
         </div>
       </div>
 
-      {mode === "client" && (
-        <div className="text-[11px] text-muted-foreground panel p-2 px-3">
-          У клієнтській версії ви можете редагувати назву, одиницю, кількість і ціну кожної позиції. Сума і підсумки перераховуються автоматично. Натисніть «+ позицію» у блоці, щоб додати власну, або <Trash2 className="w-3 h-3 inline" /> щоб прибрати.
-        </div>
-      )}
+      <div className="text-[11px] text-muted-foreground panel p-2 px-3">
+        Ви можете редагувати будь-яку позицію: назву, одиницю, кількість
+        {mode === "internal" ? ", закупку та ціну продажу" : " та ціну"}. Натисніть «+ позицію» у блоці, щоб додати власну, або <Trash2 className="w-3 h-3 inline" /> щоб прибрати.
+      </div>
 
       {mode === "internal" && isInternal && (() => {
         const m = module.toLowerCase();
@@ -175,33 +209,34 @@ export function EstimateView({
           m.includes("покрівл") || m.includes("покривл") || m.includes("рубемаст") || m.includes("пвх") || m.includes("roofing") ? "roofing" :
           m.includes("утепл") || m.includes("insulation") ? "insulation" :
           m.includes("демонтаж") || m.includes("demolition") ? "demolition" : undefined;
-        return (
-          <>
-            {moduleKey && (
-              <SchedulePanel
-                estimateId={estimateId}
-                module={moduleKey}
-                area={area}
-                layers={layers}
-                initial={schedule ? {
-                  startAt: schedule.startAt,
-                  durationDays: schedule.durationDays,
-                  durationOverride: schedule.durationOverride,
-                  gcalEventId: schedule.gcalEventId,
-                  gcalSyncedAt: schedule.gcalSyncedAt,
-                } : undefined}
-              />
-            )}
-            <div ref={internalRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
-              <EstimateWatermark />
-              <div className="relative z-10">
-                <InternalSheet result={result} client={client} branding={branding} module={module}
-                  area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} />
-              </div>
-            </div>
-          </>
-        );
+        return moduleKey ? (
+          <SchedulePanel
+            estimateId={estimateId}
+            module={moduleKey}
+            area={area}
+            layers={layers}
+            initial={schedule ? {
+              startAt: schedule.startAt,
+              durationDays: schedule.durationDays,
+              durationOverride: schedule.durationOverride,
+              gcalEventId: schedule.gcalEventId,
+              gcalSyncedAt: schedule.gcalSyncedAt,
+            } : undefined}
+          />
+        ) : null;
       })()}
+
+      {mode === "internal" && isInternal && (
+        <div ref={internalRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+          <EstimateWatermark />
+          <div className="relative z-10">
+            <InternalSheet result={result} client={client} branding={branding} module={module}
+              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+              overrides={internalOverrides} setOverrides={setInternalOverrides}
+              extras={internalExtras} setExtras={setInternalExtras} />
+          </div>
+        </div>
+      )}
       {mode === "client" && (
         <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
           <EstimateWatermark />
@@ -209,12 +244,26 @@ export function EstimateView({
             <ClientSheet
               result={result} client={client} branding={branding} module={module}
               area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-              overrides={overrides} setOverrides={setOverrides}
-              extras={extras} setExtras={setExtras}
+              overrides={clientOverrides} setOverrides={setClientOverrides}
+              extras={clientExtras} setExtras={setClientExtras}
             />
           </div>
         </div>
       )}
+
+      {/* Перемикач Кошторис / КП — ВНИЗУ */}
+      <div className="flex justify-center gap-1 panel p-3">
+        {isInternal && (
+          <button onClick={() => setMode("internal")}
+            className={`px-4 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "internal" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+            <Eye className="w-3 h-3" /> Внутрішня (з собівартістю)
+          </button>
+        )}
+        <button onClick={() => setMode("client")}
+          className={`px-4 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "client" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+          <EyeOff className="w-3 h-3" /> Клієнтська
+        </button>
+      </div>
     </div>
   );
 }
@@ -261,8 +310,82 @@ function Header({ branding, estimateNumber, module, client, area, thicknessCm, t
   );
 }
 
-function InternalSheet(p: SheetProps) {
+interface EditableSheetProps extends SheetProps {
+  overrides: Record<string, Override>;
+  setOverrides: React.Dispatch<React.SetStateAction<Record<string, Override>>>;
+  extras: ExtraLine[];
+  setExtras: React.Dispatch<React.SetStateAction<ExtraLine[]>>;
+}
+
+/** Спільний вхідний CSS для клітинок таблиці. */
+const inputCls = "w-full bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-amber-600 focus:bg-amber-50/50 px-1 py-0.5 text-[11px]";
+
+/** Спільна побудова ефективних блоків (з урахуванням правок і extras). */
+function useEffectiveBlocks(
+  grouped: SheetProps["grouped"],
+  overrides: Record<string, Override>,
+  extras: ExtraLine[],
+  filterClient: boolean,
+  t: ReturnType<typeof useT>,
+) {
+  return useMemo(() => {
+    return grouped.map((g) => {
+      const baseRows = g.rows
+        .filter((r) => (filterClient ? r.showToClient !== false : true))
+        .map((r) => {
+          const id = lineId(r);
+          const ov = overrides[id] ?? {};
+          if (ov.removed) return null;
+          const name = ov.name ?? t(r.name);
+          const unit = ov.unit ?? r.unit;
+          const qty = ov.qty ?? r.qty;
+          const pricePerUnit = ov.pricePerUnit ?? r.pricePerUnit;
+          const costPerUnit = ov.costPerUnit ?? r.costPerUnit;
+          return {
+            id, name, unit, qty, pricePerUnit, costPerUnit,
+            sum: qty * pricePerUnit, cost: qty * costPerUnit, isExtra: false as const,
+          };
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null);
+
+      const extraRows = extras
+        .filter((e) => e.block === g.block)
+        .map((e) => ({
+          id: e.id, name: e.name, unit: e.unit, qty: e.qty,
+          pricePerUnit: e.pricePerUnit, costPerUnit: e.costPerUnit,
+          sum: e.qty * e.pricePerUnit, cost: e.qty * e.costPerUnit, isExtra: true as const,
+        }));
+
+      return { block: g.block, label: g.label, rows: [...baseRows, ...extraRows] };
+    }).filter((g) => g.rows.length > 0);
+  }, [grouped, overrides, extras, filterClient, t]);
+}
+
+function InternalSheet(p: EditableSheetProps) {
   const t = useT();
+  const { overrides, setOverrides, extras, setExtras } = p;
+  const setOv = (id: string, patch: Partial<Override>) =>
+    setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
+
+  const effective = useEffectiveBlocks(p.grouped, overrides, extras, false, t);
+
+  const totalCost = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.cost, 0), 0);
+  const totalSell = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
+  const grossProfit = totalSell - totalCost;
+  const marginPct = totalSell > 0 ? (grossProfit / totalSell) * 100 : 0;
+  const pricePerM2 = p.area > 0 ? totalSell / p.area : 0;
+
+  const addExtra = (block: string) => {
+    setExtras((s) => [...s, {
+      id: `extra-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      block, name: "Нова позиція", unit: "шт", qty: 1, pricePerUnit: 0, costPerUnit: 0,
+    }]);
+  };
+  const removeRow = (id: string, isExtra: boolean) => {
+    if (isExtra) setExtras((s) => s.filter((e) => e.id !== id));
+    else setOv(id, { removed: true });
+  };
+
   return (
     <div>
       <Header {...p} title="Внутрішній кошторис" />
@@ -277,31 +400,93 @@ function InternalSheet(p: SheetProps) {
             <th className="text-right p-1.5 w-24">Собівар.</th>
             <th className="text-right p-1.5 w-24">Продаж</th>
             <th className="text-right p-1.5 w-16">Маржа</th>
+            <th className="w-8 p-1.5 print:hidden" />
           </tr>
         </thead>
         <tbody>
-          {p.grouped.map((g) => (
-            <FragmentRows key={g.block} g={g} t={t} />
+          {effective.map((g) => (
+            <Fragment key={g.block}>
+              <tr className="bg-slate-100" data-pdf-block>
+                <td colSpan={9} className="p-1.5 font-bold uppercase text-[10px] tracking-wider">
+                  <div className="flex items-center justify-between">
+                    <span>{g.label}</span>
+                    <button
+                      type="button"
+                      onClick={() => addExtra(g.block)}
+                      className="print:hidden inline-flex items-center gap-1 text-[10px] font-semibold text-amber-700 hover:text-amber-900"
+                    >
+                      <Plus className="w-3 h-3" /> позицію
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              {g.rows.map((r) => {
+                const margin = r.sum > 0 ? ((r.sum - r.cost) / r.sum) * 100 : 0;
+                const update = (patch: Partial<Override>) => {
+                  if (r.isExtra) {
+                    setExtras((s) => s.map((e) => e.id === r.id ? { ...e, ...patch } : e));
+                  } else {
+                    setOv(r.id, patch);
+                  }
+                };
+                return (
+                  <tr key={r.id} className="border-b border-slate-200 align-top">
+                    <td className="p-1.5">
+                      <input className={inputCls} value={r.name}
+                        onChange={(e) => update({ name: e.target.value })} />
+                    </td>
+                    <td className="text-center p-1.5">
+                      <input className={`${inputCls} text-center`} value={r.unit}
+                        onChange={(e) => update({ unit: e.target.value })} />
+                    </td>
+                    <td className="text-right p-1.5">
+                      <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.qty}
+                        onChange={(e) => update({ qty: Number(e.target.value) || 0 })} />
+                    </td>
+                    <td className="text-right p-1.5">
+                      <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.costPerUnit}
+                        onChange={(e) => update({ costPerUnit: Number(e.target.value) || 0 })} />
+                    </td>
+                    <td className="text-right p-1.5">
+                      <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
+                        onChange={(e) => update({ pricePerUnit: Number(e.target.value) || 0 })} />
+                    </td>
+                    <td className="text-right p-1.5">{formatUah(r.cost)}</td>
+                    <td className="text-right p-1.5 font-semibold">{formatUah(r.sum)}</td>
+                    <td className={`text-right p-1.5 ${margin >= 20 ? "text-emerald-700" : "text-amber-700"}`}>
+                      {formatNum(margin, 0)}%
+                    </td>
+                    <td className="p-1.5 text-center print:hidden">
+                      <button type="button" onClick={() => removeRow(r.id, r.isExtra)}
+                        className="text-slate-400 hover:text-red-600" title="Прибрати позицію">
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </Fragment>
           ))}
         </tbody>
         <tfoot>
-          <tr className="border-t-2 border-slate-900 font-bold">
+          <tr className="border-t-2 border-slate-900 font-bold" data-pdf-block>
             <td className="p-2" colSpan={5}>РАЗОМ</td>
-            <td className="p-2 text-right">{formatUah(p.result.totalCost)}</td>
-            <td className="p-2 text-right">{formatUah(p.result.totalClient)}</td>
-            <td className="p-2 text-right">
-              {formatNum(p.result.marginPercent, 1)}%
-            </td>
+            <td className="p-2 text-right">{formatUah(totalCost)}</td>
+            <td className="p-2 text-right">{formatUah(totalSell)}</td>
+            <td className="p-2 text-right">{formatNum(marginPct, 1)}%</td>
+            <td className="print:hidden" />
           </tr>
           <tr>
             <td className="p-1 pt-2 text-right text-slate-600" colSpan={5}>Валовий прибуток:</td>
             <td colSpan={3} className="p-1 pt-2 text-right font-bold text-emerald-700">
-              {formatUah(p.result.grossProfit)}
+              {formatUah(grossProfit)}
             </td>
+            <td className="print:hidden" />
           </tr>
           <tr>
             <td className="p-1 text-right text-slate-600" colSpan={5}>Ціна за м²:</td>
-            <td colSpan={3} className="p-1 text-right">{formatNum(p.result.pricePerM2, 0)} грн/м²</td>
+            <td colSpan={3} className="p-1 text-right">{formatNum(pricePerM2, 0)} грн/м²</td>
+            <td className="print:hidden" />
           </tr>
         </tfoot>
       </table>
@@ -312,63 +497,23 @@ function InternalSheet(p: SheetProps) {
   );
 }
 
-interface ClientSheetProps extends SheetProps {
-  overrides: Record<string, ClientOverride>;
-  setOverrides: React.Dispatch<React.SetStateAction<Record<string, ClientOverride>>>;
-  extras: ClientExtraLine[];
-  setExtras: React.Dispatch<React.SetStateAction<ClientExtraLine[]>>;
-}
-
-const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
-
-function ClientSheet(p: ClientSheetProps) {
+function ClientSheet(p: EditableSheetProps) {
   const t = useT();
   const { overrides, setOverrides, extras, setExtras } = p;
 
-  const setOv = (id: string, patch: Partial<ClientOverride>) =>
+  const setOv = (id: string, patch: Partial<Override>) =>
     setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
-  const inputCls = "w-full bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-amber-600 focus:bg-amber-50/50 px-1 py-0.5 text-[11px]";
-
-  // Будуємо ефективні блоки з урахуванням правок і додаткових позицій
-  const effectiveBlocks = useMemo(() => {
-    const blocks = p.grouped.map((g) => {
-      const baseRows = g.rows
-        .filter((r) => r.showToClient !== false)
-        .map((r) => {
-          const id = lineId(r);
-          const ov = overrides[id] ?? {};
-          if (ov.removed) return null;
-          const name = ov.name ?? t(r.name);
-          const unit = ov.unit ?? r.unit;
-          const qty = ov.qty ?? r.qty;
-          const pricePerUnit = ov.pricePerUnit ?? r.pricePerUnit;
-          return { id, name, unit, qty, pricePerUnit, sum: qty * pricePerUnit, isExtra: false as const };
-        })
-        .filter((x): x is NonNullable<typeof x> => x !== null);
-
-      const extraRows = extras
-        .filter((e) => e.block === g.block)
-        .map((e) => ({ id: e.id, name: e.name, unit: e.unit, qty: e.qty, pricePerUnit: e.pricePerUnit, sum: e.qty * e.pricePerUnit, isExtra: true as const }));
-
-      return { block: g.block, label: g.label, rows: [...baseRows, ...extraRows] };
-    }).filter((g) => g.rows.length > 0 || extras.some((e) => e.block === g.block));
-
-    // Додаємо блоки, які повністю порожні в base, але мають extras
-    p.grouped.forEach((g) => { /* already covered */ });
-    return blocks;
-  }, [p.grouped, overrides, extras, t]);
-
-  const grandTotal = effectiveBlocks.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
+  const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t);
+  const grandTotal = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
   const pricePerM2 = p.area > 0 ? grandTotal / p.area : 0;
 
   const addExtra = (block: string) => {
     setExtras((s) => [...s, {
       id: `extra-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      block, name: "Нова позиція", unit: "шт", qty: 1, pricePerUnit: 0,
+      block, name: "Нова позиція", unit: "шт", qty: 1, pricePerUnit: 0, costPerUnit: 0,
     }]);
   };
-
   const removeRow = (id: string, isExtra: boolean) => {
     if (isExtra) setExtras((s) => s.filter((e) => e.id !== id));
     else setOv(id, { removed: true });
@@ -389,7 +534,7 @@ function ClientSheet(p: ClientSheetProps) {
           </tr>
         </thead>
         <tbody>
-          {effectiveBlocks.map((g) => {
+          {effective.map((g) => {
             const sub = g.rows.reduce((a, r) => a + r.sum, 0);
             return (
               <Fragment key={g.block}>
@@ -408,7 +553,7 @@ function ClientSheet(p: ClientSheetProps) {
                   </td>
                 </tr>
                 {g.rows.map((r) => {
-                  const update = (patch: Partial<ClientOverride>) => {
+                  const update = (patch: Partial<Override>) => {
                     if (r.isExtra) {
                       setExtras((s) => s.map((e) => e.id === r.id ? { ...e, ...patch } : e));
                     } else {
@@ -453,7 +598,7 @@ function ClientSheet(p: ClientSheetProps) {
           })}
         </tbody>
         <tfoot>
-          <tr className="border-t-2 border-slate-900">
+          <tr className="border-t-2 border-slate-900" data-pdf-block>
             <td colSpan={4} className="p-2 text-right font-bold text-base">РАЗОМ:</td>
             <td className="p-2 text-right font-black text-base text-amber-700">{formatUah(grandTotal)}</td>
             <td className="print:hidden" />
@@ -474,33 +619,5 @@ function ClientSheet(p: ClientSheetProps) {
         </div>
       </div>
     </div>
-  );
-}
-
-
-function FragmentRows({ g, t }: { g: { block: string; label: string; rows: EstimateLine[] }; t: ReturnType<typeof useT> }) {
-  return (
-    <>
-      <tr className="bg-slate-100" data-pdf-block>
-        <td colSpan={8} className="p-1.5 font-bold uppercase text-[10px] tracking-wider">{g.label}</td>
-      </tr>
-      {g.rows.map((r) => {
-        const margin = r.sum > 0 ? ((r.sum - r.cost) / r.sum) * 100 : 0;
-        return (
-          <tr key={r.key + r.name} className="border-b border-slate-200">
-            <td className="p-1.5">{t(r.name)}</td>
-            <td className="text-center p-1.5">{r.unit}</td>
-            <td className="text-right p-1.5">{formatNum(r.qty, 1)}</td>
-            <td className="text-right p-1.5">{formatNum(r.costPerUnit, 1)}</td>
-            <td className="text-right p-1.5">{formatNum(r.pricePerUnit, 0)}</td>
-            <td className="text-right p-1.5">{formatUah(r.cost)}</td>
-            <td className="text-right p-1.5 font-semibold">{formatUah(r.sum)}</td>
-            <td className={`text-right p-1.5 ${margin >= 20 ? "text-emerald-700" : "text-amber-700"}`}>
-              {formatNum(margin, 0)}%
-            </td>
-          </tr>
-        );
-      })}
-    </>
   );
 }
