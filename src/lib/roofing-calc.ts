@@ -170,11 +170,13 @@ const RAW_ROOFING_WORKS = {
   demount: 150,
   parapet: 100,        // п.м (Монтаж ПВХ/Рубероїда на парапет)
   galtel: 110,
-  funnel: 750,         // Монтаж і обпайка воронки, шт
-  aerator: 550,        // Монтаж і обпайка аератора, шт
-  drip_edge: 100,      // Монтаж капельника, п.м
+  funnel: 750,
+  aerator: 550,
+  drip_edge: 100,
   corner: 180,
   opaika: 150,
+  pvc_angle_lay: 80,   // Монтаж ПВХ-уголка, п.м
+  pvc_clamp_lay: 90,   // Монтаж прижимної планки з герметиком, п.м
 };
 export const DEFAULT_ROOFING_WORKS = {
   ...RAW_ROOFING_WORKS,
@@ -183,9 +185,9 @@ export const DEFAULT_ROOFING_WORKS = {
 
 // Собівартість бригади — ПМЗ Майстерів (що ми платимо).
 export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
-  rubemast_lay: 80,   // 160 грн/м² за 2 шари → 80/шар
+  rubemast_lay: 80,
   primer_apply: 20,
-  pvc_lay: 160,        // Монтаж ПВХ мембрани = повний продаж клієнту (бригадна послуга)
+  pvc_lay: 160,
   geo_lay: 20,
   parapet: 100,
   galtel: 110,
@@ -197,6 +199,8 @@ export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
   demount: 150,
   slope: 220,
   prep: 20,
+  pvc_angle_lay: 80,
+  pvc_clamp_lay: 90,
 };
 
 export const DEFAULT_ROOFING_LOGISTICS = {
