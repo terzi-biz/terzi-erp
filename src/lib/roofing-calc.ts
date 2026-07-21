@@ -325,8 +325,9 @@ export function calculateRoofing(
     }
 
     if (input.withGaltel && perimeter > 0) {
-      galtelMeters = perimeter;
-      const mixKg = ceil(perimeter * c.galtelMixKgPerM);
+      const galM = input.galtelMetersOverride > 0 ? input.galtelMetersOverride : perimeter;
+      galtelMeters = galM;
+      const mixKg = ceil(galM * c.galtelMixKgPerM);
       lines.push({
         key: "m_galtel_mix", block: "materials", name: "Цементно-піщана суміш (галтель)", unit: "кг",
         qty: mixKg, pricePerUnit: px("galtel_mix").sell, costPerUnit: px("galtel_mix").buy,
@@ -334,8 +335,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_galtel", block: "works", name: "Влаштування галтелі по периметру", unit: "п.м",
-        qty: perimeter, pricePerUnit: works.galtel, costPerUnit: wcost("galtel"),
-        sum: perimeter * works.galtel, cost: perimeter  * wcost("galtel"),
+        qty: galM, pricePerUnit: works.galtel, costPerUnit: wcost("galtel"),
+        sum: galM * works.galtel, cost: galM * wcost("galtel"),
       });
     }
 
