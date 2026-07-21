@@ -285,10 +285,19 @@ function RoofingPage() {
               {input.system === "pvc" && (<>
                 <Field label="Внутрішні кути, шт"><input type="number" min={0} className={inp} value={input.innerCornersCount} onChange={(e) => upd("innerCornersCount", +e.target.value)} /></Field>
                 <Field label="Зовнішні кути, шт"><input type="number" min={0} className={inp} value={input.outerCornersCount} onChange={(e) => upd("outerCornersCount", +e.target.value)} /></Field>
+                <Field label="ПВХ-уголок, п.м" hint="Гнучкий ПВХ-профіль для внутрішніх примикань до парапету/стін. Типово = периметру.">
+                  <input type="number" min={0} className={inp} value={input.pvcAngleMeters} onChange={(e) => upd("pvcAngleMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                </Field>
+                <Field label="Прижимна планка, п.м" hint="Алюмінієва планка з герметиком для верхнього примикання мембрани до парапету/стіни.">
+                  <input type="number" min={0} className={inp} value={input.pvcClampStripMeters} onChange={(e) => upd("pvcClampStripMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                </Field>
               </>)}
-              {input.system === "rubemast" && (
+              {input.system === "rubemast" && (<>
                 <Field label="Точки опайки, шт"><input type="number" min={0} className={inp} value={input.opaikaPoints} onChange={(e) => upd("opaikaPoints", +e.target.value)} /></Field>
-              )}
+                <Field label="Галтелі, п.м" hint="Ц/п галтель по периметру. 0 — використати периметр. Задайте, якщо галтель тільки на частині контуру.">
+                  <input type="number" min={0} disabled={!input.withGaltel} className={inp} value={input.galtelMetersOverride} onChange={(e) => upd("galtelMetersOverride", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                </Field>
+              </>)}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">Залиште 0, якщо не використовується. Капельники типово = периметру.</p>
             <Tip>
