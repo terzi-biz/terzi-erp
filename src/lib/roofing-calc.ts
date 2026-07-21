@@ -24,14 +24,17 @@ import {
 export type RoofSystem = "rubemast" | "pvc";
 export type PvcThickness = "1.5" | "1.8";
 export type PaymentForm = "cash" | "cashless" | "fop";
+export type RubemastBrand = "aquaizol" | "ruberit";
 
 export interface RoofingInput {
   area: number;
   perimeter: number;
   parapetHeightCm: number;
+  parapetTopFoldM: number;      // додаткове заведення нагору парапету (горизонтальна поличка), м
   system: RoofSystem;
   layers: 1 | 2 | 3;
   pvcThickness: PvcThickness;
+  rubemastBrand: RubemastBrand; // Акваізол / Руберіт
 
   withPrimer: boolean;
   withSlope: boolean;
@@ -39,15 +42,18 @@ export interface RoofingInput {
   withDemount: boolean;
   withGeotextile: boolean;
   withParapetWork: boolean;
-  withGaltel: boolean;        // rubemast: цементно-піщана галтель по периметру
+  withGaltel: boolean;          // rubemast: цементно-піщана галтель по периметру
+  galtelMetersOverride: number; // якщо >0 — використати замість периметру
 
-  // Accessories (поштучно/п.м)
-  funnelsCount: number;       // воронки покрівельні
-  aeratorsCount: number;      // аератори (для рубемасту)
-  dripEdgeMeters: number;     // капельники, п.м (за замовч. = периметр)
-  innerCornersCount: number;  // внутрішні кути парапету (PVC)
-  outerCornersCount: number;  // зовнішні кути
-  opaikaPoints: number;       // точки опайки (rubemast)
+  // Accessories
+  funnelsCount: number;
+  aeratorsCount: number;
+  dripEdgeMeters: number;
+  innerCornersCount: number;
+  outerCornersCount: number;
+  opaikaPoints: number;
+  pvcAngleMeters: number;       // ПВХ-уголок (внутрішній примикання), п.м
+  pvcClampStripMeters: number;  // Прижимна планка, п.м
 
   // Logistics
   cityDelivery: boolean;
@@ -129,7 +135,9 @@ export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
 
 // Закупка — Прайс євроруберойд Одеса 30.03.2026 (Акваізол ЕКО-ПЕ ~150–165 грн/м², рулон 10 м²).
 const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
-  rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²)
+  rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²) — Руберіт
+  aquaizol_roll:{ buy: 1650, sell: 2400 },  // 10 м² рулон Акваізол ЕКО-ПЕ
+  ruberit_roll: { buy: 1500, sell: 2200 },  // 10 м² рулон Руберіт (alias)
   primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
   pvc_15_sika:  { buy: 320,  sell: 480 },
@@ -144,6 +152,8 @@ const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
   inner_corner: { buy: 95,   sell: 180 },
   outer_corner: { buy: 95,   sell: 180 },
   opaika_mastic:{ buy: 180,  sell: 320 },
+  pvc_angle:    { buy: 55,   sell: 110 },   // ПВХ-уголок (внутрішній кут стрічкою), п.м
+  pvc_clamp:    { buy: 75,   sell: 140 },   // Прижимна планка алюмінієва, п.м
 };
 export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
   ...RAW_ROOFING_PRICES,
@@ -160,11 +170,13 @@ const RAW_ROOFING_WORKS = {
   demount: 150,
   parapet: 100,        // п.м (Монтаж ПВХ/Рубероїда на парапет)
   galtel: 110,
-  funnel: 750,         // Монтаж і обпайка воронки, шт
-  aerator: 550,        // Монтаж і обпайка аератора, шт
-  drip_edge: 100,      // Монтаж капельника, п.м
+  funnel: 750,
+  aerator: 550,
+  drip_edge: 100,
   corner: 180,
   opaika: 150,
+  pvc_angle_lay: 80,   // Монтаж ПВХ-уголка, п.м
+  pvc_clamp_lay: 90,   // Монтаж прижимної планки з герметиком, п.м
 };
 export const DEFAULT_ROOFING_WORKS = {
   ...RAW_ROOFING_WORKS,
@@ -173,9 +185,9 @@ export const DEFAULT_ROOFING_WORKS = {
 
 // Собівартість бригади — ПМЗ Майстерів (що ми платимо).
 export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
-  rubemast_lay: 80,   // 160 грн/м² за 2 шари → 80/шар
+  rubemast_lay: 80,
   primer_apply: 20,
-  pvc_lay: 160,        // Монтаж ПВХ мембрани = повний продаж клієнту (бригадна послуга)
+  pvc_lay: 160,
   geo_lay: 20,
   parapet: 100,
   galtel: 110,
@@ -187,6 +199,8 @@ export const DEFAULT_ROOFING_WORK_COSTS: Record<string, number> = {
   demount: 150,
   slope: 220,
   prep: 20,
+  pvc_angle_lay: 80,
+  pvc_clamp_lay: 90,
 };
 
 export const DEFAULT_ROOFING_LOGISTICS = {
@@ -261,8 +275,9 @@ export function calculateRoofing(
   const area = Math.max(0, input.area);
   const perimeter = Math.max(0, input.perimeter || Math.sqrt(area) * 4);
   const parapetH = Math.max(0, input.parapetHeightCm) / 100;
+  const topFold = Math.max(0, input.parapetTopFoldM);
 
-  const parapetAreaM2 = perimeter * parapetH;
+  const parapetAreaM2 = perimeter * (parapetH + topFold);
   const effectiveAreaM2 = +(area + parapetAreaM2).toFixed(2);
 
   const lines: RoofLine[] = [];
@@ -277,12 +292,14 @@ export function calculateRoofing(
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
     const totalM2 = perLayerM2 * layers;
     rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
+    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_roll" : "ruberit_roll";
+    const brandLabel = input.rubemastBrand === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт";
     lines.push({
       key: "m_rubemast", block: "materials",
-      name: `Рубемаст (${layers} ${layers === 1 ? "шар" : "шари"})`,
+      name: `${brandLabel} (${layers} ${layers === 1 ? "шар" : "шари"})`,
       unit: "рул.", qty: rollsCount,
-      pricePerUnit: px("rubemast").sell, costPerUnit: px("rubemast").buy,
-      sum: rollsCount * px("rubemast").sell, cost: rollsCount * px("rubemast").buy,
+      pricePerUnit: px(brandKey).sell, costPerUnit: px(brandKey).buy,
+      sum: rollsCount * px(brandKey).sell, cost: rollsCount * px(brandKey).buy,
     });
 
     const gasKg = totalM2 * c.rubemastGasKgPerLayerM2;
@@ -308,8 +325,9 @@ export function calculateRoofing(
     }
 
     if (input.withGaltel && perimeter > 0) {
-      galtelMeters = perimeter;
-      const mixKg = ceil(perimeter * c.galtelMixKgPerM);
+      const galM = input.galtelMetersOverride > 0 ? input.galtelMetersOverride : perimeter;
+      galtelMeters = galM;
+      const mixKg = ceil(galM * c.galtelMixKgPerM);
       lines.push({
         key: "m_galtel_mix", block: "materials", name: "Цементно-піщана суміш (галтель)", unit: "кг",
         qty: mixKg, pricePerUnit: px("galtel_mix").sell, costPerUnit: px("galtel_mix").buy,
@@ -317,8 +335,8 @@ export function calculateRoofing(
       });
       lines.push({
         key: "w_galtel", block: "works", name: "Влаштування галтелі по периметру", unit: "п.м",
-        qty: perimeter, pricePerUnit: works.galtel, costPerUnit: wcost("galtel"),
-        sum: perimeter * works.galtel, cost: perimeter  * wcost("galtel"),
+        qty: galM, pricePerUnit: works.galtel, costPerUnit: wcost("galtel"),
+        sum: galM * works.galtel, cost: galM * wcost("galtel"),
       });
     }
 
@@ -454,6 +472,33 @@ export function calculateRoofing(
       sum: input.dripEdgeMeters * works.drip_edge, cost: input.dripEdgeMeters  * wcost("drip_edge"),
     });
   }
+  if (input.pvcAngleMeters > 0) {
+    const m = input.pvcAngleMeters;
+    lines.push({
+      key: "m_pvc_angle", block: "materials", name: "ПВХ-уголок (внутрішній примикання)", unit: "п.м",
+      qty: m, pricePerUnit: px("pvc_angle").sell, costPerUnit: px("pvc_angle").buy,
+      sum: m * px("pvc_angle").sell, cost: m * px("pvc_angle").buy,
+    });
+    lines.push({
+      key: "w_pvc_angle", block: "works", name: "Монтаж ПВХ-уголка", unit: "п.м",
+      qty: m, pricePerUnit: works.pvc_angle_lay, costPerUnit: wcost("pvc_angle_lay"),
+      sum: m * works.pvc_angle_lay, cost: m * wcost("pvc_angle_lay"),
+    });
+  }
+  if (input.pvcClampStripMeters > 0) {
+    const m = input.pvcClampStripMeters;
+    lines.push({
+      key: "m_pvc_clamp", block: "materials", name: "Прижимна планка алюмінієва + герметик", unit: "п.м",
+      qty: m, pricePerUnit: px("pvc_clamp").sell, costPerUnit: px("pvc_clamp").buy,
+      sum: m * px("pvc_clamp").sell, cost: m * px("pvc_clamp").buy,
+    });
+    lines.push({
+      key: "w_pvc_clamp", block: "works", name: "Монтаж прижимної планки", unit: "п.м",
+      qty: m, pricePerUnit: works.pvc_clamp_lay, costPerUnit: wcost("pvc_clamp_lay"),
+      sum: m * works.pvc_clamp_lay, cost: m * wcost("pvc_clamp_lay"),
+    });
+  }
+
 
   if (input.withDemount) {
     lines.push({

@@ -10,7 +10,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { exportElementAsPng } from "@/lib/pngExport";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
-  type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness,
+  type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness, type RubemastBrand,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
@@ -48,13 +48,15 @@ function Tip({ children }: { children: React.ReactNode }) {
 }
 
 const defaultInput: RoofingInput = {
-  area: 100, perimeter: 40, parapetHeightCm: 30,
+  area: 100, perimeter: 40, parapetHeightCm: 30, parapetTopFoldM: 0,
   system: "pvc", layers: 2, pvcThickness: "1.5",
+  rubemastBrand: "aquaizol",
   withPrimer: true, withSlope: false, slopeAvgThicknessMm: 50,
   withDemount: false, withGeotextile: true, withParapetWork: true,
-  withGaltel: false,
+  withGaltel: false, galtelMetersOverride: 0,
   funnelsCount: 0, aeratorsCount: 0, dripEdgeMeters: 0,
   innerCornersCount: 0, outerCornersCount: 0, opaikaPoints: 0,
+  pvcAngleMeters: 0, pvcClampStripMeters: 0,
   cityDelivery: true, outOfCityKm: 0, withLift: true, haulContainers: 0,
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
@@ -182,16 +184,28 @@ function RoofingPage() {
               ))}
             </div>
             {input.system === "rubemast" && (
-              <Field label="Кількість шарів">
-                <div className="flex gap-2">
-                  {([1, 2, 3] as const).map((n) => (
-                    <button key={n} onClick={() => upd("layers", n)}
-                      className={`flex-1 py-2 rounded font-bold ${input.layers === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                      {n} {n === 1 ? "шар" : "шари"}
-                    </button>
-                  ))}
-                </div>
-              </Field>
+              <>
+                <Field label="Марка рулону" hint="Акваізол ЕКО-ПЕ — преміум, стабільна якість, довша гарантія. Руберіт — базовий, оптимально для ремонтів та бюджетних об'єктів.">
+                  <div className="flex gap-2">
+                    {(["aquaizol", "ruberit"] as RubemastBrand[]).map((b) => (
+                      <button key={b} onClick={() => upd("rubemastBrand", b)}
+                        className={`flex-1 py-2 rounded font-bold text-xs ${input.rubemastBrand === b ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {b === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт"}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Кількість шарів">
+                  <div className="flex gap-2">
+                    {([1, 2, 3] as const).map((n) => (
+                      <button key={n} onClick={() => upd("layers", n)}
+                        className={`flex-1 py-2 rounded font-bold ${input.layers === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {n} {n === 1 ? "шар" : "шари"}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </>
             )}
             {input.system === "pvc" && (
               <>
@@ -228,6 +242,9 @@ function RoofingPage() {
               </Field>
               <Field label="Парапет, см" hint="Висота загину матеріалу на парапет. Стандарт TERZI: +30 см. Для експлуатованих дахів — 40–50 см.">
                 <input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} />
+              </Field>
+              <Field label="Заведення нагору, м" hint="Горизонтальна поличка зверху парапету (капелюх). Додає perimeter × висоту до робочої площі. Типово 0.07–0.15 м.">
+                <input type="number" step="0.01" className={inp} value={input.parapetTopFoldM} onChange={(e) => upd("parapetTopFoldM", +e.target.value)} />
               </Field>
             </div>
             <Tip>
@@ -268,10 +285,19 @@ function RoofingPage() {
               {input.system === "pvc" && (<>
                 <Field label="Внутрішні кути, шт"><input type="number" min={0} className={inp} value={input.innerCornersCount} onChange={(e) => upd("innerCornersCount", +e.target.value)} /></Field>
                 <Field label="Зовнішні кути, шт"><input type="number" min={0} className={inp} value={input.outerCornersCount} onChange={(e) => upd("outerCornersCount", +e.target.value)} /></Field>
+                <Field label="ПВХ-уголок, п.м" hint="Гнучкий ПВХ-профіль для внутрішніх примикань до парапету/стін. Типово = периметру.">
+                  <input type="number" min={0} className={inp} value={input.pvcAngleMeters} onChange={(e) => upd("pvcAngleMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                </Field>
+                <Field label="Прижимна планка, п.м" hint="Алюмінієва планка з герметиком для верхнього примикання мембрани до парапету/стіни.">
+                  <input type="number" min={0} className={inp} value={input.pvcClampStripMeters} onChange={(e) => upd("pvcClampStripMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                </Field>
               </>)}
-              {input.system === "rubemast" && (
+              {input.system === "rubemast" && (<>
                 <Field label="Точки опайки, шт"><input type="number" min={0} className={inp} value={input.opaikaPoints} onChange={(e) => upd("opaikaPoints", +e.target.value)} /></Field>
-              )}
+                <Field label="Галтелі, п.м" hint="Ц/п галтель по периметру. 0 — використати периметр. Задайте, якщо галтель тільки на частині контуру.">
+                  <input type="number" min={0} disabled={!input.withGaltel} className={inp} value={input.galtelMetersOverride} onChange={(e) => upd("galtelMetersOverride", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                </Field>
+              </>)}
             </div>
             <p className="text-[11px] text-muted-foreground mt-2">Залиште 0, якщо не використовується. Капельники типово = периметру.</p>
             <Tip>
