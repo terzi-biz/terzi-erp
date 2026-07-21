@@ -472,6 +472,33 @@ export function calculateRoofing(
       sum: input.dripEdgeMeters * works.drip_edge, cost: input.dripEdgeMeters  * wcost("drip_edge"),
     });
   }
+  if (input.pvcAngleMeters > 0) {
+    const m = input.pvcAngleMeters;
+    lines.push({
+      key: "m_pvc_angle", block: "materials", name: "ПВХ-уголок (внутрішній примикання)", unit: "п.м",
+      qty: m, pricePerUnit: px("pvc_angle").sell, costPerUnit: px("pvc_angle").buy,
+      sum: m * px("pvc_angle").sell, cost: m * px("pvc_angle").buy,
+    });
+    lines.push({
+      key: "w_pvc_angle", block: "works", name: "Монтаж ПВХ-уголка", unit: "п.м",
+      qty: m, pricePerUnit: works.pvc_angle_lay, costPerUnit: wcost("pvc_angle_lay"),
+      sum: m * works.pvc_angle_lay, cost: m * wcost("pvc_angle_lay"),
+    });
+  }
+  if (input.pvcClampStripMeters > 0) {
+    const m = input.pvcClampStripMeters;
+    lines.push({
+      key: "m_pvc_clamp", block: "materials", name: "Прижимна планка алюмінієва + герметик", unit: "п.м",
+      qty: m, pricePerUnit: px("pvc_clamp").sell, costPerUnit: px("pvc_clamp").buy,
+      sum: m * px("pvc_clamp").sell, cost: m * px("pvc_clamp").buy,
+    });
+    lines.push({
+      key: "w_pvc_clamp", block: "works", name: "Монтаж прижимної планки", unit: "п.м",
+      qty: m, pricePerUnit: works.pvc_clamp_lay, costPerUnit: wcost("pvc_clamp_lay"),
+      sum: m * works.pvc_clamp_lay, cost: m * wcost("pvc_clamp_lay"),
+    });
+  }
+
 
   if (input.withDemount) {
     lines.push({
