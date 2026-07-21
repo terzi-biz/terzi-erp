@@ -48,13 +48,15 @@ function Tip({ children }: { children: React.ReactNode }) {
 }
 
 const defaultInput: RoofingInput = {
-  area: 100, perimeter: 40, parapetHeightCm: 30,
+  area: 100, perimeter: 40, parapetHeightCm: 30, parapetTopFoldM: 0,
   system: "pvc", layers: 2, pvcThickness: "1.5",
+  rubemastBrand: "aquaizol",
   withPrimer: true, withSlope: false, slopeAvgThicknessMm: 50,
   withDemount: false, withGeotextile: true, withParapetWork: true,
-  withGaltel: false,
+  withGaltel: false, galtelMetersOverride: 0,
   funnelsCount: 0, aeratorsCount: 0, dripEdgeMeters: 0,
   innerCornersCount: 0, outerCornersCount: 0, opaikaPoints: 0,
+  pvcAngleMeters: 0, pvcClampStripMeters: 0,
   cityDelivery: true, outOfCityKm: 0, withLift: true, haulContainers: 0,
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
