@@ -135,7 +135,9 @@ export const DEFAULT_ROOFING_COEFFS: RoofingCoefficients = {
 
 // Закупка — Прайс євроруберойд Одеса 30.03.2026 (Акваізол ЕКО-ПЕ ~150–165 грн/м², рулон 10 м²).
 const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
-  rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²)
+  rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²) — Руберіт
+  aquaizol_roll:{ buy: 1650, sell: 2400 },  // 10 м² рулон Акваізол ЕКО-ПЕ
+  ruberit_roll: { buy: 1500, sell: 2200 },  // 10 м² рулон Руберіт (alias)
   primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
   pvc_15_sika:  { buy: 320,  sell: 480 },
@@ -150,6 +152,8 @@ const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
   inner_corner: { buy: 95,   sell: 180 },
   outer_corner: { buy: 95,   sell: 180 },
   opaika_mastic:{ buy: 180,  sell: 320 },
+  pvc_angle:    { buy: 55,   sell: 110 },   // ПВХ-уголок (внутрішній кут стрічкою), п.м
+  pvc_clamp:    { buy: 75,   sell: 140 },   // Прижимна планка алюмінієва, п.м
 };
 export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
   ...RAW_ROOFING_PRICES,
