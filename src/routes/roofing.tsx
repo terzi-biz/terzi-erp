@@ -10,7 +10,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { exportElementAsPng } from "@/lib/pngExport";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
-  type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness,
+  type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness, type RubemastBrand,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
