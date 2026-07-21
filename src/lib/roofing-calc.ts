@@ -292,12 +292,14 @@ export function calculateRoofing(
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
     const totalM2 = perLayerM2 * layers;
     rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
+    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_roll" : "ruberit_roll";
+    const brandLabel = input.rubemastBrand === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт";
     lines.push({
       key: "m_rubemast", block: "materials",
-      name: `Рубемаст (${layers} ${layers === 1 ? "шар" : "шари"})`,
+      name: `${brandLabel} (${layers} ${layers === 1 ? "шар" : "шари"})`,
       unit: "рул.", qty: rollsCount,
-      pricePerUnit: px("rubemast").sell, costPerUnit: px("rubemast").buy,
-      sum: rollsCount * px("rubemast").sell, cost: rollsCount * px("rubemast").buy,
+      pricePerUnit: px(brandKey).sell, costPerUnit: px(brandKey).buy,
+      sum: rollsCount * px(brandKey).sell, cost: rollsCount * px(brandKey).buy,
     });
 
     const gasKg = totalM2 * c.rubemastGasKgPerLayerM2;
