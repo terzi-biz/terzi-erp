@@ -184,16 +184,28 @@ function RoofingPage() {
               ))}
             </div>
             {input.system === "rubemast" && (
-              <Field label="Кількість шарів">
-                <div className="flex gap-2">
-                  {([1, 2, 3] as const).map((n) => (
-                    <button key={n} onClick={() => upd("layers", n)}
-                      className={`flex-1 py-2 rounded font-bold ${input.layers === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                      {n} {n === 1 ? "шар" : "шари"}
-                    </button>
-                  ))}
-                </div>
-              </Field>
+              <>
+                <Field label="Марка рулону" hint="Акваізол ЕКО-ПЕ — преміум, стабільна якість, довша гарантія. Руберіт — базовий, оптимально для ремонтів та бюджетних об'єктів.">
+                  <div className="flex gap-2">
+                    {(["aquaizol", "ruberit"] as RubemastBrand[]).map((b) => (
+                      <button key={b} onClick={() => upd("rubemastBrand", b)}
+                        className={`flex-1 py-2 rounded font-bold text-xs ${input.rubemastBrand === b ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {b === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт"}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Кількість шарів">
+                  <div className="flex gap-2">
+                    {([1, 2, 3] as const).map((n) => (
+                      <button key={n} onClick={() => upd("layers", n)}
+                        className={`flex-1 py-2 rounded font-bold ${input.layers === n ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {n} {n === 1 ? "шар" : "шари"}
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+              </>
             )}
             {input.system === "pvc" && (
               <>
