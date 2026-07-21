@@ -275,8 +275,9 @@ export function calculateRoofing(
   const area = Math.max(0, input.area);
   const perimeter = Math.max(0, input.perimeter || Math.sqrt(area) * 4);
   const parapetH = Math.max(0, input.parapetHeightCm) / 100;
+  const topFold = Math.max(0, input.parapetTopFoldM);
 
-  const parapetAreaM2 = perimeter * parapetH;
+  const parapetAreaM2 = perimeter * (parapetH + topFold);
   const effectiveAreaM2 = +(area + parapetAreaM2).toFixed(2);
 
   const lines: RoofLine[] = [];
