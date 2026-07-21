@@ -24,14 +24,17 @@ import {
 export type RoofSystem = "rubemast" | "pvc";
 export type PvcThickness = "1.5" | "1.8";
 export type PaymentForm = "cash" | "cashless" | "fop";
+export type RubemastBrand = "aquaizol" | "ruberit";
 
 export interface RoofingInput {
   area: number;
   perimeter: number;
   parapetHeightCm: number;
+  parapetTopFoldM: number;      // додаткове заведення нагору парапету (горизонтальна поличка), м
   system: RoofSystem;
   layers: 1 | 2 | 3;
   pvcThickness: PvcThickness;
+  rubemastBrand: RubemastBrand; // Акваізол / Руберіт
 
   withPrimer: boolean;
   withSlope: boolean;
@@ -39,15 +42,18 @@ export interface RoofingInput {
   withDemount: boolean;
   withGeotextile: boolean;
   withParapetWork: boolean;
-  withGaltel: boolean;        // rubemast: цементно-піщана галтель по периметру
+  withGaltel: boolean;          // rubemast: цементно-піщана галтель по периметру
+  galtelMetersOverride: number; // якщо >0 — використати замість периметру
 
-  // Accessories (поштучно/п.м)
-  funnelsCount: number;       // воронки покрівельні
-  aeratorsCount: number;      // аератори (для рубемасту)
-  dripEdgeMeters: number;     // капельники, п.м (за замовч. = периметр)
-  innerCornersCount: number;  // внутрішні кути парапету (PVC)
-  outerCornersCount: number;  // зовнішні кути
-  opaikaPoints: number;       // точки опайки (rubemast)
+  // Accessories
+  funnelsCount: number;
+  aeratorsCount: number;
+  dripEdgeMeters: number;
+  innerCornersCount: number;
+  outerCornersCount: number;
+  opaikaPoints: number;
+  pvcAngleMeters: number;       // ПВХ-уголок (внутрішній примикання), п.м
+  pvcClampStripMeters: number;  // Прижимна планка, п.м
 
   // Logistics
   cityDelivery: boolean;
