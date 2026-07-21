@@ -243,6 +243,9 @@ function RoofingPage() {
               <Field label="Парапет, см" hint="Висота загину матеріалу на парапет. Стандарт TERZI: +30 см. Для експлуатованих дахів — 40–50 см.">
                 <input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} />
               </Field>
+              <Field label="Заведення нагору, м" hint="Горизонтальна поличка зверху парапету (капелюх). Додає perimeter × висоту до робочої площі. Типово 0.07–0.15 м.">
+                <input type="number" step="0.01" className={inp} value={input.parapetTopFoldM} onChange={(e) => upd("parapetTopFoldM", +e.target.value)} />
+              </Field>
             </div>
             <Tip>
               Робоча площа = Площа + Периметр × Парапет. За замовчуванням парапет 30 см — уточніть з замовником, для експлуатованих дахів або терас беріть 40–50 см.
