@@ -263,6 +263,18 @@ function SettingsPage() {
             className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold">
             Роботи (xlsx / csv)
           </button>
+          <span className="mx-2 text-muted-foreground/50">|</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+            <RefreshCw className="w-3 h-3 inline mr-1" /> Пересіяти дефолти (націнка {draft.settings.materialMarkupPercent ?? 30}%):
+          </span>
+          <button onClick={() => runResync(tab as Exclude<Tab, "common">, "material")} disabled={resyncing}
+            className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold disabled:opacity-40">
+            Матеріали
+          </button>
+          <button onClick={() => runResync(tab as Exclude<Tab, "common">, "work")} disabled={resyncing}
+            className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold disabled:opacity-40">
+            Роботи
+          </button>
         </div>
       )}
 
