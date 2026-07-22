@@ -83,15 +83,18 @@ type SeedItem = { code: string; name: string; unit: string; buy_price: number; s
 
 const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   "screed.material": [
-    { code: "sand", name: "Пісок", unit: "т", buy_price: 650, sell_price: 700 },
-    { code: "cement500", name: "Цемент М500 25 кг", unit: "міш.", buy_price: 160, sell_price: 172 },
-    { code: "cement400", name: "Цемент М400 25 кг", unit: "міш.", buy_price: 152, sell_price: 165 },
-    { code: "fiber", name: "Фібра Sika 600 г", unit: "уп.", buy_price: 125, sell_price: 230 },
-    { code: "plast", name: "Пластифікатор", unit: "л", buy_price: 70, sell_price: 82 },
-    { code: "film", name: "Плівка п/е 60 мкм", unit: "м²", buy_price: 5.5, sell_price: 10 },
-    { code: "damper", name: "Демпферна стрічка 8 мм", unit: "п.м", buy_price: 6.5, sell_price: 12 },
-    { code: "mesh_comp_25", name: "Сітка композитна 100×100, 2.5 мм", unit: "м²", buy_price: 25, sell_price: 50 },
-    { code: "mesh_comp_35", name: "Сітка композитна 100×100, 3.5 мм", unit: "м²", buy_price: 35, sell_price: 70 },
+    // Джерело: TERZI_Стяжка_v3_2 (МАТЕРІАЛИ). Продажні = закупка × 1.30 (за замовч.),
+    // редагуються далі вручну; кнопка «Пересіяти дефолти» в Settings перерахує.
+    { code: "sand", name: "Пісок", unit: "т", buy_price: 650, sell_price: 845 },
+    { code: "cement500", name: "Цемент М500 25 кг", unit: "міш.", buy_price: 175, sell_price: 228 },
+    { code: "cement400", name: "Цемент М400 25 кг", unit: "міш.", buy_price: 155, sell_price: 202 },
+    { code: "fiber", name: "Фібра поліпропіленова 900 г", unit: "уп.", buy_price: 125, sell_price: 230 },
+    { code: "plast", name: "Пластифікатор", unit: "л", buy_price: 70, sell_price: 91 },
+    { code: "film", name: "Плівка п/е 60 мкм", unit: "м.п.", buy_price: 6, sell_price: 10 },
+    { code: "damper", name: "Демпферна стрічка 8 мм", unit: "п.м", buy_price: 7, sell_price: 14 },
+    { code: "diesel", name: "Дизель (компресор/доставка)", unit: "л", buy_price: 82, sell_price: 92 },
+    { code: "mesh_comp_25", name: "Сітка композитна 100×100, 2.5 мм", unit: "м²", buy_price: 30, sell_price: 70 },
+    { code: "mesh_comp_35", name: "Сітка композитна 100×100, 3.5 мм", unit: "м²", buy_price: 55, sell_price: 105 },
     { code: "mesh_met_25", name: "Сітка металева 100×100, 2.5 мм", unit: "м²", buy_price: 40, sell_price: 80 },
     { code: "mesh_met_35", name: "Сітка металева 100×100, 3.5 мм", unit: "м²", buy_price: 55, sell_price: 110 },
   ],
