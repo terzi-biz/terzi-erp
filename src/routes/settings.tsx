@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { resyncCatalogPrices } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
