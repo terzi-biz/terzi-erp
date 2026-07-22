@@ -110,6 +110,23 @@ function SettingsPage() {
   } = useAppStore();
   const [tab, setTab] = useState<Tab>("screed");
   const [importOpen, setImportOpen] = useState<null | { module: Tab; kind: "material" | "work" }>(null);
+  const [resyncing, setResyncing] = useState(false);
+  const resyncFn = useServerFn(resyncCatalogPrices);
+  const qc = useQueryClient();
+
+  const runResync = async (module: Exclude<Tab, "common">, kind: "material" | "work") => {
+    setResyncing(true);
+    try {
+      const markup = Number(draft.settings.materialMarkupPercent ?? 30);
+      const res = await resyncFn({ data: { module, kind, markupPercent: markup, updateSell: kind === "material" } });
+      await qc.invalidateQueries({ queryKey: ["catalog", module, kind] });
+      toast.success(`Пересіяно: оновлено ${res.updated}, додано ${res.inserted}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не вдалося пересіяти прайси");
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   // Local draft — changes are only committed to the store on Save.
   const [draft, setDraft] = useState(() => ({
