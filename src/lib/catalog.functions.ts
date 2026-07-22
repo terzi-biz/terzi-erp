@@ -79,19 +79,78 @@ export const seedCatalogDefaults = createServerFn({ method: "POST" })
     return { seeded: rows.length };
   });
 
+/**
+ * Пересіяти дефолтні прайси для non-custom позицій каталогу.
+ * Якщо позиція існує (по code) — оновлюємо buy_price та (опційно) sell_price.
+ * Якщо не існує — вставляємо. Custom позиції (is_custom=true) не чіпаємо.
+ * Admin-only.
+ */
+export const resyncCatalogPrices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    module: ModuleEnum,
+    kind: KindEnum,
+    markupPercent: z.number().min(0).max(500).default(30),
+    updateSell: z.boolean().default(true),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await userIsInternal(context.supabase, context.userId))) {
+      throw new Error("Недостатньо прав");
+    }
+    const items = DEFAULT_SEEDS[`${data.module}.${data.kind}`] ?? [];
+    if (items.length === 0) return { updated: 0, inserted: 0 };
+
+    const { data: existing } = await context.supabase
+      .from("catalog_items").select("id, code, is_custom, sell_price")
+      .eq("module", data.module).eq("kind", data.kind);
+    const byCode = new Map<string, { id: string; is_custom: boolean; sell_price: number }>();
+    for (const r of (existing ?? []) as Array<{ id: string; code: string | null; is_custom: boolean; sell_price: number }>) {
+      if (r.code) byCode.set(r.code, { id: r.id, is_custom: !!r.is_custom, sell_price: Number(r.sell_price) || 0 });
+    }
+
+    const k = 1 + (data.markupPercent / 100);
+    let updated = 0, inserted = 0;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const derivedSell = Math.round(it.buy_price * k);
+      const cur = byCode.get(it.code);
+      if (cur) {
+        if (cur.is_custom) continue;
+        const patch: { buy_price: number; name: string; unit: string; sort_order: number; sell_price?: number } =
+          { buy_price: it.buy_price, name: it.name, unit: it.unit, sort_order: i };
+        if (data.updateSell) patch.sell_price = derivedSell;
+        const { error } = await context.supabase.from("catalog_items").update(patch).eq("id", cur.id);
+        if (error) { console.error("resyncCatalogPrices update", error); throw new Error("Не вдалося оновити позицію"); }
+        updated++;
+      } else {
+        const { error } = await context.supabase.from("catalog_items").insert({
+          ...it,
+          sell_price: data.updateSell ? derivedSell : it.sell_price,
+          module: data.module, kind: data.kind, is_custom: false, sort_order: i,
+        });
+        if (error) { console.error("resyncCatalogPrices insert", error); throw new Error("Не вдалося додати позицію"); }
+        inserted++;
+      }
+    }
+    return { updated, inserted };
+  });
+
 type SeedItem = { code: string; name: string; unit: string; buy_price: number; sell_price: number; lifetime_months?: number };
 
 const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   "screed.material": [
-    { code: "sand", name: "Пісок", unit: "т", buy_price: 650, sell_price: 700 },
-    { code: "cement500", name: "Цемент М500 25 кг", unit: "міш.", buy_price: 160, sell_price: 172 },
-    { code: "cement400", name: "Цемент М400 25 кг", unit: "міш.", buy_price: 152, sell_price: 165 },
-    { code: "fiber", name: "Фібра Sika 600 г", unit: "уп.", buy_price: 125, sell_price: 230 },
-    { code: "plast", name: "Пластифікатор", unit: "л", buy_price: 70, sell_price: 82 },
-    { code: "film", name: "Плівка п/е 60 мкм", unit: "м²", buy_price: 5.5, sell_price: 10 },
-    { code: "damper", name: "Демпферна стрічка 8 мм", unit: "п.м", buy_price: 6.5, sell_price: 12 },
-    { code: "mesh_comp_25", name: "Сітка композитна 100×100, 2.5 мм", unit: "м²", buy_price: 25, sell_price: 50 },
-    { code: "mesh_comp_35", name: "Сітка композитна 100×100, 3.5 мм", unit: "м²", buy_price: 35, sell_price: 70 },
+    // Джерело: TERZI_Стяжка_v3_2 (МАТЕРІАЛИ). Продажні = закупка × 1.30 (за замовч.),
+    // редагуються далі вручну; кнопка «Пересіяти дефолти» в Settings перерахує.
+    { code: "sand", name: "Пісок", unit: "т", buy_price: 650, sell_price: 845 },
+    { code: "cement500", name: "Цемент М500 25 кг", unit: "міш.", buy_price: 175, sell_price: 228 },
+    { code: "cement400", name: "Цемент М400 25 кг", unit: "міш.", buy_price: 155, sell_price: 202 },
+    { code: "fiber", name: "Фібра поліпропіленова 900 г", unit: "уп.", buy_price: 125, sell_price: 230 },
+    { code: "plast", name: "Пластифікатор", unit: "л", buy_price: 70, sell_price: 91 },
+    { code: "film", name: "Плівка п/е 60 мкм", unit: "м.п.", buy_price: 6, sell_price: 10 },
+    { code: "damper", name: "Демпферна стрічка 8 мм", unit: "п.м", buy_price: 7, sell_price: 14 },
+    { code: "diesel", name: "Дизель (компресор/доставка)", unit: "л", buy_price: 82, sell_price: 92 },
+    { code: "mesh_comp_25", name: "Сітка композитна 100×100, 2.5 мм", unit: "м²", buy_price: 30, sell_price: 70 },
+    { code: "mesh_comp_35", name: "Сітка композитна 100×100, 3.5 мм", unit: "м²", buy_price: 55, sell_price: 105 },
     { code: "mesh_met_25", name: "Сітка металева 100×100, 2.5 мм", unit: "м²", buy_price: 40, sell_price: 80 },
     { code: "mesh_met_35", name: "Сітка металева 100×100, 3.5 мм", unit: "м²", buy_price: 55, sell_price: 110 },
   ],
@@ -125,21 +184,49 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "diesel", name: "Дизель для станції", unit: "л", buy_price: 88, sell_price: 88 },
   ],
   "roofing.material": [
-    { code: "rubemast", name: "Рубемаст наплавний (рулон 10 м²)", unit: "рул.", buy_price: 850, sell_price: 1300 },
-    { code: "primer", name: "Бітумний праймер", unit: "л", buy_price: 65, sell_price: 110 },
-    { code: "gas", name: "Газ пропан (балон 50 л)", unit: "бал.", buy_price: 1200, sell_price: 1600 },
-    { code: "pvc_15_sika", name: "ПВХ-мембрана Sika 1.5 мм", unit: "м²", buy_price: 320, sell_price: 480 },
-    { code: "pvc_18_sika", name: "ПВХ-мембрана Sika 1.8 мм", unit: "м²", buy_price: 390, sell_price: 580 },
-    { code: "geo_300", name: "Геотекстиль 300 г/м²", unit: "м²", buy_price: 28, sell_price: 55 },
-    { code: "fastener", name: "Кріплення телескопічне", unit: "шт", buy_price: 8, sell_price: 18 },
-    { code: "xps_50", name: "XPS 50 мм (розуклонка)", unit: "м²", buy_price: 220, sell_price: 320 },
-    { code: "galtel_mix", name: "Цементно-піщана суміш М150 (галтель)", unit: "кг", buy_price: 8, sell_price: 15 },
-    { code: "funnel", name: "Воронка покрівельна", unit: "шт", buy_price: 850, sell_price: 1400 },
-    { code: "aerator", name: "Аератор покрівельний", unit: "шт", buy_price: 650, sell_price: 1100 },
-    { code: "drip_edge", name: "Капельник металевий", unit: "п.м", buy_price: 110, sell_price: 190 },
-    { code: "inner_corner", name: "Внутрішній кут ПВХ Sika", unit: "шт", buy_price: 95, sell_price: 180 },
-    { code: "outer_corner", name: "Зовнішній кут ПВХ Sika", unit: "шт", buy_price: 95, sell_price: 180 },
-    { code: "opaika_mastic", name: "Мастика бітумна (опайка)", unit: "кг", buy_price: 180, sell_price: 320 },
+    // Наплавні рулонні матеріали — прайс Aquaizol від 30.03.2026. Продаж = закупка × 1.30.
+    // Рулон = 10 м², тому buy_price за рулон = ціна за м² × 10. Ціна за м² відображена в назві.
+    { code: "rubemast", name: "Рубемаст (аналог Руберіт ЕКО СХ 2.5) — рулон 10 м²", unit: "рул.", buy_price: 1045, sell_price: 1360 },
+    { code: "ruberit_eko_35", name: "Руберіт ЕКО СХ-3.5-П — рулон 10 м²", unit: "рул.", buy_price: 1121, sell_price: 1457 },
+    { code: "ruberit_eko_40", name: "Руберіт ЕКО СХ-4.0-П — рулон 10 м²", unit: "рул.", buy_price: 1207, sell_price: 1569 },
+    { code: "aquaizol_eko_30", name: "Акваізол ЕКО-ПЕ-3.0 — рулон 10 м²", unit: "рул.", buy_price: 1649, sell_price: 2144 },
+    { code: "aquaizol_eko_40", name: "Акваізол ЕКО-ПЕ-4.0 — рулон 10 м²", unit: "рул.", buy_price: 2048, sell_price: 2663 },
+    { code: "aquaizol_app_30", name: "Акваізол АПП-ПЕ-3.0 — рулон 10 м²", unit: "рул.", buy_price: 1758, sell_price: 2286 },
+    { code: "aquaizol_app_45", name: "Акваізол АПП-ПЕ-4.5-ПС — рулон 10 м²", unit: "рул.", buy_price: 2100, sell_price: 2730 },
+    { code: "aquaizol_sbs_40", name: "Акваізол СБС-ПЕ-4.0-ПС — рулон 10 м²", unit: "рул.", buy_price: 1900, sell_price: 2470 },
+    // Комплектуючі Aquaizol
+    { code: "primer", name: "Праймер бітумний АР-20 Акваізол (17 кг / 20 л)", unit: "відро", buy_price: 1800, sell_price: 2340 },
+    { code: "opaika_mastic", name: "Мастика бітумно-каучукова АМ-10 (10 кг)", unit: "відро", buy_price: 1050, sell_price: 1365 },
+    { code: "opaika_mastic_3kg", name: "Мастика бітумно-каучукова АМ-10 (3 кг)", unit: "відро", buy_price: 360, sell_price: 468 },
+    { code: "funnel", name: "Воронка покрівельна d 100 мм", unit: "шт", buy_price: 162, sell_price: 210 },
+    { code: "aerator", name: "Флюгарка/вентилятор d 110 мм", unit: "шт", buy_price: 234, sell_price: 304 },
+    { code: "flugarka_75", name: "Флюгарка d 75 мм", unit: "шт", buy_price: 150, sell_price: 195 },
+    { code: "gas", name: "Газ пропан (балон 50 л)", unit: "бал.", buy_price: 1200, sell_price: 1560 },
+    // ПВХ-мембрана — прайс ТОВ «Лебер» від 04.05.2026. Продаж = закупка × 1.30.
+    { code: "pvc_15_sika", name: "ПВХ мембрана Sikaplan SPL G-15 light grey 2,0×20 м", unit: "м²", buy_price: 359, sell_price: 467 },
+    { code: "pvc_18_sika", name: "Покрівельна неармована мембрана Sikaplan D-15 1×20 м", unit: "м²", buy_price: 520, sell_price: 676 },
+    { code: "pvc_metal", name: "Ламінований ПВХ-метал 1,2 мм RAL 7047 (1×2 м)", unit: "м²", buy_price: 1400, sell_price: 1820 },
+    { code: "sika_sealant", name: "Клей-герметик Sikaflex-11FC Purform сірий 600 мл", unit: "шт", buy_price: 397, sell_price: 516 },
+    { code: "geo_300", name: "Геотекстиль LB geotex PP200 (200 г/м²)", unit: "м²", buy_price: 44, sell_price: 57 },
+    { code: "funnel_scupper_75", name: "Парапетна воронка S-Scupper PVC d 75 мм", unit: "шт", buy_price: 2000, sell_price: 2600 },
+    { code: "funnel_scupper_110", name: "Парапетна воронка S-Scupper PVC d 110 мм", unit: "шт", buy_price: 2110, sell_price: 2742 },
+    { code: "funnel_gully_160", name: "Покрівельна воронка S-Gully PVC d 160 мм", unit: "шт", buy_price: 2790, sell_price: 3627 },
+    { code: "funnel_drain_90", name: "Дренажна воронка S-Drain PVC d 90 мм", unit: "шт", buy_price: 2135, sell_price: 2776 },
+    { code: "pvc_flugarka", name: "Флюгарка PVC d 75 мм з ковпачком", unit: "шт", buy_price: 730, sell_price: 949 },
+    { code: "fastener", name: "Кріплення телескопічне (комплект дюб+тарілка)", unit: "шт", buy_price: 8, sell_price: 18 },
+    { code: "dowel_8x50", name: "Дюбель розпірний 8×50 (100 шт)", unit: "уп.", buy_price: 242, sell_price: 314 },
+    { code: "dowel_8x100", name: "Дюбель поліпроп. 8×100 (100 шт)", unit: "уп.", buy_price: 364, sell_price: 473 },
+    { code: "screw_5x70", name: "Шуруп гартований 5,0×70 (100 шт)", unit: "уп.", buy_price: 101, sell_price: 131 },
+    { code: "washer_50", name: "Тарілка дожимна 50×5×0,75 (100 шт)", unit: "уп.", buy_price: 340, sell_price: 442 },
+    { code: "drill_sds_8", name: "Свердло SDS PLUS 8,0×160/100", unit: "шт", buy_price: 50, sell_price: 65 },
+    { code: "clamp_strip", name: "Прижимна планка з листа оцинкованого", unit: "п.м", buy_price: 36, sell_price: 47 },
+    // Розуклонка / галтель / примикання
+    { code: "xps_50", name: "XPS Carbon Prof 50 мм (розуклонка)", unit: "м²", buy_price: 220, sell_price: 286 },
+    { code: "galtel_mix", name: "Цементно-піщана суміш М150 (галтель)", unit: "кг", buy_price: 8, sell_price: 12 },
+    { code: "drip_edge", name: "Капельник металевий", unit: "п.м", buy_price: 110, sell_price: 143 },
+    { code: "inner_corner", name: "Внутрішній кут ПВХ Sika", unit: "шт", buy_price: 95, sell_price: 124 },
+    { code: "outer_corner", name: "Зовнішній кут ПВХ Sika", unit: "шт", buy_price: 95, sell_price: 124 },
+    { code: "pvc_angle", name: "ПВХ-уголок (внутрішнє примикання)", unit: "п.м", buy_price: 85, sell_price: 110 },
   ],
   "roofing.work": [
     { code: "rubemast_lay", name: "Наплавлення рубемасту (1 шар)", unit: "м²", buy_price: 90, sell_price: 200 },

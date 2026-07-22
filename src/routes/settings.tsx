@@ -1,9 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
+import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
+import { resyncCatalogPrices } from "@/lib/catalog.functions";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
 
@@ -94,6 +97,7 @@ const COMMON_FIELDS = [
   { key: "roundStep", label: "Округлення суми, грн" },
   { key: "fopRate", label: "Ставка при ФОП (наприклад 0.06)", step: "0.01" },
   { key: "vatRate", label: "Ставка ПДВ (наприклад 0.20)", step: "0.01" },
+  { key: "materialMarkupPercent", label: "Націнка на матеріали, % (для ресинку каталогу)", step: "1" },
 ];
 
 function SettingsPage() {
@@ -106,6 +110,23 @@ function SettingsPage() {
   } = useAppStore();
   const [tab, setTab] = useState<Tab>("screed");
   const [importOpen, setImportOpen] = useState<null | { module: Tab; kind: "material" | "work" }>(null);
+  const [resyncing, setResyncing] = useState(false);
+  const resyncFn = useServerFn(resyncCatalogPrices);
+  const qc = useQueryClient();
+
+  const runResync = async (module: Exclude<Tab, "common">, kind: "material" | "work") => {
+    setResyncing(true);
+    try {
+      const markup = Number(draft.settings.materialMarkupPercent ?? 30);
+      const res = await resyncFn({ data: { module, kind, markupPercent: markup, updateSell: kind === "material" } });
+      await qc.invalidateQueries({ queryKey: ["catalog", module, kind] });
+      toast.success(`Пересіяно: оновлено ${res.updated}, додано ${res.inserted}`);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Не вдалося пересіяти прайси");
+    } finally {
+      setResyncing(false);
+    }
+  };
 
   // Local draft — changes are only committed to the store on Save.
   const [draft, setDraft] = useState(() => ({
@@ -241,6 +262,18 @@ function SettingsPage() {
           <button onClick={() => setImportOpen({ module: tab, kind: "work" })}
             className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold">
             Роботи (xlsx / csv)
+          </button>
+          <span className="mx-2 text-muted-foreground/50">|</span>
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-1">
+            <RefreshCw className="w-3 h-3 inline mr-1" /> Пересіяти дефолти (націнка {draft.settings.materialMarkupPercent ?? 30}%):
+          </span>
+          <button onClick={() => runResync(tab as Exclude<Tab, "common">, "material")} disabled={resyncing}
+            className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold disabled:opacity-40">
+            Матеріали
+          </button>
+          <button onClick={() => runResync(tab as Exclude<Tab, "common">, "work")} disabled={resyncing}
+            className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold disabled:opacity-40">
+            Роботи
           </button>
         </div>
       )}
