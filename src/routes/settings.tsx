@@ -94,6 +94,7 @@ const COMMON_FIELDS = [
   { key: "roundStep", label: "Округлення суми, грн" },
   { key: "fopRate", label: "Ставка при ФОП (наприклад 0.06)", step: "0.01" },
   { key: "vatRate", label: "Ставка ПДВ (наприклад 0.20)", step: "0.01" },
+  { key: "materialMarkupPercent", label: "Націнка на матеріали, % (для ресинку каталогу)", step: "1" },
 ];
 
 function SettingsPage() {
