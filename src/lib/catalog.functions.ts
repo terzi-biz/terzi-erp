@@ -79,6 +79,61 @@ export const seedCatalogDefaults = createServerFn({ method: "POST" })
     return { seeded: rows.length };
   });
 
+/**
+ * Пересіяти дефолтні прайси для non-custom позицій каталогу.
+ * Якщо позиція існує (по code) — оновлюємо buy_price та (опційно) sell_price.
+ * Якщо не існує — вставляємо. Custom позиції (is_custom=true) не чіпаємо.
+ * Admin-only.
+ */
+export const resyncCatalogPrices = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    module: ModuleEnum,
+    kind: KindEnum,
+    markupPercent: z.number().min(0).max(500).default(30),
+    updateSell: z.boolean().default(true),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await userIsInternal(context.supabase, context.userId))) {
+      throw new Error("Недостатньо прав");
+    }
+    const items = DEFAULT_SEEDS[`${data.module}.${data.kind}`] ?? [];
+    if (items.length === 0) return { updated: 0, inserted: 0 };
+
+    const { data: existing } = await context.supabase
+      .from("catalog_items").select("id, code, is_custom, sell_price")
+      .eq("module", data.module).eq("kind", data.kind);
+    const byCode = new Map<string, { id: string; is_custom: boolean; sell_price: number }>();
+    for (const r of (existing ?? []) as Array<{ id: string; code: string | null; is_custom: boolean; sell_price: number }>) {
+      if (r.code) byCode.set(r.code, { id: r.id, is_custom: !!r.is_custom, sell_price: Number(r.sell_price) || 0 });
+    }
+
+    const k = 1 + (data.markupPercent / 100);
+    let updated = 0, inserted = 0;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const derivedSell = Math.round(it.buy_price * k);
+      const cur = byCode.get(it.code);
+      if (cur) {
+        if (cur.is_custom) continue;
+        const patch: Record<string, unknown> = { buy_price: it.buy_price, name: it.name, unit: it.unit, sort_order: i };
+        if (data.updateSell) patch.sell_price = derivedSell;
+        const { error } = await context.supabase.from("catalog_items").update(patch).eq("id", cur.id);
+        if (error) { console.error("resyncCatalogPrices update", error); throw new Error("Не вдалося оновити позицію"); }
+        updated++;
+      } else {
+        const { error } = await context.supabase.from("catalog_items").insert({
+          ...it,
+          sell_price: data.updateSell ? derivedSell : it.sell_price,
+          module: data.module, kind: data.kind, is_custom: false, sort_order: i,
+        });
+        if (error) { console.error("resyncCatalogPrices insert", error); throw new Error("Не вдалося додати позицію"); }
+        inserted++;
+      }
+    }
+    return { updated, inserted };
+  });
+
 type SeedItem = { code: string; name: string; unit: string; buy_price: number; sell_price: number; lifetime_months?: number };
 
 const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
