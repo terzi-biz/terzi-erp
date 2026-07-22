@@ -116,7 +116,8 @@ export const resyncCatalogPrices = createServerFn({ method: "POST" })
       const cur = byCode.get(it.code);
       if (cur) {
         if (cur.is_custom) continue;
-        const patch: Record<string, unknown> = { buy_price: it.buy_price, name: it.name, unit: it.unit, sort_order: i };
+        const patch: { buy_price: number; name: string; unit: string; sort_order: number; sell_price?: number } =
+          { buy_price: it.buy_price, name: it.name, unit: it.unit, sort_order: i };
         if (data.updateSell) patch.sell_price = derivedSell;
         const { error } = await context.supabase.from("catalog_items").update(patch).eq("id", cur.id);
         if (error) { console.error("resyncCatalogPrices update", error); throw new Error("Не вдалося оновити позицію"); }
