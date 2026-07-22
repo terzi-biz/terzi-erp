@@ -124,6 +124,9 @@ export const DEFAULT_SETTINGS = {
   roundStep: 1,
   fopRate: 0.06,
   vatRate: 0.22,
+  // Націнка на матеріали (для перерахунку продажних цін із закупкових під час
+  // ресинку каталогу з дефолтних прайсів постачальників). Одна на всі модулі.
+  materialMarkupPercent: 30,
 };
 
 export type Settings = typeof DEFAULT_SETTINGS;
