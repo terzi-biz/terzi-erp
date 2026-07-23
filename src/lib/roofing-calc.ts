@@ -15,6 +15,7 @@
  *  (useModulePricing("roofing")).
  */
 import type { MaterialPrice } from "./screed-calc";
+import { areaLaborTier } from "./area-tiers";
 import {
   ROOFING_KB_PRICE_OVERRIDES,
   ROOFING_KB_WORK_OVERRIDES,
@@ -585,7 +586,9 @@ export function calculateRoofing(
 
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = Math.max(c.brigadeMin, worksAddCost);
+  const laborTier = areaLaborTier(area);
+  const worksCost = Math.max(c.brigadeMin, worksAddCost) * laborTier.coef;
+  warnings.push(`laborTier:${laborTier.label} ×${laborTier.coef}`);
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * c.amortEquipPerM2;
   const amortTransport = area * c.amortTransportPerM2;

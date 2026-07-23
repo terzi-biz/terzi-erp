@@ -11,6 +11,7 @@
  * коефіцієнти витрат — у InsulationCoefficients.
  */
 import type { MaterialPrice } from "./screed-calc";
+import { areaLaborTier } from "./area-tiers";
 
 export type InsZone = "facade" | "roof" | "floor" | "polystyrcrete";
 export type InsMaterial = "eps_50" | "xps_50" | "mineral" | "polystyrcrete";
@@ -237,7 +238,9 @@ export function calculateInsulation(
   }
 
   // ===== Totals =====
-  const brigadeBaseCost = Math.max(c.brigadeMin, area * c.brigadePerM2);
+  const laborTier = areaLaborTier(area);
+  const brigadeBaseCost = Math.max(c.brigadeMin, area * c.brigadePerM2) * laborTier.coef;
+  warnings.push(`laborTier:${laborTier.label} ×${laborTier.coef}`);
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
   const worksSell = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.sum, 0);
   const logisticsSell = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.sum, 0);
