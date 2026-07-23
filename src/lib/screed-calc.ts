@@ -5,6 +5,7 @@
  * 7 m³, 60 bags cement М500, 13.9 t sand (14 t to client), 10 L plast,
  * 11 packs fiber, 22 L diesel (floors 1–5).
  */
+import { areaLaborTier } from "./area-tiers";
 
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
 export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
@@ -304,9 +305,13 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     pricePerUnit: works.cementUnload, costPerUnit: s.brigadeUnloadCost,
     sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
 
-  // Brigade base cost (covers screed/film/damper/cuts/grind)
-  const brigadeBaseCost = area <= 100 ? s.brigadeMin : area * s.brigadePerM2;
-  const foremanCost = area <= 100 ? s.foremanMin : area * s.foremanPerM2;
+  // Brigade base cost (covers screed/film/damper/cuts/grind). Помножуємо на
+  // тарифний коеф. за площу об'єкта (див. area-tiers.ts) — малі об'єкти
+  // дорожчі за м² для бригади, великі — дешевші.
+  const laborTier = areaLaborTier(area);
+  const brigadeBaseCost = (area <= 100 ? s.brigadeMin : area * s.brigadePerM2) * laborTier.coef;
+  const foremanCost = (area <= 100 ? s.foremanMin : area * s.foremanPerM2) * laborTier.coef;
+  warnings.push(`laborTier:${laborTier.label} ×${laborTier.coef}`);
 
   // ===== Logistics =====
   const stationDeliveryClient = input.cityDelivery
