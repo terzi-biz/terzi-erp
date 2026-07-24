@@ -7,6 +7,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
