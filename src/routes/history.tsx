@@ -67,6 +67,7 @@ function HistoryPage() {
   const del = useServerFn(deleteEstimate);
   const setStatus = useServerFn(updateEstimateStatus);
   const setSchedule = useServerFn(scheduleEstimate);
+  const editFields = useServerFn(updateEstimateFields);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["estimates"], queryFn: () => list(), enabled: !!user,
@@ -79,7 +80,11 @@ function HistoryPage() {
   });
   const statusMut = useMutation({
     mutationFn: (v: { id: string; status: string }) => setStatus({ data: v as any }),
-    onSuccess: () => { toast.success("Статус оновлено"); qc.invalidateQueries({ queryKey: ["estimates"] }); },
+    onSuccess: () => {
+      toast.success("Статус оновлено");
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      qc.invalidateQueries({ queryKey: ["estimate-audit"] });
+    },
     onError: (e: Error) => toast.error(e.message),
   });
   const scheduleMut = useMutation({
@@ -89,12 +94,25 @@ function HistoryPage() {
       toast.success("Додано в календар");
       qc.invalidateQueries({ queryKey: ["estimates"] });
       qc.invalidateQueries({ queryKey: ["ops"] });
+      qc.invalidateQueries({ queryKey: ["estimate-audit"] });
       setScheduleFor(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const editMut = useMutation({
+    mutationFn: (v: Parameters<typeof editFields>[0]["data"]) => editFields({ data: v }),
+    onSuccess: () => {
+      toast.success("Зміни збережено");
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      qc.invalidateQueries({ queryKey: ["estimate-audit"] });
+      setEditFor(null);
     },
     onError: (e: Error) => toast.error(e.message),
   });
 
   const [scheduleFor, setScheduleFor] = useState<EstimateRow | null>(null);
+  const [editFor, setEditFor] = useState<EstimateRow | null>(null);
+  const [logFor, setLogFor] = useState<EstimateRow | null>(null);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
