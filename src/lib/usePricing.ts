@@ -7,20 +7,27 @@ import {
   DEFAULT_MATERIAL_PRICES, DEFAULT_WORK_PRICES,
   type MaterialPrice,
 } from "@/lib/screed-calc";
+import { DEFAULT_ROOFING_PRICES, DEFAULT_ROOFING_WORKS, DEFAULT_ROOFING_WORK_COSTS } from "@/lib/roofing-calc";
 import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
 import { DEFAULT_DEMOLITION_PRICES, DEFAULT_DEMOLITION_WORKS } from "@/lib/demolition-calc";
 
 const MODULE_DEFAULT_MATERIALS: Record<string, Record<string, MaterialPrice>> = {
   screed: DEFAULT_MATERIAL_PRICES,
-  roofing: DEFAULT_MATERIAL_PRICES, // roofing materials merged into shared defaults
+  roofing: DEFAULT_ROOFING_PRICES,
   insulation: DEFAULT_INSULATION_PRICES,
   demolition: DEFAULT_DEMOLITION_PRICES,
 };
 const MODULE_DEFAULT_WORKS: Record<string, Record<string, number>> = {
   screed: DEFAULT_WORK_PRICES as unknown as Record<string, number>,
-  roofing: DEFAULT_WORK_PRICES as unknown as Record<string, number>,
+  roofing: DEFAULT_ROOFING_WORKS as unknown as Record<string, number>,
   insulation: DEFAULT_INSULATION_WORKS as unknown as Record<string, number>,
   demolition: DEFAULT_DEMOLITION_WORKS as unknown as Record<string, number>,
+};
+const MODULE_DEFAULT_WORK_COSTS: Record<string, Record<string, number>> = {
+  screed: {},
+  roofing: DEFAULT_ROOFING_WORK_COSTS,
+  insulation: {},
+  demolition: {},
 };
 
 type Module = "screed" | "roofing" | "insulation" | "demolition";
@@ -64,6 +71,14 @@ export function useModulePricing(module: Module) {
     }
     return out;
   }, [works.data, module]);
+  const workCostPrices = useMemo(() => {
+    const out: Record<string, number> = { ...(MODULE_DEFAULT_WORK_COSTS[module] ?? {}) };
+    for (const r of (works.data ?? []) as Array<{ code: string | null; buy_price: number }>) {
+      if (!r.code) continue;
+      out[r.code] = Number(r.buy_price) || 0;
+    }
+    return out;
+  }, [works.data, module]);
 
-  return { materialPrices, workPrices, loading: mats.isLoading || works.isLoading };
+  return { materialPrices, workPrices, workCostPrices, loading: mats.isLoading || works.isLoading };
 }

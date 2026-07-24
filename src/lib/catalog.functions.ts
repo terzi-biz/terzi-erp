@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { ROOFING_KB_MATERIALS, ROOFING_KB_WORKS } from "@/lib/roofing-knowledge.generated";
 
 const ModuleEnum = z.enum(["screed", "roofing", "insulation", "demolition", "common"]);
 const KindEnum = z.enum(["material", "work", "equipment", "logistics"]);
@@ -92,12 +93,13 @@ export const resyncCatalogPrices = createServerFn({ method: "POST" })
     kind: KindEnum,
     markupPercent: z.number().min(0).max(500).default(30),
     updateSell: z.boolean().default(true),
+    forceReplaceSystem: z.boolean().default(false),
   }).parse(d))
   .handler(async ({ data, context }) => {
     if (!(await userIsInternal(context.supabase, context.userId))) {
       throw new Error("Недостатньо прав");
     }
-    const items = DEFAULT_SEEDS[`${data.module}.${data.kind}`] ?? [];
+    const items = getDefaultSeeds(data.module, data.kind);
     if (items.length === 0) return { updated: 0, inserted: 0 };
 
     const { data: existing } = await context.supabase
@@ -109,7 +111,17 @@ export const resyncCatalogPrices = createServerFn({ method: "POST" })
     }
 
     const k = 1 + (data.markupPercent / 100);
-    let updated = 0, inserted = 0;
+    let updated = 0, inserted = 0, deleted = 0;
+    if (data.forceReplaceSystem && data.module === "roofing" && (data.kind === "material" || data.kind === "work")) {
+      const seedCodes = new Set(items.map((it) => it.code));
+      for (const r of (existing ?? []) as Array<{ id: string; code: string | null; is_custom: boolean }>) {
+        if (r.is_custom) continue;
+        if (r.code && seedCodes.has(r.code)) continue;
+        const { error } = await context.supabase.from("catalog_items").delete().eq("id", r.id);
+        if (error) { console.error("resyncCatalogPrices forced delete", error); throw new Error("Не вдалося очистити старі позиції покрівлі"); }
+        deleted++;
+      }
+    }
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
       // Якщо seed має явну sell_price > 0 — це курований прайс з Excel, використовуємо як є.
@@ -134,10 +146,40 @@ export const resyncCatalogPrices = createServerFn({ method: "POST" })
         inserted++;
       }
     }
-    return { updated, inserted };
+    return { updated, inserted, deleted };
   });
 
 type SeedItem = { code: string; name: string; unit: string; buy_price: number; sell_price: number; lifetime_months?: number };
+
+const seedSell = (buy: number, markup = 30) => Math.round(buy * (1 + markup / 100));
+const rollBuy = (pricePerM2: number, rollM2 = 1) => Math.round(pricePerM2 * rollM2);
+
+const ROOFING_FILE_MATERIAL_SEEDS: SeedItem[] = ROOFING_KB_MATERIALS.map((m, i) => {
+  const isRoll = (m.category === "РУБЕРІТ" || m.category === "АКВАІЗОЛ") && (m.rollM2 ?? 0) > 1;
+  const buy = isRoll ? rollBuy(m.price, m.rollM2) : Math.round(m.price);
+  return {
+    code: `roof_file_mat_${String(i + 1).padStart(2, "0")}`,
+    name: isRoll ? `${m.name} — рулон ${m.rollM2} м²` : m.name,
+    unit: isRoll ? "рул." : m.unit,
+    buy_price: buy,
+    sell_price: seedSell(buy),
+  };
+});
+
+const ROOFING_FILE_WORK_SEEDS: SeedItem[] = ROOFING_KB_WORKS.map((w, i) => ({
+  code: `roof_file_work_${String(i + 1).padStart(2, "0")}`,
+  name: w.name,
+  unit: w.unit.replace("м.п.", "п.м"),
+  buy_price: w.basePrice,
+  sell_price: Math.round(w.basePrice * 2),
+}));
+
+function getDefaultSeeds(module: z.infer<typeof ModuleEnum>, kind: z.infer<typeof KindEnum>): SeedItem[] {
+  const key = `${module}.${kind}`;
+  if (module === "roofing" && kind === "material") return DEFAULT_SEEDS[key] ?? [];
+  if (module === "roofing" && kind === "work") return DEFAULT_SEEDS[key] ?? [];
+  return DEFAULT_SEEDS[key] ?? [];
+}
 
 const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   "screed.material": [
@@ -188,7 +230,8 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   "roofing.material": [
     // Наплавні рулонні матеріали — прайс Aquaizol від 30.03.2026. Продаж = закупка × 1.30.
     // Рулон = 10 м², тому buy_price за рулон = ціна за м² × 10. Ціна за м² відображена в назві.
-    { code: "rubemast", name: "Рубемаст (аналог Руберіт ЕКО СХ 2.5) — рулон 10 м²", unit: "рул.", buy_price: 1045, sell_price: 1360 },
+    { code: "ruberit_roll", name: "Руберіт ЕКО-СХ-3.5-П — рулон 10 м²", unit: "рул.", buy_price: 1121, sell_price: 1457 },
+    { code: "aquaizol_roll", name: "Акваізол ЕКО-ПЕ-3.0 — рулон 15 м²", unit: "рул.", buy_price: 2474, sell_price: 3216 },
     { code: "ruberit_eko_35", name: "Руберіт ЕКО СХ-3.5-П — рулон 10 м²", unit: "рул.", buy_price: 1121, sell_price: 1457 },
     { code: "ruberit_eko_40", name: "Руберіт ЕКО СХ-4.0-П — рулон 10 м²", unit: "рул.", buy_price: 1207, sell_price: 1569 },
     { code: "aquaizol_eko_30", name: "Акваізол ЕКО-ПЕ-3.0 — рулон 10 м²", unit: "рул.", buy_price: 1649, sell_price: 2144 },
@@ -221,7 +264,7 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "screw_5x70", name: "Шуруп гартований 5,0×70 (100 шт)", unit: "уп.", buy_price: 101, sell_price: 131 },
     { code: "washer_50", name: "Тарілка дожимна 50×5×0,75 (100 шт)", unit: "уп.", buy_price: 340, sell_price: 442 },
     { code: "drill_sds_8", name: "Свердло SDS PLUS 8,0×160/100", unit: "шт", buy_price: 50, sell_price: 65 },
-    { code: "clamp_strip", name: "Прижимна планка з листа оцинкованого", unit: "п.м", buy_price: 36, sell_price: 47 },
+    { code: "pvc_clamp", name: "Прижимна планка з листа оцинкованого", unit: "п.м", buy_price: 36, sell_price: 47 },
     // Розуклонка / галтель / примикання
     { code: "xps_50", name: "XPS Carbon Prof 50 мм (розуклонка)", unit: "м²", buy_price: 220, sell_price: 286 },
     { code: "galtel_mix", name: "Цементно-піщана суміш М150 (галтель)", unit: "кг", buy_price: 8, sell_price: 12 },
@@ -229,6 +272,7 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "inner_corner", name: "Внутрішній кут ПВХ Sika", unit: "шт", buy_price: 95, sell_price: 124 },
     { code: "outer_corner", name: "Зовнішній кут ПВХ Sika", unit: "шт", buy_price: 95, sell_price: 124 },
     { code: "pvc_angle", name: "ПВХ-уголок (внутрішнє примикання)", unit: "п.м", buy_price: 85, sell_price: 110 },
+    ...ROOFING_FILE_MATERIAL_SEEDS,
   ],
   "roofing.work": [
     // Ціни продажу — з "Себистоимость_по_работам_TERZI_ПВХ_Руберойд.xlsx"
@@ -254,6 +298,7 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "pvc_clamp_lay",  name: "Монтаж прижимної планки з герметиком",      unit: "п.м", buy_price: 45,  sell_price: 90 },
     { code: "gasblock_parapet", name: "Кладка газоблоку на парапет",             unit: "п.м", buy_price: 250, sell_price: 500 },
     { code: "insul_1layer",   name: "Утеплення пінопласт 1 шар (на дах)",        unit: "м²",  buy_price: 25,  sell_price: 50 },
+    ...ROOFING_FILE_WORK_SEEDS,
   ],
 
   "roofing.equipment": [

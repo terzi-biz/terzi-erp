@@ -65,7 +65,7 @@ function RoofingPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { roofingCoeffs, branding } = useAppStore();
-  const { materialPrices, workPrices } = useModulePricing("roofing");
+  const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing");
   const [input, setInput] = useState<RoofingInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
@@ -86,8 +86,8 @@ function RoofingPage() {
   }, [workPrices]);
 
   const result = useMemo(
-    () => calculateRoofing(input, materialPrices, worksMapped, DEFAULT_ROOFING_LOGISTICS, roofingCoeffs),
-    [input, materialPrices, worksMapped, roofingCoeffs],
+    () => calculateRoofing(input, materialPrices, worksMapped, workCostPrices, DEFAULT_ROOFING_LOGISTICS, roofingCoeffs),
+    [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs],
   );
 
   const upd = <K extends keyof RoofingInput>(k: K, v: RoofingInput[K]) => setInput((s) => ({ ...s, [k]: v }));
