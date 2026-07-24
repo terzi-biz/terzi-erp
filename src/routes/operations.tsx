@@ -124,33 +124,41 @@ function OperationsPage() {
   const activeBrigades = new Set((bookings as any[]).map((b) => b.brigade_key)).size;
 
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-[1600px] mx-auto">
+    <div className="p-3 sm:p-4 md:p-8 space-y-4 md:space-y-6 max-w-[1600px] mx-auto">
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Планування</div>
-          <h1 className="text-2xl md:text-3xl font-black flex items-center gap-3 mt-1">
-            <span className="w-9 h-9 rounded-lg bg-primary/10 text-primary grid place-items-center">
-              <CalIcon className="w-5 h-5" />
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:flex md:flex-wrap md:items-end md:justify-between md:gap-4">
+        <div className="min-w-0">
+          <div className="text-[10px] md:text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-semibold">Планування</div>
+          <h1 className="text-lg sm:text-2xl md:text-3xl font-black flex items-center gap-2 md:gap-3 mt-1">
+            <span className="w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-lg bg-primary/10 text-primary grid place-items-center">
+              <CalIcon className="w-4 h-4 md:w-5 md:h-5" />
             </span>
-            Операційний календар
+            <span className="truncate">Операційний календар</span>
           </h1>
-          <div className="text-sm text-muted-foreground mt-1 capitalize">{weekRangeLabel}</div>
+          <div className="text-xs md:text-sm text-muted-foreground mt-1 capitalize truncate">{weekRangeLabel}</div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <div className="hidden md:flex items-center gap-4 pr-4 mr-2 border-r border-border text-xs">
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="hidden lg:flex items-center gap-4 pr-4 mr-2 border-r border-border text-xs">
             <div><div className="text-muted-foreground">Кошториси</div><div className="font-black text-lg text-foreground leading-none mt-0.5">{totalEstimates}</div></div>
             <div><div className="text-muted-foreground">Заплановано</div><div className="font-black text-lg text-foreground leading-none mt-0.5">{totalBookings}</div></div>
             <div><div className="text-muted-foreground">Бригад</div><div className="font-black text-lg text-foreground leading-none mt-0.5">{activeBrigades}/{BRIGADES.length}</div></div>
           </div>
           <div className="inline-flex items-center rounded-lg border border-border bg-panel shadow-sm overflow-hidden">
             <button onClick={() => shift(-1)} className="p-2 hover:bg-secondary transition"><ChevronLeft className="w-4 h-4" /></button>
-            <button onClick={() => setWeekStart(getMonday())} className="px-3 py-2 text-xs font-semibold border-x border-border hover:bg-secondary transition">Цей тиждень</button>
+            <button onClick={() => setWeekStart(getMonday())} className="px-2 md:px-3 py-2 text-[11px] md:text-xs font-semibold border-x border-border hover:bg-secondary transition whitespace-nowrap">Цей тиждень</button>
             <button onClick={() => shift(1)} className="p-2 hover:bg-secondary transition"><ChevronRight className="w-4 h-4" /></button>
           </div>
         </div>
       </div>
+
+      {/* Mobile KPI strip */}
+      <div className="lg:hidden grid grid-cols-3 gap-2 text-center">
+        <div className="panel px-2 py-2"><div className="text-[10px] uppercase text-muted-foreground">Кошториси</div><div className="font-black text-base">{totalEstimates}</div></div>
+        <div className="panel px-2 py-2"><div className="text-[10px] uppercase text-muted-foreground">Заплановано</div><div className="font-black text-base">{totalBookings}</div></div>
+        <div className="panel px-2 py-2"><div className="text-[10px] uppercase text-muted-foreground">Бригад</div><div className="font-black text-base">{activeBrigades}/{BRIGADES.length}</div></div>
+      </div>
+
 
       {/* Filters */}
       <div className="panel p-3 flex flex-wrap items-center gap-3 text-xs">
