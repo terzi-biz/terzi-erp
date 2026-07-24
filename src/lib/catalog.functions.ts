@@ -246,9 +246,10 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "aquaizol_app_45", name: "Акваізол АПП-ПЕ-4.5-ПС — рулон 10 м²", unit: "рул.", buy_price: 2100, sell_price: 2730 },
     { code: "aquaizol_sbs_40", name: "Акваізол СБС-ПЕ-4.0-ПС — рулон 10 м²", unit: "рул.", buy_price: 1900, sell_price: 2470 },
     // Комплектуючі Aquaizol
-    { code: "primer", name: "Праймер бітумний АР-20 Акваізол (17 кг / 20 л)", unit: "відро", buy_price: 1800, sell_price: 2340 },
-    { code: "opaika_mastic", name: "Мастика бітумно-каучукова АМ-10 (10 кг)", unit: "відро", buy_price: 1050, sell_price: 1365 },
-    { code: "opaika_mastic_3kg", name: "Мастика бітумно-каучукова АМ-10 (3 кг)", unit: "відро", buy_price: 360, sell_price: 468 },
+    { code: "primer", name: "Праймер бітумний АР-20 Акваізол (ціна за 1 л; відро 20 л = 1800 ₴)", unit: "л", buy_price: 90, sell_price: 117 },
+    { code: "opaika_mastic", name: "Мастика бітумно-каучукова АМ-10 (ціна за 1 кг; відро 10 кг = 1050 ₴)", unit: "кг", buy_price: 105, sell_price: 137 },
+    { code: "opaika_mastic_3kg", name: "Мастика бітумно-каучукова АМ-10 (відро 3 кг)", unit: "відро", buy_price: 360, sell_price: 468 },
+
     { code: "funnel", name: "Воронка покрівельна d 100 мм", unit: "шт", buy_price: 162, sell_price: 210 },
     { code: "aerator", name: "Флюгарка/вентилятор d 110 мм", unit: "шт", buy_price: 234, sell_price: 304 },
     { code: "flugarka_75", name: "Флюгарка d 75 мм", unit: "шт", buy_price: 150, sell_price: 195 },
