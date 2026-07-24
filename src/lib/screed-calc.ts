@@ -458,6 +458,7 @@ export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
     area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
     withFilm: false, withDamper: false, meshType: "none", withSlope: false, withGrind: false,
+    withComplexPrep: false, withDemolition: false, insulationType: "none",
     cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
     payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
   });
