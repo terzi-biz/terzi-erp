@@ -217,7 +217,7 @@ export const updateEstimateFields = createServerFn({ method: "POST" })
     if (!Object.keys(cleaned).length) return before;
 
     const { data: out, error } = await context.supabase
-      .from("estimates").update(cleaned).eq("id", id).select().maybeSingle();
+      .from("estimates").update(cleaned as any).eq("id", id).select().maybeSingle();
     if (error) { console.error("updateEstimateFields", error); throw new Error("Не вдалося зберегти зміни"); }
     if (!out) throw new Error("Немає прав або кошторис відсутній");
 
