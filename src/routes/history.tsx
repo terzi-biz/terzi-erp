@@ -100,7 +100,7 @@ function HistoryPage() {
     onError: (e: Error) => toast.error(e.message),
   });
   const editMut = useMutation({
-    mutationFn: (v: Parameters<typeof editFields>[0]["data"]) => editFields({ data: v }),
+    mutationFn: (v: Record<string, any>) => editFields({ data: v as any }),
     onSuccess: () => {
       toast.success("Зміни збережено");
       qc.invalidateQueries({ queryKey: ["estimates"] });
