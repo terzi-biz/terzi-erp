@@ -88,6 +88,10 @@ export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
   mesh_met_25: { buy: 40,  sell: 80 },
   mesh_met_35: { buy: 55,  sell: 110 },
   diesel:      { buy: 88.82, sell: 90 },
+  ins_eps30:   { buy: 90,  sell: 130 },
+  ins_eps50:   { buy: 150, sell: 210 },
+  ins_xps30:   { buy: 180, sell: 260 },
+  ins_xps50:   { buy: 300, sell: 420 },
 };
 
 export const DEFAULT_WORK_PRICES = {
@@ -101,7 +105,10 @@ export const DEFAULT_WORK_PRICES = {
   mesh: 30,
   slope: 40,               // розуклонка
   cementUnload: 10,        // клієнту
+  demolition: 100,         // демонтаж старої стяжки/покриття (клієнт)
+  insulationLay: 40,       // укладання утеплювача під стяжку (клієнт)
 };
+
 
 // Собівартість бригади — з TERZI_Стяжка_v3_2.xlsx (РОБОТИ І ОПЦІЇ, "Ми платимо").
 export const DEFAULT_SETTINGS = {
