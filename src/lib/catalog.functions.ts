@@ -112,20 +112,22 @@ export const resyncCatalogPrices = createServerFn({ method: "POST" })
     let updated = 0, inserted = 0;
     for (let i = 0; i < items.length; i++) {
       const it = items[i];
-      const derivedSell = Math.round(it.buy_price * k);
+      // Якщо seed має явну sell_price > 0 — це курований прайс з Excel, використовуємо як є.
+      // Інакше рахуємо через націнку від закупки.
+      const seedSell = it.sell_price > 0 ? it.sell_price : Math.round(it.buy_price * k);
       const cur = byCode.get(it.code);
       if (cur) {
         if (cur.is_custom) continue;
         const patch: { buy_price: number; name: string; unit: string; sort_order: number; sell_price?: number } =
           { buy_price: it.buy_price, name: it.name, unit: it.unit, sort_order: i };
-        if (data.updateSell) patch.sell_price = derivedSell;
+        if (data.updateSell) patch.sell_price = seedSell;
         const { error } = await context.supabase.from("catalog_items").update(patch).eq("id", cur.id);
         if (error) { console.error("resyncCatalogPrices update", error); throw new Error("Не вдалося оновити позицію"); }
         updated++;
       } else {
         const { error } = await context.supabase.from("catalog_items").insert({
           ...it,
-          sell_price: data.updateSell ? derivedSell : it.sell_price,
+          sell_price: data.updateSell ? seedSell : it.sell_price,
           module: data.module, kind: data.kind, is_custom: false, sort_order: i,
         });
         if (error) { console.error("resyncCatalogPrices insert", error); throw new Error("Не вдалося додати позицію"); }
