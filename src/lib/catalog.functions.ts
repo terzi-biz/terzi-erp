@@ -72,7 +72,7 @@ export const seedCatalogDefaults = createServerFn({ method: "POST" })
       .from("catalog_items").select("id")
       .eq("module", data.module).eq("kind", data.kind).limit(1);
     if (existing && existing.length > 0) return { seeded: 0 };
-    const items = DEFAULT_SEEDS[`${data.module}.${data.kind}`] ?? [];
+    const items = getDefaultSeeds(data.module, data.kind);
     if (items.length === 0) return { seeded: 0 };
     const rows = items.map((it, i) => ({ ...it, module: data.module, kind: data.kind, is_custom: false, sort_order: i }));
     const { error } = await context.supabase.from("catalog_items").insert(rows);
