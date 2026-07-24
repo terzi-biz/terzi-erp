@@ -304,3 +304,172 @@ function ScheduleDialog({
     </div>
   );
 }
+
+type EditPatch = {
+  number?: string;
+  client_name?: string | null;
+  client_phone?: string | null;
+  address?: string | null;
+  manager?: string | null;
+  area?: number | null;
+  thickness_cm?: number | null;
+  total_client?: number;
+};
+
+function EditDialog({
+  row, onClose, onSubmit, pending,
+}: {
+  row: EstimateRow;
+  onClose: () => void;
+  onSubmit: (patch: EditPatch, note: string) => void;
+  pending: boolean;
+}) {
+  const [f, setF] = useState({
+    number: row.number,
+    client_name: row.client_name ?? "",
+    address: row.address ?? "",
+    area: row.area != null ? String(row.area) : "",
+    total_client: String(row.total_client ?? 0),
+  });
+  const [note, setNote] = useState("");
+  const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 grid place-items-center p-4" onClick={onClose}>
+      <div className="panel p-6 max-w-lg w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black text-lg">Редагувати кошторис</h2>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <label className="block md:col-span-1">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Номер</span>
+            <input className={inp} value={f.number} onChange={(e) => setF({ ...f, number: e.target.value })} />
+          </label>
+          <label className="block md:col-span-1">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Площа, м²</span>
+            <input type="number" min={0} step="0.01" className={inp} value={f.area}
+              onChange={(e) => setF({ ...f, area: e.target.value })} />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Клієнт</span>
+            <input className={inp} value={f.client_name} onChange={(e) => setF({ ...f, client_name: e.target.value })} />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Адреса</span>
+            <input className={inp} value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} />
+          </label>
+          <label className="block md:col-span-1">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Сума клієнту, ₴</span>
+            <input type="number" min={0} step="0.01" className={inp} value={f.total_client}
+              onChange={(e) => setF({ ...f, total_client: e.target.value })} />
+          </label>
+          <label className="block md:col-span-2">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Коментар до змін (журнал)</span>
+            <input className={inp} value={note} onChange={(e) => setNote(e.target.value)}
+              placeholder="Опційно: причина правки" />
+          </label>
+        </div>
+        <div className="text-[11px] text-muted-foreground mt-3">
+          Позиції та розрахунок редагуйте у калькуляторі (кнопка «Відкрити»). Тут — лише мета-дані.
+        </div>
+        <div className="mt-5 flex justify-end gap-2">
+          <button onClick={onClose} className="px-4 py-2 rounded bg-secondary text-xs font-semibold">Скасувати</button>
+          <button
+            disabled={pending || !f.number.trim()}
+            onClick={() => {
+              const patch: EditPatch = {
+                number: f.number.trim(),
+                client_name: f.client_name.trim() || null,
+                address: f.address.trim() || null,
+                area: f.area === "" ? null : Number(f.area),
+                total_client: Number(f.total_client) || 0,
+              };
+              onSubmit(patch, note.trim());
+            }}
+            className="px-4 py-2 rounded bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+            Зберегти
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AuditLogDialog({ row, onClose }: { row: EstimateRow; onClose: () => void }) {
+  const loadLog = useServerFn(listEstimateAudit);
+  const { data: entries = [], isLoading } = useQuery({
+    queryKey: ["estimate-audit", row.id],
+    queryFn: () => loadLog({ data: { estimate_id: row.id } }),
+  });
+
+  const ACTION_LABEL: Record<string, string> = {
+    created: "Створено",
+    updated: "Оновлено",
+    edited_in_history: "Редагування в історії",
+    status_changed: "Зміна статусу",
+    scheduled: "Заплановано",
+    schedule_cleared: "Знято з календаря",
+    deleted: "Видалено",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 grid place-items-center p-4" onClick={onClose}>
+      <div className="panel p-6 max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black text-lg">Журнал змін · {row.number}</h2>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+        <div className="overflow-y-auto flex-1">
+          {isLoading && <div className="text-center text-muted-foreground py-6">Завантаження…</div>}
+          {!isLoading && entries.length === 0 && (
+            <div className="text-center text-muted-foreground py-6">Змін ще не було</div>
+          )}
+          <ul className="space-y-3">
+            {(entries as any[]).map((r) => (
+              <li key={r.id} className="border border-border rounded p-3">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold">{ACTION_LABEL[r.action] ?? r.action}</span>
+                  <span className="text-muted-foreground">
+                    {new Date(r.created_at).toLocaleString("uk-UA")} · {r.actor_name || "—"}
+                  </span>
+                </div>
+                {r.changes && Object.keys(r.changes).length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {Object.entries(r.changes).map(([k, v]: [string, any]) => {
+                      if (k === "note") {
+                        return <div key={k} className="text-xs italic text-muted-foreground">Коментар: {String(v)}</div>;
+                      }
+                      if (v && typeof v === "object" && "from" in v && "to" in v) {
+                        return (
+                          <div key={k} className="text-xs">
+                            <span className="text-muted-foreground">{k}:</span>{" "}
+                            <span className="line-through text-destructive/70">{fmtVal(v.from)}</span>{" → "}
+                            <span className="text-success font-semibold">{fmtVal(v.to)}</span>
+                          </div>
+                        );
+                      }
+                      return <div key={k} className="text-xs"><span className="text-muted-foreground">{k}:</span> {fmtVal(v)}</div>;
+                    })}
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function fmtVal(v: unknown): string {
+  if (v === null || v === undefined || v === "") return "—";
+  if (typeof v === "number") return String(v);
+  if (typeof v === "string") {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(v)) {
+      try { return new Date(v).toLocaleString("uk-UA"); } catch { return v; }
+    }
+    return v;
+  }
+  return JSON.stringify(v);
+}
