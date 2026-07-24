@@ -319,7 +319,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   const laborTier = areaLaborTier(area);
   const brigadeBaseCost = (area <= 100 ? s.brigadeMin : area * s.brigadePerM2) * laborTier.coef;
   const foremanCost = (area <= 100 ? s.foremanMin : area * s.foremanPerM2) * laborTier.coef;
-  warnings.push(`laborTier:${laborTier.label} ×${laborTier.coef}`);
+  
 
   // ===== Logistics =====
   const stationDeliveryClient = input.cityDelivery
