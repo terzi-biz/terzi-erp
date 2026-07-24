@@ -41,6 +41,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const upsert = useServerFn(upsertCatalogItem);
   const del = useServerFn(deleteCatalogItem);
   const seed = useServerFn(seedCatalogDefaults);
+  const resync = useServerFn(resyncCatalogPrices);
   const [edits, setEdits] = useState<Record<string, Partial<Row>>>({});
 
   const queryKey = ["catalog", module, kind];
@@ -59,6 +60,14 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const seedMut = useMutation({
     mutationFn: () => seed({ data: { module, kind } }),
     onSuccess: () => qc.invalidateQueries({ queryKey }),
+  });
+  const resyncMut = useMutation({
+    mutationFn: () => resync({ data: { module, kind, markupPercent: 30, updateSell: true } }),
+    onSuccess: (r: { updated: number; inserted: number }) => {
+      qc.invalidateQueries({ queryKey });
+      toast.success(`Пересіяно з прайсу: оновлено ${r.updated}, додано ${r.inserted}`);
+    },
+    onError: (e: Error) => toast.error("Помилка ресинку: " + e.message),
   });
 
   const onPatch = (id: string, patch: Partial<Row>) =>
