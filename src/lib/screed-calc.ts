@@ -336,8 +336,9 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     lines.push({ key: "w_damper", block: "works", name: "w_damper", unit: "п.м", qty: lm,
       pricePerUnit: works.damper, costPerUnit: 0, sum: lm * works.damper, cost: 0, showToClient: true });
   }
-  const rooms = Math.max(0, Math.floor(input.roomsCount || 0));
-  if (rooms > 1) lines.push({ key: "w_cuts", block: "works", name: "w_cuts", unit: "м²", qty: area,
+  // Нарізка деформаційних швів — завжди у КП як окрема робота
+  // (собівартість входить у фіксовану плату бригаді, тому costPerUnit=0).
+  lines.push({ key: "w_cuts", block: "works", name: "w_cuts", unit: "м²", qty: area,
     pricePerUnit: works.cuts, costPerUnit: 0, sum: area * works.cuts, cost: 0, showToClient: true });
   if (input.withGrind) lines.push({ key: "w_grind", block: "works", name: "w_grind", unit: "м²", qty: area,
     pricePerUnit: works.grind, costPerUnit: 0, sum: area * works.grind, cost: 0, showToClient: true });
@@ -353,10 +354,20 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   // Собівартість бригади за стяжку — фіксована для об'єктів до 100 м²
   // (11 000 грн включають укладання стяжки, плівки, демпфера, шліфовку/затирку,
   // нарізку деформаційних швів), понад 100 м² додається 110 грн/м² за кожен м²
-  // зверх 100. Клієнту всі ці позиції показуються окремими лініями вище.
+  // зверх 100. Клієнту всі ці позиції показуються окремими лініями вище,
+  // а тут заносимо єдиний внутрішній рядок собівартості, щоб він був видимий
+  // у Внутрішньому кошторисі як "Бригада (стяжка + опції)".
   const laborTier = areaLaborTier(area);
   const brigadeBaseCost = (area <= 100 ? s.brigadeMin : s.brigadeMin + (area - 100) * s.brigadePerM2) * laborTier.coef;
   const foremanCost = (area <= 100 ? s.foremanMin : area * s.foremanPerM2) * laborTier.coef;
+
+  lines.push({ key: "w_brigade", block: "works", name: "Бригада (стяжка, плівка, демпфер, шліфовка, шви)",
+    unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: brigadeBaseCost,
+    sum: 0, cost: brigadeBaseCost, showToClient: false });
+  lines.push({ key: "w_foreman", block: "works", name: "Бригадир",
+    unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: foremanCost,
+    sum: 0, cost: foremanCost, showToClient: false });
+  
   
 
   
@@ -423,8 +434,9 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
 
   // Costs
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
-  const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = brigadeBaseCost + foremanCost + worksAddCost;
+  // Собівартість бригади і бригадира вже додана як окремі внутрішні рядки
+  // у блок "works" вище (showToClient=false), тож окремо не додаємо.
+  const worksCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * s.amortEquipPerM2;
   const amortTransport = area * s.amortTransportPerM2;
