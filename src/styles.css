@@ -211,12 +211,13 @@
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--color-border) transparent;
+  &::-webkit-scrollbar { height: 8px; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+  }
 }
-@utility scroll-x::-webkit-scrollbar { height: 8px; }
-@utility scroll-x::-webkit-scrollbar-thumb {
-  background: var(--color-border);
-  border-radius: 4px;
-}
+
 
 /* Sticky action-bar for calculators (bottom on mobile, top on desktop) */
 @utility action-bar-mobile {
