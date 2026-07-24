@@ -139,6 +139,8 @@ const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
   rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²) — Руберіт
   aquaizol_roll:{ buy: 1650, sell: 2400 },  // 10 м² рулон Акваізол ЕКО-ПЕ
   ruberit_roll: { buy: 1500, sell: 2200 },  // 10 м² рулон Руберіт (alias)
+  aquaizol_eko_30: { buy: 1649, sell: 2144 },
+  ruberit_eko_35: { buy: 1121, sell: 1457 },
   primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
   pvc_15_sika:  { buy: 320,  sell: 480 },
