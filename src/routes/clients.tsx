@@ -100,6 +100,7 @@ function ClientsPage() {
   const upsert = useServerFn(upsertClient);
   const del = useServerFn(deleteClient);
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "", status: "lead" as const });
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => list() });
