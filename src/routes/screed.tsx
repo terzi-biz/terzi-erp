@@ -8,6 +8,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm,
@@ -21,6 +22,7 @@ import {
 import { EstimateView } from "@/components/EstimateView";
 
 export const Route = createFileRoute("/screed")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
   head: () => ({ meta: [
     { title: "Стяжка TERZI — калькулятор" },
     { name: "description", content: "Калькулятор напівсухої стяжки TERZI з цементом, кімнатами, ліфтом, логістикою і КП." },
@@ -62,12 +64,24 @@ function ScreedPage() {
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { settings, branding } = useAppStore();
   const { materialPrices, workPrices } = useModulePricing("screed");
+  const search = Route.useSearch();
   const [input, setInput] = useState<ScreedInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
   const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
+  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
+  useEstimatePrefill(search.estimate, (r) => {
+    setEstimateId(r.id);
+    setEstimateNumber(r.number);
+    setSavedStatus(r.status || "preliminary");
+    setClient({
+      name: r.client_name ?? "", phone: r.client_phone ?? "",
+      address: r.address ?? "", manager: r.manager ?? "",
+    });
+    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as ScreedInput) });
+  });
 
   const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings), [input, materialPrices, workPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
@@ -81,7 +95,7 @@ function ScreedPage() {
       id: estimateId,
       number: estimateNumber,
       module: "screed",
-      status: "draft",
+      status: savedStatus as any,
       client_name: client.name || null,
       client_phone: client.phone || null,
       address: client.address || null,

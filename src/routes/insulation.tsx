@@ -7,6 +7,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateInsulation, DEFAULT_INSULATION_LOGISTICS, DEFAULT_INSULATION_WORKS,
   type InsulationInput, type InsZone, type InsMaterial, type PaymentForm,
@@ -18,6 +19,7 @@ import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/insulation")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
   head: () => ({ meta: [
     { title: "Утеплення TERZI — калькулятор" },
     { name: "description", content: "Калькулятор утеплення TERZI: EPS, XPS, мінвата, шари, підйом, логістика і КП." },
@@ -48,13 +50,20 @@ function InsulationPage() {
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { insulationCoeffs, branding } = useAppStore();
   const { materialPrices, workPrices } = useModulePricing("insulation");
+  const search = Route.useSearch();
   const [input, setInput] = useState<InsulationInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
   const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
+  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
+  useEstimatePrefill(search.estimate, (r) => {
+    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
+    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
+    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as InsulationInput) });
+  });
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_INSULATION_WORKS };
@@ -75,7 +84,7 @@ function InsulationPage() {
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
       id: estimateId,
-      number: estimateNumber, module: "insulation", status: "draft",
+      number: estimateNumber, module: "insulation", status: savedStatus as any,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: input.thicknessCm,

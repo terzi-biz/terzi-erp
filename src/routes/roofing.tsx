@@ -7,6 +7,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
@@ -18,6 +19,7 @@ import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
   head: () => ({ meta: [
     { title: "Покрівля TERZI — калькулятор" },
     { name: "description", content: "Калькулятор покрівлі TERZI: ПВХ-мембрана, Акваізол, Руберіт, аксесуари, логістика і КП." },
@@ -76,12 +78,19 @@ function RoofingPage() {
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { roofingCoeffs, branding } = useAppStore();
   const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing");
+  const search = Route.useSearch();
   const [input, setInput] = useState<RoofingInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
   const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
+  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
+  useEstimatePrefill(search.estimate, (r) => {
+    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
+    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
+    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as RoofingInput) });
+  });
 
 
 
@@ -107,7 +116,7 @@ function RoofingPage() {
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
       id: estimateId,
-      number: estimateNumber, module: "roofing", status: "draft",
+      number: estimateNumber, module: "roofing", status: savedStatus as any,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: null,

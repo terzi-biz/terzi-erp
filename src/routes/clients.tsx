@@ -2,8 +2,10 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Plus, Trash2, FileText, Phone, Mail, MapPin } from "lucide-react";
+import { Plus, Trash2, FileText, Phone, Mail, MapPin, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { listClients, upsertClient, deleteClient } from "@/lib/clients.functions";
+import { listEstimatesByClient, updateEstimateStatus, ESTIMATE_STATUSES } from "@/lib/estimates.functions";
+import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/clients")({
@@ -33,12 +35,72 @@ const STATUSES: Record<string, { label: string; cls: string }> = {
   archived: { label: "Архів", cls: "bg-muted text-muted-foreground" },
 };
 
+const EST_STATUS_LABEL: Record<string, string> = {
+  preliminary: "Попередній", afterMeasure: "Після заміру", final: "Фінальний",
+  inWork: "В роботі", done: "Виконано", refused: "Відмова",
+  draft: "Чернетка", sent: "Надіслано", approved: "Затверджено", archived: "Архів",
+};
+
+const MODULE_ROUTES: Record<string, "/screed" | "/roofing" | "/insulation" | "/demolition"> = {
+  screed: "/screed", roofing: "/roofing", insulation: "/insulation", demolition: "/demolition",
+};
+
+function ClientEstimates({ clientId }: { clientId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listEstimatesByClient);
+  const updFn = useServerFn(updateEstimateStatus);
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["client-estimates", clientId],
+    queryFn: () => listFn({ data: { client_id: clientId } }),
+  });
+  const updMut = useMutation({
+    mutationFn: (v: { id: string; status: string }) => updFn({ data: v as any }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-estimates", clientId] });
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+    },
+  });
+  if (isLoading) return <div className="text-xs text-muted-foreground p-2">Завантаження…</div>;
+  if (!(rows as any[]).length) return <div className="text-xs text-muted-foreground p-2">Ще немає кошторисів для цього клієнта.</div>;
+  return (
+    <div className="mt-3 space-y-2">
+      {(rows as any[]).map((e) => {
+        const route = MODULE_ROUTES[e.module] ?? "/screed";
+        return (
+          <div key={e.id} className="rounded border border-border bg-secondary/30 p-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-mono truncate">{e.number}</div>
+              <div className="font-bold text-primary whitespace-nowrap">{formatUah(Number(e.total_client))}</div>
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <select
+                value={e.status}
+                onChange={(ev) => updMut.mutate({ id: e.id, status: ev.target.value })}
+                className="bg-input border border-border rounded px-1.5 py-1 text-[11px]"
+              >
+                {ESTIMATE_STATUSES.map((s) => (
+                  <option key={s} value={s}>{EST_STATUS_LABEL[s] ?? s}</option>
+                ))}
+              </select>
+              <Link to={route} search={{ estimate: e.id } as any}
+                className="inline-flex items-center gap-1 text-primary hover:underline">
+                <ExternalLink className="w-3 h-3" /> Відкрити
+              </Link>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ClientsPage() {
   const qc = useQueryClient();
   const list = useServerFn(listClients);
   const upsert = useServerFn(upsertClient);
   const del = useServerFn(deleteClient);
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "", status: "lead" as const });
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => list() });
@@ -108,14 +170,20 @@ function ClientsPage() {
               </div>
               {c.notes && <div className="mt-3 text-xs bg-secondary/40 rounded p-2">{c.notes}</div>}
               <div className="mt-4 flex gap-2 pt-3 border-t border-border">
-                <Link to="/screed" className="flex-1 text-xs text-center py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
-                  <FileText className="w-3 h-3" /> Кошторис
+                <button onClick={() => setExpanded((m) => ({ ...m, [c.id]: !m[c.id] }))}
+                  className="flex-1 text-xs py-2 rounded bg-secondary font-semibold inline-flex items-center justify-center gap-1">
+                  <FileText className="w-3 h-3" /> Кошториси
+                  {expanded[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+                <Link to="/screed" className="text-xs px-3 py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
+                  + Новий
                 </Link>
                 <button onClick={() => confirm(`Видалити "${c.name}"?`) && delMut.mutate(c.id)}
                   className="px-2 py-2 rounded bg-destructive/10 text-destructive">
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
+              {expanded[c.id] && <ClientEstimates clientId={c.id} />}
             </div>
           );
         })}

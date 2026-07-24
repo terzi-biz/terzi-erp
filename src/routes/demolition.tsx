@@ -7,6 +7,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateDemolition, DEFAULT_DEMOLITION_LOGISTICS, DEFAULT_DEMOLITION_WORKS,
   type DemolitionInput, type DemoType, type ContainerSize, type PaymentForm,
@@ -17,7 +18,10 @@ import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calcul
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
-export const Route = createFileRoute("/demolition")({ component: DemolitionPage });
+export const Route = createFileRoute("/demolition")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
+  component: DemolitionPage,
+});
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -37,13 +41,20 @@ function DemolitionPage() {
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { demolitionCoeffs, branding } = useAppStore();
   const { materialPrices, workPrices } = useModulePricing("demolition");
+  const search = Route.useSearch();
   const [input, setInput] = useState<DemolitionInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
   const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
+  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
+  useEstimatePrefill(search.estimate, (r) => {
+    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
+    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
+    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as DemolitionInput) });
+  });
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_DEMOLITION_WORKS };
@@ -64,7 +75,7 @@ function DemolitionPage() {
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
       id: estimateId,
-      number: estimateNumber, module: "demolition", status: "draft",
+      number: estimateNumber, module: "demolition", status: savedStatus as any,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: input.thicknessCm,
