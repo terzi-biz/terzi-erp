@@ -117,10 +117,11 @@ function HistoryPage() {
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="hatch-accent h-1 w-16 mb-3 rounded" />
-      <h1 className="text-3xl font-black mb-6">{t("history")}</h1>
-      <div className="panel overflow-x-auto">
-        <table className="w-full text-sm min-w-[1100px]">
+      <h1 className="text-2xl md:text-3xl font-black mb-4 md:mb-6">{t("history")}</h1>
+      <div className="panel scroll-x max-h-[calc(100vh-180px)] overflow-y-auto">
+        <table className="w-full text-sm min-w-[1100px] sticky-thead">
           <thead className="bg-secondary text-secondary-foreground text-xs uppercase tracking-wider">
+
             <tr>
               <th className="text-left p-3">№</th>
               <th className="text-left p-3">Дата</th>

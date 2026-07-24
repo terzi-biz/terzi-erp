@@ -170,7 +170,80 @@
   }
 }
 
+/* -------- Mobile / iOS optimizations ---------- */
+@layer base {
+  /* Prevent iOS Safari auto-zoom on input focus (min 16px font-size) */
+  @media (max-width: 767px) {
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+    /* Larger tap targets */
+    button, [role="button"], a { min-height: 32px; }
+    /* Safe area for iPhone notch / home indicator */
+    main { padding-bottom: env(safe-area-inset-bottom); }
+  }
+}
+
+/* Sticky table headers (used inside .overflow-x-auto / overflow-y-auto wrappers) */
+@utility sticky-thead {
+  & thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--color-secondary);
+    box-shadow: inset 0 -1px 0 var(--color-border);
+  }
+}
+
+/* Sticky first column in wide grids (Operations calendar) */
+@utility sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 4;
+  background: inherit;
+  box-shadow: 2px 0 0 -1px var(--color-border);
+}
+
+/* Horizontal scroll with visible edge gradient + thin nice scrollbars */
+@utility scroll-x {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+@utility scroll-x::-webkit-scrollbar { height: 8px; }
+@utility scroll-x::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+/* Sticky action-bar for calculators (bottom on mobile, top on desktop) */
+@utility action-bar-mobile {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  background: color-mix(in oklab, var(--color-background) 92%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid var(--color-border);
+  padding-block: 0.5rem;
+}
+
+/* Horizontally scrolling toolbar row (used for wrapping action groups on mobile) */
+@utility toolbar-scroll {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  flex-wrap: nowrap;
+  padding-bottom: 2px;
+}
+@utility toolbar-scroll::-webkit-scrollbar { display: none; }
+
 @media print {
   body { background: white !important; color: black !important; }
   .brand-watermark::before { display: none !important; }
 }
+

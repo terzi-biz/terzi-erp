@@ -129,9 +129,10 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
       </div>
 
       {isLoading ? <div className="text-muted-foreground text-sm">Завантаження…</div> : (
-        <div className="panel overflow-x-auto">
-          <table className="w-full text-sm min-w-[640px]">
+        <div className="panel scroll-x max-h-[calc(100vh-220px)] overflow-y-auto">
+          <table className="w-full text-sm min-w-[640px] sticky-thead">
             <thead className="bg-secondary text-xs uppercase tracking-wider">
+
               <tr>
                 <th className="text-left p-3">Назва</th>
                 <th className="text-left p-3 w-20">Од.</th>

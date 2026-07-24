@@ -158,7 +158,7 @@ function ScreedPage() {
   const btnBase = "px-3.5 py-2 rounded-md text-xs font-semibold inline-flex items-center gap-2 transition-all duration-150 active:scale-[0.97]";
 
   return (
-    <div className="p-7 lg:p-10 max-w-7xl mx-auto space-y-7">
+    <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-5 sm:space-y-7">
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
