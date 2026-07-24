@@ -13,6 +13,7 @@ export type CementDelivery = "own" | "smallManip" | "bigManip" | "manual" | "non
 export type SandDelivery = "city" | "outskirts" | "chornomorsk" | "manual";
 export type PaymentForm = "cash" | "cashless" | "fop";
 export type CementType = "auto" | "m500" | "m400";
+export type InsulationType = "none" | "eps30" | "eps50" | "xps30" | "xps50";
 
 export interface MaterialPrice {
   buy: number;
@@ -34,6 +35,9 @@ export interface ScreedInput {
   meshType: MeshType;
   withSlope: boolean;
   withGrind: boolean;
+  withComplexPrep: boolean;   // "Складна підготовка" — умовна підготовка основи
+  withDemolition: boolean;    // "Демонтажні роботи" — демонтаж старої стяжки/покриття
+  insulationType: InsulationType; // Утеплення під стяжку
 
   // Logistics
   cityDelivery: boolean;
@@ -84,6 +88,10 @@ export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
   mesh_met_25: { buy: 40,  sell: 80 },
   mesh_met_35: { buy: 55,  sell: 110 },
   diesel:      { buy: 88.82, sell: 90 },
+  ins_eps30:   { buy: 90,  sell: 130 },
+  ins_eps50:   { buy: 150, sell: 210 },
+  ins_xps30:   { buy: 180, sell: 260 },
+  ins_xps50:   { buy: 300, sell: 420 },
 };
 
 export const DEFAULT_WORK_PRICES = {
@@ -97,7 +105,10 @@ export const DEFAULT_WORK_PRICES = {
   mesh: 30,
   slope: 40,               // розуклонка
   cementUnload: 10,        // клієнту
+  demolition: 100,         // демонтаж старої стяжки/покриття (клієнт)
+  insulationLay: 40,       // укладання утеплювача під стяжку (клієнт)
 };
+
 
 // Собівартість бригади — з TERZI_Стяжка_v3_2.xlsx (РОБОТИ І ОПЦІЇ, "Ми платимо").
 export const DEFAULT_SETTINGS = {
@@ -112,8 +123,8 @@ export const DEFAULT_SETTINGS = {
   sandCityCost: 1700, sandCityClient: 2000, // місто (клієнт 2000, закупка 1700)
   sandOutskirtsClient: 2200,
   sandChornomorskClient: 2500,
-  brigadeMin: 10000,       // мін. оплата бригаді за об'єкт ≤100 м²
-  brigadePerM2: 100,       // базова робота бригади 100 грн/м² (понад 100 м²)
+  brigadeMin: 11000,       // фіксована оплата бригаді за об'єкт до 100 м² (включає укладання стяжки, плівки, демпфера, шліфовку і нарізку швів)
+  brigadePerM2: 110,       // понад 100 м² — додатково 110 грн/м² на кожен м² зверх 100
   foremanMin: 1000,        // мін. оплата бригадиру за об'єкт ≤100 м²
   foremanPerM2: 10,        // оплата бригадиру 10 грн/м² (понад 100 м²)
   brigadePrepCost: 5,      // підготовка складних об'єктів
@@ -284,13 +295,39 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
 
 
   // ===== Works =====
+  // Демонтаж старої стяжки/покриття — окрема опція для клієнта.
+  if (input.withDemolition) {
+    lines.push({ key: "w_demolition", block: "works", name: "w_demolition", unit: "м²", qty: area,
+      pricePerUnit: works.demolition, costPerUnit: 40, sum: area * works.demolition, cost: area * 40, showToClient: true });
+  }
+
+  // Утеплення під стяжку.
+  if (input.insulationType !== "none") {
+    const insMap: Record<Exclude<InsulationType, "none">, { key: string; nameKey: string }> = {
+      eps30: { key: "ins_eps30", nameKey: "m_ins_eps30" },
+      eps50: { key: "ins_eps50", nameKey: "m_ins_eps50" },
+      xps30: { key: "ins_xps30", nameKey: "m_ins_xps30" },
+      xps50: { key: "ins_xps50", nameKey: "m_ins_xps50" },
+    };
+    const { key: pkey, nameKey } = insMap[input.insulationType];
+    const insArea = ceil(area * 1.05);
+    lines.push({ key: nameKey, block: "materials", name: nameKey, unit: "м²", qty: insArea,
+      pricePerUnit: prices[pkey].sell, costPerUnit: prices[pkey].buy,
+      sum: insArea * prices[pkey].sell, cost: insArea * prices[pkey].buy, showToClient: true });
+    lines.push({ key: "w_ins_lay", block: "works", name: "w_ins_lay", unit: "м²", qty: area,
+      pricePerUnit: works.insulationLay, costPerUnit: 15, sum: area * works.insulationLay, cost: area * 15, showToClient: true });
+  }
+
   const screedExtra = Math.max(0, thickness - 7) * works.screedExtraPerCm;
   const screedRate = works.screedBase + screedExtra;
   lines.push({ key: "w_screed", block: "works", name: "w_screed", unit: "м²", qty: area,
     pricePerUnit: screedRate, costPerUnit: 0, sum: area * screedRate, cost: 0, showToClient: true });
 
-  lines.push({ key: "w_prep", block: "works", name: "w_prep", unit: "м²", qty: area,
-    pricePerUnit: works.prep, costPerUnit: s.brigadePrepCost, sum: area * works.prep, cost: area * s.brigadePrepCost, showToClient: true });
+  // Складна підготовка основи — опціональна (грунтування, вирівнювання ям тощо).
+  if (input.withComplexPrep) {
+    lines.push({ key: "w_prep", block: "works", name: "w_prep", unit: "м²", qty: area,
+      pricePerUnit: works.prep, costPerUnit: s.brigadePrepCost, sum: area * works.prep, cost: area * s.brigadePrepCost, showToClient: true });
+  }
 
   if (input.withFilm) lines.push({ key: "w_film", block: "works", name: "w_film", unit: "м²", qty: area,
     pricePerUnit: works.film, costPerUnit: 0, sum: area * works.film, cost: 0, showToClient: true });
@@ -313,12 +350,15 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     pricePerUnit: works.cementUnload, costPerUnit: s.brigadeUnloadCost,
     sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
 
-  // Brigade base cost (covers screed/film/damper/cuts/grind). Помножуємо на
-  // тарифний коеф. за площу об'єкта (див. area-tiers.ts) — малі об'єкти
-  // дорожчі за м² для бригади, великі — дешевші.
+  // Собівартість бригади за стяжку — фіксована для об'єктів до 100 м²
+  // (11 000 грн включають укладання стяжки, плівки, демпфера, шліфовку/затирку,
+  // нарізку деформаційних швів), понад 100 м² додається 110 грн/м² за кожен м²
+  // зверх 100. Клієнту всі ці позиції показуються окремими лініями вище.
   const laborTier = areaLaborTier(area);
-  const brigadeBaseCost = (area <= 100 ? s.brigadeMin : area * s.brigadePerM2) * laborTier.coef;
+  const brigadeBaseCost = (area <= 100 ? s.brigadeMin : s.brigadeMin + (area - 100) * s.brigadePerM2) * laborTier.coef;
   const foremanCost = (area <= 100 ? s.foremanMin : area * s.foremanPerM2) * laborTier.coef;
+  
+
   
 
   // ===== Logistics =====
@@ -418,6 +458,7 @@ export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
     area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
     withFilm: false, withDamper: false, meshType: "none", withSlope: false, withGrind: false,
+    withComplexPrep: false, withDemolition: false, insulationType: "none",
     cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
     payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
   });

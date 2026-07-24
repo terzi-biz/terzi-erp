@@ -11,7 +11,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
-  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm,
+  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm, type InsulationType,
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
@@ -50,9 +50,32 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}
+      aria-pressed={checked}
+    >
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+    </button>
+  );
+}
+
+function OptionToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2.5">
+      <span className="text-sm">{label}</span>
+      <ToggleSwitch checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
-  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: false,
+  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true,
+  withComplexPrep: false, withDemolition: false, insulationType: "none",
   cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
@@ -214,57 +237,68 @@ function ScreedPage() {
           {/* Parameters */}
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("parameters")}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Field label={t("area")}><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
-              <Field label={t("thickness")} hint="Робочий діапазон 4–15 см. Понад 15 см — лише з адмін-дозволом.">
-                <input type="number" step="0.5" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} />
-              </Field>
-              <Field label={t("perimeter")}><input type="number" className={inp} value={input.perimeter ?? 0} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
-              <Field label="Кімнат / зон" hint="Якщо більше 1 — додаються деформаційні шви / нарізка.">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
+              <Field label="Периметр, пог.м"><input type="number" className={inp} value={input.perimeter ?? 0} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
+              <Field label="Кімнат" hint="Якщо більше 1 — додаються деформаційні шви / нарізка.">
                 <input type="number" min="1" className={inp} value={input.roomsCount} onChange={(e) => upd("roomsCount", +e.target.value)} />
               </Field>
-              <Field label={t("floor")} hint="Поверх подачі суміші. Від 6-го поверху додається коефіцієнт підйому 5–50%.">
+              <Field label="Поверх" hint="Поверх подачі суміші. Від 6-го поверху додається коефіцієнт підйому 5–50%.">
                 <input type="number" className={inp} value={input.floor} onChange={(e) => upd("floor", +e.target.value)} />
               </Field>
-            </div>
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label={t("profile")} hint="Економ — М400; Стандарт/Посилений — М500 з різною кількістю фібри.">
-                <select className={sel} value={input.profile} onChange={(e) => upd("profile", e.target.value as Profile)}>
-                  <option value="econom">{t("profileEcon")} — М400 економ</option>
-                  <option value="standard">{t("profileStandard")} (Стандарт М200 TERZI)</option>
-                  <option value="reinforced">{t("profileReinforced")} — М500 + фібра 2.0</option>
-                  <option value="manual">{t("profileManual")} — ручні норми</option>
-                </select>
+              <Field label="Ліфт" hint="Наявність ліфта на об'єкті — впливає на швидкість подачі матеріалу.">
+                <ToggleSwitch checked={input.withLift} onChange={(v) => upd("withLift", v)} />
               </Field>
-              <Field label="Цемент" hint="Auto бере цемент з профілю; ручний вибір змінює матеріал М400/М500 у кошторисі.">
+              <Field label="Товщина, см" hint="Робочий діапазон 4–15 см. Понад 15 см — лише з адмін-дозволом.">
+                <input type="number" step="0.5" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} />
+              </Field>
+              <Field label="Цемент" hint="М500 (рекомендовано) — стандарт TERZI. Auto бере цемент з профілю суміші.">
                 <select className={sel} value={input.cementType} onChange={(e) => upd("cementType", e.target.value as CementType)}>
                   <option value="auto">Auto за профілем</option>
-                  <option value="m500">М500</option>
+                  <option value="m500">М500 (рекомендовано)</option>
                   <option value="m400">М400</option>
+                </select>
+              </Field>
+              <Field label="Профіль суміші" hint="Економ — М400; Стандарт/Посилений — М500 з різною кількістю фібри.">
+                <select className={sel} value={input.profile} onChange={(e) => upd("profile", e.target.value as Profile)}>
+                  <option value="econom">{t("profileEcon")}</option>
+                  <option value="standard">{t("profileStandard")}</option>
+                  <option value="reinforced">{t("profileReinforced")}</option>
+                  <option value="manual">{t("profileManual")}</option>
                 </select>
               </Field>
             </div>
           </section>
 
-          {/* Additions */}
+          {/* Options */}
           <section className="panel p-6">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("additions")}</h2>
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">Опції</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withFilm} onChange={(e) => upd("withFilm", e.target.checked)} />{t("withFilm")}</label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withDamper} onChange={(e) => upd("withDamper", e.target.checked)} />{t("withDamper")}</label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withSlope} onChange={(e) => upd("withSlope", e.target.checked)} />{t("withSlope")}</label>
-              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withGrind} onChange={(e) => upd("withGrind", e.target.checked)} />{t("withGrind")}</label>
-              <Field label={t("meshType")} hint="Композит — легка скло/базальт-пластикова сітка (+10% площі, легша, не іржавіє). Метал — зварна сталева (+15% площі, міцніша на згин, потрібна антикорозія).">
+              <Field label="Армувальна сітка" hint="Композит — легка скло/базальт-пластикова сітка (+10% площі). Метал — зварна сталева (+15% площі).">
                 <select className={sel} value={input.meshType} onChange={(e) => upd("meshType", e.target.value as MeshType)}>
-                  <option value="none">— Без сітки</option>
+                  <option value="none">Без сітки</option>
                   <option value="comp25">Композит 2.5 мм</option>
                   <option value="comp35">Композит 3.5 мм</option>
                   <option value="met25">Метал 2.5 мм</option>
                   <option value="met35">Метал 3.5 мм</option>
                 </select>
               </Field>
+              <Field label="Утеплення" hint="Утеплювач під стяжку (ЕПС / ХПС різної товщини).">
+                <select className={sel} value={input.insulationType} onChange={(e) => upd("insulationType", e.target.value as InsulationType)}>
+                  <option value="none">Немає</option>
+                  <option value="eps30">ЕПС 30 мм</option>
+                  <option value="eps50">ЕПС 50 мм</option>
+                  <option value="xps30">ХПС 30 мм</option>
+                  <option value="xps50">ХПС 50 мм</option>
+                </select>
+              </Field>
+              <OptionToggle label="Розухилення" checked={input.withSlope} onChange={(v) => upd("withSlope", v)} />
+              <OptionToggle label="Складна підготовка" checked={input.withComplexPrep} onChange={(v) => upd("withComplexPrep", v)} />
+              <OptionToggle label="Демонтажні роботи" checked={input.withDemolition} onChange={(v) => upd("withDemolition", v)} />
+              <OptionToggle label="Підйом матеріалу на поверх" checked={input.withLift} onChange={(v) => upd("withLift", v)} />
             </div>
           </section>
+
 
           {/* Logistics */}
           <section className="panel p-6">
