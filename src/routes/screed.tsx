@@ -50,6 +50,28 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
   );
 }
 
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted"}`}
+      aria-pressed={checked}
+    >
+      <span className={`inline-block h-5 w-5 transform rounded-full bg-background shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+    </button>
+  );
+}
+
+function OptionToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2.5">
+      <span className="text-sm">{label}</span>
+      <ToggleSwitch checked={checked} onChange={onChange} />
+    </div>
+  );
+}
+
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
   withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true,
