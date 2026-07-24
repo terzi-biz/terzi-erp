@@ -369,11 +369,23 @@ function InternalSheet(p: EditableSheetProps) {
 
   const effective = useEffectiveBlocks(p.grouped, overrides, extras, false, t);
 
-  const totalCost = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.cost, 0), 0);
-  const totalSell = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
+  // Preserve engine-computed hidden cost/sell adjustments (brigade base, foreman,
+  // amortization, complexity, discount, partner commission, FOP, VAT, min-check
+  // rounding) that never appear as visible line items. Without this, editing or
+  // dropping a row would silently discard those totals.
+  const baseLinesCost = p.result.lines.reduce((a, r) => a + r.cost, 0);
+  const baseLinesSell = p.result.lines.reduce((a, r) => a + r.sum, 0);
+  const hiddenCost = p.result.totalCost - baseLinesCost;
+  const hiddenSell = p.result.totalClient - baseLinesSell;
+
+  const effCost = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.cost, 0), 0);
+  const effSell = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
+  const totalCost = effCost + hiddenCost;
+  const totalSell = effSell + hiddenSell;
   const grossProfit = totalSell - totalCost;
   const marginPct = totalSell > 0 ? (grossProfit / totalSell) * 100 : 0;
   const pricePerM2 = p.area > 0 ? totalSell / p.area : 0;
+
 
   const addExtra = (block: string) => {
     setExtras((s) => [...s, {
