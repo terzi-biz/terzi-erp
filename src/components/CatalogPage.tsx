@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Plus, Trash2, RotateCcw, Save } from "lucide-react";
-import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults } from "@/lib/catalog.functions";
+import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
+import { toast } from "sonner";
 
 type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
 type Kind = "material" | "work" | "equipment" | "logistics";
@@ -40,6 +41,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const upsert = useServerFn(upsertCatalogItem);
   const del = useServerFn(deleteCatalogItem);
   const seed = useServerFn(seedCatalogDefaults);
+  const resync = useServerFn(resyncCatalogPrices);
   const [edits, setEdits] = useState<Record<string, Partial<Row>>>({});
 
   const queryKey = ["catalog", module, kind];
@@ -58,6 +60,14 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const seedMut = useMutation({
     mutationFn: () => seed({ data: { module, kind } }),
     onSuccess: () => qc.invalidateQueries({ queryKey }),
+  });
+  const resyncMut = useMutation({
+    mutationFn: () => resync({ data: { module, kind, markupPercent: 30, updateSell: true } }),
+    onSuccess: (r: { updated: number; inserted: number }) => {
+      qc.invalidateQueries({ queryKey });
+      toast.success(`Пересіяно з прайсу: оновлено ${r.updated}, додано ${r.inserted}`);
+    },
+    onError: (e: Error) => toast.error("Помилка ресинку: " + e.message),
   });
 
   const onPatch = (id: string, patch: Partial<Row>) =>
@@ -94,13 +104,21 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
               : "Назва, одиниця, закупка, продаж, маржинальність. Можна додавати кастомні позиції."}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {items.length === 0 && (
             <button onClick={() => seedMut.mutate()} disabled={seedMut.isPending}
               className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2">
               <RotateCcw className="w-3 h-3" /> Завантажити дефолти
             </button>
           )}
+          <button
+            onClick={() => confirm("Пересіяти прайс з файлу? Замінить назви/ціни на несинхронізованих (не-кастомних) позиціях та додасть нові з прайсу.") && resyncMut.mutate()}
+            disabled={resyncMut.isPending}
+            className="px-3 py-2 rounded-md bg-warning/20 text-warning border border-warning/40 text-xs font-semibold inline-flex items-center gap-2"
+            title="Оновлює каталог з актуального прайсу TERZI (Excel-файли), не чіпаючи кастомні позиції"
+          >
+            <RotateCcw className="w-3 h-3" /> {resyncMut.isPending ? "Синхронізація…" : "Пересіяти прайс"}
+          </button>
           <button onClick={onAdd}
             className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
             <Plus className="w-3 h-3" /> Додати
