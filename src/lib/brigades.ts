@@ -4,16 +4,17 @@ export interface Brigade {
   key: string;
   label: string;
   module: BrigadeModule;
-  color: string;
+  color: string;   // pill / cell tint (light)
+  dot: string;     // solid dot color
 }
 
 export const BRIGADES: Brigade[] = [
-  { key: "screed_lesha", label: "Льоша (стяжка)", module: "screed", color: "bg-blue-500/15 border-blue-500/40 text-blue-700" },
-  { key: "screed_vitya", label: "Вітя (стяжка)",  module: "screed", color: "bg-sky-500/15 border-sky-500/40 text-sky-700" },
-  { key: "roofing_1",    label: "Покрівля №1",    module: "roofing", color: "bg-emerald-500/15 border-emerald-500/40 text-emerald-700" },
-  { key: "roofing_2",    label: "Покрівля №2",    module: "roofing", color: "bg-teal-500/15 border-teal-500/40 text-teal-700" },
-  { key: "roofing_3",    label: "Покрівля №3",    module: "roofing", color: "bg-lime-600/15 border-lime-600/40 text-lime-700" },
-  { key: "roofing_4",    label: "Покрівля №4",    module: "roofing", color: "bg-amber-600/15 border-amber-600/40 text-amber-800" },
+  { key: "screed_lesha", label: "Льоша · стяжка", module: "screed",  color: "bg-blue-50 border-blue-200 text-blue-800",       dot: "bg-blue-500" },
+  { key: "screed_vitya", label: "Вітя · стяжка",  module: "screed",  color: "bg-sky-50 border-sky-200 text-sky-800",          dot: "bg-sky-500" },
+  { key: "roofing_1",    label: "Покрівля №1",    module: "roofing", color: "bg-orange-50 border-orange-200 text-orange-800", dot: "bg-orange-500" },
+  { key: "roofing_2",    label: "Покрівля №2",    module: "roofing", color: "bg-amber-50 border-amber-200 text-amber-800",    dot: "bg-amber-500" },
+  { key: "roofing_3",    label: "Покрівля №3",    module: "roofing", color: "bg-emerald-50 border-emerald-200 text-emerald-800", dot: "bg-emerald-500" },
+  { key: "roofing_4",    label: "Покрівля №4",    module: "roofing", color: "bg-teal-50 border-teal-200 text-teal-800",       dot: "bg-teal-500" },
 ];
 
 export function findBrigade(key: string): Brigade | undefined {
