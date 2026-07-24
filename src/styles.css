@@ -240,8 +240,9 @@
   -ms-overflow-style: none;
   flex-wrap: nowrap;
   padding-bottom: 2px;
+  &::-webkit-scrollbar { display: none; }
 }
-@utility toolbar-scroll::-webkit-scrollbar { display: none; }
+
 
 @media print {
   body { background: white !important; color: black !important; }
