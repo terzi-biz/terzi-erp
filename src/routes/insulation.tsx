@@ -50,13 +50,20 @@ function InsulationPage() {
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { insulationCoeffs, branding } = useAppStore();
   const { materialPrices, workPrices } = useModulePricing("insulation");
+  const search = Route.useSearch();
   const [input, setInput] = useState<InsulationInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber] = useState(() => generateEstimateNumber());
+  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
   const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
+  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
+  useEstimatePrefill(search.estimate, (r) => {
+    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
+    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
+    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as InsulationInput) });
+  });
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_INSULATION_WORKS };
