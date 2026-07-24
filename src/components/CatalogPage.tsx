@@ -104,13 +104,21 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
               : "Назва, одиниця, закупка, продаж, маржинальність. Можна додавати кастомні позиції."}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           {items.length === 0 && (
             <button onClick={() => seedMut.mutate()} disabled={seedMut.isPending}
               className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2">
               <RotateCcw className="w-3 h-3" /> Завантажити дефолти
             </button>
           )}
+          <button
+            onClick={() => confirm("Пересіяти прайс з файлу? Замінить назви/ціни на несинхронізованих (не-кастомних) позиціях та додасть нові з прайсу.") && resyncMut.mutate()}
+            disabled={resyncMut.isPending}
+            className="px-3 py-2 rounded-md bg-warning/20 text-warning border border-warning/40 text-xs font-semibold inline-flex items-center gap-2"
+            title="Оновлює каталог з актуального прайсу TERZI (Excel-файли), не чіпаючи кастомні позиції"
+          >
+            <RotateCcw className="w-3 h-3" /> {resyncMut.isPending ? "Синхронізація…" : "Пересіяти прайс"}
+          </button>
           <button onClick={onAdd}
             className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
             <Plus className="w-3 h-3" /> Додати
