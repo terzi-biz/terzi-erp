@@ -18,10 +18,11 @@ const MODULES = [
   { key: "demolition", label: "Демонтаж", color: "bg-rose-500/15 border-rose-500/40 text-rose-700" },
 ] as const;
 
-const STATUSES = ["draft", "sent", "approved", "inWork", "done", "refused", "archived"] as const;
+const STATUSES = ["preliminary", "afterMeasure", "final", "inWork", "done", "refused", "draft", "sent", "approved", "archived"] as const;
 const STATUS_LABEL: Record<string, string> = {
-  draft: "Чернетка", sent: "Надіслано", approved: "Затв.",
-  inWork: "В роботі", done: "Завершено", refused: "Відмова", archived: "Архів",
+  preliminary: "Поперед.", afterMeasure: "Після заміру", final: "Фінал.",
+  inWork: "В роботі", done: "Завершено", refused: "Відмова",
+  draft: "Чернетка", sent: "Надіслано", approved: "Затв.", archived: "Архів",
 };
 
 function getMonday(d = new Date()): Date {
