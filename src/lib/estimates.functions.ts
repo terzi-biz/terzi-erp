@@ -156,15 +156,76 @@ export const getEstimate = createServerFn({ method: "POST" })
     return internal ? withMgr : stripInternal(withMgr);
   });
 
+const AUDITED_FIELDS = [
+  "number","status","client_id","client_name","client_phone","address","manager",
+  "area","thickness_cm","total_client","total_cost","gross_profit","margin_percent",
+] as const;
+
 export const saveEstimate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => estimateInput.parse(d))
   .handler(async ({ data, context }) => {
     const row = { ...data, owner_id: context.userId };
+    let before: any = null;
+    if (data.id) {
+      const { data: prev } = await context.supabase
+        .from("estimates").select("*").eq("id", data.id).maybeSingle();
+      before = prev;
+    }
     const { data: out, error } = data.id
       ? await context.supabase.from("estimates").update(row).eq("id", data.id).select().single()
       : await context.supabase.from("estimates").insert(row).select().single();
     if (error) { console.error("saveEstimate", error); throw new Error("Не вдалося зберегти кошторис"); }
+
+    if (data.id && before) {
+      const changes = diffFields(before, out, AUDITED_FIELDS as unknown as string[]);
+      if (Object.keys(changes).length) {
+        await logAudit(context.supabase, context.userId, out.id, "updated", changes);
+      }
+    } else {
+      await logAudit(context.supabase, context.userId, out.id, "created", { number: out.number, module: out.module });
+    }
+    return out;
+  });
+
+const partialEditInput = z.object({
+  id: z.string().uuid(),
+  number: z.string().min(1).max(100).optional(),
+  client_name: z.string().max(200).nullable().optional(),
+  client_phone: z.string().max(50).nullable().optional(),
+  address: z.string().max(500).nullable().optional(),
+  manager: z.string().max(200).nullable().optional(),
+  area: z.number().nonnegative().nullable().optional(),
+  thickness_cm: z.number().nonnegative().nullable().optional(),
+  total_client: z.preprocess(safeNum, z.number().nonnegative()).optional(),
+  note: z.string().max(500).optional(),
+});
+
+/** Часткове редагування прямо з історії — з журналюванням. */
+export const updateEstimateFields = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => partialEditInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, note, ...patch } = data;
+    const { data: before, error: e0 } = await context.supabase
+      .from("estimates").select("*").eq("id", id).maybeSingle();
+    if (e0) { console.error(e0); throw new Error("Не вдалося зчитати кошторис"); }
+    if (!before) throw new Error("Немає прав або кошторис відсутній");
+
+    const cleaned: Record<string, any> = {};
+    for (const [k, v] of Object.entries(patch)) if (v !== undefined) cleaned[k] = v;
+    if (!Object.keys(cleaned).length) return before;
+
+    const { data: out, error } = await context.supabase
+      .from("estimates").update(cleaned).eq("id", id).select().maybeSingle();
+    if (error) { console.error("updateEstimateFields", error); throw new Error("Не вдалося зберегти зміни"); }
+    if (!out) throw new Error("Немає прав або кошторис відсутній");
+
+    const changes = diffFields(before, out, Object.keys(cleaned));
+    if (Object.keys(changes).length || note) {
+      await logAudit(context.supabase, context.userId, id, "edited_in_history",
+        { ...changes, ...(note ? { note } : {}) });
+    }
     return out;
   });
 
@@ -173,11 +234,17 @@ export const updateEstimateStatus = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) =>
     z.object({ id: z.string().uuid(), status: z.enum(ESTIMATE_STATUSES) }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: prev } = await context.supabase
+      .from("estimates").select("status").eq("id", data.id).maybeSingle();
     const { data: out, error } = await context.supabase
       .from("estimates").update({ status: data.status }).eq("id", data.id)
       .select("id,status").maybeSingle();
     if (error) { console.error("updateEstimateStatus", error); throw new Error("Не вдалося оновити статус"); }
     if (!out) throw new Error("Немає прав або кошторис відсутній");
+    if (prev?.status !== out.status) {
+      await logAudit(context.supabase, context.userId, out.id, "status_changed",
+        { status: { from: prev?.status ?? null, to: out.status } });
+    }
     return out;
   });
 
@@ -196,6 +263,9 @@ export const scheduleEstimate = createServerFn({ method: "POST" })
       const e = new Date(s); e.setDate(e.getDate() + Math.max(1, Math.ceil(data.durationDays)));
       end = e.toISOString();
     }
+    const { data: prev } = await context.supabase
+      .from("estimates").select("schedule_start_at,schedule_end_at,duration_override_days")
+      .eq("id", data.id).maybeSingle();
     const { data: out, error } = await context.supabase
       .from("estimates").update({
         schedule_start_at: data.startAtISO,
@@ -204,6 +274,13 @@ export const scheduleEstimate = createServerFn({ method: "POST" })
       }).eq("id", data.id).select("id,schedule_start_at,schedule_end_at").maybeSingle();
     if (error) { console.error("scheduleEstimate", error); throw new Error("Не вдалося запланувати"); }
     if (!out) throw new Error("Немає прав або кошторис відсутній");
+    await logAudit(context.supabase, context.userId, out.id,
+      data.startAtISO ? "scheduled" : "schedule_cleared",
+      {
+        schedule_start_at: { from: prev?.schedule_start_at ?? null, to: out.schedule_start_at },
+        schedule_end_at: { from: prev?.schedule_end_at ?? null, to: out.schedule_end_at },
+        duration_override_days: { from: prev?.duration_override_days ?? null, to: data.durationDays },
+      });
     return out;
   });
 
@@ -211,7 +288,25 @@ export const deleteEstimate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: prev } = await context.supabase
+      .from("estimates").select("number").eq("id", data.id).maybeSingle();
+    if (prev) {
+      // журнал перед видаленням, бо ON DELETE CASCADE прибере записи
+      await logAudit(context.supabase, context.userId, data.id, "deleted", { number: prev.number });
+    }
     const { error } = await context.supabase.from("estimates").delete().eq("id", data.id);
     if (error) { console.error("deleteEstimate", error); throw new Error("Не вдалося видалити кошторис"); }
     return { ok: true };
+  });
+
+export const listEstimateAudit = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ estimate_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("estimate_audit_log").select("*")
+      .eq("estimate_id", data.estimate_id)
+      .order("created_at", { ascending: false });
+    if (error) { console.error("listEstimateAudit", error); throw new Error("Не вдалося завантажити журнал"); }
+    return rows ?? [];
   });
