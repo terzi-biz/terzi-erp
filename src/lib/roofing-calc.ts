@@ -294,7 +294,7 @@ export function calculateRoofing(
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
     const totalM2 = perLayerM2 * layers;
     rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
-    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_roll" : "ruberit_roll";
+    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_eko_30" : "ruberit_eko_35";
     const brandLabel = input.rubemastBrand === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт";
     lines.push({
       key: "m_rubemast", block: "materials",
