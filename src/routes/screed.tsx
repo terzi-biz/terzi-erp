@@ -8,6 +8,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm,
