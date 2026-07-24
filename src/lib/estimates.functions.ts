@@ -88,6 +88,35 @@ async function attachManager(supabase: any, rows: any[]): Promise<any[]> {
   }));
 }
 
+async function actorName(supabase: any, userId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from("profiles").select("display_name,email").eq("user_id", userId).maybeSingle();
+  return (data?.display_name || data?.email || null) as string | null;
+}
+
+async function logAudit(
+  supabase: any, userId: string, estimateId: string,
+  action: string, changes: Record<string, any> = {},
+) {
+  try {
+    const name = await actorName(supabase, userId);
+    await supabase.from("estimate_audit_log").insert({
+      estimate_id: estimateId, actor_id: userId, actor_name: name,
+      action, changes,
+    });
+  } catch (e) { console.error("logAudit", e); }
+}
+
+function diffFields(before: Record<string, any>, after: Record<string, any>, keys: string[]) {
+  const out: Record<string, { from: any; to: any }> = {};
+  for (const k of keys) {
+    const a = before?.[k] ?? null;
+    const b = after?.[k] ?? null;
+    if (JSON.stringify(a) !== JSON.stringify(b)) out[k] = { from: a, to: b };
+  }
+  return out;
+}
+
 export const listEstimates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
