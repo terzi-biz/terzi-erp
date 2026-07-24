@@ -434,8 +434,9 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
 
   // Costs
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
-  const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const worksCost = brigadeBaseCost + foremanCost + worksAddCost;
+  // Собівартість бригади і бригадира вже додана як окремі внутрішні рядки
+  // у блок "works" вище (showToClient=false), тож окремо не додаємо.
+  const worksCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * s.amortEquipPerM2;
   const amortTransport = area * s.amortTransportPerM2;
