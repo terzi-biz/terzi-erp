@@ -2,8 +2,10 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Plus, Trash2, FileText, Phone, Mail, MapPin } from "lucide-react";
+import { Plus, Trash2, FileText, Phone, Mail, MapPin, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
 import { listClients, upsertClient, deleteClient } from "@/lib/clients.functions";
+import { listEstimatesByClient, updateEstimateStatus, ESTIMATE_STATUSES } from "@/lib/estimates.functions";
+import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/clients")({
