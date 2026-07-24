@@ -19,6 +19,7 @@ import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/insulation")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
   head: () => ({ meta: [
     { title: "Утеплення TERZI — калькулятор" },
     { name: "description", content: "Калькулятор утеплення TERZI: EPS, XPS, мінвата, шари, підйом, логістика і КП." },
