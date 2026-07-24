@@ -2,7 +2,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Plus, Trash2, RotateCcw, Save } from "lucide-react";
-import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults } from "@/lib/catalog.functions";
+import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
+import { toast } from "sonner";
 
 type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
 type Kind = "material" | "work" | "equipment" | "logistics";
