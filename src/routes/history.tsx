@@ -230,6 +230,19 @@ function HistoryPage() {
           pending={scheduleMut.isPending}
         />
       )}
+
+      {editFor && (
+        <EditDialog
+          row={editFor}
+          onClose={() => setEditFor(null)}
+          onSubmit={(patch, note) => editMut.mutate({ id: editFor.id, ...patch, note })}
+          pending={editMut.isPending}
+        />
+      )}
+
+      {logFor && (
+        <AuditLogDialog row={logFor} onClose={() => setLogFor(null)} />
+      )}
     </div>
   );
 }
