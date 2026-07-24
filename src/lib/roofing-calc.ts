@@ -139,6 +139,8 @@ const RAW_ROOFING_PRICES: Record<string, MaterialPrice> = {
   rubemast:     { buy: 1500, sell: 2200 },  // 10 м² рулон (≈150/220 грн/м²) — Руберіт
   aquaizol_roll:{ buy: 1650, sell: 2400 },  // 10 м² рулон Акваізол ЕКО-ПЕ
   ruberit_roll: { buy: 1500, sell: 2200 },  // 10 м² рулон Руберіт (alias)
+  aquaizol_eko_30: { buy: 1649, sell: 2144 },
+  ruberit_eko_35: { buy: 1121, sell: 1457 },
   primer:       { buy: 65,   sell: 110 },
   gas:          { buy: 1200, sell: 1600 },
   pvc_15_sika:  { buy: 320,  sell: 480 },
@@ -264,13 +266,14 @@ export function calculateRoofing(
   input: RoofingInput,
   prices: Record<string, MaterialPrice> = DEFAULT_ROOFING_PRICES,
   works = DEFAULT_ROOFING_WORKS,
+  workCosts: Record<string, number> = DEFAULT_ROOFING_WORK_COSTS,
   logistics = DEFAULT_ROOFING_LOGISTICS,
   c: RoofingCoefficients = DEFAULT_ROOFING_COEFFS,
 ): RoofingResult {
   // Helper: read price with fallback to DEFAULT_ROOFING_PRICES
   const px = (k: string): MaterialPrice => prices[k] ?? DEFAULT_ROOFING_PRICES[k] ?? { buy: 0, sell: 0 };
   // Helper: brigade cost per unit for a given work key.
-  const wcost = (k: string): number => DEFAULT_ROOFING_WORK_COSTS[k] ?? 0;
+  const wcost = (k: string): number => workCosts[k] ?? DEFAULT_ROOFING_WORK_COSTS[k] ?? 0;
 
   const warnings: string[] = [];
   const area = Math.max(0, input.area);
@@ -293,7 +296,7 @@ export function calculateRoofing(
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
     const totalM2 = perLayerM2 * layers;
     rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
-    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_roll" : "ruberit_roll";
+    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_eko_30" : "ruberit_eko_35";
     const brandLabel = input.rubemastBrand === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт";
     lines.push({
       key: "m_rubemast", block: "materials",

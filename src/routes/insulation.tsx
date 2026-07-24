@@ -17,7 +17,17 @@ import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calcul
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
-export const Route = createFileRoute("/insulation")({ component: InsulationPage });
+export const Route = createFileRoute("/insulation")({
+  head: () => ({ meta: [
+    { title: "Утеплення TERZI — калькулятор" },
+    { name: "description", content: "Калькулятор утеплення TERZI: EPS, XPS, мінвата, шари, підйом, логістика і КП." },
+    { property: "og:title", content: "Утеплення TERZI — калькулятор" },
+    { property: "og:description", content: "Калькулятор утеплення TERZI: EPS, XPS, мінвата, шари, підйом, логістика і КП." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: InsulationPage,
+});
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -26,10 +36,10 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const defaultInput: InsulationInput = {
-  area: 100, perimeter: 40, thicknessCm: 5,
+  area: 100, perimeter: 40, thicknessCm: 5, layersCount: 1,
   zone: "facade", material: "eps_50",
   withGlue: true, withDowels: true, withMesh: true,
-  cityDelivery: true, outOfCityKm: 0, haulContainers: 0,
+  cityDelivery: true, outOfCityKm: 0, withLift: false, haulContainers: 0,
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
 
@@ -184,6 +194,7 @@ function InsulationPage() {
               <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
               <Field label="Периметр, п.м"><input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
               <Field label="Товщина шару, см"><input type="number" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} /></Field>
+              <Field label="Шари"><input type="number" min="1" disabled={input.material === "polystyrcrete"} className={inp} value={input.layersCount} onChange={(e) => upd("layersCount", +e.target.value)} /></Field>
             </div>
           </section>
 
@@ -202,6 +213,7 @@ function InsulationPage() {
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Логістика</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />Місто</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Підйом на поверх/дах</label>
               <Field label="За містом, км в один бік"><input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
               <Field label="Контейнери на вивіз (8 м³)"><input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} /></Field>
             </div>

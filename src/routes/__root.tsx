@@ -17,8 +17,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:title", content: "TERZI Estimate System" },
       { property: "og:description", content: "Преміальна сметно-управлінська система TERZI" },
       { name: "twitter:description", content: "Преміальна сметно-управлінська система TERZI" },
-      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d3907066-dae8-42d5-83cd-1260efc59aaa" },
-      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/d3907066-dae8-42d5-83cd-1260efc59aaa" },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
     ],

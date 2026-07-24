@@ -17,7 +17,17 @@ import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIco
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
-export const Route = createFileRoute("/roofing")({ component: RoofingPage });
+export const Route = createFileRoute("/roofing")({
+  head: () => ({ meta: [
+    { title: "Покрівля TERZI — калькулятор" },
+    { name: "description", content: "Калькулятор покрівлі TERZI: ПВХ-мембрана, Акваізол, Руберіт, аксесуари, логістика і КП." },
+    { property: "og:title", content: "Покрівля TERZI — калькулятор" },
+    { property: "og:description", content: "Калькулятор покрівлі TERZI: ПВХ-мембрана, Акваізол, Руберіт, аксесуари, логістика і КП." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: RoofingPage,
+});
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -65,7 +75,7 @@ function RoofingPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { roofingCoeffs, branding } = useAppStore();
-  const { materialPrices, workPrices } = useModulePricing("roofing");
+  const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing");
   const [input, setInput] = useState<RoofingInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [showInternal, setShowInternal] = useState(isInternal);
@@ -86,8 +96,8 @@ function RoofingPage() {
   }, [workPrices]);
 
   const result = useMemo(
-    () => calculateRoofing(input, materialPrices, worksMapped, DEFAULT_ROOFING_LOGISTICS, roofingCoeffs),
-    [input, materialPrices, worksMapped, roofingCoeffs],
+    () => calculateRoofing(input, materialPrices, worksMapped, workCostPrices, DEFAULT_ROOFING_LOGISTICS, roofingCoeffs),
+    [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs],
   );
 
   const upd = <K extends keyof RoofingInput>(k: K, v: RoofingInput[K]) => setInput((s) => ({ ...s, [k]: v }));

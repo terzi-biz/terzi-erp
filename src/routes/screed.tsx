@@ -10,7 +10,7 @@ import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
-  type ScreedInput, type Profile, type MeshType, type CementDelivery, type SandDelivery, type PaymentForm,
+  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm,
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
@@ -20,7 +20,17 @@ import {
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
 
-export const Route = createFileRoute("/screed")({ component: ScreedPage });
+export const Route = createFileRoute("/screed")({
+  head: () => ({ meta: [
+    { title: "Стяжка TERZI — калькулятор" },
+    { name: "description", content: "Калькулятор напівсухої стяжки TERZI з цементом, кімнатами, ліфтом, логістикою і КП." },
+    { property: "og:title", content: "Стяжка TERZI — калькулятор" },
+    { property: "og:description", content: "Калькулятор напівсухої стяжки TERZI з цементом, кімнатами, ліфтом, логістикою і КП." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: ScreedPage,
+});
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -39,9 +49,9 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 const defaultInput: ScreedInput = {
-  area: 100, thicknessCm: 7, perimeter: 0, floor: 3, profile: "standard",
+  area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
   withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: false,
-  cityDelivery: true, outOfCityKm: 0, cementDelivery: "own", sandDelivery: "city",
+  cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
 
@@ -196,17 +206,27 @@ function ScreedPage() {
                 <input type="number" step="0.5" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} />
               </Field>
               <Field label={t("perimeter")}><input type="number" className={inp} value={input.perimeter ?? 0} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
+              <Field label="Кімнат / зон" hint="Якщо більше 1 — додаються деформаційні шви / нарізка.">
+                <input type="number" min="1" className={inp} value={input.roomsCount} onChange={(e) => upd("roomsCount", +e.target.value)} />
+              </Field>
               <Field label={t("floor")} hint="Поверх подачі суміші. Від 6-го поверху додається коефіцієнт підйому 5–50%.">
                 <input type="number" className={inp} value={input.floor} onChange={(e) => upd("floor", +e.target.value)} />
               </Field>
             </div>
-            <div className="mt-4">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label={t("profile")} hint="Економ — М400; Стандарт/Посилений — М500 з різною кількістю фібри.">
                 <select className={sel} value={input.profile} onChange={(e) => upd("profile", e.target.value as Profile)}>
                   <option value="econom">{t("profileEcon")} — М400 економ</option>
                   <option value="standard">{t("profileStandard")} (Стандарт М200 TERZI)</option>
                   <option value="reinforced">{t("profileReinforced")} — М500 + фібра 2.0</option>
                   <option value="manual">{t("profileManual")} — ручні норми</option>
+                </select>
+              </Field>
+              <Field label="Цемент" hint="Auto бере цемент з профілю; ручний вибір змінює матеріал М400/М500 у кошторисі.">
+                <select className={sel} value={input.cementType} onChange={(e) => upd("cementType", e.target.value as CementType)}>
+                  <option value="auto">Auto за профілем</option>
+                  <option value="m500">М500</option>
+                  <option value="m400">М400</option>
                 </select>
               </Field>
             </div>
@@ -236,7 +256,8 @@ function ScreedPage() {
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("logistics")}</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors md:col-span-2"><input type="checkbox" className="accent-primary" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />{t("city")}</label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />{t("city")}</label>
+              <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Ліфт / складна подача</label>
               <Field label={t("outOfCity")}><input type="number" disabled={input.cityDelivery} className={inp + " disabled:opacity-50"} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
               <Field label={t("cementDelivery")}>
                 <select className={sel} value={input.cementDelivery} onChange={(e) => upd("cementDelivery", e.target.value as CementDelivery)}>

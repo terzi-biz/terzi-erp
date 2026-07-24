@@ -62,10 +62,10 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
     onSuccess: () => qc.invalidateQueries({ queryKey }),
   });
   const resyncMut = useMutation({
-    mutationFn: () => resync({ data: { module, kind, markupPercent: 30, updateSell: true } }),
-    onSuccess: (r: { updated: number; inserted: number }) => {
+    mutationFn: () => resync({ data: { module, kind, markupPercent: 30, updateSell: true, forceReplaceSystem: module === "roofing" && (kind === "material" || kind === "work") } }),
+    onSuccess: (r: { updated: number; inserted: number; deleted?: number }) => {
       qc.invalidateQueries({ queryKey });
-      toast.success(`Пересіяно з прайсу: оновлено ${r.updated}, додано ${r.inserted}`);
+      toast.success(`Пересіяно з прайсу: оновлено ${r.updated}, додано ${r.inserted}, видалено старих ${r.deleted ?? 0}`);
     },
     onError: (e: Error) => toast.error("Помилка ресинку: " + e.message),
   });
@@ -112,12 +112,14 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
             </button>
           )}
           <button
-            onClick={() => confirm("Пересіяти прайс з файлу? Замінить назви/ціни на несинхронізованих (не-кастомних) позиціях та додасть нові з прайсу.") && resyncMut.mutate()}
+            onClick={() => confirm(module === "roofing" && (kind === "material" || kind === "work")
+              ? "Примусово перезавантажити seed-и покрівлі з файлу? Старі системні позиції матеріалів/робіт будуть видалені, кастомні позиції залишаться."
+              : "Пересіяти прайс з файлу? Замінить назви/ціни на несинхронізованих (не-кастомних) позиціях та додасть нові з прайсу.") && resyncMut.mutate()}
             disabled={resyncMut.isPending}
             className="px-3 py-2 rounded-md bg-warning/20 text-warning border border-warning/40 text-xs font-semibold inline-flex items-center gap-2"
             title="Оновлює каталог з актуального прайсу TERZI (Excel-файли), не чіпаючи кастомні позиції"
           >
-            <RotateCcw className="w-3 h-3" /> {resyncMut.isPending ? "Синхронізація…" : "Пересіяти прайс"}
+            <RotateCcw className="w-3 h-3" /> {resyncMut.isPending ? "Синхронізація…" : module === "roofing" && (kind === "material" || kind === "work") ? "Reload seed-и" : "Пересіяти прайс"}
           </button>
           <button onClick={onAdd}
             className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
