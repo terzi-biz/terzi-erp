@@ -13,6 +13,7 @@ export type CementDelivery = "own" | "smallManip" | "bigManip" | "manual" | "non
 export type SandDelivery = "city" | "outskirts" | "chornomorsk" | "manual";
 export type PaymentForm = "cash" | "cashless" | "fop";
 export type CementType = "auto" | "m500" | "m400";
+export type InsulationType = "none" | "eps30" | "eps50" | "xps30" | "xps50";
 
 export interface MaterialPrice {
   buy: number;
