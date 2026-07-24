@@ -18,7 +18,10 @@ import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calcul
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
-export const Route = createFileRoute("/demolition")({ component: DemolitionPage });
+export const Route = createFileRoute("/demolition")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
+  component: DemolitionPage,
+});
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
