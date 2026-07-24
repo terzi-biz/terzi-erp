@@ -48,12 +48,18 @@ export const upsertCatalogItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => itemInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: out, error } = data.id
-      ? await context.supabase.from("catalog_items").update(data).eq("id", data.id).select().single()
-      : await context.supabase.from("catalog_items").insert(data).select().single();
+    if (!(await userIsInternal(context.supabase, context.userId))) {
+      throw new Error("Недостатньо прав для зміни каталогу. Зверніться до адміністратора.");
+    }
+    const q = data.id
+      ? await context.supabase.from("catalog_items").update(data).eq("id", data.id).select().maybeSingle()
+      : await context.supabase.from("catalog_items").insert(data).select().maybeSingle();
+    const { data: out, error } = q;
     if (error) { console.error("upsertCatalogItem", error); throw new Error("Не вдалося зберегти позицію каталогу"); }
+    if (!out) throw new Error(data.id ? "Позицію не знайдено або немає прав на редагування" : "Не вдалося створити позицію");
     return out;
   });
+
 
 export const deleteCatalogItem = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
