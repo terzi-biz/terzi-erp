@@ -75,7 +75,7 @@ function DemolitionPage() {
   const saveMut = useMutation({
     mutationFn: () => saveFn({ data: {
       id: estimateId,
-      number: estimateNumber, module: "demolition", status: "draft",
+      number: estimateNumber, module: "demolition", status: savedStatus as any,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: input.thicknessCm,
