@@ -95,7 +95,7 @@ function ScreedPage() {
       id: estimateId,
       number: estimateNumber,
       module: "screed",
-      status: "draft",
+      status: savedStatus as any,
       client_name: client.name || null,
       client_phone: client.phone || null,
       address: client.address || null,
