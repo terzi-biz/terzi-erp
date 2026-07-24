@@ -7,6 +7,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateInsulation, DEFAULT_INSULATION_LOGISTICS, DEFAULT_INSULATION_WORKS,
   type InsulationInput, type InsZone, type InsMaterial, type PaymentForm,
