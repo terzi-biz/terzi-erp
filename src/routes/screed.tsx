@@ -52,7 +52,8 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
-  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: false,
+  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true,
+  withComplexPrep: false, withDemolition: false, insulationType: "none",
   cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
