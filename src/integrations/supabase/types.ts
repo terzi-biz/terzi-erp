@@ -276,6 +276,44 @@ export type Database = {
         }
         Relationships: []
       }
+      estimate_audit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          changes: Json
+          created_at: string
+          estimate_id: string
+          id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          changes?: Json
+          created_at?: string
+          estimate_id: string
+          id?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          changes?: Json
+          created_at?: string
+          estimate_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_audit_log_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimate_sections: {
         Row: {
           client_visible: boolean
