@@ -35,6 +35,65 @@ const STATUSES: Record<string, { label: string; cls: string }> = {
   archived: { label: "Архів", cls: "bg-muted text-muted-foreground" },
 };
 
+const EST_STATUS_LABEL: Record<string, string> = {
+  preliminary: "Попередній", afterMeasure: "Після заміру", final: "Фінальний",
+  inWork: "В роботі", done: "Виконано", refused: "Відмова",
+  draft: "Чернетка", sent: "Надіслано", approved: "Затверджено", archived: "Архів",
+};
+
+const MODULE_ROUTES: Record<string, "/screed" | "/roofing" | "/insulation" | "/demolition"> = {
+  screed: "/screed", roofing: "/roofing", insulation: "/insulation", demolition: "/demolition",
+};
+
+function ClientEstimates({ clientId }: { clientId: string }) {
+  const qc = useQueryClient();
+  const listFn = useServerFn(listEstimatesByClient);
+  const updFn = useServerFn(updateEstimateStatus);
+  const { data: rows = [], isLoading } = useQuery({
+    queryKey: ["client-estimates", clientId],
+    queryFn: () => listFn({ data: { client_id: clientId } }),
+  });
+  const updMut = useMutation({
+    mutationFn: (v: { id: string; status: string }) => updFn({ data: v as any }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client-estimates", clientId] });
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+    },
+  });
+  if (isLoading) return <div className="text-xs text-muted-foreground p-2">Завантаження…</div>;
+  if (!(rows as any[]).length) return <div className="text-xs text-muted-foreground p-2">Ще немає кошторисів для цього клієнта.</div>;
+  return (
+    <div className="mt-3 space-y-2">
+      {(rows as any[]).map((e) => {
+        const route = MODULE_ROUTES[e.module] ?? "/screed";
+        return (
+          <div key={e.id} className="rounded border border-border bg-secondary/30 p-2 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="font-mono truncate">{e.number}</div>
+              <div className="font-bold text-primary whitespace-nowrap">{formatUah(Number(e.total_client))}</div>
+            </div>
+            <div className="mt-1 flex items-center justify-between gap-2">
+              <select
+                value={e.status}
+                onChange={(ev) => updMut.mutate({ id: e.id, status: ev.target.value })}
+                className="bg-input border border-border rounded px-1.5 py-1 text-[11px]"
+              >
+                {ESTIMATE_STATUSES.map((s) => (
+                  <option key={s} value={s}>{EST_STATUS_LABEL[s] ?? s}</option>
+                ))}
+              </select>
+              <Link to={route} search={{ estimate: e.id } as any}
+                className="inline-flex items-center gap-1 text-primary hover:underline">
+                <ExternalLink className="w-3 h-3" /> Відкрити
+              </Link>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ClientsPage() {
   const qc = useQueryClient();
   const list = useServerFn(listClients);
