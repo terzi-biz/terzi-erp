@@ -185,11 +185,25 @@ function HistoryPage() {
                         <ExternalLink className="w-4 h-4" />
                       </Link>
                       <button
+                        onClick={() => setEditFor(e)}
+                        className="p-1.5 rounded hover:bg-secondary text-foreground"
+                        title="Редагувати"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => setScheduleFor(e)}
                         className="p-1.5 rounded hover:bg-secondary text-foreground"
                         title="Додати в календар"
                       >
                         <CalendarPlus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setLogFor(e)}
+                        className="p-1.5 rounded hover:bg-secondary text-foreground"
+                        title="Журнал змін"
+                      >
+                        <HistoryIcon className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => confirm(`Видалити ${e.number}?`) && delMut.mutate(e.id)}
