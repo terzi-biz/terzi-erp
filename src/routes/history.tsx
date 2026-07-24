@@ -1,13 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Trash2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Trash2, ExternalLink, CalendarPlus, X } from "lucide-react";
 import { useT } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { formatUah } from "@/lib/screed-calc";
-import { listEstimates, deleteEstimate } from "@/lib/estimates.functions";
+import {
+  listEstimates, deleteEstimate, updateEstimateStatus, scheduleEstimate,
+  ESTIMATE_STATUSES, STATUS_LABELS,
+} from "@/lib/estimates.functions";
 
-export const Route = createFileRoute("/history")({ component: HistoryPage });
+export const Route = createFileRoute("/history")({
+  head: () => ({ meta: [
+    { title: "Історія кошторисів — TERZI" },
+    { name: "description", content: "Всі збережені кошториси TERZI: перегляд, редагування, зміна статусу, планування у календарі." },
+    { property: "og:title", content: "Історія кошторисів — TERZI" },
+    { property: "og:description", content: "Перегляд, редагування, зміна статусу та планування кошторисів TERZI." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary" },
+  ] }),
+  component: HistoryPage,
+});
 
 interface EstimateRow {
   id: string;
@@ -20,14 +35,27 @@ interface EstimateRow {
   area: number | null;
   total_client: number;
   margin_percent: number;
+  manager_display: string | null;
+  schedule_start_at: string | null;
+  duration_override_days: number | null;
+  duration_days: number | null;
 }
 
 const MODULE_LABEL: Record<string, string> = {
   screed: "Стяжка", roofing: "Покрівля", insulation: "Утеплення", demolition: "Демонтаж",
 };
-const STATUS_LABEL: Record<string, string> = {
-  draft: "Чернетка", sent: "Надіслано", approved: "Затверджено",
-  inWork: "В роботі", done: "Виконано", refused: "Відмова", archived: "Архів",
+
+const STATUS_CLS: Record<string, string> = {
+  preliminary: "bg-muted text-muted-foreground",
+  afterMeasure: "bg-warning/15 text-warning",
+  final: "bg-primary/15 text-primary",
+  inWork: "bg-blue-500/15 text-blue-700",
+  done: "bg-success/15 text-success",
+  refused: "bg-destructive/15 text-destructive",
+  draft: "bg-muted text-muted-foreground",
+  sent: "bg-secondary text-secondary-foreground",
+  approved: "bg-primary/15 text-primary",
+  archived: "bg-muted text-muted-foreground",
 };
 
 function HistoryPage() {
@@ -36,20 +64,43 @@ function HistoryPage() {
   const qc = useQueryClient();
   const list = useServerFn(listEstimates);
   const del = useServerFn(deleteEstimate);
+  const setStatus = useServerFn(updateEstimateStatus);
+  const setSchedule = useServerFn(scheduleEstimate);
+
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["estimates"], queryFn: () => list(), enabled: !!user,
   });
+
   const delMut = useMutation({
     mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimates"] }),
+    onSuccess: () => { toast.success("Видалено"); qc.invalidateQueries({ queryKey: ["estimates"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const statusMut = useMutation({
+    mutationFn: (v: { id: string; status: string }) => setStatus({ data: v as any }),
+    onSuccess: () => { toast.success("Статус оновлено"); qc.invalidateQueries({ queryKey: ["estimates"] }); },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const scheduleMut = useMutation({
+    mutationFn: (v: { id: string; startAtISO: string | null; durationDays: number | null }) =>
+      setSchedule({ data: v }),
+    onSuccess: () => {
+      toast.success("Додано в календар");
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      qc.invalidateQueries({ queryKey: ["ops"] });
+      setScheduleFor(null);
+    },
+    onError: (e: Error) => toast.error(e.message),
   });
 
+  const [scheduleFor, setScheduleFor] = useState<EstimateRow | null>(null);
+
   return (
-    <div className="p-8 max-w-7xl mx-auto">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="hatch-accent h-1 w-16 mb-3 rounded" />
       <h1 className="text-3xl font-black mb-6">{t("history")}</h1>
-      <div className="panel overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="panel overflow-x-auto">
+        <table className="w-full text-sm min-w-[1100px]">
           <thead className="bg-secondary text-secondary-foreground text-xs uppercase tracking-wider">
             <tr>
               <th className="text-left p-3">№</th>
@@ -57,41 +108,152 @@ function HistoryPage() {
               <th className="text-left p-3">Модуль</th>
               <th className="text-left p-3">Клієнт</th>
               <th className="text-left p-3">Адреса</th>
+              <th className="text-left p-3">Менеджер</th>
               <th className="text-left p-3">Статус</th>
               <th className="text-right p-3">Площа</th>
               <th className="text-right p-3">Сума</th>
               <th className="text-right p-3">Маржа</th>
+              <th className="text-left p-3">Календар</th>
               <th></th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
-              <tr><td colSpan={10} className="p-10 text-center text-muted-foreground">Завантаження…</td></tr>
+              <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">Завантаження…</td></tr>
             )}
             {!isLoading && rows.length === 0 && (
-              <tr><td colSpan={10} className="p-10 text-center text-muted-foreground">Поки немає кошторисів</td></tr>
+              <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">Поки немає кошторисів</td></tr>
             )}
-            {(rows as EstimateRow[]).map((e) => (
-              <tr key={e.id} className="border-t border-border">
-                <td className="p-3 font-mono text-xs">{e.number}</td>
-                <td className="p-3">{new Date(e.created_at).toLocaleString("uk-UA")}</td>
-                <td className="p-3">{MODULE_LABEL[e.module] ?? e.module}</td>
-                <td className="p-3">{e.client_name || "—"}</td>
-                <td className="p-3 text-muted-foreground">{e.address || "—"}</td>
-                <td className="p-3"><span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded bg-secondary">{STATUS_LABEL[e.status] ?? e.status}</span></td>
-                <td className="p-3 text-right">{e.area ?? "—"} м²</td>
-                <td className="p-3 text-right font-bold text-primary">{formatUah(Number(e.total_client))}</td>
-                <td className="p-3 text-right">{Number(e.margin_percent).toFixed(1)}%</td>
-                <td className="p-3">
-                  <button onClick={() => confirm(`Видалити ${e.number}?`) && delMut.mutate(e.id)}
-                    className="text-destructive opacity-60 hover:opacity-100">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {(rows as EstimateRow[]).map((e) => {
+              const cls = STATUS_CLS[e.status] ?? "bg-secondary";
+              return (
+                <tr key={e.id} className="border-t border-border">
+                  <td className="p-3 font-mono text-xs">{e.number}</td>
+                  <td className="p-3 whitespace-nowrap">{new Date(e.created_at).toLocaleString("uk-UA")}</td>
+                  <td className="p-3">{MODULE_LABEL[e.module] ?? e.module}</td>
+                  <td className="p-3">{e.client_name || "—"}</td>
+                  <td className="p-3 text-muted-foreground">{e.address || "—"}</td>
+                  <td className="p-3 text-xs">{e.manager_display || "—"}</td>
+                  <td className="p-3">
+                    <select
+                      value={e.status}
+                      onChange={(ev) => statusMut.mutate({ id: e.id, status: ev.target.value })}
+                      className={`text-[11px] uppercase tracking-wider px-2 py-1 rounded border border-border ${cls} outline-none`}
+                    >
+                      {ESTIMATE_STATUSES.map((s) => (
+                        <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="p-3 text-right">{e.area ?? "—"} м²</td>
+                  <td className="p-3 text-right font-bold text-primary whitespace-nowrap">{formatUah(Number(e.total_client))}</td>
+                  <td className="p-3 text-right">{Number(e.margin_percent || 0).toFixed(1)}%</td>
+                  <td className="p-3 text-xs whitespace-nowrap">
+                    {e.schedule_start_at
+                      ? <span className="text-foreground">{new Date(e.schedule_start_at).toLocaleDateString("uk-UA")}
+                          {(e.duration_override_days || e.duration_days) ? ` · ${e.duration_override_days || e.duration_days} дн` : ""}
+                        </span>
+                      : <span className="text-muted-foreground">—</span>}
+                  </td>
+                  <td className="p-3">
+                    <div className="flex items-center gap-1 justify-end">
+                      <Link
+                        to={"/" + e.module as any}
+                        search={{ estimate: e.id } as any}
+                        className="p-1.5 rounded hover:bg-secondary text-primary"
+                        title="Відкрити / редагувати"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </Link>
+                      <button
+                        onClick={() => setScheduleFor(e)}
+                        className="p-1.5 rounded hover:bg-secondary text-foreground"
+                        title="Додати в календар"
+                      >
+                        <CalendarPlus className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => confirm(`Видалити ${e.number}?`) && delMut.mutate(e.id)}
+                        className="p-1.5 rounded hover:bg-secondary text-destructive"
+                        title="Видалити"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
+      </div>
+
+      {scheduleFor && (
+        <ScheduleDialog
+          row={scheduleFor}
+          onClose={() => setScheduleFor(null)}
+          onSubmit={(startISO, days) => scheduleMut.mutate({ id: scheduleFor.id, startAtISO: startISO, durationDays: days })}
+          onClear={() => scheduleMut.mutate({ id: scheduleFor.id, startAtISO: null, durationDays: null })}
+          pending={scheduleMut.isPending}
+        />
+      )}
+    </div>
+  );
+}
+
+function ScheduleDialog({
+  row, onClose, onSubmit, onClear, pending,
+}: {
+  row: EstimateRow;
+  onClose: () => void;
+  onSubmit: (iso: string, days: number) => void;
+  onClear: () => void;
+  pending: boolean;
+}) {
+  const initialDate = row.schedule_start_at
+    ? new Date(row.schedule_start_at).toISOString().slice(0, 10)
+    : new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(initialDate);
+  const [days, setDays] = useState<number>(Number(row.duration_override_days || row.duration_days || 1));
+  const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
+
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 grid place-items-center p-4" onClick={onClose}>
+      <div className="panel p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black text-lg">Додати в календар</h2>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+        <div className="text-xs text-muted-foreground mb-4">
+          <div><b>{row.number}</b> · {row.client_name || "—"}</div>
+          <div>{row.address || ""}</div>
+        </div>
+        <div className="space-y-3">
+          <label className="block">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Дата початку</span>
+            <input type="date" className={inp} value={date} onChange={(e) => setDate(e.target.value)} />
+          </label>
+          <label className="block">
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">Тривалість (днів)</span>
+            <input type="number" min={1} step={1} className={inp} value={days}
+              onChange={(e) => setDays(Number(e.target.value) || 1)} />
+          </label>
+        </div>
+        <div className="mt-5 flex justify-between gap-2">
+          <button onClick={onClear} disabled={pending}
+            className="px-3 py-2 rounded bg-secondary text-xs font-semibold text-destructive disabled:opacity-50">
+            Прибрати з календаря
+          </button>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 rounded bg-secondary text-xs font-semibold">Скасувати</button>
+            <button
+              disabled={pending || !date || !days}
+              onClick={() => onSubmit(new Date(date + "T09:00:00").toISOString(), days)}
+              className="px-4 py-2 rounded bg-primary text-primary-foreground text-xs font-bold disabled:opacity-50">
+              Зберегти
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
