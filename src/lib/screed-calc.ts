@@ -35,6 +35,9 @@ export interface ScreedInput {
   meshType: MeshType;
   withSlope: boolean;
   withGrind: boolean;
+  withComplexPrep: boolean;   // "Складна підготовка" — умовна підготовка основи
+  withDemolition: boolean;    // "Демонтажні роботи" — демонтаж старої стяжки/покриття
+  insulationType: InsulationType; // Утеплення під стяжку
 
   // Logistics
   cityDelivery: boolean;
