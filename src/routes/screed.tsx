@@ -22,6 +22,7 @@ import {
 import { EstimateView } from "@/components/EstimateView";
 
 export const Route = createFileRoute("/screed")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
   head: () => ({ meta: [
     { title: "Стяжка TERZI — калькулятор" },
     { name: "description", content: "Калькулятор напівсухої стяжки TERZI з цементом, кімнатами, ліфтом, логістикою і КП." },
