@@ -19,6 +19,7 @@ import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing")({
+  validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
   head: () => ({ meta: [
     { title: "Покрівля TERZI — калькулятор" },
     { name: "description", content: "Калькулятор покрівлі TERZI: ПВХ-мембрана, Акваізол, Руберіт, аксесуари, логістика і КП." },
