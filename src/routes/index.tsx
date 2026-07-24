@@ -7,7 +7,17 @@ import { formatUah } from "@/lib/screed-calc";
 import { listEstimates } from "@/lib/estimates.functions";
 import { Layers, Home, Snowflake, Hammer, Plus, History, Users, Palette, BarChart3, Settings } from "lucide-react";
 
-export const Route = createFileRoute("/")({ component: Dashboard });
+export const Route = createFileRoute("/")({
+  head: () => ({ meta: [
+    { title: "TERZI Estimate System" },
+    { name: "description", content: "ERP-калькулятор TERZI для кошторисів, клієнтів, модулів робіт і фінансового контролю." },
+    { property: "og:title", content: "TERZI Estimate System" },
+    { property: "og:description", content: "ERP-калькулятор TERZI для кошторисів, клієнтів, модулів робіт і фінансового контролю." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: Dashboard,
+});
 
 interface E { id: string; created_at: string; total_client: number; }
 

@@ -17,7 +17,17 @@ import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calcul
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
-export const Route = createFileRoute("/insulation")({ component: InsulationPage });
+export const Route = createFileRoute("/insulation")({
+  head: () => ({ meta: [
+    { title: "Утеплення TERZI — калькулятор" },
+    { name: "description", content: "Калькулятор утеплення TERZI: EPS, XPS, мінвата, шари, підйом, логістика і КП." },
+    { property: "og:title", content: "Утеплення TERZI — калькулятор" },
+    { property: "og:description", content: "Калькулятор утеплення TERZI: EPS, XPS, мінвата, шари, підйом, логістика і КП." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: InsulationPage,
+});
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (

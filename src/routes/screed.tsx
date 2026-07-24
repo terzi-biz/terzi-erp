@@ -20,7 +20,17 @@ import {
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
 
-export const Route = createFileRoute("/screed")({ component: ScreedPage });
+export const Route = createFileRoute("/screed")({
+  head: () => ({ meta: [
+    { title: "Стяжка TERZI — калькулятор" },
+    { name: "description", content: "Калькулятор напівсухої стяжки TERZI з цементом, кімнатами, ліфтом, логістикою і КП." },
+    { property: "og:title", content: "Стяжка TERZI — калькулятор" },
+    { property: "og:description", content: "Калькулятор напівсухої стяжки TERZI з цементом, кімнатами, ліфтом, логістикою і КП." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: ScreedPage,
+});
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (

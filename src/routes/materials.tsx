@@ -7,6 +7,14 @@ const search = z.object({
 });
 
 export const Route = createFileRoute("/materials")({
+  head: () => ({ meta: [
+    { title: "Матеріали TERZI — каталог" },
+    { name: "description", content: "Редагований каталог матеріалів TERZI для всіх напрямків калькулятора." },
+    { property: "og:title", content: "Матеріали TERZI — каталог" },
+    { property: "og:description", content: "Редагований каталог матеріалів TERZI для всіх напрямків калькулятора." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
   validateSearch: (s) => search.parse(s),
   component: () => {
     const { module } = Route.useSearch();

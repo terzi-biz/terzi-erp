@@ -17,7 +17,17 @@ import { AlertTriangle, Save, Printer, RotateCcw, Eye, EyeOff, Image as ImageIco
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
-export const Route = createFileRoute("/roofing")({ component: RoofingPage });
+export const Route = createFileRoute("/roofing")({
+  head: () => ({ meta: [
+    { title: "Покрівля TERZI — калькулятор" },
+    { name: "description", content: "Калькулятор покрівлі TERZI: ПВХ-мембрана, Акваізол, Руберіт, аксесуари, логістика і КП." },
+    { property: "og:title", content: "Покрівля TERZI — калькулятор" },
+    { property: "og:description", content: "Калькулятор покрівлі TERZI: ПВХ-мембрана, Акваізол, Руберіт, аксесуари, логістика і КП." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+  component: RoofingPage,
+});
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
