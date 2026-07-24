@@ -12,6 +12,7 @@ export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
 export type CementDelivery = "own" | "smallManip" | "bigManip" | "manual" | "none";
 export type SandDelivery = "city" | "outskirts" | "chornomorsk" | "manual";
 export type PaymentForm = "cash" | "cashless" | "fop";
+export type CementType = "auto" | "m500" | "m400";
 
 export interface MaterialPrice {
   buy: number;
@@ -22,8 +23,10 @@ export interface ScreedInput {
   area: number;            // m²
   thicknessCm: number;     // 4..15 enforced
   perimeter?: number;      // п.м (optional, fallback to area)
+  roomsCount: number;      // кількість кімнат/зон — впливає на деформаційні шви
   floor: number;           // floor of supply
   profile: Profile;
+  cementType: CementType;  // auto = за профілем, або ручний вибір М500/М400
 
   // Optional add-ons
   withFilm: boolean;
@@ -35,6 +38,7 @@ export interface ScreedInput {
   // Logistics
   cityDelivery: boolean;
   outOfCityKm: number;     // one way km
+  withLift: boolean;        // підйом матеріалів на поверх / складна подача
   cementDelivery: CementDelivery;
   sandDelivery: SandDelivery;
 
@@ -214,6 +218,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     norms = p;
     cementType = p.cementType;
   }
+  if (input.cementType === "m500" || input.cementType === "m400") cementType = input.cementType;
 
   const lines: CalcLine[] = [];
 
@@ -294,6 +299,9 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
     lines.push({ key: "w_damper", block: "works", name: "w_damper", unit: "п.м", qty: lm,
       pricePerUnit: works.damper, costPerUnit: 0, sum: lm * works.damper, cost: 0, showToClient: true });
   }
+  const rooms = Math.max(0, Math.floor(input.roomsCount || 0));
+  if (rooms > 1) lines.push({ key: "w_cuts", block: "works", name: "w_cuts", unit: "м²", qty: area,
+    pricePerUnit: works.cuts, costPerUnit: 0, sum: area * works.cuts, cost: 0, showToClient: true });
   if (input.withGrind) lines.push({ key: "w_grind", block: "works", name: "w_grind", unit: "м²", qty: area,
     pricePerUnit: works.grind, costPerUnit: 0, sum: area * works.grind, cost: 0, showToClient: true });
   if (input.meshType !== "none") lines.push({ key: "w_mesh", block: "works", name: "w_mesh", unit: "м²", qty: area,
@@ -320,6 +328,12 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   lines.push({ key: "log_station", block: "logistics", name: "stationDelivery", unit: "шт", qty: 1,
     pricePerUnit: stationDeliveryClient, costPerUnit: stationDeliveryClient,
     sum: stationDeliveryClient, cost: stationDeliveryClient, showToClient: true });
+
+  if (input.withLift) {
+    lines.push({ key: "log_lift", block: "logistics", name: "Підйом матеріалів / складна подача", unit: "шт", qty: 1,
+      pricePerUnit: s.brigadeLiftClient, costPerUnit: s.brigadeLiftCost,
+      sum: s.brigadeLiftClient, cost: s.brigadeLiftCost, showToClient: true });
+  }
 
   if (input.cementDelivery !== "none") {
     let cClient = 0, cCost = 0, cName = "Доставка цементу";
@@ -402,9 +416,9 @@ export function formatNum(v: number, frac = 1): string {
 /** Built-in self-test for the control scenario from the spec. */
 export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
-    area: 100, thicknessCm: 7, floor: 3, profile: "standard",
+    area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
     withFilm: false, withDamper: false, meshType: "none", withSlope: false, withGrind: false,
-    cityDelivery: true, outOfCityKm: 0, cementDelivery: "own", sandDelivery: "city",
+    cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
     payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
   });
   const cement = r.lines.find((l) => l.key === "m_cement500");
