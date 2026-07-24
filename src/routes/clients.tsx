@@ -170,14 +170,20 @@ function ClientsPage() {
               </div>
               {c.notes && <div className="mt-3 text-xs bg-secondary/40 rounded p-2">{c.notes}</div>}
               <div className="mt-4 flex gap-2 pt-3 border-t border-border">
-                <Link to="/screed" className="flex-1 text-xs text-center py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
-                  <FileText className="w-3 h-3" /> Кошторис
+                <button onClick={() => setExpanded((m) => ({ ...m, [c.id]: !m[c.id] }))}
+                  className="flex-1 text-xs py-2 rounded bg-secondary font-semibold inline-flex items-center justify-center gap-1">
+                  <FileText className="w-3 h-3" /> Кошториси
+                  {expanded[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
+                <Link to="/screed" className="text-xs px-3 py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
+                  + Новий
                 </Link>
                 <button onClick={() => confirm(`Видалити "${c.name}"?`) && delMut.mutate(c.id)}
                   className="px-2 py-2 rounded bg-destructive/10 text-destructive">
                   <Trash2 className="w-3 h-3" />
                 </button>
               </div>
+              {expanded[c.id] && <ClientEstimates clientId={c.id} />}
             </div>
           );
         })}
