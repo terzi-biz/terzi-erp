@@ -10,7 +10,7 @@ import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
-  type ScreedInput, type Profile, type MeshType, type CementDelivery, type SandDelivery, type PaymentForm,
+  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm,
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
@@ -39,9 +39,9 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 const defaultInput: ScreedInput = {
-  area: 100, thicknessCm: 7, perimeter: 0, floor: 3, profile: "standard",
+  area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
   withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: false,
-  cityDelivery: true, outOfCityKm: 0, cementDelivery: "own", sandDelivery: "city",
+  cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
 

@@ -21,6 +21,7 @@ export interface InsulationInput {
   area: number;
   perimeter: number;
   thicknessCm: number;          // товщина шару (для плитних), або висота заливки (для полістиролбетону)
+  layersCount: number;          // кількість шарів плитного утеплювача
   zone: InsZone;
   material: InsMaterial;
 
@@ -30,6 +31,7 @@ export interface InsulationInput {
 
   cityDelivery: boolean;
   outOfCityKm: number;
+  withLift: boolean;
   haulContainers: number;
 
   payment: PaymentForm;
@@ -97,6 +99,7 @@ export const DEFAULT_INSULATION_WORKS = {
 export const DEFAULT_INSULATION_LOGISTICS = {
   delivery_city: { buy: 800, sell: 1200 },
   delivery_km:   { buy: 30, sell: 50 },
+  lift:          { buy: 1000, sell: 1800 },
   haul:          { buy: 3500, sell: 5000 },
 };
 
@@ -137,6 +140,7 @@ export function calculateInsulation(
   const px = (k: string): MaterialPrice => prices[k] ?? DEFAULT_INSULATION_PRICES[k] ?? { buy: 0, sell: 0 };
   const warnings: string[] = [];
   const area = Math.max(0, input.area);
+  const layers = input.material === "polystyrcrete" ? 1 : Math.max(1, Math.floor(input.layersCount || 1));
   const lines: InsLine[] = [];
 
   // ===== Materials =====
@@ -149,7 +153,7 @@ export function calculateInsulation(
       sum: volume * px("polystyrcrete").sell, cost: volume * px("polystyrcrete").buy,
     });
   } else {
-    const matArea = +(area * c.cutoffCoef).toFixed(1);
+    const matArea = +(area * layers * c.cutoffCoef).toFixed(1);
     const labels: Record<string, string> = {
       eps_50: "EPS-35 50 мм", xps_50: "XPS Carbon 50 мм", mineral: "Мінвата 100 мм",
     };
@@ -210,10 +214,10 @@ export function calculateInsulation(
   } else {
     lines.push({
       key: "w_zone", block: "works",
-      name: input.zone === "facade" ? "Утеплення фасаду"
-          : input.zone === "roof" ? "Утеплення покрівлі" : "Утеплення підлоги",
-      unit: "м²", qty: area, pricePerUnit: zoneWorkRate, costPerUnit: 0,
-      sum: area * zoneWorkRate, cost: 0,
+      name: input.zone === "facade" ? `Утеплення фасаду (${layers} ш.)`
+          : input.zone === "roof" ? `Утеплення покрівлі (${layers} ш.)` : `Утеплення підлоги (${layers} ш.)`,
+      unit: "м²", qty: area * layers, pricePerUnit: zoneWorkRate, costPerUnit: 0,
+      sum: area * layers * zoneWorkRate, cost: 0,
     });
   }
 
@@ -228,6 +232,13 @@ export function calculateInsulation(
     key: "log_delivery", block: "logistics", name: "Доставка матеріалів", unit: "шт", qty: 1,
     pricePerUnit: deliverySell, costPerUnit: deliveryCost, sum: deliverySell, cost: deliveryCost,
   });
+  if (input.withLift) {
+    lines.push({
+      key: "log_lift", block: "logistics", name: "Підйом утеплювача на поверх/дах", unit: "шт", qty: 1,
+      pricePerUnit: logistics.lift.sell, costPerUnit: logistics.lift.buy,
+      sum: logistics.lift.sell, cost: logistics.lift.buy,
+    });
+  }
   if (input.haulContainers > 0) {
     lines.push({
       key: "log_haul", block: "logistics", name: "Вивіз сміття (контейнер 8 м³)", unit: "шт",
