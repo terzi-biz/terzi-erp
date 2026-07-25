@@ -517,7 +517,14 @@ function ClientSheet(p: EditableSheetProps) {
     setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
   const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t);
-  const grandTotal = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
+
+  // Паритет з двигуном та Внутрішнім кошторисом: враховуємо приховані адюстменти
+  // (складність, знижка, партнерська комісія, FOP, ПДВ, мінімальний чек, округлення).
+  // Без цього «РАЗОМ» у КП розходиться з підсумком проекту.
+  const baseLinesSell = p.result.lines.reduce((a, r) => a + r.sum, 0);
+  const hiddenSell = p.result.totalClient - baseLinesSell;
+  const effSell = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
+  const grandTotal = effSell + hiddenSell;
   const pricePerM2 = p.area > 0 ? grandTotal / p.area : 0;
 
   const addExtra = (block: string) => {
