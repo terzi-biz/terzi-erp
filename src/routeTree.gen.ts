@@ -28,6 +28,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
+import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -124,6 +125,11 @@ const ObjectsNewRoute = ObjectsNewRouteImport.update({
   path: '/new',
   getParentRoute: () => ObjectsRoute,
 } as any)
+const ObjectsIdRoute = ObjectsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ObjectsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -144,6 +150,7 @@ export interface FileRoutesByFullPath {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
 }
 export interface FileRoutesByTo {
@@ -165,6 +172,7 @@ export interface FileRoutesByTo {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
 }
 export interface FileRoutesById {
@@ -187,6 +195,7 @@ export interface FileRoutesById {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
 }
 export interface FileRouteTypes {
@@ -210,6 +219,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/objects/$id'
     | '/objects/new'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -231,6 +241,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/objects/$id'
     | '/objects/new'
   id:
     | '__root__'
@@ -252,6 +263,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/objects/$id'
     | '/objects/new'
   fileRoutesById: FileRoutesById
 }
@@ -411,14 +423,23 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsNewRouteImport
       parentRoute: typeof ObjectsRoute
     }
+    '/objects/$id': {
+      id: '/objects/$id'
+      path: '/$id'
+      fullPath: '/objects/$id'
+      preLoaderRoute: typeof ObjectsIdRouteImport
+      parentRoute: typeof ObjectsRoute
+    }
   }
 }
 
 interface ObjectsRouteChildren {
+  ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
 }
 
 const ObjectsRouteChildren: ObjectsRouteChildren = {
+  ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
 }
 
