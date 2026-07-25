@@ -15,6 +15,7 @@ import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as RoofingRouteImport } from './routes/roofing'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as OperationsRouteImport } from './routes/operations'
+import { Route as ObjectsRouteImport } from './routes/objects'
 import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as LoginRouteImport } from './routes/login'
@@ -55,6 +56,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const OperationsRoute = OperationsRouteImport.update({
   id: '/operations',
   path: '/operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjectsRoute = ObjectsRouteImport.update({
+  id: '/objects',
+  path: '/objects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MaterialsRoute = MaterialsRouteImport.update({
@@ -125,6 +131,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
+  '/objects': typeof ObjectsRoute
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
+  '/objects': typeof ObjectsRoute
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
+  '/objects': typeof ObjectsRoute
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/logistics'
     | '/materials'
+    | '/objects'
     | '/operations'
     | '/reports'
     | '/roofing'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/logistics'
     | '/materials'
+    | '/objects'
     | '/operations'
     | '/reports'
     | '/roofing'
@@ -223,6 +234,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/logistics'
     | '/materials'
+    | '/objects'
     | '/operations'
     | '/reports'
     | '/roofing'
@@ -243,6 +255,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   LogisticsRoute: typeof LogisticsRoute
   MaterialsRoute: typeof MaterialsRoute
+  ObjectsRoute: typeof ObjectsRoute
   OperationsRoute: typeof OperationsRoute
   ReportsRoute: typeof ReportsRoute
   RoofingRoute: typeof RoofingRoute
@@ -293,6 +306,13 @@ declare module '@tanstack/react-router' {
       path: '/operations'
       fullPath: '/operations'
       preLoaderRoute: typeof OperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objects': {
+      id: '/objects'
+      path: '/objects'
+      fullPath: '/objects'
+      preLoaderRoute: typeof ObjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/materials': {
@@ -387,6 +407,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   LogisticsRoute: LogisticsRoute,
   MaterialsRoute: MaterialsRoute,
+  ObjectsRoute: ObjectsRoute,
   OperationsRoute: OperationsRoute,
   ReportsRoute: ReportsRoute,
   RoofingRoute: RoofingRoute,
