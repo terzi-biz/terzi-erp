@@ -1,12 +1,15 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ChevronLeft, ChevronRight, Check, AlertTriangle, Hash } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listClients, upsertClient } from "@/lib/clients.functions";
-import { saveObject, OBJECT_SERVICES, SERVICE_LABELS } from "@/lib/objects.functions";
+import {
+  saveObject, OBJECT_SERVICES, SERVICE_LABELS,
+  COMMERCIAL_STATUSES, COMMERCIAL_LABELS,
+} from "@/lib/objects.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/objects/new")({
@@ -18,6 +21,19 @@ export const Route = createFileRoute("/objects/new")({
   head: () => ({ meta: [{ title: "Новий об'єкт — TERZI" }] }),
   component: NewObjectPage,
 });
+
+type NextAction = "measurement" | "calc" | "task" | "lead";
+
+const NEXT_ACTIONS: { v: NextAction; l: string; status: (typeof COMMERCIAL_STATUSES)[number] }[] = [
+  { v: "measurement", l: "Призначити замер", status: "measurement_scheduled" },
+  { v: "calc",        l: "Створити попередній розрахунок", status: "calculation" },
+  { v: "task",        l: "Поставити задачу менеджеру", status: "qualification" },
+  { v: "lead",        l: "Зберегти як новий лід", status: "new" },
+];
+
+function normPhone(s: string) {
+  return s.replace(/\D+/g, "").replace(/^380/, "");
+}
 
 function NewObjectPage() {
   const navigate = useNavigate();
@@ -38,23 +54,42 @@ function NewObjectPage() {
     source: "", crm_link: "", notes: "",
   });
   const [services, setServices] = useState<string[]>([]);
-  const [nextAction, setNextAction] = useState<"measurement" | "calc" | "task" | "lead">("measurement");
+  const [nextAction, setNextAction] = useState<NextAction | "">("");
+  const [commercialStatus, setCommercialStatus] =
+    useState<(typeof COMMERCIAL_STATUSES)[number] | "">("");
+
+  // Duplicate detection by phone/email
+  const duplicates = useMemo(() => {
+    if (clientMode !== "new") return [];
+    const phone = normPhone(newClient.phone);
+    const email = newClient.email.trim().toLowerCase();
+    if (!phone && !email) return [];
+    return (clients as any[]).filter((c) => {
+      const cp = normPhone(c.phone ?? "");
+      const ce = (c.email ?? "").trim().toLowerCase();
+      return (phone && cp && cp === phone) || (email && ce && ce === email);
+    });
+  }, [clientMode, newClient.phone, newClient.email, clients]);
+
+  const chosenAction = NEXT_ACTIONS.find((a) => a.v === nextAction);
+  const effectiveStatus = commercialStatus || chosenAction?.status || "new";
 
   const saveMut = useMutation({
     mutationFn: async () => {
       let cid = clientId || null;
       if (clientMode === "new" && newClient.name.trim()) {
         const c = await upsertClientFn({ data: {
-          name: newClient.name, phone: newClient.phone || null, email: newClient.email || null,
-          address: form.address || null, notes: null, status: "lead",
+          name: newClient.name.trim(),
+          phone: newClient.phone || null,
+          email: newClient.email || null,
+          address: form.address || null,
+          notes: null,
+          status: "lead",
         } });
         cid = (c as any).id;
       }
-      const initialStatus = nextAction === "measurement" ? "measurement_scheduled"
-        : nextAction === "calc" ? "calculation"
-        : nextAction === "task" ? "qualification" : "new";
       const obj = await saveObjectFn({ data: {
-        name: form.name,
+        name: form.name.trim(),
         address: form.address || null,
         district: form.district || null,
         object_type: form.object_type || null,
@@ -65,7 +100,7 @@ function NewObjectPage() {
         crm_link: form.crm_link || null,
         notes: form.notes || null,
         client_id: cid,
-        commercial_status: initialStatus as any,
+        commercial_status: effectiveStatus as any,
         services: services as any,
       } });
       return obj as any;
@@ -78,10 +113,21 @@ function NewObjectPage() {
   });
 
   const canNext = () => {
-    if (step === 1) return clientMode === "existing" ? !!clientId : newClient.name.trim().length > 0;
+    if (step === 1) {
+      if (clientMode === "existing") return !!clientId;
+      return newClient.name.trim().length > 0
+        && (newClient.phone.trim().length > 0 || newClient.email.trim().length > 0);
+    }
     if (step === 2) return form.name.trim().length > 0;
     if (step === 3) return services.length > 0;
+    if (step === 5) return !!nextAction && !!effectiveStatus;
     return true;
+  };
+
+  const useExistingDup = (c: any) => {
+    setClientMode("existing");
+    setClientId(c.id);
+    toast.info(`Обрано існуючого клієнта: ${c.name}`);
   };
 
   return (
@@ -89,7 +135,10 @@ function NewObjectPage() {
       <div className="p-4 md:p-6 max-w-3xl mx-auto space-y-4">
         <div>
           <h1 className="text-2xl font-black">Новий об'єкт</h1>
-          <p className="text-sm text-muted-foreground">Крок {step} з 5</p>
+          <p className="text-sm text-muted-foreground flex items-center gap-1">
+            Крок {step} з 5 · <Hash className="w-3 h-3" /> номер TRZ-{new Date().getFullYear()}-NNNN
+            <span className="text-xs">(присвоюється автоматично при збереженні)</span>
+          </p>
         </div>
 
         <div className="flex gap-1">
@@ -116,9 +165,30 @@ function NewObjectPage() {
                 </select>
               ) : (
                 <div className="space-y-2">
-                  <Input label="Назва / ПІБ" value={newClient.name} onChange={(v) => setNewClient({ ...newClient, name: v })} />
-                  <Input label="Телефон" value={newClient.phone} onChange={(v) => setNewClient({ ...newClient, phone: v })} />
-                  <Input label="Email" value={newClient.email} onChange={(v) => setNewClient({ ...newClient, email: v })} />
+                  <Input label="Назва / ПІБ *" value={newClient.name} onChange={(v) => setNewClient({ ...newClient, name: v })} />
+                  <Input label="Телефон *" value={newClient.phone} onChange={(v) => setNewClient({ ...newClient, phone: v })} placeholder="+380..." />
+                  <Input label="Email *" value={newClient.email} onChange={(v) => setNewClient({ ...newClient, email: v })} />
+                  <p className="text-xs text-muted-foreground">Вкажіть хоча б телефон або email — для перевірки на дублікати.</p>
+
+                  {duplicates.length > 0 && (
+                    <div className="mt-2 p-3 rounded border border-yellow-500/40 bg-yellow-500/10">
+                      <div className="flex items-center gap-2 text-sm font-semibold text-yellow-700 dark:text-yellow-300">
+                        <AlertTriangle className="w-4 h-4" />
+                        Знайдено збіги за телефоном/email:
+                      </div>
+                      <ul className="mt-2 space-y-1">
+                        {duplicates.map((c) => (
+                          <li key={c.id} className="flex items-center justify-between gap-2 text-sm">
+                            <span>{c.name}{c.phone ? ` · ${c.phone}` : ""}{c.email ? ` · ${c.email}` : ""}</span>
+                            <button type="button" onClick={() => useExistingDup(c)}
+                              className="text-xs px-2 py-1 rounded bg-primary text-primary-foreground font-semibold">
+                              Використати
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -151,7 +221,7 @@ function NewObjectPage() {
 
           {step === 3 && (
             <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Послуги</h2>
+              <h2 className="text-lg font-semibold">Послуги *</h2>
               <p className="text-xs text-muted-foreground">Оберіть одну або декілька</p>
               <div className="grid grid-cols-2 gap-2">
                 {OBJECT_SERVICES.map((s) => {
@@ -174,25 +244,39 @@ function NewObjectPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold">Попередні параметри</h2>
               <p className="text-xs text-muted-foreground">Детальні параметри та зони заповнюються в карточці об'єкта після створення. Тут — лише те, що вже відомо.</p>
-              <Textarea label="Попередні нотатки: площа, товщина, доступ, ...*"
+              <Textarea label="Попередні нотатки: площа, товщина, доступ, ..."
                 value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
             </div>
           )}
 
           {step === 5 && (
-            <div className="space-y-3">
-              <h2 className="text-lg font-semibold">Наступна дія</h2>
-              {[
-                { v: "measurement", l: "Призначити замер" },
-                { v: "calc", l: "Створити попередній розрахунок" },
-                { v: "task", l: "Поставити задачу менеджеру" },
-                { v: "lead", l: "Зберегти як новий лід" },
-              ].map((o) => (
-                <label key={o.v} className="flex items-center gap-2 p-3 border border-border rounded cursor-pointer hover:bg-secondary/40">
-                  <input type="radio" checked={nextAction === o.v} onChange={() => setNextAction(o.v as any)} />
-                  <span className="text-sm">{o.l}</span>
-                </label>
-              ))}
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Наступна дія *</h2>
+                {NEXT_ACTIONS.map((o) => (
+                  <label key={o.v} className="flex items-center gap-2 p-3 border border-border rounded cursor-pointer hover:bg-secondary/40">
+                    <input type="radio" checked={nextAction === o.v}
+                      onChange={() => { setNextAction(o.v); if (!commercialStatus) setCommercialStatus(o.status); }} />
+                    <span className="text-sm">{o.l}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div>
+                <label className="text-xs text-muted-foreground">Комерційний статус *</label>
+                <select
+                  value={effectiveStatus}
+                  onChange={(e) => setCommercialStatus(e.target.value as any)}
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm mt-1"
+                >
+                  {COMMERCIAL_STATUSES.map((s) => (
+                    <option key={s} value={s}>{COMMERCIAL_LABELS[s]}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Обирається автоматично відповідно до наступної дії. Можна змінити вручну.
+                </p>
+              </div>
             </div>
           )}
 
@@ -207,7 +291,7 @@ function NewObjectPage() {
                 Далі <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending}
+              <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending || !canNext()}
                 className="inline-flex items-center gap-1 bg-primary text-primary-foreground rounded px-4 py-2 text-sm font-semibold disabled:opacity-40">
                 {saveMut.isPending ? "Створюємо…" : "Створити об'єкт"}
               </button>
