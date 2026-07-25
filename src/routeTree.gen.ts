@@ -15,6 +15,7 @@ import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as RoofingRouteImport } from './routes/roofing'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as OperationsRouteImport } from './routes/operations'
+import { Route as ObjectsRouteImport } from './routes/objects'
 import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as LoginRouteImport } from './routes/login'
@@ -26,6 +27,8 @@ import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ObjectsNewRouteImport } from './routes/objects.new'
+import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -55,6 +58,11 @@ const ReportsRoute = ReportsRouteImport.update({
 const OperationsRoute = OperationsRouteImport.update({
   id: '/operations',
   path: '/operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjectsRoute = ObjectsRouteImport.update({
+  id: '/objects',
+  path: '/objects',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MaterialsRoute = MaterialsRouteImport.update({
@@ -112,6 +120,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ObjectsNewRoute = ObjectsNewRouteImport.update({
+  id: '/new',
+  path: '/new',
+  getParentRoute: () => ObjectsRoute,
+} as any)
+const ObjectsIdRoute = ObjectsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ObjectsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -125,12 +143,15 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
+  '/objects': typeof ObjectsRouteWithChildren
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/objects/$id': typeof ObjectsIdRoute
+  '/objects/new': typeof ObjectsNewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -144,12 +165,15 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
+  '/objects': typeof ObjectsRouteWithChildren
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/objects/$id': typeof ObjectsIdRoute
+  '/objects/new': typeof ObjectsNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -164,12 +188,15 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
+  '/objects': typeof ObjectsRouteWithChildren
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/objects/$id': typeof ObjectsIdRoute
+  '/objects/new': typeof ObjectsNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -185,12 +212,15 @@ export interface FileRouteTypes {
     | '/login'
     | '/logistics'
     | '/materials'
+    | '/objects'
     | '/operations'
     | '/reports'
     | '/roofing'
     | '/screed'
     | '/settings'
     | '/works'
+    | '/objects/$id'
+    | '/objects/new'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -204,12 +234,15 @@ export interface FileRouteTypes {
     | '/login'
     | '/logistics'
     | '/materials'
+    | '/objects'
     | '/operations'
     | '/reports'
     | '/roofing'
     | '/screed'
     | '/settings'
     | '/works'
+    | '/objects/$id'
+    | '/objects/new'
   id:
     | '__root__'
     | '/'
@@ -223,12 +256,15 @@ export interface FileRouteTypes {
     | '/login'
     | '/logistics'
     | '/materials'
+    | '/objects'
     | '/operations'
     | '/reports'
     | '/roofing'
     | '/screed'
     | '/settings'
     | '/works'
+    | '/objects/$id'
+    | '/objects/new'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -243,6 +279,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   LogisticsRoute: typeof LogisticsRoute
   MaterialsRoute: typeof MaterialsRoute
+  ObjectsRoute: typeof ObjectsRouteWithChildren
   OperationsRoute: typeof OperationsRoute
   ReportsRoute: typeof ReportsRoute
   RoofingRoute: typeof RoofingRoute
@@ -293,6 +330,13 @@ declare module '@tanstack/react-router' {
       path: '/operations'
       fullPath: '/operations'
       preLoaderRoute: typeof OperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objects': {
+      id: '/objects'
+      path: '/objects'
+      fullPath: '/objects'
+      preLoaderRoute: typeof ObjectsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/materials': {
@@ -372,8 +416,35 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/objects/new': {
+      id: '/objects/new'
+      path: '/new'
+      fullPath: '/objects/new'
+      preLoaderRoute: typeof ObjectsNewRouteImport
+      parentRoute: typeof ObjectsRoute
+    }
+    '/objects/$id': {
+      id: '/objects/$id'
+      path: '/$id'
+      fullPath: '/objects/$id'
+      preLoaderRoute: typeof ObjectsIdRouteImport
+      parentRoute: typeof ObjectsRoute
+    }
   }
 }
+
+interface ObjectsRouteChildren {
+  ObjectsIdRoute: typeof ObjectsIdRoute
+  ObjectsNewRoute: typeof ObjectsNewRoute
+}
+
+const ObjectsRouteChildren: ObjectsRouteChildren = {
+  ObjectsIdRoute: ObjectsIdRoute,
+  ObjectsNewRoute: ObjectsNewRoute,
+}
+
+const ObjectsRouteWithChildren =
+  ObjectsRoute._addFileChildren(ObjectsRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -387,6 +458,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   LogisticsRoute: LogisticsRoute,
   MaterialsRoute: MaterialsRoute,
+  ObjectsRoute: ObjectsRouteWithChildren,
   OperationsRoute: OperationsRoute,
   ReportsRoute: ReportsRoute,
   RoofingRoute: RoofingRoute,

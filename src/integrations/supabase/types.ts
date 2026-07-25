@@ -213,6 +213,7 @@ export type Database = {
           id: string
           module: string
           notes: string | null
+          object_id: string | null
           title: string
           updated_at: string
         }
@@ -227,6 +228,7 @@ export type Database = {
           id?: string
           module: string
           notes?: string | null
+          object_id?: string | null
           title: string
           updated_at?: string
         }
@@ -241,10 +243,19 @@ export type Database = {
           id?: string
           module?: string
           notes?: string | null
+          object_id?: string | null
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "crew_bookings_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       directions: {
         Row: {
@@ -382,6 +393,7 @@ export type Database = {
           margin_percent: number
           module: string
           number: string
+          object_id: string | null
           owner_id: string
           payload: Json
           price_book_version: number | null
@@ -416,6 +428,7 @@ export type Database = {
           margin_percent?: number
           module: string
           number: string
+          object_id?: string | null
           owner_id: string
           payload?: Json
           price_book_version?: number | null
@@ -450,6 +463,7 @@ export type Database = {
           margin_percent?: number
           module?: string
           number?: string
+          object_id?: string | null
           owner_id?: string
           payload?: Json
           price_book_version?: number | null
@@ -474,6 +488,13 @@ export type Database = {
             columns: ["direction_id"]
             isOneToOne: false
             referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimates_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
             referencedColumns: ["id"]
           },
         ]
@@ -696,6 +717,456 @@ export type Database = {
           },
         ]
       }
+      object_assignments: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          object_id: string
+          role: Database["public"]["Enums"]["object_assignment_role"]
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          object_id: string
+          role: Database["public"]["Enums"]["object_assignment_role"]
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          object_id?: string
+          role?: Database["public"]["Enums"]["object_assignment_role"]
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_assignments_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_comments: {
+        Row: {
+          author_id: string | null
+          author_name: string | null
+          body: string
+          created_at: string
+          id: string
+          mentions: Json | null
+          object_id: string
+          parent_id: string | null
+          pinned: boolean | null
+        }
+        Insert: {
+          author_id?: string | null
+          author_name?: string | null
+          body: string
+          created_at?: string
+          id?: string
+          mentions?: Json | null
+          object_id: string
+          parent_id?: string | null
+          pinned?: boolean | null
+        }
+        Update: {
+          author_id?: string | null
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+          mentions?: Json | null
+          object_id?: string
+          parent_id?: string | null
+          pinned?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_comments_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_comments_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "object_comments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_files: {
+        Row: {
+          category: string | null
+          created_at: string
+          file_name: string | null
+          id: string
+          note: string | null
+          object_id: string
+          uploaded_by: string | null
+          url: string
+          zone_id: string | null
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          note?: string | null
+          object_id: string
+          uploaded_by?: string | null
+          url: string
+          zone_id?: string | null
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          file_name?: string | null
+          id?: string
+          note?: string | null
+          object_id?: string
+          uploaded_by?: string | null
+          url?: string
+          zone_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_files_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_files_zone_id_fkey"
+            columns: ["zone_id"]
+            isOneToOne: false
+            referencedRelation: "object_zones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_measurements: {
+        Row: {
+          area: number | null
+          base: Json | null
+          contact_on_site: string | null
+          created_at: string
+          files: Json | null
+          id: string
+          logistics: Json | null
+          measured_at: string | null
+          notes: string | null
+          object_id: string
+          perimeter: number | null
+          photos: Json | null
+          slopes: Json | null
+          status: Database["public"]["Enums"]["object_measurement_status"]
+          surveyor_id: string | null
+          thicknesses: Json | null
+          type: Database["public"]["Enums"]["object_measurement_type"]
+          updated_at: string
+        }
+        Insert: {
+          area?: number | null
+          base?: Json | null
+          contact_on_site?: string | null
+          created_at?: string
+          files?: Json | null
+          id?: string
+          logistics?: Json | null
+          measured_at?: string | null
+          notes?: string | null
+          object_id: string
+          perimeter?: number | null
+          photos?: Json | null
+          slopes?: Json | null
+          status?: Database["public"]["Enums"]["object_measurement_status"]
+          surveyor_id?: string | null
+          thicknesses?: Json | null
+          type?: Database["public"]["Enums"]["object_measurement_type"]
+          updated_at?: string
+        }
+        Update: {
+          area?: number | null
+          base?: Json | null
+          contact_on_site?: string | null
+          created_at?: string
+          files?: Json | null
+          id?: string
+          logistics?: Json | null
+          measured_at?: string | null
+          notes?: string | null
+          object_id?: string
+          perimeter?: number | null
+          photos?: Json | null
+          slopes?: Json | null
+          status?: Database["public"]["Enums"]["object_measurement_status"]
+          surveyor_id?: string | null
+          thicknesses?: Json | null
+          type?: Database["public"]["Enums"]["object_measurement_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_measurements_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_services: {
+        Row: {
+          created_at: string
+          id: string
+          note: string | null
+          object_id: string
+          service: Database["public"]["Enums"]["object_service"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          object_id: string
+          service: Database["public"]["Enums"]["object_service"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          note?: string | null
+          object_id?: string
+          service?: Database["public"]["Enums"]["object_service"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_services_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          changed_by_name: string | null
+          field: string
+          id: string
+          new_value: string | null
+          object_id: string
+          old_value: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          field: string
+          id?: string
+          new_value?: string | null
+          object_id: string
+          old_value?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          changed_by_name?: string | null
+          field?: string
+          id?: string
+          new_value?: string | null
+          object_id?: string
+          old_value?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_status_history_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      object_zones: {
+        Row: {
+          archived: boolean | null
+          area: number | null
+          base_type: string | null
+          complexity: string | null
+          created_at: string
+          crew_id: string | null
+          id: string
+          name: string
+          object_id: string
+          payload: Json | null
+          perimeter: number | null
+          planned_end: string | null
+          planned_start: string | null
+          service: Database["public"]["Enums"]["object_service"] | null
+          slope_percent: number | null
+          status: string | null
+          thickness_cm: number | null
+          updated_at: string
+          volume: number | null
+        }
+        Insert: {
+          archived?: boolean | null
+          area?: number | null
+          base_type?: string | null
+          complexity?: string | null
+          created_at?: string
+          crew_id?: string | null
+          id?: string
+          name: string
+          object_id: string
+          payload?: Json | null
+          perimeter?: number | null
+          planned_end?: string | null
+          planned_start?: string | null
+          service?: Database["public"]["Enums"]["object_service"] | null
+          slope_percent?: number | null
+          status?: string | null
+          thickness_cm?: number | null
+          updated_at?: string
+          volume?: number | null
+        }
+        Update: {
+          archived?: boolean | null
+          area?: number | null
+          base_type?: string | null
+          complexity?: string | null
+          created_at?: string
+          crew_id?: string | null
+          id?: string
+          name?: string
+          object_id?: string
+          payload?: Json | null
+          perimeter?: number | null
+          planned_end?: string | null
+          planned_start?: string | null
+          service?: Database["public"]["Enums"]["object_service"] | null
+          slope_percent?: number | null
+          status?: string | null
+          thickness_cm?: number | null
+          updated_at?: string
+          volume?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_zones_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      objects: {
+        Row: {
+          access_notes: string | null
+          address: string | null
+          client_id: string | null
+          commercial_status: Database["public"]["Enums"]["object_commercial_status"]
+          created_at: string
+          crm_link: string | null
+          distance_km: number | null
+          district: string | null
+          financial_status: Database["public"]["Enums"]["object_financial_status"]
+          floor: number | null
+          has_lift: boolean | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          manager_id: string | null
+          name: string
+          notes: string | null
+          number: string
+          object_type: string | null
+          owner_id: string
+          planned_end: string | null
+          planned_start: string | null
+          production_status: Database["public"]["Enums"]["object_production_status"]
+          risk_level: Database["public"]["Enums"]["object_risk_level"]
+          source: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_notes?: string | null
+          address?: string | null
+          client_id?: string | null
+          commercial_status?: Database["public"]["Enums"]["object_commercial_status"]
+          created_at?: string
+          crm_link?: string | null
+          distance_km?: number | null
+          district?: string | null
+          financial_status?: Database["public"]["Enums"]["object_financial_status"]
+          floor?: number | null
+          has_lift?: boolean | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
+          name: string
+          notes?: string | null
+          number: string
+          object_type?: string | null
+          owner_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          production_status?: Database["public"]["Enums"]["object_production_status"]
+          risk_level?: Database["public"]["Enums"]["object_risk_level"]
+          source?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_notes?: string | null
+          address?: string | null
+          client_id?: string | null
+          commercial_status?: Database["public"]["Enums"]["object_commercial_status"]
+          created_at?: string
+          crm_link?: string | null
+          distance_km?: number | null
+          district?: string | null
+          financial_status?: Database["public"]["Enums"]["object_financial_status"]
+          floor?: number | null
+          has_lift?: boolean | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          manager_id?: string | null
+          name?: string
+          notes?: string | null
+          number?: string
+          object_type?: string | null
+          owner_id?: string
+          planned_end?: string | null
+          planned_start?: string | null
+          production_status?: Database["public"]["Enums"]["object_production_status"]
+          risk_level?: Database["public"]["Enums"]["object_risk_level"]
+          source?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "objects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           changed_by: string | null
@@ -850,6 +1321,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_object: { Args: { _object_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -860,6 +1332,63 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "director" | "manager" | "finance"
+      object_assignment_role:
+        | "manager"
+        | "surveyor"
+        | "estimator"
+        | "foreman"
+        | "brigadier"
+        | "executor"
+        | "accountant"
+        | "buyer"
+        | "qc"
+      object_commercial_status:
+        | "new"
+        | "qualification"
+        | "measurement_scheduled"
+        | "measurement_done"
+        | "calculation"
+        | "estimate_sent"
+        | "negotiation"
+        | "contract"
+        | "awaiting_prepayment"
+        | "sold"
+        | "refused"
+        | "postponed"
+      object_financial_status:
+        | "no_invoice"
+        | "awaiting_payment"
+        | "partial_payment"
+        | "prepayment_received"
+        | "has_debt"
+        | "paid"
+        | "financially_closed"
+      object_measurement_status: "draft" | "done" | "cancelled"
+      object_measurement_type: "primary" | "repeat" | "control" | "as_built"
+      object_production_status:
+        | "not_planned"
+        | "preparation"
+        | "awaiting_materials"
+        | "ready_to_plan"
+        | "planned"
+        | "crew_assigned"
+        | "in_progress"
+        | "paused"
+        | "works_done"
+        | "acceptance"
+        | "remarks"
+        | "handed_over"
+        | "warranty"
+      object_risk_level: "green" | "yellow" | "red"
+      object_service:
+        | "screed"
+        | "roofing_pvc"
+        | "roofing_ruberoid"
+        | "insulation"
+        | "demolition"
+        | "plaster"
+        | "polybeton"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -988,6 +1517,68 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "director", "manager", "finance"],
+      object_assignment_role: [
+        "manager",
+        "surveyor",
+        "estimator",
+        "foreman",
+        "brigadier",
+        "executor",
+        "accountant",
+        "buyer",
+        "qc",
+      ],
+      object_commercial_status: [
+        "new",
+        "qualification",
+        "measurement_scheduled",
+        "measurement_done",
+        "calculation",
+        "estimate_sent",
+        "negotiation",
+        "contract",
+        "awaiting_prepayment",
+        "sold",
+        "refused",
+        "postponed",
+      ],
+      object_financial_status: [
+        "no_invoice",
+        "awaiting_payment",
+        "partial_payment",
+        "prepayment_received",
+        "has_debt",
+        "paid",
+        "financially_closed",
+      ],
+      object_measurement_status: ["draft", "done", "cancelled"],
+      object_measurement_type: ["primary", "repeat", "control", "as_built"],
+      object_production_status: [
+        "not_planned",
+        "preparation",
+        "awaiting_materials",
+        "ready_to_plan",
+        "planned",
+        "crew_assigned",
+        "in_progress",
+        "paused",
+        "works_done",
+        "acceptance",
+        "remarks",
+        "handed_over",
+        "warranty",
+      ],
+      object_risk_level: ["green", "yellow", "red"],
+      object_service: [
+        "screed",
+        "roofing_pvc",
+        "roofing_ruberoid",
+        "insulation",
+        "demolition",
+        "plaster",
+        "polybeton",
+        "other",
+      ],
     },
   },
 } as const
