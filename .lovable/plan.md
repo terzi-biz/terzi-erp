@@ -1,71 +1,68 @@
+Це велика фіча (~28 розділів). Пропоную реалістичний поетапний план, вбудований у наявну ERP TERZI без ламання. Кожен етап — окремий реліз, після якого можна працювати.
 
-## Ціль
+## Ключові принципи
 
-Дати тобі можливість самому створювати/редагувати калькулятори (напрямки) без коду: поля вводу, матеріали, роботи, логістика, коефіцієнти, формули — і одразу отримувати робочий калькулятор + кошторис. Плюс комбо-сценарії типу «Мансарда» / «Підлога-пиріг», що склеюють кілька напрямків в один об'єкт.
+- **Об'єкт = центральна сутність**, зв'язує clients / estimates / crew_bookings / calendar / files.
+- Використовуємо існуючі таблиці (`clients`, `estimates`, `crew_bookings`, `profiles`, `user_roles`) — НЕ дублюємо.
+- Дизайн — існуюча система (Oxford navy / gold / graphite, `AppShell`, shadcn).
+- Всі server fns через `createServerFn` + `requireSupabaseAuth`, RLS обов'язково.
 
-## Що вже є в БД (використовуємо, не переробляємо)
+---
 
-`directions`, `input_fields`, `formulas`, `coefficients`, `material_items`, `work_items`, `logistics_items`, `catalog_items`, `estimates`, `estimate_sections`. Схема достатня — потрібен UI + рушій.
+## Етап 1. База даних + реєстр (MVP каркас)
 
-## Архітектура (2 шари)
+**Міграції:**
+- `objects` — номер (TRZ-YYYY-NNNN, auto через sequence + trigger), name, address, coords, district, object_type, floor, lift, access, distance, notes, client_id → clients, manager_id → auth.users, source, crm_link, commercial_status, production_status, financial_status, risk_level, planned_start, planned_end, created_at/updated_at.
+- `object_services` — object_id, service (enum: screed/roofing_pvc/roofing_ruberoid/insulation/demolition/plaster/polybeton/other).
+- `object_zones` — object_id, name, service, area, perimeter, thickness, slope, volume, complexity, base_type, planned_start, planned_end, crew_id, status.
+- `object_measurements` — object_id, type (первинний/повторний/…), date, surveyor_id, area, perimeter, thicknesses(jsonb), slopes(jsonb), base(jsonb), logistics(jsonb), photos(jsonb), files(jsonb), notes, status.
+- `object_assignments` — object_id, role (manager/surveyor/estimator/foreman/brigadier/accountant/qc), user_id.
+- `object_files` — object_id, zone_id?, category, url, uploaded_by, note.
+- `object_comments` — object_id, author_id, body, mentions(jsonb), pinned.
+- `object_status_history` — object_id, field, old_value, new_value, changed_by, changed_at.
+- ALTER `estimates` ADD `object_id uuid REFERENCES objects(id)` (nullable — не ламає існуючі).
+- ALTER `crew_bookings` ADD `object_id uuid REFERENCES objects(id)` (nullable).
 
-```text
-Editor (Settings → Напрямки)          Runtime (/calc/:slug)
-─────────────────────────────         ─────────────────────────
-Direction  ──► input_fields           Форма з полів → inputs
-           ──► material_items         formula-eval рахує qty
-           ──► work_items             ──► lines (materials/works/logistics)
-           ──► logistics_items        ──► subtotal / cost / margin
-           ──► coefficients           ──► збереження в estimates
-           ──► formulas               ──► PDF / PNG як у стяжки
-```
+Всі таблиці: GRANT + RLS (`authenticated` бачить, admin/director повний доступ, інші — тільки свої призначення). Тригер `update_updated_at_column` + `object_status_history` через тригер на зміни статусів.
 
-Формули — вирази над `inputs.*`, `coeffs.*`, `materials.<key>.consumption`, з функціями `ceil/round/max/min/if`. Рушій уже стартував у `src/lib/engines/formula-eval.ts` (розширимо, а не перепишемо).
+**Server fns** (`src/lib/objects.functions.ts`):
+- `listObjects` (з фільтрами: статус, менеджер, послуга, пошук)
+- `getObject`, `createObject`, `updateObject`, `deleteObject`
+- `linkEstimateToObject`, `linkBookingToObject`
 
-## Фаза 1 — Конструктор напрямків (no-code)
+**Роути + UI:**
+- `/objects` — реєстр (таблиця, sticky-thead, фільтри, пошук, кнопка Створити).
+- `/objects/new` — 5-крокова візард форма (Клієнт → Основне → Послуги → Параметри → Наступна дія).
+- `/objects/:id` — карточка з вкладками (заглушками для наступних етапів): Огляд / Клієнт / Зони / Замери / Розрахунки / Договори / Виробництво / Фінанси / Файли / Задачі / Коментарі / Історія.
 
-Нова сторінка **Налаштування → Напрямки** (`/settings/directions`):
+Пункт «Об'єкти» у бічному меню `AppShell`.
 
-1. **Список напрямків** з БД + кнопки «Створити», «Клонувати з стяжки/покрівлі», «Активувати/Приховати».
-2. **Редактор напрямку** з вкладками:
-   - **Загальне**: name, slug, icon, опис, статус.
-   - **Поля вводу**: тип (number/select/checkbox/text), key, label, unit, default, min/max, options, tooltip, порядок. Drag-and-drop сортування.
-   - **Матеріали**: назва, одиниця, `consumption_formula` (напр. `area * thickness/100 * 8.57`), buy/sell, показувати клієнту.
-   - **Роботи**: назва, одиниця, ставка (клієнт/бригада), `qty_formula`, умова показу (`if(withGrind, area, 0)`).
-   - **Логістика**: назва, одиниця, ціна клієнт/собівартість, `qty_formula` (`ceil(sandTons / 15)`).
-   - **Коефіцієнти**: key, значення (число або таблиця діапазонів, напр. поверх → коеф).
-   - **Формули підсумків**: markup, знижка, min check, ФОП, ПДВ — з дефолтів.
-3. **Прев'ю** справа: жива форма з поточних `input_fields`, показує лінії й підсумки — щоб ти бачив ефект без публікації.
+## Етап 2. Замери + Зони + інтеграція з калькуляторами
 
-Усе пишеться в існуючі таблиці; RLS уже налаштовані.
+- Вкладка Замери: список + форма з фото/файлами (Supabase Storage bucket `object-files`).
+- Після завершення замеру — оновлення параметрів об'єкта + автосинк у зони.
+- Вкладка Зони: CRUD, копіювання, «Відправити в калькулятор» — відкриває `/screed?object=<id>&zone=<id>` з префілом (area, thickness, floor, lift, …).
+- Розширення `useEstimatePrefill` → `useObjectPrefill`.
+- При збереженні кошторису з калькулятора — автоматично `estimates.object_id = <id>`.
 
-## Фаза 2 — Runtime `/calc/:slug`
+## Етап 3. Кошториси / Договори / Виробництво
 
-Одна універсальна сторінка замість чотирьох окремих (`screed`/`roofing`/`insulation`/`demolition` залишаються як були — не ламаємо). Читає `directions` за slug, рендерить поля, викликає `evalDirection(inputs)` → повертає `CalcResult` тієї ж форми, що зараз у `screed-calc`. PDF/PNG/збереження в `estimates` — використовуємо існуючий `EstimateView`.
+- Вкладка «Розрахунки і сметы»: список `estimates` де `object_id = :id`, версії, статуси, дії (відкрити, дублювати, надіслати).
+- Створення планування → запис у `crew_bookings` з `object_id`. Гейти: без завершеного замеру / погодженої сметы / оплати — блокуємо з підказкою.
+- (Договори як мінімальна сутність `contracts` — окрема таблиця, файл-запис, статус, зв'язок з estimate + object. Повний договірний модуль — окремим релізом якщо треба.)
 
-Так стяжка/покрівля продовжують працювати через свої typed-двигуни (там вивірена логіка), а нові напрямки — через no-code.
+## Етап 4. Фінанси / Задачі / Файли / Коментарі / Ризики / Аналітика
 
-## Фаза 3 — Комбо-сценарії (Мансарда, Пиріг підлоги)
+- Простий `object_payments` (план/факт) + агрегати для картки (виручка/собівартість/маржа/борг).
+- `object_tasks` (або розширення існуючих задач якщо є) + автопрапори.
+- Файлові категорії + гейти закриття етапу.
+- Автообчислення `risk_level` на основі правил (нема договору, прострочка, відсутність оплати, від'ємна маржа).
+- Сторінка `/reports` — розширення новими віджетами: конверсія замір→смета→договір, план-факт, завантаження бригад.
 
-Нова сутність **Packages** (нова таблиця `packages` + `package_steps`):
+---
 
-- Пакет = впорядкований набір посилань на напрямки з переоприділенням дефолтів (напр. Мансарда: demolition → insulation-PIR → screed-thin → finish).
-- Спільні поля (area, perimeter, floor, доступ) вводяться один раз і прокидаються в усі кроки.
-- Дедуплікація: одна логістика підйому/бригадир/амортизація на об'єкт (правила «shared costs» у пакеті).
-- Результат: **один зведений кошторис із секціями** (`estimate_sections` для кожного кроку) **АБО** кілька окремих кошторисів під один об'єкт — перемикач менеджера, як ти просив.
+## Що зроблю ЗАРАЗ (в цій відповіді після твого «так»)
 
-UI: **Кошториси → Новий → Комбо**, вибір пакета, введення спільних параметрів, крок-за-кроком коригування, підсумок з роздільною маржею і зведеною.
+**Тільки Етап 1** — реєстр + карточка з вкладками-каркасом + мастер створення + інтеграція `estimates.object_id`. Це дає робочу основу, нічого не ламає. Далі — по кроках за твоїм пріоритетом.
 
-## Порядок робіт
-
-1. **Тиждень 1** — Фаза 1 (редактор напрямків) + розширення `formula-eval` (функції, безпечний парсер, тести).
-2. **Тиждень 2** — Фаза 2 (`/calc/:slug`, збереження estimates, PDF).
-3. **Тиждень 3** — Фаза 3 (Packages, Мансарда і Пиріг підлоги як seed-пакети, дедуплікація витрат).
-
-Стяжка/покрівля/утеплення/демонтаж лишаються недоторканими протягом усього процесу. Прайси і формули existing-модулів редагуватимуться і через старі Settings-вкладки, і через новий конструктор — це та ж БД.
-
-## Що потрібно від тебе перед стартом
-
-1. Підтвердь: почати з **Фази 1** (редактор), реліз через кілька днів; далі Фаза 2 і 3.
-2. Для «Мансарди» перерахуй кроки як ти їх бачиш (демонтаж старого покриття → пароізоляція → утеплення PIR/мінвата → мембрана/стяжка → фініш) — я закладу як seed.
-3. Для «Пирога підлоги» — те саме (демонтаж → вирівнювання → утеплення → стяжка → фініш).
+Скажи «ок, стартуй Етап 1» — і я одразу пишу міграцію та код. Або скоригуй порядок / об'єднай етапи.
