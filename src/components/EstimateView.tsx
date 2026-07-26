@@ -564,7 +564,8 @@ function ClientSheet(p: EditableSheetProps) {
   const setOv = (id: string, patch: Partial<Override>) =>
     setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
-  const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t);
+  const cvm = p.clientViewMode ?? "detailed";
+  const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t, cvm);
 
   // Паритет з двигуном та Внутрішнім кошторисом: враховуємо приховані адюстменти
   // (складність, знижка, партнерська комісія, FOP, ПДВ, мінімальний чек, округлення).
