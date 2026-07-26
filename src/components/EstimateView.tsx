@@ -248,17 +248,41 @@ export function EstimateView({
         </div>
       )}
       {mode === "client" && (
-        <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
-          <EstimateWatermark />
-          <div className="relative z-10">
-            <ClientSheet
-              result={result} client={client} branding={branding} module={module}
-              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-              overrides={clientOverrides} setOverrides={setClientOverrides}
-              extras={clientExtras} setExtras={setClientExtras}
-            />
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2 panel p-3">
+            <div className="text-[11px] text-muted-foreground">
+              Формат КП:
+            </div>
+            <div className="flex gap-1">
+              {([
+                ["detailed", "Детальна"],
+                ["condensed", "Стисла (за групами)"],
+                ["turnkey", "Під ключ (1 рядок)"],
+              ] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => { setClientViewMode(k); onClientViewModeChange?.(k); }}
+                  className={`px-3 py-1.5 rounded text-[11px] font-semibold ${clientViewMode === k ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+          <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+            <EstimateWatermark />
+            <div className="relative z-10">
+              <ClientSheet
+                result={result} client={client} branding={branding} module={module}
+                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+                overrides={clientOverrides} setOverrides={setClientOverrides}
+                extras={clientExtras} setExtras={setClientExtras}
+                clientViewMode={clientViewMode}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {/* Перемикач Кошторис / КП — ВНИЗУ */}
