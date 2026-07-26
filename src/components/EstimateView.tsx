@@ -102,6 +102,8 @@ interface Props {
   isInternal: boolean;
   estimateId?: string;
   layers?: number;
+  initialClientViewMode?: ClientViewMode;
+  onClientViewModeChange?: (m: ClientViewMode) => void;
   schedule?: {
     startAt?: string | null;
     durationDays?: number | null;
