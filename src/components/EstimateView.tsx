@@ -602,7 +602,7 @@ function ClientSheet(p: EditableSheetProps) {
           </tr>
         </thead>
         <tbody>
-          {effective.map((g) => {
+          {cvm === "detailed" && effective.map((g) => {
             const sub = g.rows.reduce((a, r) => a + r.sum, 0);
             return (
               <Fragment key={g.block}>
@@ -664,6 +664,31 @@ function ClientSheet(p: EditableSheetProps) {
               </Fragment>
             );
           })}
+
+          {cvm === "condensed" && effective.map((g) => {
+            const sub = g.rows.reduce((a, r) => a + r.sum, 0);
+            return (
+              <tr key={g.block} className="border-b border-slate-200">
+                <td className="p-2 font-semibold">{g.label}</td>
+                <td className="text-center p-2 text-slate-500">компл.</td>
+                <td className="text-right p-2">1</td>
+                <td className="text-right p-2">{formatUah(sub)}</td>
+                <td className="text-right p-2 font-semibold">{formatUah(sub)}</td>
+                <td className="print:hidden" />
+              </tr>
+            );
+          })}
+
+          {cvm === "turnkey" && (
+            <tr className="border-b border-slate-200">
+              <td className="p-2 font-semibold">Комплекс робіт під ключ ({p.module}, {p.area} м²)</td>
+              <td className="text-center p-2 text-slate-500">компл.</td>
+              <td className="text-right p-2">1</td>
+              <td className="text-right p-2">{formatUah(grandTotal)}</td>
+              <td className="text-right p-2 font-semibold">{formatUah(grandTotal)}</td>
+              <td className="print:hidden" />
+            </tr>
+          )}
         </tbody>
         <tfoot>
           <tr className="border-t-2 border-slate-900" data-pdf-block>
