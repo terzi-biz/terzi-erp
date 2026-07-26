@@ -73,6 +73,7 @@ export type Database = {
       catalog_items: {
         Row: {
           buy_price: number
+          client_group_key: string | null
           code: string | null
           created_at: string
           id: string
@@ -83,12 +84,14 @@ export type Database = {
           module: string
           name: string
           sell_price: number
+          show_in_client: Database["public"]["Enums"]["show_in_client_mode"]
           sort_order: number
           unit: string
           updated_at: string
         }
         Insert: {
           buy_price?: number
+          client_group_key?: string | null
           code?: string | null
           created_at?: string
           id?: string
@@ -99,12 +102,14 @@ export type Database = {
           module: string
           name: string
           sell_price?: number
+          show_in_client?: Database["public"]["Enums"]["show_in_client_mode"]
           sort_order?: number
           unit: string
           updated_at?: string
         }
         Update: {
           buy_price?: number
+          client_group_key?: string | null
           code?: string | null
           created_at?: string
           id?: string
@@ -115,8 +120,36 @@ export type Database = {
           module?: string
           name?: string
           sell_price?: number
+          show_in_client?: Database["public"]["Enums"]["show_in_client_mode"]
           sort_order?: number
           unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      client_groups: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          name?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -1388,6 +1421,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "director" | "manager" | "finance"
+      client_view_mode: "detailed" | "condensed" | "turnkey"
       object_assignment_role:
         | "manager"
         | "surveyor"
@@ -1445,6 +1479,11 @@ export type Database = {
         | "plaster"
         | "polybeton"
         | "other"
+      show_in_client_mode:
+        | "always"
+        | "detailed_only"
+        | "condensed_only"
+        | "never"
       snapshot_kind: "approved" | "production"
     }
     CompositeTypes: {
@@ -1574,6 +1613,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "director", "manager", "finance"],
+      client_view_mode: ["detailed", "condensed", "turnkey"],
       object_assignment_role: [
         "manager",
         "surveyor",
@@ -1635,6 +1675,12 @@ export const Constants = {
         "plaster",
         "polybeton",
         "other",
+      ],
+      show_in_client_mode: [
+        "always",
+        "detailed_only",
+        "condensed_only",
+        "never",
       ],
       snapshot_kind: ["approved", "production"],
     },

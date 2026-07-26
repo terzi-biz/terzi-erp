@@ -52,6 +52,9 @@ interface ExtraLine {
   costPerUnit: number;
 }
 
+export type ShowInClientMode = "always" | "detailed_only" | "condensed_only" | "never";
+export type ClientViewMode = "detailed" | "condensed" | "turnkey";
+
 export interface EstimateLine {
   key: string;
   block: string; // materials | works | logistics
@@ -63,6 +66,10 @@ export interface EstimateLine {
   sum: number;
   cost: number;
   showToClient?: boolean;
+  /** Тонший контроль: якщо задано, override showToClient. */
+  showInClient?: ShowInClientMode;
+  /** Ключ клієнтської групи (для режиму «Стисла»); якщо порожньо — за блоком. */
+  clientGroup?: string;
 }
 
 export interface EstimateResultLike {
@@ -95,6 +102,8 @@ interface Props {
   isInternal: boolean;
   estimateId?: string;
   layers?: number;
+  initialClientViewMode?: ClientViewMode;
+  onClientViewModeChange?: (m: ClientViewMode) => void;
   schedule?: {
     startAt?: string | null;
     durationDays?: number | null;
@@ -140,10 +149,11 @@ const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
 
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
-  estimateId, layers, schedule,
+  estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange,
 }: Props) {
   const t = useT();
   const [mode, setMode] = useState<"client" | "internal">(isInternal ? "internal" : "client");
+  const [clientViewMode, setClientViewMode] = useState<ClientViewMode>(initialClientViewMode ?? "detailed");
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
@@ -238,17 +248,41 @@ export function EstimateView({
         </div>
       )}
       {mode === "client" && (
-        <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
-          <EstimateWatermark />
-          <div className="relative z-10">
-            <ClientSheet
-              result={result} client={client} branding={branding} module={module}
-              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-              overrides={clientOverrides} setOverrides={setClientOverrides}
-              extras={clientExtras} setExtras={setClientExtras}
-            />
+        <>
+          <div className="flex flex-wrap items-center justify-between gap-2 panel p-3">
+            <div className="text-[11px] text-muted-foreground">
+              Формат КП:
+            </div>
+            <div className="flex gap-1">
+              {([
+                ["detailed", "Детальна"],
+                ["condensed", "Стисла (за групами)"],
+                ["turnkey", "Під ключ (1 рядок)"],
+              ] as const).map(([k, label]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => { setClientViewMode(k); onClientViewModeChange?.(k); }}
+                  className={`px-3 py-1.5 rounded text-[11px] font-semibold ${clientViewMode === k ? "bg-primary text-primary-foreground" : "bg-secondary"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+          <div ref={clientRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
+            <EstimateWatermark />
+            <div className="relative z-10">
+              <ClientSheet
+                result={result} client={client} branding={branding} module={module}
+                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+                overrides={clientOverrides} setOverrides={setClientOverrides}
+                extras={clientExtras} setExtras={setClientExtras}
+                clientViewMode={clientViewMode}
+              />
+            </div>
+          </div>
+        </>
       )}
 
       {/* Перемикач Кошторис / КП — ВНИЗУ */}
@@ -315,10 +349,23 @@ interface EditableSheetProps extends SheetProps {
   setOverrides: React.Dispatch<React.SetStateAction<Record<string, Override>>>;
   extras: ExtraLine[];
   setExtras: React.Dispatch<React.SetStateAction<ExtraLine[]>>;
+  clientViewMode?: ClientViewMode;
 }
 
 /** Спільний вхідний CSS для клітинок таблиці. */
 const inputCls = "w-full bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-amber-600 focus:bg-amber-50/50 px-1 py-0.5 text-[11px]";
+
+/** Правило видимості позиції для клієнта з урахуванням showInClient та поточного режиму. */
+function isRowVisibleToClient(r: EstimateLine, cvm: ClientViewMode): boolean {
+  const mode = r.showInClient;
+  if (mode) {
+    if (mode === "never") return false;
+    if (mode === "always") return true;
+    if (mode === "detailed_only") return cvm === "detailed";
+    if (mode === "condensed_only") return cvm === "condensed";
+  }
+  return r.showToClient !== false;
+}
 
 /** Спільна побудова ефективних блоків (з урахуванням правок і extras). */
 function useEffectiveBlocks(
@@ -327,11 +374,12 @@ function useEffectiveBlocks(
   extras: ExtraLine[],
   filterClient: boolean,
   t: ReturnType<typeof useT>,
+  clientViewMode: ClientViewMode = "detailed",
 ) {
   return useMemo(() => {
     return grouped.map((g) => {
       const baseRows = g.rows
-        .filter((r) => (filterClient ? r.showToClient !== false : true))
+        .filter((r) => (filterClient ? isRowVisibleToClient(r, clientViewMode) : true))
         .map((r) => {
           const id = lineId(r);
           const ov = overrides[id] ?? {};
@@ -358,7 +406,7 @@ function useEffectiveBlocks(
 
       return { block: g.block, label: g.label, rows: [...baseRows, ...extraRows] };
     }).filter((g) => g.rows.length > 0);
-  }, [grouped, overrides, extras, filterClient, t]);
+  }, [grouped, overrides, extras, filterClient, t, clientViewMode]);
 }
 
 function InternalSheet(p: EditableSheetProps) {
@@ -516,7 +564,8 @@ function ClientSheet(p: EditableSheetProps) {
   const setOv = (id: string, patch: Partial<Override>) =>
     setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
-  const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t);
+  const cvm = p.clientViewMode ?? "detailed";
+  const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t, cvm);
 
   // Паритет з двигуном та Внутрішнім кошторисом: враховуємо приховані адюстменти
   // (складність, знижка, партнерська комісія, FOP, ПДВ, мінімальний чек, округлення).
@@ -553,7 +602,7 @@ function ClientSheet(p: EditableSheetProps) {
           </tr>
         </thead>
         <tbody>
-          {effective.map((g) => {
+          {cvm === "detailed" && effective.map((g) => {
             const sub = g.rows.reduce((a, r) => a + r.sum, 0);
             return (
               <Fragment key={g.block}>
@@ -615,6 +664,31 @@ function ClientSheet(p: EditableSheetProps) {
               </Fragment>
             );
           })}
+
+          {cvm === "condensed" && effective.map((g) => {
+            const sub = g.rows.reduce((a, r) => a + r.sum, 0);
+            return (
+              <tr key={g.block} className="border-b border-slate-200">
+                <td className="p-2 font-semibold">{g.label}</td>
+                <td className="text-center p-2 text-slate-500">компл.</td>
+                <td className="text-right p-2">1</td>
+                <td className="text-right p-2">{formatUah(sub)}</td>
+                <td className="text-right p-2 font-semibold">{formatUah(sub)}</td>
+                <td className="print:hidden" />
+              </tr>
+            );
+          })}
+
+          {cvm === "turnkey" && (
+            <tr className="border-b border-slate-200">
+              <td className="p-2 font-semibold">Комплекс робіт під ключ ({p.module}, {p.area} м²)</td>
+              <td className="text-center p-2 text-slate-500">компл.</td>
+              <td className="text-right p-2">1</td>
+              <td className="text-right p-2">{formatUah(grandTotal)}</td>
+              <td className="text-right p-2 font-semibold">{formatUah(grandTotal)}</td>
+              <td className="print:hidden" />
+            </tr>
+          )}
         </tbody>
         <tfoot>
           <tr className="border-t-2 border-slate-900" data-pdf-block>
