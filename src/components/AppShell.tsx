@@ -41,6 +41,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/", icon: LayoutDashboard, label: t("dashboard") },
     { to: "/objects", icon: Building2, label: "Об'єкти" },
     { to: "/operations", icon: CalendarDays, label: "Операційний календар" },
+    { to: "/production", icon: HardHat, label: "Виробництво" },
+
     { to: "/clients", icon: Users, label: "Клієнти" },
   ];
   const bottomLinks = [

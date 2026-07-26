@@ -28,6 +28,7 @@ import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 
@@ -126,6 +127,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ProductionIdRoute = ProductionIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => ProductionRoute,
+} as any)
 const ObjectsNewRoute = ObjectsNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -151,7 +157,7 @@ export interface FileRoutesByFullPath {
   '/materials': typeof MaterialsRoute
   '/objects': typeof ObjectsRouteWithChildren
   '/operations': typeof OperationsRoute
-  '/production': typeof ProductionRoute
+  '/production': typeof ProductionRouteWithChildren
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
@@ -159,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/works': typeof WorksRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/production/$id': typeof ProductionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -174,7 +181,7 @@ export interface FileRoutesByTo {
   '/materials': typeof MaterialsRoute
   '/objects': typeof ObjectsRouteWithChildren
   '/operations': typeof OperationsRoute
-  '/production': typeof ProductionRoute
+  '/production': typeof ProductionRouteWithChildren
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
@@ -182,6 +189,7 @@ export interface FileRoutesByTo {
   '/works': typeof WorksRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/production/$id': typeof ProductionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -198,7 +206,7 @@ export interface FileRoutesById {
   '/materials': typeof MaterialsRoute
   '/objects': typeof ObjectsRouteWithChildren
   '/operations': typeof OperationsRoute
-  '/production': typeof ProductionRoute
+  '/production': typeof ProductionRouteWithChildren
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
   '/screed': typeof ScreedRoute
@@ -206,6 +214,7 @@ export interface FileRoutesById {
   '/works': typeof WorksRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/production/$id': typeof ProductionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -231,6 +240,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/objects/$id'
     | '/objects/new'
+    | '/production/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -254,6 +264,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/objects/$id'
     | '/objects/new'
+    | '/production/$id'
   id:
     | '__root__'
     | '/'
@@ -277,6 +288,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/objects/$id'
     | '/objects/new'
+    | '/production/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -293,7 +305,7 @@ export interface RootRouteChildren {
   MaterialsRoute: typeof MaterialsRoute
   ObjectsRoute: typeof ObjectsRouteWithChildren
   OperationsRoute: typeof OperationsRoute
-  ProductionRoute: typeof ProductionRoute
+  ProductionRoute: typeof ProductionRouteWithChildren
   ReportsRoute: typeof ReportsRoute
   RoofingRoute: typeof RoofingRoute
   ScreedRoute: typeof ScreedRoute
@@ -436,6 +448,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/production/$id': {
+      id: '/production/$id'
+      path: '/$id'
+      fullPath: '/production/$id'
+      preLoaderRoute: typeof ProductionIdRouteImport
+      parentRoute: typeof ProductionRoute
+    }
     '/objects/new': {
       id: '/objects/new'
       path: '/new'
@@ -466,6 +485,18 @@ const ObjectsRouteChildren: ObjectsRouteChildren = {
 const ObjectsRouteWithChildren =
   ObjectsRoute._addFileChildren(ObjectsRouteChildren)
 
+interface ProductionRouteChildren {
+  ProductionIdRoute: typeof ProductionIdRoute
+}
+
+const ProductionRouteChildren: ProductionRouteChildren = {
+  ProductionIdRoute: ProductionIdRoute,
+}
+
+const ProductionRouteWithChildren = ProductionRoute._addFileChildren(
+  ProductionRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   BrandingRoute: BrandingRoute,
@@ -480,7 +511,7 @@ const rootRouteChildren: RootRouteChildren = {
   MaterialsRoute: MaterialsRoute,
   ObjectsRoute: ObjectsRouteWithChildren,
   OperationsRoute: OperationsRoute,
-  ProductionRoute: ProductionRoute,
+  ProductionRoute: ProductionRouteWithChildren,
   ReportsRoute: ReportsRoute,
   RoofingRoute: RoofingRoute,
   ScreedRoute: ScreedRoute,
