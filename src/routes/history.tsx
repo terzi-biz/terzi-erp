@@ -112,10 +112,29 @@ function HistoryPage() {
     },
     onError: (e: Error) => toast.error(e.message),
   });
+  const approveMut = useMutation({
+    mutationFn: (v: { id: string; note?: string; kind?: "approved" | "production" }) => approve({ data: v as any }),
+    onSuccess: () => {
+      toast.success("Версію створено");
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+      qc.invalidateQueries({ queryKey: ["estimate-versions"] });
+      qc.invalidateQueries({ queryKey: ["estimate-audit"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+  const forkMut = useMutation({
+    mutationFn: (version_id: string) => forkFn({ data: { version_id } }),
+    onSuccess: () => {
+      toast.success("Копію створено як нову чернетку");
+      qc.invalidateQueries({ queryKey: ["estimates"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const [scheduleFor, setScheduleFor] = useState<EstimateRow | null>(null);
   const [editFor, setEditFor] = useState<EstimateRow | null>(null);
   const [logFor, setLogFor] = useState<EstimateRow | null>(null);
+  const [versionsFor, setVersionsFor] = useState<EstimateRow | null>(null);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
