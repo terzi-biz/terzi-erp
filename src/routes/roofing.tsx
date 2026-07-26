@@ -124,6 +124,8 @@ function RoofingPage() {
       total_client: result.totalClient, total_cost: result.totalCost,
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
+      calculation_json: result as unknown as Record<string, unknown>,
+      engine_version: ENGINE_VERSIONS.roofing,
     } }),
     onSuccess: (row: { id?: string }) => {
       if (row?.id) setEstimateId(row.id);
