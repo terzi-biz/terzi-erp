@@ -283,6 +283,14 @@ function HistoryPage() {
       {logFor && (
         <AuditLogDialog row={logFor} onClose={() => setLogFor(null)} />
       )}
+
+      {versionsFor && (
+        <VersionsDialog
+          row={versionsFor}
+          onClose={() => setVersionsFor(null)}
+          onFork={(vid) => forkMut.mutate(vid)}
+        />
+      )}
     </div>
   );
 }
