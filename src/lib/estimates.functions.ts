@@ -358,3 +358,173 @@ export const listEstimateAudit = createServerFn({ method: "POST" })
     if (error) { console.error("listEstimateAudit", error); throw new Error("Не вдалося завантажити журнал"); }
     return rows ?? [];
   });
+
+/* ============================================================
+   П2.4 — Версії кошторису (immutable snapshots)
+   ============================================================ */
+
+async function snapshotEstimate(supabase: any, estimateId: string) {
+  const { data: row, error } = await supabase
+    .from("estimates").select("*").eq("id", estimateId).maybeSingle();
+  if (error || !row) throw new Error("Кошторис не знайдено для snapshot");
+  return {
+    number: row.number, module: row.module, status: row.status,
+    client_id: row.client_id, client_name: row.client_name,
+    client_phone: row.client_phone, address: row.address, manager: row.manager,
+    area: row.area, thickness_cm: row.thickness_cm,
+    total_client: row.total_client, total_cost: row.total_cost,
+    gross_profit: row.gross_profit, margin_percent: row.margin_percent,
+    payload: row.payload, calculation_json: row.calculation_json,
+  };
+}
+
+export const listEstimateVersions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ estimate_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("estimate_versions")
+      .select("id,version_no,snapshot_kind,engine_version,price_book_version,approved_by_name,note,created_at")
+      .eq("estimate_id", data.estimate_id)
+      .order("version_no", { ascending: false });
+    if (error) { console.error("listEstimateVersions", error); throw new Error("Не вдалося завантажити версії"); }
+    return rows ?? [];
+  });
+
+export const getEstimateVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("estimate_versions").select("*").eq("id", data.id).maybeSingle();
+    if (error) { console.error("getEstimateVersion", error); throw new Error("Не вдалося отримати версію"); }
+    if (!row) throw new Error("Версію не знайдено");
+    return row;
+  });
+
+export const approveEstimate = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      id: z.string().uuid(),
+      note: z.string().max(1000).optional(),
+      kind: z.enum(["approved", "production"]).default("approved"),
+    }).parse(d))
+  .handler(async ({ data, context }) => {
+    const snap = await snapshotEstimate(context.supabase, data.id);
+    const { data: prev } = await context.supabase
+      .from("estimate_versions")
+      .select("version_no").eq("estimate_id", data.id)
+      .order("version_no", { ascending: false }).limit(1).maybeSingle();
+    const nextNo = (prev?.version_no ?? 0) + 1;
+
+    const { data: prof } = await context.supabase
+      .from("profiles").select("display_name,email").eq("user_id", context.userId).maybeSingle();
+    const actor = (prof?.display_name || prof?.email || null) as string | null;
+
+    const { data: est } = await context.supabase
+      .from("estimates").select("engine_version,price_book_version").eq("id", data.id).maybeSingle();
+
+    const { data: ver, error } = await context.supabase.from("estimate_versions").insert({
+      estimate_id: data.id,
+      version_no: nextNo,
+      snapshot_kind: data.kind,
+      snapshot: snap,
+      engine_version: est?.engine_version ?? null,
+      price_book_version: est?.price_book_version ?? null,
+      approved_by: context.userId,
+      approved_by_name: actor,
+      note: data.note ?? null,
+    }).select().single();
+    if (error) { console.error("approveEstimate", error); throw new Error("Не вдалося створити версію"); }
+
+    if (data.kind === "approved") {
+      await context.supabase.from("estimates")
+        .update({ status: "approved", approved_at: new Date().toISOString() })
+        .eq("id", data.id);
+    } else {
+      await context.supabase.from("estimates")
+        .update({ status: "inWork" })
+        .eq("id", data.id);
+    }
+    await logAudit(context.supabase, context.userId, data.id,
+      data.kind === "approved" ? "approved_version" : "production_version",
+      { version_no: nextNo, note: data.note ?? null });
+    return ver;
+  });
+
+export const forkEstimateFromVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ version_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: ver, error } = await context.supabase
+      .from("estimate_versions").select("*").eq("id", data.version_id).maybeSingle();
+    if (error || !ver) throw new Error("Версію не знайдено");
+    const s = ver.snapshot as any;
+    const suffix = "-v" + (ver.version_no + 1);
+    const newRow: any = {
+      number: (s.number || "TRZ") + suffix,
+      module: s.module,
+      status: "draft",
+      client_id: s.client_id,
+      client_name: s.client_name,
+      client_phone: s.client_phone,
+      address: s.address,
+      manager: s.manager,
+      area: s.area,
+      thickness_cm: s.thickness_cm,
+      total_client: s.total_client ?? 0,
+      total_cost: s.total_cost ?? 0,
+      gross_profit: s.gross_profit ?? 0,
+      margin_percent: s.margin_percent ?? 0,
+      payload: s.payload ?? {},
+      calculation_json: s.calculation_json ?? null,
+      engine_version: ver.engine_version,
+      price_book_version: ver.price_book_version,
+      owner_id: context.userId,
+    };
+    const { data: out, error: e2 } = await context.supabase
+      .from("estimates").insert(newRow).select().single();
+    if (e2) { console.error("forkEstimate", e2); throw new Error("Не вдалося створити копію"); }
+    await logAudit(context.supabase, context.userId, out.id, "forked_from_version",
+      { source_version: ver.version_no, source_estimate: ver.estimate_id });
+    return out;
+  });
+
+/* ============================================================
+   П3.10 — Аналітика: прибуток за розрізами
+   ============================================================ */
+
+export const reportProfitBy = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    dimension: z.enum(["manager", "module", "status"]).default("manager"),
+    dateFrom: z.string().optional().nullable(),
+    dateTo: z.string().optional().nullable(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const isAdmin = await userIsInternal(context.supabase, context.userId);
+    if (!isAdmin) throw new Error("Доступ лише для адміністраторів");
+    let q = context.supabase.from("estimates")
+      .select("owner_id,manager,module,status,total_client,total_cost,gross_profit,created_at");
+    if (data.dateFrom) q = q.gte("created_at", data.dateFrom);
+    if (data.dateTo) q = q.lte("created_at", data.dateTo);
+    const { data: rows, error } = await q;
+    if (error) { console.error("reportProfitBy", error); throw new Error("Не вдалося зібрати звіт"); }
+    const withMgr = await attachManager(context.supabase, rows ?? []);
+    const buckets = new Map<string, { key: string; count: number; sell: number; cost: number; profit: number }>();
+    for (const r of withMgr as any[]) {
+      const key = String(
+        data.dimension === "manager" ? (r.manager_display || "—") :
+        data.dimension === "module" ? (r.module || "—") :
+        (r.status || "—")
+      );
+      const b = buckets.get(key) ?? { key, count: 0, sell: 0, cost: 0, profit: 0 };
+      b.count += 1;
+      b.sell += Number(r.total_client) || 0;
+      b.cost += Number(r.total_cost) || 0;
+      b.profit += Number(r.gross_profit) || 0;
+      buckets.set(key, b);
+    }
+    return Array.from(buckets.values()).sort((a, b) => b.profit - a.profit);
+  });
