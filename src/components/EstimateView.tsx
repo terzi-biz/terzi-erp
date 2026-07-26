@@ -149,10 +149,11 @@ const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
 
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
-  estimateId, layers, schedule,
+  estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange,
 }: Props) {
   const t = useT();
   const [mode, setMode] = useState<"client" | "internal">(isInternal ? "internal" : "client");
+  const [clientViewMode, setClientViewMode] = useState<ClientViewMode>(initialClientViewMode ?? "detailed");
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
