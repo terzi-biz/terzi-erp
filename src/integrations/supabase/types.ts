@@ -70,6 +70,150 @@ export type Database = {
           },
         ]
       }
+      calendar_events: {
+        Row: {
+          address: string | null
+          all_day: boolean
+          area: number | null
+          booking_id: string | null
+          category: string
+          checklist: Json
+          client_id: string | null
+          client_name: string | null
+          created_at: string
+          created_by: string | null
+          crew_key: string | null
+          description: string | null
+          direction: string | null
+          employee_id: string | null
+          ends_at: string
+          estimate_id: string | null
+          event_type: string
+          id: string
+          manager_id: string | null
+          measurement_id: string | null
+          metadata: Json
+          object_id: string | null
+          participants: string[]
+          priority: string
+          reminders: Json
+          responsible_user_id: string | null
+          source_id: string | null
+          source_type: string | null
+          starts_at: string
+          status: string
+          title: string
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          address?: string | null
+          all_day?: boolean
+          area?: number | null
+          booking_id?: string | null
+          category?: string
+          checklist?: Json
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          crew_key?: string | null
+          description?: string | null
+          direction?: string | null
+          employee_id?: string | null
+          ends_at: string
+          estimate_id?: string | null
+          event_type?: string
+          id?: string
+          manager_id?: string | null
+          measurement_id?: string | null
+          metadata?: Json
+          object_id?: string | null
+          participants?: string[]
+          priority?: string
+          reminders?: Json
+          responsible_user_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          starts_at: string
+          status?: string
+          title: string
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          address?: string | null
+          all_day?: boolean
+          area?: number | null
+          booking_id?: string | null
+          category?: string
+          checklist?: Json
+          client_id?: string | null
+          client_name?: string | null
+          created_at?: string
+          created_by?: string | null
+          crew_key?: string | null
+          description?: string | null
+          direction?: string | null
+          employee_id?: string | null
+          ends_at?: string
+          estimate_id?: string | null
+          event_type?: string
+          id?: string
+          manager_id?: string | null
+          measurement_id?: string | null
+          metadata?: Json
+          object_id?: string | null
+          participants?: string[]
+          priority?: string
+          reminders?: Json
+          responsible_user_id?: string | null
+          source_id?: string | null
+          source_type?: string | null
+          starts_at?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "crew_bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "object_measurements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "calendar_events_object_id_fkey"
+            columns: ["object_id"]
+            isOneToOne: false
+            referencedRelation: "objects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           buy_price: number
@@ -1299,27 +1443,39 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          department: string | null
           display_name: string | null
           email: string | null
           id: string
+          is_active: boolean
+          phone: string | null
+          position: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          department?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
+          phone?: string | null
+          position?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          department?: string | null
           display_name?: string | null
           email?: string | null
           id?: string
+          is_active?: boolean
+          phone?: string | null
+          position?: string | null
           updated_at?: string
           user_id?: string
         }
