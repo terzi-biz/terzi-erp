@@ -243,9 +243,25 @@
   &::-webkit-scrollbar { display: none; }
 }
 
+/* TERZI dark operational palette (операційний календар) */
+@theme {
+  --color-terzi-midnight: #06172b;
+  --color-terzi-blue: #0e314f;
+  --color-terzi-gold: #d89b2b;
+  --color-terzi-ivory: #f6f3ec;
+  --color-terzi-steel: #cbd3db;
+  --color-terzi-carbon: #14171b;
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar { display: none; }
+}
 
 @media print {
   body { background: white !important; color: black !important; }
   .brand-watermark::before { display: none !important; }
 }
+
 
