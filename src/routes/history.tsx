@@ -521,3 +521,61 @@ function fmtVal(v: unknown): string {
   }
   return JSON.stringify(v);
 }
+
+function VersionsDialog({
+  row, onClose, onFork,
+}: {
+  row: EstimateRow;
+  onClose: () => void;
+  onFork: (versionId: string) => void;
+}) {
+  const loadVersions = useServerFn(listEstimateVersions);
+  const { data: versions = [], isLoading } = useQuery({
+    queryKey: ["estimate-versions", row.id],
+    queryFn: () => loadVersions({ data: { estimate_id: row.id } }),
+  });
+  return (
+    <div className="fixed inset-0 z-50 bg-background/80 grid place-items-center p-4" onClick={onClose}>
+      <div className="panel p-6 max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-black text-lg">Історія версій · {row.number}</h2>
+          <button onClick={onClose}><X className="w-4 h-4" /></button>
+        </div>
+        <div className="overflow-y-auto flex-1">
+          {isLoading && <div className="text-center text-muted-foreground py-6">Завантаження…</div>}
+          {!isLoading && (versions as any[]).length === 0 && (
+            <div className="text-center text-muted-foreground py-6">Поки немає погоджених версій</div>
+          )}
+          <ul className="space-y-2">
+            {(versions as any[]).map((v) => (
+              <li key={v.id} className="border border-border rounded p-3 flex items-start justify-between gap-3">
+                <div className="text-xs space-y-1">
+                  <div className="font-bold">
+                    Версія #{v.version_no}
+                    <span className="ml-2 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-secondary">
+                      {v.snapshot_kind}
+                    </span>
+                  </div>
+                  <div className="text-muted-foreground">
+                    {new Date(v.created_at).toLocaleString("uk-UA")} · {v.approved_by_name || "—"}
+                  </div>
+                  {v.engine_version && (
+                    <div className="text-muted-foreground">engine: {v.engine_version}</div>
+                  )}
+                  {v.note && <div className="italic">Коментар: {v.note}</div>}
+                </div>
+                <button
+                  onClick={() => { if (confirm("Створити нову чернетку з цієї версії?")) onFork(v.id); }}
+                  className="px-3 py-1.5 rounded bg-secondary text-xs font-semibold whitespace-nowrap"
+                  title="Створити нову чернетку з цієї версії"
+                >
+                  Форкнути
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
