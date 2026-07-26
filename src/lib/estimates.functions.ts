@@ -210,6 +210,9 @@ export const saveEstimate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => estimateInput.parse(d))
   .handler(async ({ data, context }) => {
+    const isAdmin = await userIsInternal(context.supabase, context.userId);
+    const gateError = financialGate(data, isAdmin);
+    if (gateError) throw new Error(gateError);
     const row = { ...data, owner_id: context.userId };
     let before: any = null;
     if (data.id) {
