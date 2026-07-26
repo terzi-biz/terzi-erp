@@ -369,15 +369,67 @@ export type Database = {
           },
         ]
       }
+      estimate_versions: {
+        Row: {
+          approved_by: string | null
+          approved_by_name: string | null
+          created_at: string
+          engine_version: string | null
+          estimate_id: string
+          id: string
+          note: string | null
+          price_book_version: number | null
+          snapshot: Json
+          snapshot_kind: Database["public"]["Enums"]["snapshot_kind"]
+          version_no: number
+        }
+        Insert: {
+          approved_by?: string | null
+          approved_by_name?: string | null
+          created_at?: string
+          engine_version?: string | null
+          estimate_id: string
+          id?: string
+          note?: string | null
+          price_book_version?: number | null
+          snapshot: Json
+          snapshot_kind?: Database["public"]["Enums"]["snapshot_kind"]
+          version_no: number
+        }
+        Update: {
+          approved_by?: string | null
+          approved_by_name?: string | null
+          created_at?: string
+          engine_version?: string | null
+          estimate_id?: string
+          id?: string
+          note?: string | null
+          price_book_version?: number | null
+          snapshot?: Json
+          snapshot_kind?: Database["public"]["Enums"]["snapshot_kind"]
+          version_no?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_versions_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimates: {
         Row: {
           address: string | null
+          approved_at: string | null
           area: number | null
           calculation_json: Json | null
           client_id: string | null
           client_lines: Json | null
           client_name: string | null
           client_phone: string | null
+          client_view_mode: string
           created_at: string
           direction_id: string | null
           duration_days: number | null
@@ -407,12 +459,14 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          approved_at?: string | null
           area?: number | null
           calculation_json?: Json | null
           client_id?: string | null
           client_lines?: Json | null
           client_name?: string | null
           client_phone?: string | null
+          client_view_mode?: string
           created_at?: string
           direction_id?: string | null
           duration_days?: number | null
@@ -442,12 +496,14 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          approved_at?: string | null
           area?: number | null
           calculation_json?: Json | null
           client_id?: string | null
           client_lines?: Json | null
           client_name?: string | null
           client_phone?: string | null
+          client_view_mode?: string
           created_at?: string
           direction_id?: string | null
           duration_days?: number | null
@@ -1389,6 +1445,7 @@ export type Database = {
         | "plaster"
         | "polybeton"
         | "other"
+      snapshot_kind: "approved" | "production"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1579,6 +1636,7 @@ export const Constants = {
         "polybeton",
         "other",
       ],
+      snapshot_kind: ["approved", "production"],
     },
   },
 } as const
