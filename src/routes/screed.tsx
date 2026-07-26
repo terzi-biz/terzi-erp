@@ -8,6 +8,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
