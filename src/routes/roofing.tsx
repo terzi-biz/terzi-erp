@@ -7,6 +7,7 @@ import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
+import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
 import {
@@ -123,6 +124,8 @@ function RoofingPage() {
       total_client: result.totalClient, total_cost: result.totalCost,
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
+      calculation_json: result as unknown as Record<string, unknown>,
+      engine_version: ENGINE_VERSIONS.roofing,
     } }),
     onSuccess: (row: { id?: string }) => {
       if (row?.id) setEstimateId(row.id);

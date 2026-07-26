@@ -49,7 +49,52 @@ const estimateInput = z.object({
   gross_profit: z.preprocess(safeNum, z.number().default(0)),
   margin_percent: z.preprocess(safeNum, z.number().default(0)),
   payload: z.any().default({}),
+  // П1.1 — детермінований snapshot розрахунку
+  calculation_json: z.any().optional().nullable(),
+  engine_version: z.string().max(100).optional().nullable(),
+  price_book_version: z.number().int().optional().nullable(),
 });
+
+/** П1.2 — фінансовий gate. Повертає null якщо ok, або текст помилки. */
+function financialGate(row: z.infer<typeof estimateInput>, isAdmin: boolean): string | null {
+  const tc = Number(row.total_client) || 0;
+  const cost = Number(row.total_cost) || 0;
+  const gp = Number(row.gross_profit) || 0;
+  const mp = Number(row.margin_percent) || 0;
+  if (tc < 0 || cost < 0) return "Від'ємні підсумки заборонені";
+  const expectedGp = +(tc - cost).toFixed(2);
+  if (Math.abs(gp - expectedGp) > 1) {
+    return `Валовий прибуток не збігається: ${gp} vs очікуване ${expectedGp}`;
+  }
+  const expectedMp = tc > 0 ? +((expectedGp / tc) * 100).toFixed(2) : 0;
+  if (Math.abs(mp - expectedMp) > 0.5) {
+    return `Маржа не збігається: ${mp}% vs очікуване ${expectedMp}%`;
+  }
+  if (!isAdmin && expectedGp < 0) {
+    return "Від'ємна маржа: збереження заборонено (потрібен адміністратор)";
+  }
+  const calc = row.calculation_json as
+    | { lines?: Array<Record<string, unknown>>; totalClient?: number; totalCost?: number }
+    | null
+    | undefined;
+  if (calc && Array.isArray(calc.lines)) {
+    for (const l of calc.lines) {
+      const q = Number((l as any).qty);
+      const pc = Number((l as any).priceClient ?? (l as any).pricePerUnit);
+      const c = Number((l as any).cost);
+      if ((Number.isFinite(q) && q < 0) || (Number.isFinite(pc) && pc < 0) || (Number.isFinite(c) && c < 0)) {
+        return "У snapshot є від'ємні значення qty/ціна/собівартість";
+      }
+    }
+    if (typeof calc.totalClient === "number" && Math.abs(calc.totalClient - tc) > 5) {
+      return `Підсумок клієнта не збігається зі snapshot (${calc.totalClient} vs ${tc})`;
+    }
+    if (typeof calc.totalCost === "number" && Math.abs(calc.totalCost - cost) > 5) {
+      return `Собівартість не збігається зі snapshot (${calc.totalCost} vs ${cost})`;
+    }
+  }
+  return null;
+}
 
 async function userIsInternal(supabase: any, userId: string): Promise<boolean> {
   const { data } = await supabase.rpc("has_role", { _user_id: userId, _role: "admin" });
@@ -165,6 +210,9 @@ export const saveEstimate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => estimateInput.parse(d))
   .handler(async ({ data, context }) => {
+    const isAdmin = await userIsInternal(context.supabase, context.userId);
+    const gateError = financialGate(data, isAdmin);
+    if (gateError) throw new Error(gateError);
     const row = { ...data, owner_id: context.userId };
     let before: any = null;
     if (data.id) {
