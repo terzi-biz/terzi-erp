@@ -120,22 +120,24 @@ export const syncSourceEvent = createServerFn({ method: "POST" })
       .eq("source_type", data.source_type).eq("source_id", data.source_id)
       .eq("event_type", data.event_type).maybeSingle();
 
+    const patch = data.patch as never;
     if (existing?.id) {
       const { data: row, error } = await context.supabase
-        .from("calendar_events").update(data.patch).eq("id", existing.id).select().maybeSingle();
+        .from("calendar_events").update(patch).eq("id", existing.id).select().maybeSingle();
       if (error) throw new Error("Не вдалося оновити пов'язану подію");
       return row;
     }
     const { data: row, error } = await context.supabase
       .from("calendar_events")
       .insert({
-        ...data.patch,
+        ...(data.patch as Record<string, unknown>),
         source_type: data.source_type,
         source_id: data.source_id,
         event_type: data.event_type,
         created_by: context.userId,
-      })
+      } as never)
       .select().single();
+
     if (error) throw new Error("Не вдалося створити пов'язану подію");
     return row;
   });
