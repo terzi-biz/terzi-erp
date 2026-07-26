@@ -1,68 +1,59 @@
-Це велика фіча (~28 розділів). Пропоную реалістичний поетапний план, вбудований у наявну ERP TERZI без ламання. Кожен етап — окремий реліз, після якого можна працювати.
+# План: Пріоритет 2 + Пріоритет 3
 
-## Ключові принципи
+Це великий обсяг — розіб'ю на 7 етапів. Кожен етап — окрема міграція БД + код + перевірка. Зупинюсь після кожного етапу для швидкої верифікації, щоб не накопичувати помилок.
 
-- **Об'єкт = центральна сутність**, зв'язує clients / estimates / crew_bookings / calendar / files.
-- Використовуємо існуючі таблиці (`clients`, `estimates`, `crew_bookings`, `profiles`, `user_roles`) — НЕ дублюємо.
-- Дизайн — існуюча система (Oxford navy / gold / graphite, `AppShell`, shadcn).
-- Всі server fns через `createServerFn` + `requireSupabaseAuth`, RLS обов'язково.
+## П2.4 — Версії кошторису (immutable snapshot)
+- Нова таблиця `estimate_versions`: `id`, `estimate_id`, `version_no`, `snapshot` (jsonb, копія `calculation_json` + фін.поля + payload), `engine_version`, `price_book_version`, `approved_by`, `approved_at`, `note`, `created_at`. RLS: read — власник/менеджер об'єкта/admin/director; insert — той самий; update/delete — заборонено (immutable).
+- Server fn `approveEstimate({id, note?})` — читає поточний кошторис, вставляє новий рядок у `estimate_versions` з `version_no = max+1`, ставить статус `approved` + `approved_at`.
+- Server fn `listEstimateVersions({estimate_id})` і `getEstimateVersion({id})`.
+- При спробі змінити «approved» кошторис у `saveEstimate` — блокуємо; редагування підказує «створити нову версію». Хендлер `forkEstimateFromVersion({version_id})` — створює новий draft-кошторис на базі snapshot.
+- UI: в `history.tsx` кнопка «Погодити версію», модалка «Історія версій» з diff (просто before/after JSON у details).
 
----
+## П2.5 — Клієнтські групи 8-12 + режим деталізації
+- Нова таблиця `client_groups` (seed 10 груп: «Підготовчі роботи», «Демонтаж», «Матеріали чорнові», «Матеріали фінішні», «Основні роботи», «Утеплення», «Гідроізоляція», «Логістика і підйом», «Обладнання», «Інше»). Керується адміном у Settings.
+- Нова таблиця `client_group_mapping` (`module`, `engine_block`, `engine_key`, `client_group_id`) — маппінг з engine key → group.
+- Enum режиму рендеру КП: `detailed | condensed | turnkey` (зберігається на кошторисі: колонка `client_view_mode`).
+- `EstimateView.tsx` `ClientSheet`:
+  - `detailed` — як зараз (по позиціях),
+  - `condensed` — групуємо по `client_group_id`, показуємо групи з підсумками,
+  - `turnkey` — 1 рядок «Комплекс робіт під ключ» + примітка про склад.
+- Селектор режиму в UI.
 
-## Етап 1. База даних + реєстр (MVP каркас)
+## П2.6 — `showInClient` як enum з 4 значень
+- Enum `show_in_client_mode`: `always | detailed_only | condensed_only | never`.
+- Замінити `boolean is_client_visible` у `catalog_items` (fallback: `true→always`, `false→never`).
+- Оновити engines: розрахунок повертає це поле на лінії, `EstimateView.ClientSheet` фільтрує згідно з поточним `client_view_mode`.
+- UI редактора каталогу — селект замість чекбокса.
 
-**Міграції:**
-- `objects` — номер (TRZ-YYYY-NNNN, auto через sequence + trigger), name, address, coords, district, object_type, floor, lift, access, distance, notes, client_id → clients, manager_id → auth.users, source, crm_link, commercial_status, production_status, financial_status, risk_level, planned_start, planned_end, created_at/updated_at.
-- `object_services` — object_id, service (enum: screed/roofing_pvc/roofing_ruberoid/insulation/demolition/plaster/polybeton/other).
-- `object_zones` — object_id, name, service, area, perimeter, thickness, slope, volume, complexity, base_type, planned_start, planned_end, crew_id, status.
-- `object_measurements` — object_id, type (первинний/повторний/…), date, surveyor_id, area, perimeter, thicknesses(jsonb), slopes(jsonb), base(jsonb), logistics(jsonb), photos(jsonb), files(jsonb), notes, status.
-- `object_assignments` — object_id, role (manager/surveyor/estimator/foreman/brigadier/accountant/qc), user_id.
-- `object_files` — object_id, zone_id?, category, url, uploaded_by, note.
-- `object_comments` — object_id, author_id, body, mentions(jsonb), pinned.
-- `object_status_history` — object_id, field, old_value, new_value, changed_by, changed_at.
-- ALTER `estimates` ADD `object_id uuid REFERENCES objects(id)` (nullable — не ламає існуючі).
-- ALTER `crew_bookings` ADD `object_id uuid REFERENCES objects(id)` (nullable).
+## П3.7 — План-факт (виробнича версія)
+- Розширити `estimate_versions` — тип версії `snapshot_kind`: `approved | production`.
+- При переведенні статусу `inWork` — автоматично клонуємо approved у production version.
+- Додаємо в snapshot.lines поля `fact_qty`, `fact_price`, `fact_note`, `fact_updated_by`, `fact_updated_at`.
+- Server fn `updateFactLine({version_id, line_key, fact_qty?, fact_price?, fact_note?})` — inplace update у snapshot (jsonb_set).
+- Новий route `/production/:estimateId` — компактний екран прораба: список ліній з полями план/факт/дельта, автосейв, підсумок відхилень.
+- Пункт меню «Виробництво» — список активних `inWork` кошторисів.
 
-Всі таблиці: GRANT + RLS (`authenticated` бачить, admin/director повний доступ, інші — тільки свої призначення). Тригер `update_updated_at_column` + `object_status_history` через тригер на зміни статусів.
+## П3.8 — Полістиролбетон і машинна штукатурка
+- Два нових engines: `src/lib/polystyrene-calc.ts`, `src/lib/plaster-calc.ts` (структура як у screed-calc: constants, engine, версія у `engines/versions.ts`).
+- Два нових routes: `/polystyrene`, `/plaster`.
+- Seed каталогу для двох нових модулів у `catalog.functions.ts` (`module` тепер union з двома новими значеннями — оновити zod enum у `estimates.functions.ts` теж).
+- Наявний `roofing` полістиролбетон-суб-режим лишаю поки що; окрема сторінка — точна.
 
-**Server fns** (`src/lib/objects.functions.ts`):
-- `listObjects` (з фільтрами: статус, менеджер, послуга, пошук)
-- `getObject`, `createObject`, `updateObject`, `deleteObject`
-- `linkEstimateToObject`, `linkBookingToObject`
+## П3.9 — Розширення полів
+- `roofing-calc.ts`: PIR товщина+товщина ухилу, клин ухилу (шт), вітрова зона мембрани (I-IV), довжина траси (для логістики). UI — окрема секція «Додаткові параметри».
+- `screed-calc.ts`: вологість основи (dry/damp/wet) — впливає на праймер/грунтовку.
+- `insulation-calc.ts`: клин, вітрова зона.
+- Оновити версії engines.
 
-**Роути + UI:**
-- `/objects` — реєстр (таблиця, sticky-thead, фільтри, пошук, кнопка Створити).
-- `/objects/new` — 5-крокова візард форма (Клієнт → Основне → Послуги → Параметри → Наступна дія).
-- `/objects/:id` — карточка з вкладками (заглушками для наступних етапів): Огляд / Клієнт / Зони / Замери / Розрахунки / Договори / Виробництво / Фінанси / Файли / Задачі / Коментарі / Історія.
+## П3.10 — Аналітика у /reports
+- Server fn `reportProfitBy({dimension, dateFrom, dateTo})` — dimension: `manager | crew | source | supplier`.
+- `reports.tsx`: таблиці і прості bar-charts (recharts вже підключений) з фільтрами і CSV-експортом.
 
-Пункт «Об'єкти» у бічному меню `AppShell`.
+## Технічні деталі
+- Кожна нова таблиця в `public` — з блоком `GRANT SELECT,INSERT,UPDATE,DELETE ON ... TO authenticated; GRANT ALL ... TO service_role;` + RLS.
+- Всі нові server fns через `createServerFn` з `requireSupabaseAuth`.
+- Оновлення `client.ts`/`types.ts` — після кожної міграції автоматично.
+- Після кожного етапу typecheck + збірка + одна фіксація роботи в UI.
 
-## Етап 2. Замери + Зони + інтеграція з калькуляторами
-
-- Вкладка Замери: список + форма з фото/файлами (Supabase Storage bucket `object-files`).
-- Після завершення замеру — оновлення параметрів об'єкта + автосинк у зони.
-- Вкладка Зони: CRUD, копіювання, «Відправити в калькулятор» — відкриває `/screed?object=<id>&zone=<id>` з префілом (area, thickness, floor, lift, …).
-- Розширення `useEstimatePrefill` → `useObjectPrefill`.
-- При збереженні кошторису з калькулятора — автоматично `estimates.object_id = <id>`.
-
-## Етап 3. Кошториси / Договори / Виробництво
-
-- Вкладка «Розрахунки і сметы»: список `estimates` де `object_id = :id`, версії, статуси, дії (відкрити, дублювати, надіслати).
-- Створення планування → запис у `crew_bookings` з `object_id`. Гейти: без завершеного замеру / погодженої сметы / оплати — блокуємо з підказкою.
-- (Договори як мінімальна сутність `contracts` — окрема таблиця, файл-запис, статус, зв'язок з estimate + object. Повний договірний модуль — окремим релізом якщо треба.)
-
-## Етап 4. Фінанси / Задачі / Файли / Коментарі / Ризики / Аналітика
-
-- Простий `object_payments` (план/факт) + агрегати для картки (виручка/собівартість/маржа/борг).
-- `object_tasks` (або розширення існуючих задач якщо є) + автопрапори.
-- Файлові категорії + гейти закриття етапу.
-- Автообчислення `risk_level` на основі правил (нема договору, прострочка, відсутність оплати, від'ємна маржа).
-- Сторінка `/reports` — розширення новими віджетами: конверсія замір→смета→договір, план-факт, завантаження бригад.
-
----
-
-## Що зроблю ЗАРАЗ (в цій відповіді після твого «так»)
-
-**Тільки Етап 1** — реєстр + карточка з вкладками-каркасом + мастер створення + інтеграція `estimates.object_id`. Це дає робочу основу, нічого не ламає. Далі — по кроках за твоїм пріоритетом.
-
-Скажи «ок, стартуй Етап 1» — і я одразу пишу міграцію та код. Або скоригуй порядок / об'єднай етапи.
+## Порядок виконання
+Порядок = П2.4 → П2.5 → П2.6 → П3.7 → П3.8 → П3.9 → П3.10. Готовий стартувати з П2.4 (міграція + server fns + UI approve/list versions).
