@@ -130,6 +130,8 @@ function ScreedPage() {
       gross_profit: result.grossProfit,
       margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
+      calculation_json: result as unknown as Record<string, unknown>,
+      engine_version: ENGINE_VERSIONS.screed,
     } }),
     onSuccess: (row: { id?: string }) => {
       if (row?.id) setEstimateId(row.id);
