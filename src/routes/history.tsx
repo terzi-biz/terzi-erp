@@ -229,6 +229,23 @@ function HistoryPage() {
                         <HistoryIcon className="w-4 h-4" />
                       </button>
                       <button
+                        onClick={() => {
+                          const note = prompt(`Погодити ${e.number} як нову версію?\nКоментар (опц.):`) ;
+                          if (note !== null) approveMut.mutate({ id: e.id, note: note || undefined, kind: "approved" });
+                        }}
+                        className="p-1.5 rounded hover:bg-secondary text-success"
+                        title="Погодити версію (immutable snapshot)"
+                      >
+                        <CheckCircle2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => setVersionsFor(e)}
+                        className="p-1.5 rounded hover:bg-secondary text-foreground"
+                        title="Історія версій"
+                      >
+                        <GitBranch className="w-4 h-4" />
+                      </button>
+                      <button
                         onClick={() => confirm(`Видалити ${e.number}?`) && delMut.mutate(e.id)}
                         className="p-1.5 rounded hover:bg-secondary text-destructive"
                         title="Видалити"
