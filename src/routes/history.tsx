@@ -69,6 +69,8 @@ function HistoryPage() {
   const setStatus = useServerFn(updateEstimateStatus);
   const setSchedule = useServerFn(scheduleEstimate);
   const editFields = useServerFn(updateEstimateFields);
+  const approve = useServerFn(approveEstimate);
+  const forkFn = useServerFn(forkEstimateFromVersion);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["estimates"], queryFn: () => list(), enabled: !!user,
