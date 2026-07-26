@@ -349,10 +349,23 @@ interface EditableSheetProps extends SheetProps {
   setOverrides: React.Dispatch<React.SetStateAction<Record<string, Override>>>;
   extras: ExtraLine[];
   setExtras: React.Dispatch<React.SetStateAction<ExtraLine[]>>;
+  clientViewMode?: ClientViewMode;
 }
 
 /** Спільний вхідний CSS для клітинок таблиці. */
 const inputCls = "w-full bg-transparent outline-none border-b border-dashed border-slate-300 focus:border-amber-600 focus:bg-amber-50/50 px-1 py-0.5 text-[11px]";
+
+/** Правило видимості позиції для клієнта з урахуванням showInClient та поточного режиму. */
+function isRowVisibleToClient(r: EstimateLine, cvm: ClientViewMode): boolean {
+  const mode = r.showInClient;
+  if (mode) {
+    if (mode === "never") return false;
+    if (mode === "always") return true;
+    if (mode === "detailed_only") return cvm === "detailed";
+    if (mode === "condensed_only") return cvm === "condensed";
+  }
+  return r.showToClient !== false;
+}
 
 /** Спільна побудова ефективних блоків (з урахуванням правок і extras). */
 function useEffectiveBlocks(
@@ -361,11 +374,12 @@ function useEffectiveBlocks(
   extras: ExtraLine[],
   filterClient: boolean,
   t: ReturnType<typeof useT>,
+  clientViewMode: ClientViewMode = "detailed",
 ) {
   return useMemo(() => {
     return grouped.map((g) => {
       const baseRows = g.rows
-        .filter((r) => (filterClient ? r.showToClient !== false : true))
+        .filter((r) => (filterClient ? isRowVisibleToClient(r, clientViewMode) : true))
         .map((r) => {
           const id = lineId(r);
           const ov = overrides[id] ?? {};
@@ -392,7 +406,7 @@ function useEffectiveBlocks(
 
       return { block: g.block, label: g.label, rows: [...baseRows, ...extraRows] };
     }).filter((g) => g.rows.length > 0);
-  }, [grouped, overrides, extras, filterClient, t]);
+  }, [grouped, overrides, extras, filterClient, t, clientViewMode]);
 }
 
 function InternalSheet(p: EditableSheetProps) {
