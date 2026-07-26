@@ -54,7 +54,7 @@ const estimateInput = z.object({
   engine_version: z.string().max(100).optional().nullable(),
   price_book_version: z.number().int().optional().nullable(),
   // П2.5 — режим клієнтського виду
-  client_view_mode: z.enum(["detailed","condensed","turnkey"]).optional().nullable(),
+  client_view_mode: z.enum(["detailed","condensed","turnkey"]).optional(),
 });
 
 /** П1.2 — фінансовий gate. Повертає null якщо ok, або текст помилки. */
