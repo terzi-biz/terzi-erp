@@ -52,6 +52,9 @@ interface ExtraLine {
   costPerUnit: number;
 }
 
+export type ShowInClientMode = "always" | "detailed_only" | "condensed_only" | "never";
+export type ClientViewMode = "detailed" | "condensed" | "turnkey";
+
 export interface EstimateLine {
   key: string;
   block: string; // materials | works | logistics
@@ -63,6 +66,10 @@ export interface EstimateLine {
   sum: number;
   cost: number;
   showToClient?: boolean;
+  /** Тонший контроль: якщо задано, override showToClient. */
+  showInClient?: ShowInClientMode;
+  /** Ключ клієнтської групи (для режиму «Стисла»); якщо порожньо — за блоком. */
+  clientGroup?: string;
 }
 
 export interface EstimateResultLike {
