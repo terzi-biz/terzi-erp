@@ -530,3 +530,93 @@ export const reportProfitBy = createServerFn({ method: "POST" })
     }
     return Array.from(buckets.values()).sort((a, b) => b.profit - a.profit);
   });
+
+/* ============================================================
+   П3.7 — План-факт (виробнича версія)
+   ============================================================ */
+
+/** Список кошторисів у роботі (для екрана прораба). */
+export const listProductionEstimates = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("estimates")
+      .select("id,number,module,status,client_name,address,area,manager,schedule_start_at,schedule_end_at,total_client,updated_at")
+      .in("status", ["inWork", "approved", "final"])
+      .order("schedule_start_at", { ascending: true, nullsFirst: false });
+    if (error) { console.error("listProductionEstimates", error); throw new Error("Не вдалося завантажити список"); }
+    return rows ?? [];
+  });
+
+/** Повертає (створює за потреби) виробничу версію кошторису. */
+export const ensureProductionVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ estimate_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: existing } = await context.supabase
+      .from("estimate_versions").select("*")
+      .eq("estimate_id", data.estimate_id).eq("snapshot_kind", "production")
+      .order("version_no", { ascending: false }).limit(1).maybeSingle();
+    if (existing) return existing;
+
+    const snap = await snapshotEstimate(context.supabase, data.estimate_id);
+    const { data: prev } = await context.supabase
+      .from("estimate_versions").select("version_no").eq("estimate_id", data.estimate_id)
+      .order("version_no", { ascending: false }).limit(1).maybeSingle();
+    const { data: est } = await context.supabase
+      .from("estimates").select("engine_version,price_book_version").eq("id", data.estimate_id).maybeSingle();
+    const { data: prof } = await context.supabase
+      .from("profiles").select("display_name,email").eq("user_id", context.userId).maybeSingle();
+
+    const { data: ver, error } = await context.supabase.from("estimate_versions").insert({
+      estimate_id: data.estimate_id,
+      version_no: (prev?.version_no ?? 0) + 1,
+      snapshot_kind: "production",
+      snapshot: { ...snap, facts: {} },
+      engine_version: est?.engine_version ?? null,
+      price_book_version: est?.price_book_version ?? null,
+      approved_by: context.userId,
+      approved_by_name: (prof?.display_name || prof?.email || null) as string | null,
+      note: "Виробнича версія (план-факт)",
+    }).select().single();
+    if (error) { console.error("ensureProductionVersion", error); throw new Error("Не вдалося створити виробничу версію"); }
+    await logAudit(context.supabase, context.userId, data.estimate_id, "production_version", { version_no: ver.version_no });
+    return ver;
+  });
+
+/** Оновлення фактичних значень по рядку у виробничій версії. */
+export const updateFactLine = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    version_id: z.string().uuid(),
+    line_key: z.string().min(1).max(200),
+    fact_qty: z.number().nonnegative().nullable().optional(),
+    fact_price: z.number().nonnegative().nullable().optional(),
+    fact_note: z.string().max(1000).nullable().optional(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: ver, error } = await context.supabase
+      .from("estimate_versions").select("id,estimate_id,snapshot,snapshot_kind")
+      .eq("id", data.version_id).maybeSingle();
+    if (error || !ver) throw new Error("Версію не знайдено");
+    if (ver.snapshot_kind !== "production") throw new Error("Факт можна вносити лише у виробничу версію");
+
+    const snap = (ver.snapshot ?? {}) as Record<string, any>;
+    const facts = { ...(snap.facts ?? {}) } as Record<string, any>;
+    const prevLine = facts[data.line_key] ?? {};
+    facts[data.line_key] = {
+      ...prevLine,
+      ...(data.fact_qty !== undefined ? { fact_qty: data.fact_qty } : {}),
+      ...(data.fact_price !== undefined ? { fact_price: data.fact_price } : {}),
+      ...(data.fact_note !== undefined ? { fact_note: data.fact_note } : {}),
+      fact_updated_by: context.userId,
+      fact_updated_at: new Date().toISOString(),
+    };
+
+    const { data: out, error: e2 } = await context.supabase
+      .from("estimate_versions").update({ snapshot: { ...snap, facts } })
+      .eq("id", data.version_id).select("id,snapshot").maybeSingle();
+    if (e2) { console.error("updateFactLine", e2); throw new Error("Не вдалося зберегти факт"); }
+    if (!out) throw new Error("Немає прав на редагування версії");
+    return out;
+  });
