@@ -93,16 +93,6 @@ async function captureSheet(el: HTMLElement, scale: number): Promise<HTMLCanvasE
   }
 }
 
-function collectSafeBreakpoints(canvasHeight: number, rowHeights: number[]): number[] {
-  const pts: number[] = [];
-  let acc = 0;
-  for (const h of rowHeights) {
-    acc += h;
-    if (acc > 0 && acc < canvasHeight) pts.push(Math.floor(acc));
-  }
-  return pts;
-}
-
 function triggerDownload(url: string, filename: string) {
   const a = document.createElement("a");
   a.href = url;
@@ -161,7 +151,6 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
   const points = Array.from(
     new Set(breakEls.map((b) => Math.floor((b.getBoundingClientRect().bottom - rootTop) * k))),
   ).filter((p) => p > 0 && p < canvas.height).sort((a, b) => a - b);
-  void collectSafeBreakpoints;
 
   const drawFrame = (pageNum: number, totalPages: number) => {
     pdf.addImage(hdr, "JPEG", margin, margin, usableW, hdrHmm);
