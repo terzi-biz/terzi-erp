@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { formatUah } from "@/lib/screed-calc";
 import { listProductionEstimates, STATUS_LABELS } from "@/lib/estimates.functions";
 
-export const Route = createFileRoute("/production")({
+export const Route = createFileRoute("/production/")({
   head: () => ({ meta: [
     { title: "Виробництво — план-факт | TERZI" },
     { name: "description", content: "Екран прораба TERZI: активні об'єкти в роботі, внесення фактичних обсягів і цін, відхилення від плану." },

@@ -7,7 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listObjects, COMMERCIAL_LABELS, PRODUCTION_LABELS, FINANCIAL_LABELS, SERVICE_LABELS, COMMERCIAL_STATUSES } from "@/lib/objects.functions";
 
-export const Route = createFileRoute("/objects")({
+export const Route = createFileRoute("/objects/")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
