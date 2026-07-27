@@ -185,7 +185,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <div className="relative z-10">{Sidebar}</div>
+          <div className="relative z-10 h-full shadow-2xl" style={{ backgroundColor: "var(--color-sidebar)" }}>{Sidebar}</div>
         </div>
       )}
 
