@@ -1,16 +1,23 @@
 /**
  * Експорт кошторису у PNG/PDF з фіксованими TERZI-колонтитулами на кожній сторінці.
- * — PNG: єдине зображення (без поділу на half-файли), 3× DPI.
- * — PDF: header/footer як зображення на кожній A4-сторінці, контент нарізається
- *   між ними по «безпечних» точках (block-заголовки, subtotals, tr) на цілих
- *   піксельних межах, щоб не було зсуву ліній таблиць.
+ *
+ * Ключові моменти:
+ *  — Захоплення відбувається з КЛОНА елемента фіксованої ширини (A4-пропорція),
+ *    тому результат однаковий на iPhone/Android і на desktop (без «з'їхалих» колонок).
+ *  — Значення <input> (ручні правки назв, к-сті, цін) переносяться у статичний текст,
+ *    інакше html2canvas друкує початкові/порожні значення.
+ *  — Мінімальні поля сторінки, контент масштабується по ширині A4.
  */
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import headerImg from "@/assets/terzi-header.jpg";
 import footerImg from "@/assets/terzi-footer.png";
 
-const HTML2CANVAS_OPTS = {
+/** Ширина «віртуального аркуша» для рендера (px). Відповідає A4 при ~110 DPI. */
+const EXPORT_WIDTH = 1000;
+const CLONE_MARK = "data-terzi-export-root";
+
+const BASE_OPTS = {
   backgroundColor: "#ffffff" as const,
   useCORS: true,
   logging: false,
@@ -28,27 +35,62 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-function collectSafeBreakpoints(root: HTMLElement, scale: number): number[] {
-  const rootTop = root.getBoundingClientRect().top;
-  const els = root.querySelectorAll<HTMLElement>(
-    "[data-pdf-block], thead, tfoot, tr, header, footer, h1, h2, h3",
+/** Замінює поля вводу статичним текстом і фіксує ширину клона. */
+function normalizeClone(original: HTMLElement, clonedEl: HTMLElement, clonedDoc: Document) {
+  clonedEl.style.width = `${EXPORT_WIDTH}px`;
+  clonedEl.style.maxWidth = "none";
+  clonedEl.style.minWidth = `${EXPORT_WIDTH}px`;
+  clonedEl.style.overflow = "visible";
+  clonedEl.style.padding = "18px";
+
+  const origFields = Array.from(
+    original.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select"),
   );
-  const pts = new Set<number>();
-  els.forEach((el) => {
-    const r = el.getBoundingClientRect();
-    // Округлюємо ДОНИЗУ до цілого пікселя, щоб різ по границі не роздвоював border.
-    pts.add(Math.floor((r.bottom - rootTop) * scale));
+  const cloneFields = Array.from(
+    clonedEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select"),
+  );
+
+  cloneFields.forEach((field, i) => {
+    const src = origFields[i];
+    const raw = src ? src.value : (field as HTMLInputElement).value;
+    const cs = src ? window.getComputedStyle(src) : window.getComputedStyle(field);
+    const span = clonedDoc.createElement("span");
+    span.textContent = raw ?? "";
+    span.style.display = "block";
+    span.style.width = "100%";
+    span.style.font = cs.font;
+    span.style.fontSize = cs.fontSize;
+    span.style.fontWeight = cs.fontWeight;
+    span.style.color = cs.color === "rgba(0, 0, 0, 0)" ? "#0f172a" : cs.color;
+    span.style.textAlign = cs.textAlign;
+    span.style.whiteSpace = "normal";
+    span.style.wordBreak = "break-word";
+    span.style.lineHeight = "1.25";
+    field.replaceWith(span);
   });
-  return Array.from(pts).sort((a, b) => a - b);
+
+  // Ховаємо службові контроли (кнопки додавання/видалення позицій тощо)
+  clonedEl.querySelectorAll<HTMLElement>(".print\\:hidden, [data-export-hide]").forEach((el) => {
+    el.style.display = "none";
+  });
 }
 
-function snapCut(targetEnd: number, points: number[], minStart: number, scale: number): number {
-  const minAdvance = minStart + 120 * scale;
-  let best = -1;
-  for (const p of points) {
-    if (p >= minAdvance && p <= targetEnd) best = p;
+async function captureSheet(el: HTMLElement, scale: number): Promise<HTMLCanvasElement> {
+  el.setAttribute(CLONE_MARK, "1");
+  try {
+    return await html2canvas(el, {
+      ...BASE_OPTS,
+      scale,
+      width: EXPORT_WIDTH,
+      windowWidth: EXPORT_WIDTH + 80,
+      onclone: (doc: Document) => {
+        const clone = doc.querySelector<HTMLElement>(`[${CLONE_MARK}="1"]`);
+        if (clone) normalizeClone(el, clone, doc);
+      },
+    });
+  } finally {
+    el.removeAttribute(CLONE_MARK);
   }
-  return best > 0 ? best : targetEnd;
 }
 
 function triggerDownload(url: string, filename: string) {
@@ -62,12 +104,11 @@ function triggerDownload(url: string, filename: string) {
 
 // ---------- PNG ----------
 export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
-  // Пробуємо scale=3 (крашно), при OOM/помилці — fallback на 2.
   let canvas: HTMLCanvasElement;
   try {
-    canvas = await html2canvas(el, { ...HTML2CANVAS_OPTS, scale: 3 });
+    canvas = await captureSheet(el, 3);
   } catch {
-    canvas = await html2canvas(el, { ...HTML2CANVAS_OPTS, scale: 2 });
+    canvas = await captureSheet(el, 2);
   }
   await new Promise<void>((res) => {
     canvas.toBlob((blob) => {
@@ -86,40 +127,55 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
   const [hdr, ftr, canvas] = await Promise.all([
     loadImage(headerImg),
     loadImage(footerImg),
-    html2canvas(el, { ...HTML2CANVAS_OPTS, scale }),
+    captureSheet(el, scale),
   ]);
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const pageW = 210, pageH = 297, margin = 8;
+  const pageW = 210, pageH = 297, margin = 6;
   const usableW = pageW - margin * 2;
   const pxPerMm = canvas.width / usableW;
 
   const hdrHmm = (hdr.height / hdr.width) * usableW;
   const ftrHmm = (ftr.height / ftr.width) * usableW;
-  const contentTop = margin + hdrHmm + 3;
-  const contentBottom = pageH - margin - ftrHmm - 3;
+  const contentTop = margin + hdrHmm + 2;
+  const contentBottom = pageH - margin - ftrHmm - 2;
   const contentHmm = contentBottom - contentTop;
   const contentPx = Math.floor(contentHmm * pxPerMm);
 
-  const points = collectSafeBreakpoints(el, scale);
+  // Точки безпечного розрізу беремо з рядків таблиць оригіналу, масштабуючи
+  // під ширину клона (EXPORT_WIDTH) та scale.
+  const originalWidth = el.getBoundingClientRect().width || EXPORT_WIDTH;
+  const k = (EXPORT_WIDTH / originalWidth) * scale;
+  const rootTop = el.getBoundingClientRect().top;
+  const breakEls = Array.from(el.querySelectorAll<HTMLElement>("[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header"));
+  const points = Array.from(
+    new Set(breakEls.map((b) => Math.floor((b.getBoundingClientRect().bottom - rootTop) * k))),
+  ).filter((p) => p > 0 && p < canvas.height).sort((a, b) => a - b);
 
   const drawFrame = (pageNum: number, totalPages: number) => {
     pdf.addImage(hdr, "JPEG", margin, margin, usableW, hdrHmm);
     pdf.addImage(ftr, "PNG", margin, pageH - margin - ftrHmm, usableW, ftrHmm);
-    // Page number badge поверх футера
     pdf.setFontSize(8);
     pdf.setTextColor(120, 120, 120);
     pdf.text(`${pageNum} / ${totalPages}`, pageW - margin - 2, pageH - margin - 1.5, { align: "right" });
   };
 
-  // Спочатку розраховуємо пороги, щоб знати total pages
+  const snapCut = (targetEnd: number, minStart: number): number => {
+    const minAdvance = minStart + contentPx * 0.55;
+    let best = -1;
+    for (const p of points) {
+      if (p >= minAdvance && p <= targetEnd) best = p;
+    }
+    return best > 0 ? best : targetEnd;
+  };
+
   const cuts: number[] = [];
   let probe = 0;
   while (probe < canvas.height) {
     const target = Math.min(canvas.height, probe + contentPx);
-    const cut = snapCut(target, points, probe, scale);
+    const cut = target >= canvas.height ? canvas.height : snapCut(target, probe);
     cuts.push(cut);
-    if (cut <= probe) break; // safety
+    if (cut <= probe) break;
     probe = cut;
   }
   const totalPages = cuts.length || 1;
@@ -135,7 +191,6 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
     slice.width = canvas.width;
     slice.height = sliceH;
     const ctx = slice.getContext("2d")!;
-    ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = "#ffffff";
     ctx.fillRect(0, 0, slice.width, slice.height);
     ctx.drawImage(canvas, 0, -offset);
