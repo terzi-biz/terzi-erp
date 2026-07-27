@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { syncAutoEvent, addHours } from "./auto-events.server";
 
 export const COMMERCIAL_STATUSES = [
   "new","qualification","measurement_scheduled","measurement_done","calculation",
@@ -191,6 +192,47 @@ export const updateObjectStatus = createServerFn({ method: "POST" })
     if (!Object.keys(cleaned).length) return { ok: true };
     const { error } = await context.supabase.from("objects").update(cleaned).eq("id", id);
     if (error) { console.error("updateObjectStatus", error); throw new Error("Не вдалося оновити статус"); }
+
+    // Авто-події: договір і платежі
+    const { data: obj } = await context.supabase
+      .from("objects").select("id,name,address,client_id,clients:client_id(name)").eq("id", id).maybeSingle();
+    const base = {
+      object_id: id,
+      client_id: (obj as any)?.client_id ?? null,
+      address: (obj as any)?.address ?? null,
+      client_name: (obj as any)?.clients?.name ?? null,
+      employee_id: context.userId,
+    };
+    const now = new Date();
+    const tomorrow10 = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 10, 0, 0).toISOString();
+
+    if (cleaned.commercial_status === "contract") {
+      await syncAutoEvent(context.supabase as any, context.userId, {
+        ...base,
+        source_type: "contract", source_id: id, event_type: "contract_signing",
+        title: `Підписання договору — ${(obj as any)?.name ?? "Об'єкт"}`,
+        category: "management", priority: "high",
+        starts_at: tomorrow10, ends_at: addHours(tomorrow10, 1),
+      });
+    }
+    if (cleaned.financial_status === "awaiting_payment" || cleaned.financial_status === "has_debt") {
+      await syncAutoEvent(context.supabase as any, context.userId, {
+        ...base,
+        source_type: "payment", source_id: id, event_type: "payment_control",
+        title: `Контроль оплати — ${(obj as any)?.name ?? "Об'єкт"}`,
+        category: "finance", priority: cleaned.financial_status === "has_debt" ? "high" : "normal",
+        starts_at: tomorrow10, ends_at: addHours(tomorrow10, 1),
+      });
+    }
+    if (cleaned.financial_status === "prepayment_received" || cleaned.financial_status === "paid") {
+      await syncAutoEvent(context.supabase as any, context.userId, {
+        ...base,
+        source_type: "payment", source_id: id, event_type: "payment_control",
+        title: `Оплата отримана — ${(obj as any)?.name ?? "Об'єкт"}`,
+        category: "finance", status: "done",
+        starts_at: now.toISOString(), ends_at: addHours(now.toISOString(), 1),
+      });
+    }
     return { ok: true };
   });
 
@@ -301,6 +343,34 @@ export const saveObjectMeasurement = createServerFn({ method: "POST" })
       ? await context.supabase.from("object_measurements").update(row).eq("id", id).select().single()
       : await context.supabase.from("object_measurements").insert(row).select().single();
     if (error) { console.error("saveObjectMeasurement", error); throw new Error("Не вдалося зберегти замер"); }
+
+    // Авто-подія календаря «Замір»
+    const { data: obj } = await context.supabase
+      .from("objects").select("id,name,address,client_id,clients:client_id(name)").eq("id", data.object_id).maybeSingle();
+    if (out.measured_at) {
+      const typeLabel: Record<string, string> = {
+        primary: "Первинний замір", repeat: "Повторний замір",
+        control: "Контрольний замір", as_built: "Виконавчий замір",
+      };
+      await syncAutoEvent(context.supabase as any, context.userId, {
+        source_type: "measurement",
+        source_id: out.id,
+        event_type: out.type ?? "primary",
+        title: `${typeLabel[out.type] ?? "Замір"} — ${(obj as any)?.name ?? "Об'єкт"}`,
+        category: "measurement",
+        starts_at: new Date(out.measured_at).toISOString(),
+        ends_at: addHours(new Date(out.measured_at).toISOString(), 2),
+        object_id: data.object_id,
+        client_id: (obj as any)?.client_id ?? null,
+        measurement_id: out.id,
+        address: (obj as any)?.address ?? null,
+        client_name: (obj as any)?.clients?.name ?? null,
+        area: out.area ?? null,
+        employee_id: context.userId,
+        status: out.status === "done" ? "done" : out.status === "cancelled" ? "cancelled" : "planned",
+        description: out.notes ?? null,
+      });
+    }
     // Sync object params on done
     if (out.status === "done") {
       const patch: any = {};
