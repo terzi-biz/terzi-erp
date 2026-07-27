@@ -59,7 +59,11 @@ export function AppShell({ children }: { children: ReactNode }) {
     }`;
 
   const Sidebar = (
-    <aside className="w-72 md:w-64 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full">
+    <aside
+      style={{ backgroundColor: "var(--color-sidebar)" }}
+      className="w-72 md:w-64 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full opacity-100 isolate"
+    >
+
       <div className="px-5 py-5 border-b border-sidebar-border flex items-center justify-between gap-2">
         <Link to="/" className="flex items-center gap-2 min-w-0">
           <TerziLogo size={40} />
