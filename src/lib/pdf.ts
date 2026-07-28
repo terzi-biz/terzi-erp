@@ -38,38 +38,86 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   await attachCyrillicFonts(doc);
   const pageW = 210;
-  const margin = 10;
+  const pageH = 297;
+  const margin = 12; // бокові поля для контенту (колонтитули — на всю ширину)
+  const contentW = pageW - margin * 2;
   const [hdr, ftr] = await Promise.all([loadImage(headerImg), loadImage(footerImg)]);
 
-  const drawHeader = () => {
-    const ratio = hdr.height / hdr.width;
-    const h = (pageW - margin * 2) * ratio;
-    doc.addImage(hdr, "JPEG", margin, margin, pageW - margin * 2, h);
-    return margin + h + 4;
+  const hdrH = (hdr.height / hdr.width) * pageW;
+  const ftrH = (ftr.height / ftr.width) * pageW;
+
+  const drawFrame = () => {
+    // Колонтитули — на всю ширину A4, без білих полів
+    doc.addImage(hdr, "JPEG", 0, 0, pageW, hdrH);
+    doc.addImage(ftr, "PNG", 0, pageH - ftrH, pageW, ftrH);
   };
 
-  const drawFooter = () => {
-    const ratio = ftr.height / ftr.width;
-    const h = (pageW - margin * 2) * ratio;
-    doc.addImage(ftr, "PNG", margin, 297 - margin - h, pageW - margin * 2, h);
-    return 297 - margin - h - 4;
+  const top = hdrH + 6;
+  const bottom = pageH - ftrH - 6;
+  const avail = bottom - top;
+
+  type Row = { name: string; unit: string; qty: string; price: string; sum: string };
+  const blocks: Array<{ title: string; rows: Row[] }> = (
+    [
+      { title: t("materialsBlock", input.lang), block: "materials" as const },
+      { title: t("worksBlock", input.lang), block: "works" as const },
+      { title: t("logisticsBlock", input.lang), block: "logistics" as const },
+    ]
+  )
+    .map((b) => ({
+      title: b.title,
+      rows: input.result.lines
+        .filter((l) => l.block === b.block && l.showToClient)
+        .map((r) => ({
+          name: t(r.name, input.lang),
+          unit: r.unit,
+          qty: String(Math.round(r.qty * 100) / 100),
+          price: String(Math.round(r.pricePerUnit)),
+          sum: Math.round(r.sum).toLocaleString("uk-UA"),
+        })),
+    }))
+    .filter((b) => b.rows.length > 0);
+
+  const rowsCount = blocks.reduce((a, b) => a + b.rows.length, 0);
+
+  // ---- Вимірювання при масштабі 1 ----
+  const BASE = {
+    title: 10, // блок заголовка КП
+    info: 16, // блок клієнта
+    thead: 9,
+    section: 7,
+    row: 5.2,
+    totals: 22,
+    terms: 12,
   };
+  const needed =
+    BASE.title + BASE.info + BASE.thead + BASE.totals + BASE.terms +
+    blocks.length * BASE.section + rowsCount * BASE.row;
 
-  let y = drawHeader();
-  const footerTop = drawFooter();
+  // Масштабуємо, щоб вмістити на одну сторінку (до 0.6), інакше пагінація
+  const s = Math.min(1, Math.max(0.6, avail / needed));
+  const fits = needed * s <= avail + 0.5;
 
-  // Title row
+  const fs = (v: number) => Math.max(6, v * (0.55 + 0.45 * s));
+
+  drawFrame();
+  let y = top;
+
+  // ---- Шапка документа ----
   doc.setFont(FONT, "bold");
-  doc.setFontSize(14);
+  doc.setFontSize(fs(14));
   doc.setTextColor(15, 23, 42);
-  doc.text(`${input.lang === "ua" ? "Комерційна пропозиція" : "Коммерческое предложение"} № ${input.number}`, margin, y + 4);
+  doc.text(
+    `${input.lang === "ua" ? "Комерційна пропозиція" : "Коммерческое предложение"} № ${input.number}`,
+    margin,
+    y + 4 * s,
+  );
   doc.setFont(FONT, "normal");
-  doc.setFontSize(9);
-  doc.text(`${input.lang === "ua" ? "Дата" : "Дата"}: ${input.date}`, pageW - margin, y + 4, { align: "right" });
-  y += 10;
+  doc.setFontSize(fs(9));
+  doc.text(`Дата: ${input.date}`, pageW - margin, y + 4 * s, { align: "right" });
+  y += BASE.title * s;
 
-  // Client block
-  doc.setFontSize(9);
+  doc.setFontSize(fs(9));
   doc.setTextColor(60, 60, 60);
   const left = [
     `${t("clientName", input.lang)}: ${input.clientName || "—"}`,
@@ -81,87 +129,127 @@ export async function generateClientPdf(input: PdfInput): Promise<Blob> {
     `${t("area", input.lang)}: ${input.area} м²`,
     `${t("thickness", input.lang)}: ${input.thicknessCm} см`,
   ];
-  left.forEach((l, i) => doc.text(l, margin, y + i * 4));
-  right.forEach((l, i) => doc.text(l, 110, y + i * 4));
-  y += 16;
+  const lineH = 4.4 * s;
+  left.forEach((l, i) => doc.text(l, margin, y + i * lineH));
+  right.forEach((l, i) => doc.text(l, margin + contentW * 0.55, y + i * lineH));
+  y += BASE.info * s;
 
-  // Table header
-  doc.setDrawColor(200);
-  doc.setFillColor(15, 23, 42);
-  doc.setTextColor(255, 255, 255);
-  doc.rect(margin, y, pageW - margin * 2, 7, "F");
-  doc.setFont(FONT, "bold");
-  doc.setFontSize(9);
-  doc.text(input.lang === "ua" ? "Найменування" : "Наименование", margin + 2, y + 5);
-  doc.text(t("unit", input.lang), 120, y + 5);
-  doc.text(t("qty", input.lang), 138, y + 5);
-  doc.text(t("price", input.lang), 158, y + 5);
-  doc.text(t("sum", input.lang), pageW - margin - 2, y + 5, { align: "right" });
-  y += 9;
+  // ---- Колонки таблиці ----
+  const cName = margin + 2;
+  const cUnit = margin + contentW * 0.60;
+  const cQty = margin + contentW * 0.71;
+  const cPrice = margin + contentW * 0.84;
+  const cSum = pageW - margin - 2;
 
-  doc.setFont(FONT, "normal");
-  doc.setTextColor(20, 20, 20);
+  const rowH = BASE.row * s;
+  const theadH = BASE.thead * s;
+  const sectH = BASE.section * s;
 
-  const blocks: Array<{ title: string; block: "materials" | "works" | "logistics" }> = [
-    { title: t("materialsBlock", input.lang), block: "materials" },
-    { title: t("worksBlock", input.lang), block: "works" },
-    { title: t("logisticsBlock", input.lang), block: "logistics" },
-  ];
-
-  for (const b of blocks) {
-    const rows = input.result.lines.filter((l) => l.block === b.block && l.showToClient);
-    if (!rows.length) continue;
-
+  const drawThead = () => {
+    doc.setFillColor(15, 23, 42);
+    doc.rect(margin, y, contentW, theadH, "F");
     doc.setFont(FONT, "bold");
-    doc.setFillColor(235, 235, 240);
-    doc.rect(margin, y, pageW - margin * 2, 5.5, "F");
-    doc.setTextColor(15, 23, 42);
-    doc.text(b.title, margin + 2, y + 4);
-    y += 7;
-    doc.setFont(FONT, "normal");
-    doc.setTextColor(30, 30, 30);
+    doc.setFontSize(fs(9));
+    doc.setTextColor(255, 255, 255);
+    const ty = y + theadH * 0.68;
+    doc.text(input.lang === "ua" ? "Найменування" : "Наименование", cName, ty);
+    doc.text(t("unit", input.lang), cUnit, ty);
+    doc.text(t("qty", input.lang), cQty, ty, { align: "right" });
+    doc.text(t("price", input.lang), cPrice, ty, { align: "right" });
+    doc.text(t("sum", input.lang), cSum, ty, { align: "right" });
+    y += theadH;
+  };
 
-    for (const r of rows) {
-      if (y > footerTop - 15) { doc.addPage(); y = drawHeader(); drawFooter(); }
-      const name = t(r.name, input.lang);
-      doc.text(name.length > 55 ? name.slice(0, 55) + "…" : name, margin + 2, y);
-      doc.text(r.unit, 120, y);
-      doc.text(String(Math.round(r.qty * 100) / 100), 138, y);
-      doc.text(String(Math.round(r.pricePerUnit)), 158, y);
-      doc.text(String(Math.round(r.sum)), pageW - margin - 2, y, { align: "right" });
-      y += 5;
+  drawThead();
+
+  const maxNameW = cUnit - cName - 3;
+  doc.setFont(FONT, "normal");
+
+  let zebra = false;
+  for (const b of blocks) {
+    // не залишаємо заголовок секції без рядків унизу сторінки
+    if (!fits && y + sectH + rowH * 2 > bottom) {
+      doc.addPage();
+      drawFrame();
+      y = top;
+      drawThead();
     }
-    y += 2;
+    doc.setFillColor(235, 237, 242);
+    doc.rect(margin, y, contentW, sectH, "F");
+    doc.setFont(FONT, "bold");
+    doc.setFontSize(fs(9));
+    doc.setTextColor(15, 23, 42);
+    doc.text(b.title, cName, y + sectH * 0.7);
+    y += sectH;
+
+    doc.setFont(FONT, "normal");
+    for (const r of b.rows) {
+      if (!fits && y + rowH > bottom) {
+        doc.addPage();
+        drawFrame();
+        y = top;
+        drawThead();
+      }
+      if (zebra) {
+        doc.setFillColor(248, 249, 251);
+        doc.rect(margin, y, contentW, rowH, "F");
+      }
+      zebra = !zebra;
+      doc.setFontSize(fs(9));
+      doc.setTextColor(25, 30, 40);
+      let name = r.name;
+      while (doc.getTextWidth(name) > maxNameW && name.length > 4) name = name.slice(0, -2);
+      if (name !== r.name) name += "…";
+      const ty = y + rowH * 0.72;
+      doc.text(name, cName, ty);
+      doc.text(r.unit, cUnit, ty);
+      doc.text(r.qty, cQty, ty, { align: "right" });
+      doc.text(r.price, cPrice, ty, { align: "right" });
+      doc.text(r.sum, cSum, ty, { align: "right" });
+      doc.setDrawColor(226, 229, 236);
+      doc.setLineWidth(0.1);
+      doc.line(margin, y + rowH, pageW - margin, y + rowH);
+      y += rowH;
+    }
   }
 
-  // Totals
-  if (y > footerTop - 30) { doc.addPage(); y = drawHeader(); drawFooter(); }
+  // ---- Підсумки ----
+  const totalsH = BASE.totals * s;
+  if (!fits && y + totalsH + BASE.terms * s > bottom) {
+    doc.addPage();
+    drawFrame();
+    y = top;
+  }
   doc.setDrawColor(15, 23, 42);
-  doc.line(margin, y, pageW - margin, y);
-  y += 5;
+  doc.setLineWidth(0.4);
+  doc.line(margin, y + 1, pageW - margin, y + 1);
+  y += totalsH * 0.35;
   doc.setFont(FONT, "bold");
-  doc.setFontSize(11);
+  doc.setFontSize(fs(12));
   doc.setTextColor(15, 23, 42);
-  doc.text(t("total", input.lang) + ":", margin + 2, y);
+  doc.text(t("total", input.lang) + ":", cName, y);
   doc.setTextColor(220, 110, 30);
-  doc.text(`${Math.round(input.result.totalClient).toLocaleString("uk-UA")} грн`, pageW - margin - 2, y, { align: "right" });
-  y += 6;
-  doc.setFontSize(9);
-  doc.setTextColor(80, 80, 80);
+  doc.text(`${Math.round(input.result.totalClient).toLocaleString("uk-UA")} грн`, cSum, y, { align: "right" });
+  y += totalsH * 0.3;
   doc.setFont(FONT, "normal");
-  doc.text(`${t("pricePerM2", input.lang)}: ${Math.round(input.result.pricePerM2)} грн/м²`, margin + 2, y);
-  y += 6;
+  doc.setFontSize(fs(9));
+  doc.setTextColor(80, 80, 80);
+  doc.text(`${t("pricePerM2", input.lang)}: ${Math.round(input.result.pricePerM2)} грн/м²`, cName, y);
+  y += totalsH * 0.35;
 
-  // Terms
-  if (y < footerTop - 20) {
-    doc.setFontSize(8);
-    doc.setTextColor(80, 80, 80);
-    const terms = doc.splitTextToSize(input.branding.paymentTerms, pageW - margin * 2 - 4);
-    doc.text(terms, margin + 2, y);
-    y += terms.length * 4;
-    const warranty = doc.splitTextToSize(input.branding.warrantyText, pageW - margin * 2 - 4);
-    doc.text(warranty, margin + 2, y);
+  // ---- Умови ----
+  doc.setFontSize(fs(8));
+  doc.setTextColor(90, 90, 90);
+  const termsW = contentW - 4;
+  const terms = doc.splitTextToSize(input.branding.paymentTerms, termsW);
+  const warranty = doc.splitTextToSize(input.branding.warrantyText, termsW);
+  const tH = 3.6 * s;
+  if (y + (terms.length + warranty.length) * tH < bottom) {
+    doc.text(terms, cName, y);
+    y += terms.length * tH + tH * 0.5;
+    doc.text(warranty, cName, y);
   }
 
   return doc.output("blob");
 }
+
