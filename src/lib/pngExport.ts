@@ -131,19 +131,48 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
   ]);
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const pageW = 210, pageH = 297, margin = 6;
-  const usableW = pageW - margin * 2;
-  const pxPerMm = canvas.width / usableW;
+  const pageW = 210, pageH = 297;
+  const sideMargin = 8;              // поля лише для контенту
+  const usableW = pageW - sideMargin * 2;
 
-  const hdrHmm = (hdr.height / hdr.width) * usableW;
-  const ftrHmm = (ftr.height / ftr.width) * usableW;
-  const contentTop = margin + hdrHmm + 2;
-  const contentBottom = pageH - margin - ftrHmm - 2;
+  // Колонтитули — на всю ширину аркуша (без білих границь)
+  const hdrHmm = (hdr.height / hdr.width) * pageW;
+  const ftrHmm = (ftr.height / ftr.width) * pageW;
+  const contentTop = hdrHmm + 3;
+  const contentBottom = pageH - ftrHmm - 3;
   const contentHmm = contentBottom - contentTop;
-  const contentPx = Math.floor(contentHmm * pxPerMm);
 
-  // Точки безпечного розрізу беремо з рядків таблиць оригіналу, масштабуючи
-  // під ширину клона (EXPORT_WIDTH) та scale.
+  const drawFrame = (pageNum: number, totalPages: number) => {
+    pdf.addImage(hdr, "JPEG", 0, 0, pageW, hdrHmm);
+    pdf.addImage(ftr, "PNG", 0, pageH - ftrHmm, pageW, ftrHmm);
+    if (totalPages > 1) {
+      pdf.setFontSize(8);
+      pdf.setTextColor(120, 120, 120);
+      pdf.text(`${pageNum} / ${totalPages}`, pageW - sideMargin, contentBottom + 2.4, { align: "right" });
+    }
+  };
+
+  // ---- Спроба вмістити все на одну сторінку (зменшенням масштабу до 60%) ----
+  const naturalHmm = (canvas.height / canvas.width) * usableW;
+  if (naturalHmm <= contentHmm / 0.6) {
+    const fitW = Math.min(usableW, (contentHmm / naturalHmm) * usableW);
+    const fitH = Math.min(contentHmm, naturalHmm);
+    drawFrame(1, 1);
+    pdf.addImage(
+      canvas.toDataURL("image/jpeg", 0.94),
+      "JPEG",
+      (pageW - fitW) / 2,
+      contentTop,
+      fitW,
+      fitH,
+    );
+    pdf.save(filename);
+    return;
+  }
+
+  // ---- Інакше — пагінація по рядках таблиць ----
+  const pxPerMm = canvas.width / usableW;
+  const contentPx = Math.floor(contentHmm * pxPerMm);
   const originalWidth = el.getBoundingClientRect().width || EXPORT_WIDTH;
   const k = (EXPORT_WIDTH / originalWidth) * scale;
   const rootTop = el.getBoundingClientRect().top;
@@ -151,14 +180,6 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
   const points = Array.from(
     new Set(breakEls.map((b) => Math.floor((b.getBoundingClientRect().bottom - rootTop) * k))),
   ).filter((p) => p > 0 && p < canvas.height).sort((a, b) => a - b);
-
-  const drawFrame = (pageNum: number, totalPages: number) => {
-    pdf.addImage(hdr, "JPEG", margin, margin, usableW, hdrHmm);
-    pdf.addImage(ftr, "PNG", margin, pageH - margin - ftrHmm, usableW, ftrHmm);
-    pdf.setFontSize(8);
-    pdf.setTextColor(120, 120, 120);
-    pdf.text(`${pageNum} / ${totalPages}`, pageW - margin - 2, pageH - margin - 1.5, { align: "right" });
-  };
 
   const snapCut = (targetEnd: number, minStart: number): number => {
     const minAdvance = minStart + contentPx * 0.55;
@@ -198,7 +219,7 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
     pdf.addImage(
       slice.toDataURL("image/jpeg", 0.92),
       "JPEG",
-      margin,
+      sideMargin,
       contentTop,
       usableW,
       Math.min(drawnHmm, contentHmm),
@@ -208,3 +229,4 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
 
   pdf.save(filename);
 }
+
