@@ -81,6 +81,8 @@ const COLOR_PROPS = [
   "box-shadow",
 ] as const;
 
+const UNSUPPORTED = /(oklch|oklab|lch|lab|color-mix|color)\(/i;
+
 /**
  * Проходить по клонованому дереву і замінює всі непідтримувані кольори
  * інлайновими rgba() значеннями (інлайн має пріоритет для html2canvas).
@@ -88,6 +90,12 @@ const COLOR_PROPS = [
 export function sanitizeColorsDeep(root: HTMLElement, doc: Document) {
   const win = doc.defaultView ?? window;
   const nodes: HTMLElement[] = [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))];
+
+  // Псевдоелементи html2canvas читає окремо — нейтралізуємо їхні кольори
+  const style = doc.createElement("style");
+  style.textContent = `[data-terzi-export-root] *::before,[data-terzi-export-root] *::after,[data-terzi-export-root]::before,[data-terzi-export-root]::after{color:rgb(15,23,42)!important;background-color:rgba(0,0,0,0)!important;border-color:rgba(0,0,0,0)!important;box-shadow:none!important;background-image:none!important;text-decoration-color:rgba(0,0,0,0)!important;}`;
+  doc.head.appendChild(style);
+
   for (const el of nodes) {
     let cs: CSSStyleDeclaration;
     try {
@@ -95,10 +103,25 @@ export function sanitizeColorsDeep(root: HTMLElement, doc: Document) {
     } catch {
       continue;
     }
-    for (const prop of COLOR_PROPS) {
+    for (let i = 0; i < cs.length; i++) {
+      const prop = cs.item(i);
+      if (prop.startsWith("--")) continue;
       const raw = cs.getPropertyValue(prop);
-      if (!raw || !/(oklch|oklab|lch|lab)\(/i.test(raw)) continue;
-      el.style.setProperty(prop, toSafeColor(raw));
+      if (!raw || !UNSUPPORTED.test(raw)) continue;
+      const safe = toSafeColor(raw);
+      // якщо конвертація неможлива (color(), color-mix()) — прибираємо ефект
+      if (UNSUPPORTED.test(safe)) {
+        if (prop.includes("shadow") || prop.includes("image") || prop === "filter") {
+          el.style.setProperty(prop, "none");
+        } else if (prop === "color") {
+          el.style.setProperty(prop, "rgb(15, 23, 42)");
+        } else {
+          el.style.setProperty(prop, "rgba(0, 0, 0, 0)");
+        }
+      } else {
+        el.style.setProperty(prop, safe);
+      }
     }
   }
 }
+
