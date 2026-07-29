@@ -167,24 +167,8 @@ function ScreedPage() {
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
           <h1 className="text-2xl font-black">{t("screedTitle")}</h1>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          {isInternal && (
-            <button
-              onClick={() => setShowInternal((v) => !v)}
-              className={`${btnBase} ${showInternal ? "bg-primary/15 text-primary border border-primary/40" : "bg-secondary text-secondary-foreground hover:bg-secondary/80"}`}
-              title="Управлінський режим — показує собівартість, маржу та прибуток"
-            >
-              {showInternal ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-              {showInternal ? t("internalMode") : t("clientMode")}
-            </button>
-          )}
-          <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
-          <button onClick={() => setInput(defaultInput)} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><RotateCcw className="w-3.5 h-3.5" />{t("reset")}</button>
-          <button onClick={onSave} disabled={saveMut.isPending} className={`${btnBase} bg-secondary hover:bg-secondary/80 disabled:opacity-50`}><Save className="w-3.5 h-3.5" />{saveMut.isPending ? "…" : t("save")}</button>
-          <button onClick={() => window.print()} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><Printer className="w-3.5 h-3.5" />{t("print")}</button>
-          <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
-        </div>
       </header>
+
 
       <div className="flex gap-1 border-b border-border">
         <button onClick={() => setView("calc")} className={`px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
