@@ -125,10 +125,8 @@ async function attachManager(supabase: any, rows: any[]): Promise<any[]> {
   if (!rows.length) return rows;
   const ownerIds = Array.from(new Set(rows.map((r) => r.owner_id).filter(Boolean)));
   if (!ownerIds.length) return rows.map((r) => ({ ...r, manager_display: r.manager || null }));
-  const { data: profs } = await supabase
-    .from("profiles").select("user_id,display_name,email").in("user_id", ownerIds);
-  const map = new Map<string, string>();
-  (profs ?? []).forEach((p: any) => map.set(p.user_id, p.display_name || p.email || ""));
+  const { staffNameMap } = await import("./staff.server");
+  const map = await staffNameMap(ownerIds as string[]);
   return rows.map((r) => ({
     ...r,
     manager_display: r.manager || map.get(r.owner_id) || null,

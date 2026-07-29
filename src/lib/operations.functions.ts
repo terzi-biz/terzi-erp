@@ -33,9 +33,7 @@ export const getOperationsSchedule = createServerFn({ method: "POST" })
 
 export const listManagers = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("profiles").select("user_id,display_name,email").order("display_name");
-    if (error) throw error;
-    return data ?? [];
+  .handler(async () => {
+    const { listStaffDirectory } = await import("./staff.server");
+    return await listStaffDirectory();
   });
