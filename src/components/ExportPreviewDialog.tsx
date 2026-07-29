@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from "react";
 import { FileDown, ImageIcon, Loader2, X } from "lucide-react";
-import { buildExportPreview, exportElementAsPdf, exportElementAsPng, type ExportPreview } from "@/lib/pngExport";
+import { buildExportPreview, exportElementAsPdf, exportElementAsPng, savePngBlob, type ExportPreview } from "@/lib/pngExport";
 
 interface Props {
   target: HTMLElement | null;
@@ -22,30 +22,36 @@ export function ExportPreviewDialog({ target, filenamePng, filenamePdf, onClose 
   useEffect(() => {
     if (!target) return;
     let alive = true;
-    let url: string | null = null;
+    let urls: string[] = [];
     buildExportPreview(target)
       .then((p) => {
-        if (!alive) { URL.revokeObjectURL(p.pdfUrl); return; }
-        url = p.pdfUrl;
+        if (!alive) { URL.revokeObjectURL(p.pdfUrl); URL.revokeObjectURL(p.imageUrl); return; }
+        urls = [p.pdfUrl, p.imageUrl];
         setPreview(p);
       })
       .catch(() => alive && setError("Не вдалося побудувати попередній перегляд"));
     return () => {
       alive = false;
-      if (url) URL.revokeObjectURL(url);
+      urls.forEach((u) => URL.revokeObjectURL(u));
     };
   }, [target]);
 
+  // Зберігаємо саме ті файли, які показані у перегляді (без повторного рендера)
   const savePng = async () => {
-    if (!target) return;
     setBusy("png");
-    try { await exportElementAsPng(target, filenamePng); } finally { setBusy(null); }
+    try {
+      if (preview) await savePngBlob(preview.pngBlob, filenamePng);
+      else if (target) await exportElementAsPng(target, filenamePng);
+    } finally { setBusy(null); }
   };
   const savePdf = async () => {
-    if (!target) return;
     setBusy("pdf");
-    try { await exportElementAsPdf(target, filenamePdf); } finally { setBusy(null); }
+    try {
+      if (preview) await savePngBlob(preview.pdfBlob, filenamePdf);
+      else if (target) await exportElementAsPdf(target, filenamePdf);
+    } finally { setBusy(null); }
   };
+
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-2 sm:p-6">
