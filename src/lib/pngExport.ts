@@ -149,11 +149,12 @@ export async function exportElementAsPng(el: HTMLElement, filename: string): Pro
 // ---------- PDF ----------
 export async function exportElementAsPdf(el: HTMLElement, filename: string): Promise<void> {
   const scale = 2;
-  const [hdr, ftr, canvas] = await Promise.all([
+  const [hdr, ftr, sheet] = await Promise.all([
     loadImage(headerImg),
     loadImage(footerImg),
     captureSheet(el, scale),
   ]);
+  const { canvas, breaks: points } = sheet;
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210, pageH = 297;
