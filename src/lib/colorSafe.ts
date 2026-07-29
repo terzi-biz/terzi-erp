@@ -64,23 +64,6 @@ export function toSafeColor(value: string): string {
   });
 }
 
-const COLOR_PROPS = [
-  "color",
-  "background-color",
-  "border-top-color",
-  "border-right-color",
-  "border-bottom-color",
-  "border-left-color",
-  "outline-color",
-  "text-decoration-color",
-  "caret-color",
-  "column-rule-color",
-  "fill",
-  "stroke",
-  "background-image",
-  "box-shadow",
-] as const;
-
 const UNSUPPORTED = /(oklch|oklab|lch|lab|color-mix|color)\(/i;
 
 /**
