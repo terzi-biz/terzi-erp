@@ -49,6 +49,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
+  // Тримаємо сесію живою: після сну пристрою / повернення онлайн оновлюємо токен,
+  // щоб користувача не викидало з системи.
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let busy = false;
+    const revive = async () => {
+      if (busy || document.visibilityState === "hidden" || !navigator.onLine) return;
+      busy = true;
+      try {
+        const { data } = await supabase.auth.getSession();
+        const exp = data.session?.expires_at ?? 0;
+        // оновлюємо завчасно (за 5 хв до закінчення) або якщо вже прострочено
+        if (data.session && exp * 1000 - Date.now() < 5 * 60 * 1000) {
+          await supabase.auth.refreshSession();
+        }
+      } catch {
+        /* офлайн — залишаємо поточну сесію, вихід не робимо */
+      } finally {
+        busy = false;
+      }
+    };
+    document.addEventListener("visibilitychange", revive);
+    window.addEventListener("online", revive);
+    window.addEventListener("focus", revive);
+    const t = window.setInterval(revive, 10 * 60 * 1000);
+    revive();
+    return () => {
+      document.removeEventListener("visibilitychange", revive);
+      window.removeEventListener("online", revive);
+      window.removeEventListener("focus", revive);
+      window.clearInterval(t);
+    };
+  }, []);
+
   async function loadUserData(uid: string) {
     const [{ data: p }, { data: r }] = await Promise.all([
       supabase.from("profiles").select("user_id, email, display_name, avatar_url").eq("user_id", uid).maybeSingle(),
@@ -61,11 +95,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   return (
     <Ctx.Provider value={{
       user: session?.user ?? null, session, profile, roles, loading,
-      signOut: async () => { await supabase.auth.signOut(); },
+      // scope: "local" — виходимо лише на цьому пристрої, інші сесії лишаються активними
+      signOut: async () => { await supabase.auth.signOut({ scope: "local" }); },
     }}>
       {children}
     </Ctx.Provider>
   );
 }
+
 
 export const useAuth = () => useContext(Ctx);
