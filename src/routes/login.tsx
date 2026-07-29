@@ -30,7 +30,7 @@ const BADGES = [
 function LoginPage() {
   const nav = useNavigate();
   const router = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, accessAllowed, approvalStatus, signOut } = useAuth();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [pwd, setPwd] = useState("");
@@ -40,14 +40,21 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) nav({ to: "/" });
-  }, [user, loading, nav]);
+    if (!loading && user && accessAllowed) nav({ to: "/" });
+  }, [user, loading, accessAllowed, nav]);
 
   async function withProvider(p: "google" | "apple") {
     setErr(null); setBusy(true);
-    const res = await lovable.auth.signInWithOAuth(p, { redirect_uri: window.location.origin });
+    const res = await lovable.auth.signInWithOAuth(p, {
+      redirect_uri: window.location.origin,
+      extraParams: p === "google" ? { prompt: "select_account" } : undefined,
+    });
     if (res.error) { setErr(res.error.message ?? "Помилка входу"); setBusy(false); return; }
-    if (!res.redirected) router.invalidate();
+    if (!res.redirected) {
+      await router.invalidate();
+      nav({ to: "/" });
+      setBusy(false);
+    }
   }
 
   async function withEmail(e: React.FormEvent) {
@@ -57,12 +64,33 @@ function LoginPage() {
       : supabase.auth.signUp({
           email,
           password: pwd,
-          options: { emailRedirectTo: window.location.origin, data: { full_name: name } },
+          options: { emailRedirectTo: `${window.location.origin}/login`, data: { full_name: name } },
         }));
     setBusy(false);
     if (error) setErr(error.message);
-    else router.invalidate();
+    else {
+      await router.invalidate();
+      nav({ to: "/" });
+    }
   }
+
+  const blocked = user && !loading && !accessAllowed;
+  const statusCard = blocked ? (
+    <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6 text-center shadow-2xl sm:p-8">
+      <div className="mb-6 flex justify-center"><TerziLogo size={44} withText /></div>
+      <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
+        {approvalStatus === "rejected" ? "Доступ не підтверджено" : "Заявка на підтвердженні"}
+      </h1>
+      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+        {approvalStatus === "rejected"
+          ? "Адміністратор відхилив доступ до ERP. Зверніться до керівника TERZI, якщо це помилка."
+          : "Акаунт створено успішно. Адміністратор перевірить заявку та відкриє доступ до системи."}
+      </p>
+      <button onClick={() => signOut()} className="mt-6 w-full rounded-xl border border-border bg-background py-3 text-sm font-semibold transition-colors hover:bg-accent">
+        Вийти з акаунта
+      </button>
+    </div>
+  ) : null;
 
   const card = (
     <div className="w-full max-w-md rounded-2xl border border-border/60 bg-card p-6 shadow-2xl sm:p-8">
@@ -193,7 +221,7 @@ function LoginPage() {
         </section>
 
         {/* Права частина — форма входу */}
-        <div className="flex justify-center">{card}</div>
+        <div className="flex justify-center">{statusCard ?? card}</div>
       </div>
     </div>
   );

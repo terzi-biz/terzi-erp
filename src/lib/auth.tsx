@@ -3,6 +3,7 @@ import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "director" | "manager" | "finance";
+export type RegistrationStatus = "pending" | "approved" | "rejected";
 
 interface Profile {
   user_id: string;
@@ -16,12 +17,14 @@ interface AuthCtx {
   session: Session | null;
   profile: Profile | null;
   roles: AppRole[];
+  approvalStatus: RegistrationStatus | null;
+  accessAllowed: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
 
 const Ctx = createContext<AuthCtx>({
-  user: null, session: null, profile: null, roles: [], loading: true,
+  user: null, session: null, profile: null, roles: [], approvalStatus: null, accessAllowed: false, loading: true,
   signOut: async () => {},
 });
 
@@ -29,24 +32,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [approvalStatus, setApprovalStatus] = useState<RegistrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+    const clearUserData = () => {
+      setProfile(null);
+      setRoles([]);
+      setApprovalStatus(null);
+    };
     const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      if (!active) return;
       setSession(s);
       if (s?.user) {
-        setTimeout(() => loadUserData(s.user.id), 0);
+        setLoading(true);
+        setTimeout(() => {
+          if (!active) return;
+          loadUserData(s.user.id).finally(() => {
+            if (active) setLoading(false);
+          });
+        }, 0);
       } else {
-        setProfile(null);
-        setRoles([]);
+        clearUserData();
+        setLoading(false);
       }
     });
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!active) return;
       setSession(data.session);
-      if (data.session?.user) loadUserData(data.session.user.id);
-      setLoading(false);
+      if (data.session?.user) await loadUserData(data.session.user.id);
+      else clearUserData();
+    }).finally(() => {
+      if (active) setLoading(false);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
   // Тримаємо сесію живою: після сну пристрою / повернення онлайн оновлюємо токен,
@@ -84,17 +104,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function loadUserData(uid: string) {
-    const [{ data: p }, { data: r }] = await Promise.all([
+    const [{ data: p }, { data: r }, { data: approval }] = await Promise.all([
       supabase.from("profiles").select("user_id, email, display_name, avatar_url").eq("user_id", uid).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", uid),
+      supabase.from("registration_approvals").select("status").eq("user_id", uid).maybeSingle(),
     ]);
+    const nextRoles = (r ?? []).map((x: { role: AppRole }) => x.role);
     setProfile(p ?? null);
-    setRoles((r ?? []).map((x: { role: AppRole }) => x.role));
+    setRoles(nextRoles);
+    setApprovalStatus((approval?.status as RegistrationStatus | undefined) ?? (nextRoles.length ? "approved" : "pending"));
   }
+
+  const accessAllowed = Boolean(session?.user)
+    && approvalStatus !== "rejected"
+    && (approvalStatus === "approved" || roles.length > 0);
 
   return (
     <Ctx.Provider value={{
-      user: session?.user ?? null, session, profile, roles, loading,
+      user: session?.user ?? null, session, profile, roles, approvalStatus, accessAllowed, loading,
       // scope: "local" — виходимо лише на цьому пристрої, інші сесії лишаються активними
       signOut: async () => { await supabase.auth.signOut({ scope: "local" }); },
     }}>
