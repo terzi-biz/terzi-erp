@@ -75,19 +75,44 @@ function normalizeClone(original: HTMLElement, clonedEl: HTMLElement, clonedDoc:
   });
 }
 
-async function captureSheet(el: HTMLElement, scale: number): Promise<HTMLCanvasElement> {
+/** Селектори елементів, по нижній межі яких дозволено різати сторінку. */
+const BREAK_SELECTOR = "[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header";
+
+/**
+ * Захоплення аркуша + точки безпечного розриву сторінок.
+ * ВАЖЛИВО: точки міряються всередині КЛОНА (ширина EXPORT_WIDTH), бо там інша
+ * розкладка рядків, ніж в оригіналі — інакше розріз потрапляє всередину рядка.
+ */
+async function captureSheet(
+  el: HTMLElement,
+  scale: number,
+): Promise<{ canvas: HTMLCanvasElement; breaks: number[] }> {
   el.setAttribute(CLONE_MARK, "1");
+  let breaks: number[] = [];
   try {
-    return await html2canvas(el, {
+    const canvas = await html2canvas(el, {
       ...BASE_OPTS,
       scale,
       width: EXPORT_WIDTH,
       windowWidth: EXPORT_WIDTH + 80,
       onclone: (doc: Document) => {
         const clone = doc.querySelector<HTMLElement>(`[${CLONE_MARK}="1"]`);
-        if (clone) normalizeClone(el, clone, doc);
+        if (!clone) return;
+        normalizeClone(el, clone, doc);
+        const cloneTop = clone.getBoundingClientRect().top;
+        breaks = Array.from(
+          new Set(
+            Array.from(clone.querySelectorAll<HTMLElement>(BREAK_SELECTOR)).map((b) =>
+              Math.ceil((b.getBoundingClientRect().bottom - cloneTop) * scale),
+            ),
+          ),
+        ).sort((a, b) => a - b);
       },
     });
+    return {
+      canvas,
+      breaks: breaks.filter((p) => p > 0 && p < canvas.height),
+    };
   } finally {
     el.removeAttribute(CLONE_MARK);
   }
