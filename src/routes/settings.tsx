@@ -2,16 +2,29 @@ import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
 import { useServerFn } from "@tanstack/react-start";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { resyncCatalogPrices } from "@/lib/catalog.functions";
+import { listRegistrationApprovals, reviewRegistrationApproval, type RegistrationApprovalRow } from "@/lib/registration.functions";
+import { useAuth } from "@/lib/auth";
+import { Button } from "@/components/ui/button";
 
-export const Route = createFileRoute("/settings")({ component: SettingsPage });
+export const Route = createFileRoute("/settings")({
+  component: SettingsPage,
+  head: () => ({ meta: [
+    { title: "Налаштування TERZI ERP" },
+    { name: "description", content: "Налаштування калькуляторів, прайсів, коефіцієнтів і підтвердження доступу користувачів TERZI ERP." },
+    { property: "og:title", content: "Налаштування TERZI ERP" },
+    { property: "og:description", content: "Керування прайсами, коефіцієнтами та заявками на доступ у TERZI ERP." },
+    { property: "og:type", content: "website" },
+    { name: "twitter:card", content: "summary_large_image" },
+  ] }),
+});
 
-type Tab = "screed" | "roofing" | "insulation" | "demolition" | "common";
+type Tab = "screed" | "roofing" | "insulation" | "demolition" | "common" | "access";
 
 const SCREED_GROUPS = [
   { title: "Норми витрат бригади", fields: [
@@ -102,6 +115,7 @@ const COMMON_FIELDS = [
 ];
 
 function SettingsPage() {
+  const { roles } = useAuth();
   const {
     settings, updateSettings,
     roofingCoeffs, updateRoofingCoeffs,
@@ -113,7 +127,23 @@ function SettingsPage() {
   const [importOpen, setImportOpen] = useState<null | { module: Tab; kind: "material" | "work" }>(null);
   const [resyncing, setResyncing] = useState(false);
   const resyncFn = useServerFn(resyncCatalogPrices);
+  const listApprovals = useServerFn(listRegistrationApprovals);
+  const reviewApproval = useServerFn(reviewRegistrationApproval);
   const qc = useQueryClient();
+  const canManageAccess = roles.includes("admin") || roles.includes("director");
+  const approvalsQuery = useQuery({
+    queryKey: ["registration-approvals"],
+    queryFn: () => listApprovals(),
+    enabled: tab === "access" && canManageAccess,
+  });
+  const reviewMutation = useMutation({
+    mutationFn: (data: { id: string; status: "approved" | "rejected" }) => reviewApproval({ data }),
+    onSuccess: async (_row, variables) => {
+      await qc.invalidateQueries({ queryKey: ["registration-approvals"] });
+      toast.success(variables.status === "approved" ? "Доступ підтверджено" : "Заявку відхилено");
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
 
   const runResync = async (module: Exclude<Tab, "common">, kind: "material" | "work") => {
     setResyncing(true);
@@ -160,6 +190,7 @@ function SettingsPage() {
     { id: "insulation", label: "Утеплення", icon: Snowflake },
     { id: "demolition", label: "Демонтаж", icon: Hammer },
     { id: "common", label: "Спільні", icon: Sliders },
+    ...(canManageAccess ? [{ id: "access" as const, label: "Доступ", icon: UserCheck }] : []),
   ];
 
   const setDraftValue = (
@@ -228,6 +259,89 @@ function SettingsPage() {
     </div>
   );
 
+  const formatDate = (value: string | null) => value
+    ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value))
+    : "—";
+  const statusLabel = (status: RegistrationApprovalRow["status"]) => ({
+    pending: "Очікує",
+    approved: "Підтверджено",
+    rejected: "Відхилено",
+  })[status];
+  const statusIcon = (status: RegistrationApprovalRow["status"]) => {
+    if (status === "approved") return <CheckCircle2 className="h-4 w-4 text-success" />;
+    if (status === "rejected") return <XCircle className="h-4 w-4 text-destructive" />;
+    return <Clock3 className="h-4 w-4 text-primary" />;
+  };
+
+  const AccessPanel = () => {
+    const rows = (approvalsQuery.data ?? []) as RegistrationApprovalRow[];
+    const pendingCount = rows.filter((row) => row.status === "pending").length;
+    return (
+      <div className="panel overflow-hidden">
+        <div className="border-b border-border p-4 md:p-5">
+          <h2 className="text-lg font-black">Підтвердження реєстрацій</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Нові Google / email акаунти потрапляють сюди. Після підтвердження користувач отримує роль менеджера.
+          </p>
+        </div>
+        {!canManageAccess ? (
+          <div className="p-5 text-sm text-muted-foreground">Доступ до заявок мають лише адміністратори.</div>
+        ) : approvalsQuery.isLoading ? (
+          <div className="p-5 text-sm text-muted-foreground">Завантаження заявок…</div>
+        ) : rows.length === 0 ? (
+          <div className="p-5 text-sm text-muted-foreground">Заявок поки немає.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
+              <thead className="border-b border-border bg-secondary/50 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-4 py-3 text-left">Користувач</th>
+                  <th className="px-4 py-3 text-left">Статус</th>
+                  <th className="px-4 py-3 text-left">Дата заявки</th>
+                  <th className="px-4 py-3 text-left">Перегляд</th>
+                  <th className="px-4 py-3 text-right">Дії</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id} className="border-b border-border/70 last:border-0">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        {row.avatar_url ? <img src={row.avatar_url} alt="" className="h-9 w-9 rounded-full object-cover" /> : <div className="grid h-9 w-9 place-items-center rounded-full bg-primary/10 text-xs font-black text-primary">{(row.display_name ?? row.email ?? "T").slice(0, 1).toUpperCase()}</div>}
+                        <div className="min-w-0">
+                          <div className="font-semibold truncate">{row.display_name ?? "Без імені"}</div>
+                          <div className="text-xs text-muted-foreground truncate">{row.email ?? "email не вказано"}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2.5 py-1 text-xs font-semibold">
+                        {statusIcon(row.status)} {statusLabel(row.status)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDate(row.requested_at)}</td>
+                    <td className="px-4 py-3 text-muted-foreground">{formatDate(row.reviewed_at)}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex justify-end gap-2">
+                        <Button size="sm" disabled={row.status === "approved" || reviewMutation.isPending} onClick={() => reviewMutation.mutate({ id: row.id, status: "approved" })}>
+                          Підтвердити
+                        </Button>
+                        <Button size="sm" variant="outline" disabled={row.status === "rejected" || reviewMutation.isPending} onClick={() => reviewMutation.mutate({ id: row.id, status: "rejected" })}>
+                          Відхилити
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {canManageAccess && pendingCount > 0 && <div className="border-t border-border bg-primary/5 px-4 py-3 text-xs font-semibold text-primary">Нових заявок: {pendingCount}</div>}
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-5xl mx-auto">
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 mb-6">
@@ -249,7 +363,7 @@ function SettingsPage() {
         ))}
       </div>
 
-      {ActionsBar}
+      {tab !== "access" && ActionsBar}
 
       {tab !== "common" && (
         <div className="panel p-3 mb-4 flex flex-wrap items-center gap-2">
@@ -280,6 +394,7 @@ function SettingsPage() {
       )}
 
       <div className="space-y-4">
+        {tab === "access" && <AccessPanel />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}

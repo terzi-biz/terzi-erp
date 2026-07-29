@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Outlet, createRootRouteWithContext, HeadContent, Scripts, useLocation, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { AppShell } from "@/components/AppShell";
+import { Button } from "@/components/ui/button";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import appCss from "../styles.css?url";
@@ -46,7 +47,7 @@ function RootComponent() {
 }
 
 function Gate() {
-  const { user, loading } = useAuth();
+  const { user, loading, accessAllowed, approvalStatus, signOut } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const isLogin = loc.pathname === "/login";
@@ -58,5 +59,24 @@ function Gate() {
   if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">Завантаження…</div>;
   if (isLogin) return <Outlet />;
   if (!user) return null;
+  if (!accessAllowed) return <AccessWaiting status={approvalStatus} onSignOut={signOut} />;
   return <AppShell><Outlet /></AppShell>;
+}
+
+function AccessWaiting({ status, onSignOut }: { status: string | null; onSignOut: () => Promise<void> }) {
+  const rejected = status === "rejected";
+  return (
+    <div className="min-h-screen bg-background px-4 py-10 grid place-items-center">
+      <div className="w-full max-w-md panel p-6 text-center">
+        <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-primary/10 text-primary font-black">T</div>
+        <h1 className="text-2xl font-black">{rejected ? "Доступ не підтверджено" : "Заявка очікує підтвердження"}</h1>
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          {rejected
+            ? "Адміністратор відхилив доступ до ERP. Зверніться до керівника TERZI, якщо це помилка."
+            : "Ваш акаунт створено. Після підтвердження адміністратором доступ до ERP відкриється автоматично."}
+        </p>
+        <Button variant="outline" className="mt-5" onClick={() => onSignOut()}>Вийти з акаунта</Button>
+      </div>
+    </div>
+  );
 }
