@@ -57,12 +57,30 @@ export function toSafeColor(value: string): string {
     if (f === "lch") {
       const [L, C, H] = nums;
       const h = (H * Math.PI) / 180;
-      return oklabToRgb(L / 100, (C / 100) * Math.cos(h) * 0.4, (C / 100) * Math.sin(h) * 0.4, alpha);
+      return labToRgb(L, C * Math.cos(h), C * Math.sin(h), alpha);
     }
     // lab()
-    return oklabToRgb(nums[0] / 100, nums[1] / 250, nums[2] / 250, alpha);
+    return labToRgb(nums[0], nums[1], nums[2], alpha);
   });
 }
+
+/** CIE Lab (D50, як у CSS) → rgba(). */
+function labToRgb(L: number, a: number, bb: number, alpha: number): string {
+  const eps = 216 / 24389, kappa = 24389 / 27;
+  const fy = (L + 16) / 116;
+  const fx = fy + a / 500;
+  const fz = fy - bb / 200;
+  const inv = (t: number) => (t ** 3 > eps ? t ** 3 : (116 * t - 16) / kappa);
+  const X = inv(fx) * 0.9642956764295677;
+  const Y = (L > kappa * eps ? ((L + 16) / 116) ** 3 : L / kappa) * 1;
+  const Z = inv(fz) * 0.8251046025104602;
+  const r = 3.1338561 * X - 1.6168667 * Y - 0.4906146 * Z;
+  const g = -0.9787684 * X + 1.9161415 * Y + 0.033454 * Z;
+  const b2 = 0.0719453 * X - 0.2289914 * Y + 1.4052427 * Z;
+  const A = alpha >= 1 ? 1 : Math.max(0, alpha);
+  return `rgba(${gamma(r)}, ${gamma(g)}, ${gamma(b2)}, ${A})`;
+}
+
 
 const UNSUPPORTED = /(oklch|oklab|lch|lab|color-mix|color)\(/i;
 
