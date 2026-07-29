@@ -170,8 +170,10 @@ export const deleteObject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("objects").delete().eq("id", data.id);
+    const { data: rows, error } = await context.supabase
+      .from("objects").delete().eq("id", data.id).select("id");
     if (error) { console.error("deleteObject", error); throw new Error("Не вдалося видалити об'єкт"); }
+    if (!rows || rows.length === 0) throw new Error("Немає прав на видалення цього об'єкта");
     return { ok: true };
   });
 
