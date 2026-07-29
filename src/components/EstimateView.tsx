@@ -200,6 +200,9 @@ export function EstimateView({
               <RotateCcw className="w-3 h-3" /> Скинути правки
             </button>
           )}
+          <button onClick={() => setPreviewOpen(true)} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+            <Eye className="w-3 h-3" /> Перегляд
+          </button>
           <button onClick={onPng} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
             <ImageIcon className="w-3 h-3" /> Зображення
           </button>
@@ -208,6 +211,15 @@ export function EstimateView({
           </button>
         </div>
       </div>
+
+      {previewOpen && (
+        <ExportPreviewDialog
+          target={activeRef.current}
+          filenamePng={filenamePng}
+          filenamePdf={filenamePdf}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
 
       <div className="text-[11px] text-muted-foreground panel p-2 px-3">
         Ви можете редагувати будь-яку позицію: назву, одиницю, кількість
