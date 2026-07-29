@@ -154,7 +154,9 @@ function LoginPage() {
         <section className="relative overflow-hidden rounded-2xl">
           <img src={heroAsset.url} alt="Житловий комплекс, зведений компанією TERZI"
             className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/20" />
+          <div className="absolute inset-0 bg-background/70" />
+          <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-background/40" />
+
           <div className="relative p-6 sm:p-10">
             <TerziLogo size={48} withText />
             <div className="mt-8 text-[11px] font-semibold uppercase tracking-[0.25em] text-primary">
