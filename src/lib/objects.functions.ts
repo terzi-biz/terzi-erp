@@ -125,7 +125,7 @@ export const getObject = createServerFn({ method: "POST" })
         context.supabase.from("object_comments").select("*").eq("object_id", data.id).order("created_at", { ascending: false }),
         context.supabase.from("object_status_history").select("*").eq("object_id", data.id).order("changed_at", { ascending: false }).limit(200),
         context.supabase.from("estimates").select("id,number,module,status,total_client,created_at").eq("object_id", data.id).order("created_at", { ascending: false }),
-        context.supabase.from("crew_bookings").select("*").eq("object_id", data.id).order("start_at", { ascending: false }),
+        context.supabase.from("crew_bookings").select("*").eq("object_id", data.id).order("date", { ascending: false }),
       ]);
     let client: any = null;
     if (obj.client_id) {

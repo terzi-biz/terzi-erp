@@ -461,9 +461,19 @@ export const forkEstimateFromVersion = createServerFn({ method: "POST" })
       .from("estimate_versions").select("*").eq("id", data.version_id).maybeSingle();
     if (error || !ver) throw new Error("Версію не знайдено");
     const s = ver.snapshot as any;
-    const suffix = "-v" + (ver.version_no + 1);
+    const baseNumber = (s.number || "TRZ") + "-v" + (ver.version_no + 1);
+    // Номер має бути унікальним: якщо копія вже існує — додаємо порядковий індекс
+    let number = baseNumber;
+    const { data: taken } = await context.supabase
+      .from("estimates").select("number").like("number", `${baseNumber}%`);
+    const used = new Set((taken ?? []).map((r: any) => r.number));
+    if (used.has(number)) {
+      let i = 2;
+      while (used.has(`${baseNumber}-${i}`)) i++;
+      number = `${baseNumber}-${i}`;
+    }
     const newRow: any = {
-      number: (s.number || "TRZ") + suffix,
+      number,
       module: s.module,
       status: "draft",
       client_id: s.client_id,
