@@ -187,29 +187,44 @@ export function EstimateView({
     rows: result.lines.filter((l) => l.block === b),
   })).filter((g) => g.rows.length > 0);
 
+  const ToolbarBlock = (
+    <div className="flex flex-wrap items-center justify-between gap-2 panel p-3">
+      <div className="text-xs text-muted-foreground">
+        Режим: <b className="text-foreground">{mode === "internal" ? "Внутрішній кошторис" : "Комерційна пропозиція"}</b>
+      </div>
+      <div className="flex gap-2">
+        {hasEdits && (
+          <button onClick={onResetActive} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+            <RotateCcw className="w-3 h-3" /> Скинути правки
+          </button>
+        )}
+        <button onClick={() => setPreviewOpen(true)} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+          <Eye className="w-3 h-3" /> Перегляд
+        </button>
+        <button onClick={onPng} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+          <ImageIcon className="w-3 h-3" /> Зображення
+        </button>
+        <button onClick={onPdf} className="px-3 py-2 rounded bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
+          <FileDown className="w-3 h-3" /> Друк PDF
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-4">
-      {/* Toolbar (без перемикача Внутр/Клієнт — його винесено вниз) */}
-      <div className="flex flex-wrap items-center justify-between gap-2 panel p-3">
-        <div className="text-xs text-muted-foreground">
-          Режим: <b className="text-foreground">{mode === "internal" ? "Внутрішній кошторис" : "Комерційна пропозиція"}</b>
-        </div>
-        <div className="flex gap-2">
-          {hasEdits && (
-            <button onClick={onResetActive} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
-              <RotateCcw className="w-3 h-3" /> Скинути правки
-            </button>
-          )}
-          <button onClick={() => setPreviewOpen(true)} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
-            <Eye className="w-3 h-3" /> Перегляд
+      {/* Перемикач Внутрішня / Клієнтська — НАД кошторисом */}
+      <div className="flex justify-center gap-1 panel p-3">
+        {isInternal && (
+          <button onClick={() => setMode("internal")}
+            className={`px-4 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "internal" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+            <Eye className="w-3 h-3" /> Внутрішня (з собівартістю)
           </button>
-          <button onClick={onPng} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
-            <ImageIcon className="w-3 h-3" /> Зображення
-          </button>
-          <button onClick={onPdf} className="px-3 py-2 rounded bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
-            <FileDown className="w-3 h-3" /> Друк PDF
-          </button>
-        </div>
+        )}
+        <button onClick={() => setMode("client")}
+          className={`px-4 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "client" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+          <EyeOff className="w-3 h-3" /> Клієнтська
+        </button>
       </div>
 
       {previewOpen && (
@@ -225,30 +240,6 @@ export function EstimateView({
         Ви можете редагувати будь-яку позицію: назву, одиницю, кількість
         {mode === "internal" ? ", закупку та ціну продажу" : " та ціну"}. Натисніть «+ позицію» у блоці, щоб додати власну, або <Trash2 className="w-3 h-3 inline" /> щоб прибрати.
       </div>
-
-      {mode === "internal" && isInternal && (() => {
-        const m = module.toLowerCase();
-        const moduleKey: "screed" | "roofing" | "insulation" | "demolition" | undefined =
-          m.includes("стяжк") || m.includes("screed") ? "screed" :
-          m.includes("покрівл") || m.includes("покривл") || m.includes("рубемаст") || m.includes("пвх") || m.includes("roofing") ? "roofing" :
-          m.includes("утепл") || m.includes("insulation") ? "insulation" :
-          m.includes("демонтаж") || m.includes("demolition") ? "demolition" : undefined;
-        return moduleKey ? (
-          <SchedulePanel
-            estimateId={estimateId}
-            module={moduleKey}
-            area={area}
-            layers={layers}
-            initial={schedule ? {
-              startAt: schedule.startAt,
-              durationDays: schedule.durationDays,
-              durationOverride: schedule.durationOverride,
-              gcalEventId: schedule.gcalEventId,
-              gcalSyncedAt: schedule.gcalSyncedAt,
-            } : undefined}
-          />
-        ) : null;
-      })()}
 
       {mode === "internal" && isInternal && (
         <div ref={internalRef} className="relative bg-white text-slate-900 p-6 rounded border border-border overflow-hidden">
@@ -299,22 +290,36 @@ export function EstimateView({
         </>
       )}
 
-      {/* Перемикач Кошторис / КП — ВНИЗУ */}
-      <div className="flex justify-center gap-1 panel p-3">
-        {isInternal && (
-          <button onClick={() => setMode("internal")}
-            className={`px-4 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "internal" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-            <Eye className="w-3 h-3" /> Внутрішня (з собівартістю)
-          </button>
-        )}
-        <button onClick={() => setMode("client")}
-          className={`px-4 py-2 rounded text-xs font-semibold inline-flex items-center gap-2 ${mode === "client" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-          <EyeOff className="w-3 h-3" /> Клієнтська
-        </button>
-      </div>
+      {/* Експорт та планування — ПІД кошторисом */}
+      {ToolbarBlock}
+
+      {mode === "internal" && isInternal && (() => {
+        const m = module.toLowerCase();
+        const moduleKey: "screed" | "roofing" | "insulation" | "demolition" | undefined =
+          m.includes("стяжк") || m.includes("screed") ? "screed" :
+          m.includes("покрівл") || m.includes("покривл") || m.includes("рубемаст") || m.includes("пвх") || m.includes("roofing") ? "roofing" :
+          m.includes("утепл") || m.includes("insulation") ? "insulation" :
+          m.includes("демонтаж") || m.includes("demolition") ? "demolition" : undefined;
+        return moduleKey ? (
+          <SchedulePanel
+            estimateId={estimateId}
+            module={moduleKey}
+            area={area}
+            layers={layers}
+            initial={schedule ? {
+              startAt: schedule.startAt,
+              durationDays: schedule.durationDays,
+              durationOverride: schedule.durationOverride,
+              gcalEventId: schedule.gcalEventId,
+              gcalSyncedAt: schedule.gcalSyncedAt,
+            } : undefined}
+          />
+        ) : null;
+      })()}
     </div>
   );
 }
+
 
 
 interface SheetProps {

@@ -12,6 +12,8 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import headerImg from "@/assets/terzi-header.jpg";
 import footerImg from "@/assets/terzi-footer.png";
+import { sanitizeColorsDeep } from "@/lib/colorSafe";
+
 
 /** Ширина «віртуального аркуша» для рендера (px). Відповідає A4 при ~110 DPI. */
 const EXPORT_WIDTH = 1000;
@@ -73,7 +75,11 @@ function normalizeClone(original: HTMLElement, clonedEl: HTMLElement, clonedDoc:
   clonedEl.querySelectorAll<HTMLElement>(".print\\:hidden, [data-export-hide]").forEach((el) => {
     el.style.display = "none";
   });
+
+  // html2canvas не парсить oklch() — переводимо всі кольори у rgba()
+  sanitizeColorsDeep(clonedEl, clonedDoc);
 }
+
 
 /** Селектори елементів, по нижній межі яких дозволено різати сторінку. */
 const BREAK_SELECTOR = "[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header";

@@ -422,6 +422,17 @@ function RoofingPage() {
           </section>
         </div>
       </div>
+      {view === "calc" && (
+        <div className="flex justify-center pt-2">
+          <button
+            onClick={() => { setView("estimate"); window.scrollTo({ top: 0, behavior: "smooth" }); }}
+            className="px-6 py-3 rounded-md bg-primary text-primary-foreground text-sm font-bold inline-flex items-center gap-2 shadow-sm hover:bg-primary/90"
+          >
+            <FileText className="w-4 h-4" /> Сформувати кошторис / КП
+          </button>
+        </div>
+      )}
+
     </div>
   );
 }
