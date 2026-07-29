@@ -131,9 +131,9 @@ function triggerDownload(url: string, filename: string) {
 export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
   let canvas: HTMLCanvasElement;
   try {
-    canvas = await captureSheet(el, 3);
+    canvas = (await captureSheet(el, 3)).canvas;
   } catch {
-    canvas = await captureSheet(el, 2);
+    canvas = (await captureSheet(el, 2)).canvas;
   }
   await new Promise<void>((res) => {
     canvas.toBlob((blob) => {
