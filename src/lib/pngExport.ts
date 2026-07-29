@@ -75,19 +75,44 @@ function normalizeClone(original: HTMLElement, clonedEl: HTMLElement, clonedDoc:
   });
 }
 
-async function captureSheet(el: HTMLElement, scale: number): Promise<HTMLCanvasElement> {
+/** Селектори елементів, по нижній межі яких дозволено різати сторінку. */
+const BREAK_SELECTOR = "[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header";
+
+/**
+ * Захоплення аркуша + точки безпечного розриву сторінок.
+ * ВАЖЛИВО: точки міряються всередині КЛОНА (ширина EXPORT_WIDTH), бо там інша
+ * розкладка рядків, ніж в оригіналі — інакше розріз потрапляє всередину рядка.
+ */
+async function captureSheet(
+  el: HTMLElement,
+  scale: number,
+): Promise<{ canvas: HTMLCanvasElement; breaks: number[] }> {
   el.setAttribute(CLONE_MARK, "1");
+  let breaks: number[] = [];
   try {
-    return await html2canvas(el, {
+    const canvas = await html2canvas(el, {
       ...BASE_OPTS,
       scale,
       width: EXPORT_WIDTH,
       windowWidth: EXPORT_WIDTH + 80,
       onclone: (doc: Document) => {
         const clone = doc.querySelector<HTMLElement>(`[${CLONE_MARK}="1"]`);
-        if (clone) normalizeClone(el, clone, doc);
+        if (!clone) return;
+        normalizeClone(el, clone, doc);
+        const cloneTop = clone.getBoundingClientRect().top;
+        breaks = Array.from(
+          new Set(
+            Array.from(clone.querySelectorAll<HTMLElement>(BREAK_SELECTOR)).map((b) =>
+              Math.ceil((b.getBoundingClientRect().bottom - cloneTop) * scale),
+            ),
+          ),
+        ).sort((a, b) => a - b);
       },
     });
+    return {
+      canvas,
+      breaks: breaks.filter((p) => p > 0 && p < canvas.height),
+    };
   } finally {
     el.removeAttribute(CLONE_MARK);
   }
@@ -106,9 +131,9 @@ function triggerDownload(url: string, filename: string) {
 export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
   let canvas: HTMLCanvasElement;
   try {
-    canvas = await captureSheet(el, 3);
+    canvas = (await captureSheet(el, 3)).canvas;
   } catch {
-    canvas = await captureSheet(el, 2);
+    canvas = (await captureSheet(el, 2)).canvas;
   }
   await new Promise<void>((res) => {
     canvas.toBlob((blob) => {
@@ -124,11 +149,12 @@ export async function exportElementAsPng(el: HTMLElement, filename: string): Pro
 // ---------- PDF ----------
 export async function exportElementAsPdf(el: HTMLElement, filename: string): Promise<void> {
   const scale = 2;
-  const [hdr, ftr, canvas] = await Promise.all([
+  const [hdr, ftr, sheet] = await Promise.all([
     loadImage(headerImg),
     loadImage(footerImg),
     captureSheet(el, scale),
   ]);
+  const { canvas, breaks: points } = sheet;
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210, pageH = 297;
@@ -170,16 +196,9 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
     return;
   }
 
-  // ---- Інакше — пагінація по рядках таблиць ----
+  // ---- Інакше — пагінація по рядках таблиць (точки виміряні у клоні) ----
   const pxPerMm = canvas.width / usableW;
   const contentPx = Math.floor(contentHmm * pxPerMm);
-  const originalWidth = el.getBoundingClientRect().width || EXPORT_WIDTH;
-  const k = (EXPORT_WIDTH / originalWidth) * scale;
-  const rootTop = el.getBoundingClientRect().top;
-  const breakEls = Array.from(el.querySelectorAll<HTMLElement>("[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header"));
-  const points = Array.from(
-    new Set(breakEls.map((b) => Math.floor((b.getBoundingClientRect().bottom - rootTop) * k))),
-  ).filter((p) => p > 0 && p < canvas.height).sort((a, b) => a - b);
 
   const snapCut = (targetEnd: number, minStart: number): number => {
     const minAdvance = minStart + contentPx * 0.55;
