@@ -100,13 +100,9 @@ export const deleteCalendarEvent = createServerFn({ method: "POST" })
 
 export const listEmployees = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("profiles")
-      .select("user_id,display_name,email,avatar_url,department,position,is_active")
-      .order("display_name");
-    if (error) throw new Error("Не вдалося завантажити співробітників");
-    return data ?? [];
+  .handler(async () => {
+    const { listStaffDirectory } = await import("./staff.server");
+    return await listStaffDirectory();
   });
 
 export const listCalendarObjects = createServerFn({ method: "GET" })

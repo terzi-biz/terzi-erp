@@ -8,6 +8,10 @@ export type StaffEntry = {
   display_name: string | null;
   department: string | null;
   position: string | null;
+  avatar_url: string | null;
+  is_active: boolean | null;
+  /** Контактні дані не розкриваються іншим користувачам. */
+  email: null;
 };
 
 async function admin() {
@@ -19,9 +23,9 @@ export async function listStaffDirectory(): Promise<StaffEntry[]> {
   const db = await admin();
   const { data } = await db
     .from("profiles")
-    .select("user_id,display_name,department,position")
+    .select("user_id,display_name,department,position,avatar_url,is_active")
     .order("display_name");
-  return (data ?? []) as StaffEntry[];
+  return ((data ?? []) as any[]).map((p) => ({ ...p, email: null })) as StaffEntry[];
 }
 
 /** Мапа user_id -> відображуване ім'я (без контактних даних). */
