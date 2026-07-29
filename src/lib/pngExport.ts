@@ -134,16 +134,24 @@ function triggerDownload(url: string, filename: string) {
 }
 
 // ---------- PNG (максимальна якість) ----------
-/** Максимальний розмір канви (px по довшій стороні) — безпечно для iOS Safari. */
+/** Ліміти канви: довша сторона та загальна площа (найсуворіший — iOS Safari). */
 const MAX_CANVAS_PX = 16000;
+const MAX_CANVAS_AREA = 16_000_000;
 
-/** Підбирає найбільший можливий scale, який не перевищує ліміт канви. */
+/** Підбирає найбільший можливий scale, який не перевищує ліміти канви. */
 async function captureBest(el: HTMLElement): Promise<{ canvas: HTMLCanvasElement; breaks: number[] }> {
-  const approxH = el.scrollHeight * (EXPORT_WIDTH / Math.max(1, el.offsetWidth || EXPORT_WIDTH));
-  const cap = Math.max(2, Math.min(4, Math.floor(MAX_CANVAS_PX / Math.max(EXPORT_WIDTH, approxH))));
-  for (const s of [cap, 3, 2].filter((v, i, a) => v >= 2 && a.indexOf(v) === i)) {
+  const approxH = Math.max(
+    1,
+    el.scrollHeight * (EXPORT_WIDTH / Math.max(1, el.offsetWidth || EXPORT_WIDTH)),
+  );
+  const bySide = MAX_CANVAS_PX / Math.max(EXPORT_WIDTH, approxH);
+  const byArea = Math.sqrt(MAX_CANVAS_AREA / (EXPORT_WIDTH * approxH));
+  const cap = Math.max(2, Math.min(4, Math.floor(Math.min(bySide, byArea) * 10) / 10));
+  const attempts = Array.from(new Set([cap, 3, 2.5, 2])).filter((v) => v >= 2 && v <= cap || v === 2);
+  for (const s of attempts) {
     try {
-      return await captureSheet(el, s);
+      const res = await captureSheet(el, s);
+      if (res.canvas.width > 0 && res.canvas.height > 0) return res;
     } catch {
       /* пробуємо менший масштаб */
     }
@@ -151,18 +159,33 @@ async function captureBest(el: HTMLElement): Promise<{ canvas: HTMLCanvasElement
   return captureSheet(el, 2);
 }
 
-export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
-  const { canvas } = await captureBest(el);
-  await new Promise<void>((res) => {
-    canvas.toBlob((blob) => {
-      if (!blob) { res(); return; }
-      const url = URL.createObjectURL(blob);
-      triggerDownload(url, filename);
-      setTimeout(() => URL.revokeObjectURL(url), 5000);
-      res();
-    }, "image/png"); // PNG без втрат
+/** Створює PNG-blob максимальної якості з готової канви. */
+function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((res) => {
+    if (typeof canvas.toBlob === "function") canvas.toBlob((b) => res(b), "image/png");
+    else {
+      // Safari < 14 fallback
+      const data = canvas.toDataURL("image/png").split(",")[1];
+      const bin = atob(data);
+      const arr = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+      res(new Blob([arr], { type: "image/png" }));
+    }
   });
 }
+
+export async function savePngBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  triggerDownload(url, filename);
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+
+export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
+  const { canvas } = await captureBest(el);
+  const blob = await canvasToPngBlob(canvas);
+  if (blob) await savePngBlob(blob, filename);
+}
+
 
 // ---------- Розкладка PDF ----------
 interface PdfLayout {
