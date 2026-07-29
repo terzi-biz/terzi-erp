@@ -13,7 +13,7 @@ import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
-  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm, type InsulationType,
+  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
@@ -76,7 +76,7 @@ function OptionToggle({ label, checked, onChange }: { label: string; checked: bo
 
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
-  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true,
+  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true, withCuts: true, sandType: "standard",
   withComplexPrep: false, withDemolition: false, insulationType: "none",
   cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
@@ -255,6 +255,12 @@ function ScreedPage() {
                   <option value="manual">{t("profileManual")}</option>
                 </select>
               </Field>
+              <Field label="Пісок" hint="Пісок з відсівом застосовується для посиленої стяжки (закупка 750 грн/т, продаж 850 грн/т).">
+                <select className={sel} value={input.sandType ?? "standard"} onChange={(e) => upd("sandType", e.target.value as SandType)}>
+                  <option value="standard">Звичайний</option>
+                  <option value="screened">З відсівом (посилена)</option>
+                </select>
+              </Field>
             </div>
           </section>
 
@@ -280,6 +286,10 @@ function ScreedPage() {
                   <option value="xps50">ХПС 50 мм</option>
                 </select>
               </Field>
+              <OptionToggle label="Демпферна стрічка" checked={input.withDamper} onChange={(v) => upd("withDamper", v)} />
+              <OptionToggle label="Плівка п/е" checked={input.withFilm} onChange={(v) => upd("withFilm", v)} />
+              <OptionToggle label="Шліфовка" checked={input.withGrind} onChange={(v) => upd("withGrind", v)} />
+              <OptionToggle label="Нарізання деформаційних швів" checked={input.withCuts !== false} onChange={(v) => upd("withCuts", v)} />
               <OptionToggle label="Розухилення" checked={input.withSlope} onChange={(v) => upd("withSlope", v)} />
               <OptionToggle label="Складна підготовка" checked={input.withComplexPrep} onChange={(v) => upd("withComplexPrep", v)} />
               <OptionToggle label="Демонтажні роботи" checked={input.withDemolition} onChange={(v) => upd("withDemolition", v)} />
