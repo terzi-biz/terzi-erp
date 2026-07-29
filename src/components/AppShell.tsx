@@ -152,7 +152,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabels[primaryRole]}</div>
             </div>
           </div>
-          <button onClick={() => signOut()} className="mt-2 w-full flex items-center justify-center gap-1.5 bg-background hover:bg-accent border border-border rounded py-1.5 text-[11px] font-semibold">
+          <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="mt-2 w-full flex items-center justify-center gap-1.5 bg-background hover:bg-accent border border-border rounded py-1.5 text-[11px] font-semibold">
             <LogOut className="w-3 h-3" /> Вийти
           </button>
         </div>
@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <TerziLogo size={28} />
           <div className="font-black tracking-tight truncate">TERZI</div>
         </div>
-        <button onClick={() => signOut()} className="p-2 -mr-2 rounded hover:bg-sidebar-accent">
+        <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="p-2 -mr-2 rounded hover:bg-sidebar-accent">
           <LogOut className="w-4 h-4" />
         </button>
       </div>
