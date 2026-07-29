@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { NumberInput } from "@/components/NumberInput";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -492,7 +493,7 @@ function ItemsTab({ def, kind, onChange }: { def: DirectionDefinition; kind: Ite
                 <Td><input value={r.code ?? ""} onChange={(e) => update(i, { code: e.target.value })} className="input-xs w-20" /></Td>
                 <Td><input value={r.name} onChange={(e) => update(i, { name: e.target.value })} className="input-xs w-44" /></Td>
                 <Td><input value={r.unit} onChange={(e) => update(i, { unit: e.target.value })} className="input-xs w-14" /></Td>
-                <Td><input type="number" step="0.01" value={r.cost_price} onChange={(e) => update(i, { cost_price: +e.target.value })} className="input-xs w-20 text-right" /></Td>
+                <Td><NumberInput step="0.01" value={r.cost_price} onChange={(v) => update(i, { cost_price: v })} className="input-xs w-20 text-right" /></Td>
                 <Td><input value={r.sale_coef_key ?? ""} onChange={(e) => update(i, { sale_coef_key: e.target.value })} placeholder="1.5" className="input-xs w-20" /></Td>
                 <Td>
                   <div className="flex items-center gap-1">
@@ -580,7 +581,7 @@ function CoeffsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
             <tr key={r.id ?? `new-${i}`} className="border-b border-border/50">
               <Td><input value={r.coef_group} onChange={(e) => update(i, { coef_group: e.target.value })} className="input-xs w-28" /></Td>
               <Td><input value={r.coef_key} onChange={(e) => update(i, { coef_key: e.target.value })} className="input-xs w-32 font-mono" /></Td>
-              <Td><input type="number" step="0.0001" value={r.value} onChange={(e) => update(i, { value: +e.target.value })} className="input-xs w-24 text-right" /></Td>
+              <Td><NumberInput step="0.0001" value={r.value} onChange={(v) => update(i, { value: v })} className="input-xs w-24 text-right" /></Td>
               <Td><input value={r.description ?? ""} onChange={(e) => update(i, { description: e.target.value })} className="input-xs w-64" /></Td>
               <Td>
                 <div className="flex gap-1">
@@ -628,8 +629,8 @@ function PreviewTab({ def }: { def: DirectionDefinition }) {
                 <input type="checkbox" checked={!!inputs[f.field_key]}
                   onChange={(e) => setInputs({ ...inputs, [f.field_key]: e.target.checked })} />
               ) : f.type === "number" ? (
-                <input type="number" value={Number(inputs[f.field_key] ?? 0)}
-                  onChange={(e) => setInputs({ ...inputs, [f.field_key]: +e.target.value })}
+                <NumberInput value={Number(inputs[f.field_key] ?? 0)}
+                  onChange={(v) => setInputs({ ...inputs, [f.field_key]: v })}
                   className="w-28 bg-input border border-border rounded px-2 py-1 text-sm text-right" />
               ) : f.type === "select" && enumVals.length ? (
                 <select value={String(inputs[f.field_key] ?? "")}

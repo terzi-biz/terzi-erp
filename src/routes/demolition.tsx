@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { NumberInput } from "@/components/NumberInput";
 import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -177,11 +178,11 @@ function DemolitionPage() {
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія / поверх</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
-              <Field label="Товщина, см"><input type="number" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} /></Field>
-              <Field label="Поверх"><input type="number" className={inp} value={input.floor} onChange={(e) => upd("floor", +e.target.value)} /></Field>
+              <Field label="Площа, м²"><NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} /></Field>
+              <Field label="Товщина, см"><NumberInput className={inp} value={input.thicknessCm} onChange={(v) => upd("thicknessCm", v)} /></Field>
+              <Field label="Поверх"><NumberInput className={inp} value={input.floor} onChange={(v) => upd("floor", v)} /></Field>
               <Field label="Ручний об'єм сміття, м³ (опц.)">
-                <input type="number" className={inp} value={input.manualHaulM3 ?? 0} onChange={(e) => upd("manualHaulM3", +e.target.value || undefined)} />
+                <NumberInput className={inp} value={input.manualHaulM3 ?? 0} onChange={(v) => upd("manualHaulM3", v || undefined)} />
               </Field>
             </div>
           </section>
@@ -197,7 +198,7 @@ function DemolitionPage() {
               </Field>
               <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={input.withBags} onChange={(e) => upd("withBags", e.target.checked)} />Винос мішками</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />Місто</label>
-              <Field label="За містом, км в один бік"><input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
+              <Field label="За містом, км в один бік"><NumberInput disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(v) => upd("outOfCityKm", v)} /></Field>
             </div>
           </section>
 
@@ -212,9 +213,9 @@ function DemolitionPage() {
                 </select>
               </Field>
               <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={input.withVAT} onChange={(e) => upd("withVAT", e.target.checked)} />ПДВ</label>
-              <Field label="Комісія партнера, грн"><input type="number" className={inp} value={input.partnerCommission} onChange={(e) => upd("partnerCommission", +e.target.value)} /></Field>
-              <Field label="Знижка, %"><input type="number" className={inp} value={input.discountPercent} onChange={(e) => upd("discountPercent", +e.target.value)} /></Field>
-              <Field label="Складність, %"><input type="number" className={inp} value={input.complexityPercent} onChange={(e) => upd("complexityPercent", +e.target.value)} /></Field>
+              <Field label="Комісія партнера, грн"><NumberInput className={inp} value={input.partnerCommission} onChange={(v) => upd("partnerCommission", v)} /></Field>
+              <Field label="Знижка, %"><NumberInput className={inp} value={input.discountPercent} onChange={(v) => upd("discountPercent", v)} /></Field>
+              <Field label="Складність, %"><NumberInput className={inp} value={input.complexityPercent} onChange={(v) => upd("complexityPercent", v)} /></Field>
             </div>
           </section>
         </div>

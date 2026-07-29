@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
 import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw } from "lucide-react";
@@ -197,9 +198,9 @@ function SettingsPage() {
       {fields.map((f) => (
         <div key={f.key} className="flex items-center justify-between gap-3">
           <label className="text-sm flex-1">{f.label}</label>
-          <input type="number" step={f.step ?? "0.1"}
+          <NumberInput step={f.step ?? "0.1"}
             className="w-28 md:w-32 bg-input border border-border rounded px-2 py-1 text-right text-sm"
-            value={getVal(f.key) ?? 0} onChange={(e) => onChange(f.key, +e.target.value)} />
+            value={getVal(f.key) ?? 0} onChange={(v) => onChange(f.key, v)} />
         </div>
       ))}
     </div>
