@@ -196,16 +196,9 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
     return;
   }
 
-  // ---- Інакше — пагінація по рядках таблиць ----
+  // ---- Інакше — пагінація по рядках таблиць (точки виміряні у клоні) ----
   const pxPerMm = canvas.width / usableW;
   const contentPx = Math.floor(contentHmm * pxPerMm);
-  const originalWidth = el.getBoundingClientRect().width || EXPORT_WIDTH;
-  const k = (EXPORT_WIDTH / originalWidth) * scale;
-  const rootTop = el.getBoundingClientRect().top;
-  const breakEls = Array.from(el.querySelectorAll<HTMLElement>("[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header"));
-  const points = Array.from(
-    new Set(breakEls.map((b) => Math.floor((b.getBoundingClientRect().bottom - rootTop) * k))),
-  ).filter((p) => p > 0 && p < canvas.height).sort((a, b) => a - b);
 
   const snapCut = (targetEnd: number, minStart: number): number => {
     const minAdvance = minStart + contentPx * 0.55;
