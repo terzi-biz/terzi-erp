@@ -304,7 +304,7 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
 
 // ---------- Попередній перегляд ----------
 export interface ExportPreview {
-  /** PNG-прев'ю аркуша (data URL). */
+  /** PNG-прев'ю аркуша (blob URL) — це саме той файл, що збережеться. */
   imageUrl: string;
   width: number;
   height: number;
@@ -313,23 +313,36 @@ export interface ExportPreview {
   totalPages: number;
   /** Blob URL готового PDF — для перегляду у вбудованому viewer. */
   pdfUrl: string;
+  /** Готові файли — щоб «Зберегти» віддавало точно те, що показано у перегляді. */
+  pngBlob: Blob;
+  pdfBlob: Blob;
 }
 
-/** Готує прев'ю: зображення кошторису + позиції розривів сторінок + сам PDF. */
+/**
+ * Готує прев'ю: зображення кошторису + позиції розривів сторінок + сам PDF.
+ * Захоплення послідовне (не Promise.all): паралельний html2canvas на одному
+ * елементі дає різну розкладку в Safari/Firefox.
+ */
 export async function buildExportPreview(el: HTMLElement): Promise<ExportPreview> {
-  const [{ canvas }, layout] = await Promise.all([captureBest(el), buildPdf(el)]);
+  const { canvas } = await captureBest(el);
+  const layout = await buildPdf(el);
   const breakRatios = layout.cuts
     .slice(0, -1)
     .map((c) => c / layout.canvasHeight)
     .filter((r) => r > 0.01 && r < 0.99);
+  const pngBlob = (await canvasToPngBlob(canvas)) ?? new Blob();
+  const pdfBlob = layout.doc.output("blob") as Blob;
   return {
-    imageUrl: canvas.toDataURL("image/png"),
+    imageUrl: URL.createObjectURL(pngBlob),
     width: canvas.width,
     height: canvas.height,
     breakRatios,
     totalPages: layout.totalPages,
-    pdfUrl: layout.doc.output("bloburl").toString(),
+    pdfUrl: URL.createObjectURL(pdfBlob),
+    pngBlob,
+    pdfBlob,
   };
 }
+
 
 
