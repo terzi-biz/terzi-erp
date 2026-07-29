@@ -109,6 +109,7 @@ export const dict: Dict = {
 
   // Materials defaults names
   m_sand: { ua: "Пісок", ru: "Песок" },
+  m_sand_screened: { ua: "Пісок з відсівом (посилена стяжка)", ru: "Песок с отсевом (усиленная стяжка)" },
   m_cement500: { ua: "Цемент М500 25 кг", ru: "Цемент М500 25 кг" },
   m_cement400: { ua: "Цемент М400 25 кг", ru: "Цемент М400 25 кг" },
   m_fiber: { ua: "Фібра Sika 600 г", ru: "Фибра Sika 600 г" },

@@ -10,6 +10,7 @@ import { areaLaborTier } from "./area-tiers";
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
 export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
 export type CementDelivery = "own" | "smallManip" | "bigManip" | "manual" | "none";
+export type SandType = "standard" | "screened";
 export type SandDelivery = "city" | "outskirts" | "chornomorsk" | "manual";
 export type PaymentForm = "cash" | "cashless" | "fop";
 export type CementType = "auto" | "m500" | "m400";
