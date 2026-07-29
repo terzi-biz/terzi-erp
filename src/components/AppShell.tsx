@@ -171,7 +171,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <TerziLogo size={28} />
           <div className="font-black tracking-tight truncate">TERZI</div>
         </div>
-        <button onClick={() => signOut()} className="p-2 -mr-2 rounded hover:bg-sidebar-accent">
+        <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="p-2 -mr-2 rounded hover:bg-sidebar-accent">
           <LogOut className="w-4 h-4" />
         </button>
       </div>
