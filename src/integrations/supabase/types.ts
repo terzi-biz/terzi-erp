@@ -1563,10 +1563,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      staff_directory: {
+        Row: {
+          avatar_url: string | null
+          department: string | null
+          display_name: string | null
+          is_active: boolean | null
+          position: string | null
+          user_id: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          department?: string | null
+          display_name?: string | null
+          is_active?: boolean | null
+          position?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          department?: string | null
+          display_name?: string | null
+          is_active?: boolean | null
+          position?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_manage_object: { Args: { _object_id: string }; Returns: boolean }
+      can_view_object: { Args: { _object_id: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1574,6 +1601,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_object_assignee: { Args: { _object_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "director" | "manager" | "finance"
