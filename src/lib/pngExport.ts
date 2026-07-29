@@ -127,14 +127,26 @@ function triggerDownload(url: string, filename: string) {
   document.body.removeChild(a);
 }
 
-// ---------- PNG ----------
-export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
-  let canvas: HTMLCanvasElement;
-  try {
-    canvas = (await captureSheet(el, 3)).canvas;
-  } catch {
-    canvas = (await captureSheet(el, 2)).canvas;
+// ---------- PNG (максимальна якість) ----------
+/** Максимальний розмір канви (px по довшій стороні) — безпечно для iOS Safari. */
+const MAX_CANVAS_PX = 16000;
+
+/** Підбирає найбільший можливий scale, який не перевищує ліміт канви. */
+async function captureBest(el: HTMLElement): Promise<{ canvas: HTMLCanvasElement; breaks: number[] }> {
+  const approxH = el.scrollHeight * (EXPORT_WIDTH / Math.max(1, el.offsetWidth || EXPORT_WIDTH));
+  const cap = Math.max(2, Math.min(4, Math.floor(MAX_CANVAS_PX / Math.max(EXPORT_WIDTH, approxH))));
+  for (const s of [cap, 3, 2].filter((v, i, a) => v >= 2 && a.indexOf(v) === i)) {
+    try {
+      return await captureSheet(el, s);
+    } catch {
+      /* пробуємо менший масштаб */
+    }
   }
+  return captureSheet(el, 2);
+}
+
+export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
+  const { canvas } = await captureBest(el);
   await new Promise<void>((res) => {
     canvas.toBlob((blob) => {
       if (!blob) { res(); return; }
@@ -142,12 +154,20 @@ export async function exportElementAsPng(el: HTMLElement, filename: string): Pro
       triggerDownload(url, filename);
       setTimeout(() => URL.revokeObjectURL(url), 5000);
       res();
-    }, "image/png");
+    }, "image/png"); // PNG без втрат
   });
 }
 
-// ---------- PDF ----------
-export async function exportElementAsPdf(el: HTMLElement, filename: string): Promise<void> {
+// ---------- Розкладка PDF ----------
+interface PdfLayout {
+  doc: jsPDF;
+  /** Позиції розривів (px у координатах canvas), включно з кінцем аркуша. */
+  cuts: number[];
+  totalPages: number;
+  canvasHeight: number;
+}
+
+async function buildPdf(el: HTMLElement): Promise<PdfLayout> {
   const scale = 2;
   const [hdr, ftr, sheet] = await Promise.all([
     loadImage(headerImg),
@@ -192,8 +212,7 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
       fitW,
       fitH,
     );
-    pdf.save(filename);
-    return;
+    return { doc: pdf, cuts: [canvas.height], totalPages: 1, canvasHeight: canvas.height };
   }
 
   // ---- Інакше — пагінація по рядках таблиць (точки виміряні у клоні) ----
@@ -246,6 +265,42 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
     offset = cut;
   }
 
-  pdf.save(filename);
+  return { doc: pdf, cuts, totalPages, canvasHeight: canvas.height };
 }
+
+export async function exportElementAsPdf(el: HTMLElement, filename: string): Promise<void> {
+  const { doc } = await buildPdf(el);
+  doc.save(filename);
+}
+
+// ---------- Попередній перегляд ----------
+export interface ExportPreview {
+  /** PNG-прев'ю аркуша (data URL). */
+  imageUrl: string;
+  width: number;
+  height: number;
+  /** Розриви сторінок у відсотках висоти аркуша (без останнього). */
+  breakRatios: number[];
+  totalPages: number;
+  /** Blob URL готового PDF — для перегляду у вбудованому viewer. */
+  pdfUrl: string;
+}
+
+/** Готує прев'ю: зображення кошторису + позиції розривів сторінок + сам PDF. */
+export async function buildExportPreview(el: HTMLElement): Promise<ExportPreview> {
+  const [{ canvas }, layout] = await Promise.all([captureBest(el), buildPdf(el)]);
+  const breakRatios = layout.cuts
+    .slice(0, -1)
+    .map((c) => c / layout.canvasHeight)
+    .filter((r) => r > 0.01 && r < 0.99);
+  return {
+    imageUrl: canvas.toDataURL("image/png"),
+    width: canvas.width,
+    height: canvas.height,
+    breakRatios,
+    totalPages: layout.totalPages,
+    pdfUrl: layout.doc.output("bloburl").toString(),
+  };
+}
+
 
