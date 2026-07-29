@@ -1,6 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { useI18n, useT } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
+import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
   BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, Sparkles, Building2, HardHat,
@@ -13,6 +16,15 @@ type Mod = "screed" | "roofing" | "insulation" | "demolition";
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, user, roles, signOut } = useAuth();
   const primaryRole = roles.includes("admin") ? "admin" : roles.includes("director") ? "director" : roles.includes("finance") ? "finance" : (roles[0] ?? "manager");
+  const canManageAccess = roles.includes("admin") || roles.includes("director");
+  const listApprovals = useServerFn(listRegistrationApprovals);
+  const { data: approvals = [] } = useQuery({
+    queryKey: ["registration-approvals", "nav"],
+    queryFn: () => listApprovals(),
+    enabled: canManageAccess,
+    refetchInterval: 60_000,
+  });
+  const pendingApprovals = approvals.filter((row) => row.status === "pending").length;
   const roleLabels: Record<string, string> = { admin: "Адмін", director: "Директор", manager: "Менеджер", finance: "Фінансист" };
   const displayName = profile?.display_name || user?.email || "Користувач";
   const t = useT();
@@ -50,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/reports", icon: BarChart3, label: t("reports") },
     { to: "/branding", icon: Palette, label: t("branding") },
     { to: "/directions-editor", icon: Sparkles, label: "Конструктор напрямків" },
-    { to: "/settings", icon: Settings, label: t("settings") },
+    { to: "/settings", icon: Settings, label: t("settings"), badge: pendingApprovals || undefined },
   ];
 
   const linkCls = (active: boolean) =>
@@ -123,7 +135,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mt-3 pt-3 border-t border-sidebar-border">
           {bottomLinks.map((n) => (
             <Link key={n.to} to={n.to} className={linkCls(loc.pathname === n.to)}>
-              <n.icon className="w-4 h-4" />{n.label}
+              <n.icon className="w-4 h-4" />
+              <span className="min-w-0 flex-1 truncate">{n.label}</span>
+              {n.badge ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-black text-primary-foreground">{n.badge}</span> : null}
             </Link>
           ))}
         </div>
