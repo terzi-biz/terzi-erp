@@ -191,8 +191,10 @@ export const updateObjectStatus = createServerFn({ method: "POST" })
     const cleaned: any = {};
     for (const [k, v] of Object.entries(patch)) if (v !== undefined) cleaned[k] = v;
     if (!Object.keys(cleaned).length) return { ok: true };
-    const { error } = await context.supabase.from("objects").update(cleaned).eq("id", id);
+    const { data: updated, error } = await context.supabase
+      .from("objects").update(cleaned).eq("id", id).select("id");
     if (error) { console.error("updateObjectStatus", error); throw new Error("Не вдалося оновити статус"); }
+    if (!updated || updated.length === 0) throw new Error("Немає прав на зміну статусу цього об'єкта");
 
     // Авто-події: договір і платежі
     const { data: obj } = await context.supabase
