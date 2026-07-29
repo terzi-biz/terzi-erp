@@ -10,6 +10,7 @@ import { Fragment, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
+import { ExportPreviewDialog } from "@/components/ExportPreviewDialog";
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
 import { SchedulePanel } from "@/components/SchedulePanel";
