@@ -1481,6 +1481,51 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_approvals: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          email: string | null
+          id: string
+          note: string | null
+          requested_at: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["registration_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          note?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          note?: string | null
+          requested_at?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["registration_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1636,6 +1681,7 @@ export type Database = {
         | "plaster"
         | "polybeton"
         | "other"
+      registration_status: "pending" | "approved" | "rejected"
       show_in_client_mode:
         | "always"
         | "detailed_only"
@@ -1833,6 +1879,7 @@ export const Constants = {
         "polybeton",
         "other",
       ],
+      registration_status: ["pending", "approved", "rejected"],
       show_in_client_mode: [
         "always",
         "detailed_only",
