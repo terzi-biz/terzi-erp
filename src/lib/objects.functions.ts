@@ -125,7 +125,7 @@ export const getObject = createServerFn({ method: "POST" })
         context.supabase.from("object_comments").select("*").eq("object_id", data.id).order("created_at", { ascending: false }),
         context.supabase.from("object_status_history").select("*").eq("object_id", data.id).order("changed_at", { ascending: false }).limit(200),
         context.supabase.from("estimates").select("id,number,module,status,total_client,created_at").eq("object_id", data.id).order("created_at", { ascending: false }),
-        context.supabase.from("crew_bookings").select("*").eq("object_id", data.id).order("start_at", { ascending: false }),
+        context.supabase.from("crew_bookings").select("*").eq("object_id", data.id).order("date", { ascending: false }),
       ]);
     let client: any = null;
     if (obj.client_id) {
@@ -170,8 +170,10 @@ export const deleteObject = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase.from("objects").delete().eq("id", data.id);
+    const { data: rows, error } = await context.supabase
+      .from("objects").delete().eq("id", data.id).select("id");
     if (error) { console.error("deleteObject", error); throw new Error("Не вдалося видалити об'єкт"); }
+    if (!rows || rows.length === 0) throw new Error("Немає прав на видалення цього об'єкта");
     return { ok: true };
   });
 
@@ -189,8 +191,10 @@ export const updateObjectStatus = createServerFn({ method: "POST" })
     const cleaned: any = {};
     for (const [k, v] of Object.entries(patch)) if (v !== undefined) cleaned[k] = v;
     if (!Object.keys(cleaned).length) return { ok: true };
-    const { error } = await context.supabase.from("objects").update(cleaned).eq("id", id);
+    const { data: updated, error } = await context.supabase
+      .from("objects").update(cleaned).eq("id", id).select("id");
     if (error) { console.error("updateObjectStatus", error); throw new Error("Не вдалося оновити статус"); }
+    if (!updated || updated.length === 0) throw new Error("Немає прав на зміну статусу цього об'єкта");
 
     // Авто-події: договір і платежі
     const { data: obj } = await context.supabase

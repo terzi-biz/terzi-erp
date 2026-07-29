@@ -461,9 +461,19 @@ export const forkEstimateFromVersion = createServerFn({ method: "POST" })
       .from("estimate_versions").select("*").eq("id", data.version_id).maybeSingle();
     if (error || !ver) throw new Error("Версію не знайдено");
     const s = ver.snapshot as any;
-    const suffix = "-v" + (ver.version_no + 1);
+    const baseNumber = (s.number || "TRZ") + "-v" + (ver.version_no + 1);
+    // Номер має бути унікальним: якщо копія вже існує — додаємо порядковий індекс
+    let number = baseNumber;
+    const { data: taken } = await context.supabase
+      .from("estimates").select("number").like("number", `${baseNumber}%`);
+    const used = new Set((taken ?? []).map((r: any) => r.number));
+    if (used.has(number)) {
+      let i = 2;
+      while (used.has(`${baseNumber}-${i}`)) i++;
+      number = `${baseNumber}-${i}`;
+    }
     const newRow: any = {
-      number: (s.number || "TRZ") + suffix,
+      number,
       module: s.module,
       status: "draft",
       client_id: s.client_id,
@@ -483,9 +493,17 @@ export const forkEstimateFromVersion = createServerFn({ method: "POST" })
       price_book_version: ver.price_book_version,
       owner_id: context.userId,
     };
-    const { data: out, error: e2 } = await context.supabase
-      .from("estimates").insert(newRow).select().single();
-    if (e2) { console.error("forkEstimate", e2); throw new Error("Не вдалося створити копію"); }
+    // Дублікат номера може бути прихований RLS — робимо кілька спроб
+    let out: any = null;
+    let e2: any = null;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const res = await context.supabase.from("estimates").insert(newRow).select().single();
+      if (!res.error) { out = res.data; e2 = null; break; }
+      e2 = res.error;
+      if (res.error.code !== "23505") break;
+      newRow.number = `${baseNumber}-${Date.now().toString(36)}${attempt}`;
+    }
+    if (!out) { console.error("forkEstimate", e2); throw new Error("Не вдалося створити копію"); }
     await logAudit(context.supabase, context.userId, out.id, "forked_from_version",
       { source_version: ver.version_no, source_estimate: ver.estimate_id });
     return out;
