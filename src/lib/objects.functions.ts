@@ -85,9 +85,7 @@ export const listObjects = createServerFn({ method: "GET" })
       clientIds.length
         ? context.supabase.from("clients").select("id,name,phone").in("id", clientIds)
         : Promise.resolve({ data: [] as any[] }),
-      managerIds.length
-        ? context.supabase.from("profiles").select("user_id,display_name,email").in("user_id", managerIds)
-        : Promise.resolve({ data: [] as any[] }),
+      Promise.resolve({ data: [] as any[] }),
     ]);
     const svcMap = new Map<string, string[]>();
     (services ?? []).forEach((s: any) => {
@@ -97,8 +95,9 @@ export const listObjects = createServerFn({ method: "GET" })
     });
     const cliMap = new Map<string, any>();
     (clients ?? []).forEach((c: any) => cliMap.set(c.id, c));
-    const mgrMap = new Map<string, string>();
-    (profs ?? []).forEach((p: any) => mgrMap.set(p.user_id, p.display_name || p.email || ""));
+    void profs;
+    const { staffNameMap } = await import("./staff.server");
+    const mgrMap = await staffNameMap(managerIds as string[]);
     return rows.map((r: any) => ({
       ...r,
       services: svcMap.get(r.id) ?? [],
@@ -135,8 +134,8 @@ export const getObject = createServerFn({ method: "POST" })
     }
     let manager_display: string | null = null;
     if (obj.manager_id) {
-      const { data: p } = await context.supabase.from("profiles").select("display_name,email").eq("user_id", obj.manager_id).maybeSingle();
-      manager_display = p ? (p.display_name || p.email) : null;
+      const { staffName } = await import("./staff.server");
+      manager_display = await staffName(obj.manager_id);
     }
     return {
       ...obj, client, manager_display,

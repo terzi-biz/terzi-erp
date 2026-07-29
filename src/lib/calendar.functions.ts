@@ -20,7 +20,18 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
     if (data.statuses?.length) q = q.in("status", data.statuses);
     if (data.categories?.length) q = q.in("category", data.categories);
     if (data.directions?.length) q = q.in("direction", data.directions);
-    if (data.search) q = q.or(`title.ilike.%${data.search}%,address.ilike.%${data.search}%,client_name.ilike.%${data.search}%`);
+    if (data.search) {
+      // Екрануємо символи, які PostgREST трактує як синтаксис фільтра (,()*\)
+      const term = data.search
+        .replace(/[,()\\]/g, " ")
+        .replace(/[%*]/g, "")
+        .trim()
+        .slice(0, 100);
+      if (term) {
+        q = q.or(`title.ilike.*${term}*,address.ilike.*${term}*,client_name.ilike.*${term}*`);
+      }
+    }
+
 
     const { data: rows, error } = await q.limit(2000);
     if (error) throw new Error("Не вдалося завантажити події календаря");
@@ -89,13 +100,9 @@ export const deleteCalendarEvent = createServerFn({ method: "POST" })
 
 export const listEmployees = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("profiles")
-      .select("user_id,display_name,email,avatar_url,department,position,is_active")
-      .order("display_name");
-    if (error) throw new Error("Не вдалося завантажити співробітників");
-    return data ?? [];
+  .handler(async () => {
+    const { listStaffDirectory } = await import("./staff.server");
+    return await listStaffDirectory();
   });
 
 export const listCalendarObjects = createServerFn({ method: "GET" })
