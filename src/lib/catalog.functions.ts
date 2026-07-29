@@ -192,6 +192,7 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     // Джерело: TERZI_Стяжка_v3_2 (МАТЕРІАЛИ). Продажні = закупка × 1.30 (за замовч.),
     // редагуються далі вручну; кнопка «Пересіяти дефолти» в Settings перерахує.
     { code: "sand", name: "Пісок", unit: "т", buy_price: 650, sell_price: 845 },
+    { code: "sand_screened", name: "Пісок з відсівом (посилена стяжка)", unit: "т", buy_price: 750, sell_price: 850 },
     { code: "cement500", name: "Цемент М500 25 кг", unit: "міш.", buy_price: 175, sell_price: 228 },
     { code: "cement400", name: "Цемент М400 25 кг", unit: "міш.", buy_price: 155, sell_price: 202 },
     { code: "fiber", name: "Фібра поліпропіленова 900 г", unit: "уп.", buy_price: 125, sell_price: 230 },

@@ -6,6 +6,7 @@
  * Кнопки: Друк PDF (файл локально) + Зображення (PNG високої якості).
  * Перемикач Внутрішня/Клієнтська винесений вниз під кошторис.
  */
+import { NumberInput } from "@/components/NumberInput";
 import { Fragment, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
@@ -519,16 +520,16 @@ function InternalSheet(p: EditableSheetProps) {
                         onChange={(e) => update({ unit: e.target.value })} />
                     </td>
                     <td className="text-right p-1.5">
-                      <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.qty}
-                        onChange={(e) => update({ qty: Number(e.target.value) || 0 })} />
+                      <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.qty}
+                        onChange={(v) => update({ qty: v })} />
                     </td>
                     <td className="text-right p-1.5">
-                      <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.costPerUnit}
-                        onChange={(e) => update({ costPerUnit: Number(e.target.value) || 0 })} />
+                      <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.costPerUnit}
+                        onChange={(v) => update({ costPerUnit: v })} />
                     </td>
                     <td className="text-right p-1.5">
-                      <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
-                        onChange={(e) => update({ pricePerUnit: Number(e.target.value) || 0 })} />
+                      <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
+                        onChange={(v) => update({ pricePerUnit: v })} />
                     </td>
                     <td className="text-right p-1.5">{formatUah(r.cost)}</td>
                     <td className="text-right p-1.5 font-semibold">{formatUah(r.sum)}</td>
@@ -658,12 +659,12 @@ function ClientSheet(p: EditableSheetProps) {
                           onChange={(e) => update({ unit: e.target.value })} />
                       </td>
                       <td className="text-right p-1.5">
-                        <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.qty}
-                          onChange={(e) => update({ qty: Number(e.target.value) || 0 })} />
+                        <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.qty}
+                          onChange={(v) => update({ qty: v })} />
                       </td>
                       <td className="text-right p-1.5">
-                        <input type="number" step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
-                          onChange={(e) => update({ pricePerUnit: Number(e.target.value) || 0 })} />
+                        <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
+                          onChange={(v) => update({ pricePerUnit: v })} />
                       </td>
                       <td className="text-right p-1.5 font-semibold">{formatUah(r.sum)}</td>
                       <td className="p-1.5 text-center print:hidden">

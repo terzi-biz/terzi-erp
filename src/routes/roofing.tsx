@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { NumberInput } from "@/components/NumberInput";
 import { useState, useMemo, useRef } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -257,16 +258,16 @@ function RoofingPage() {
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Площа, м²" hint="Чиста площа даху за проєктом (без парапету). Береться з обмірного плану.">
-                <input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} />
+                <NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} />
               </Field>
               <Field label="Периметр, п.м" hint="Сумарна довжина всіх сторін по контуру. Використовується для парапету, галтелей та капельників.">
-                <input type="number" className={inp} value={input.perimeter} onChange={(e) => upd("perimeter", +e.target.value)} />
+                <NumberInput className={inp} value={input.perimeter} onChange={(v) => upd("perimeter", v)} />
               </Field>
               <Field label="Парапет, см" hint="Висота загину матеріалу на парапет. Стандарт TERZI: +30 см. Для експлуатованих дахів — 40–50 см.">
-                <input type="number" className={inp} value={input.parapetHeightCm} onChange={(e) => upd("parapetHeightCm", +e.target.value)} />
+                <NumberInput className={inp} value={input.parapetHeightCm} onChange={(v) => upd("parapetHeightCm", v)} />
               </Field>
               <Field label="Заведення нагору, м" hint="Горизонтальна поличка зверху парапету (капелюх). Додає perimeter × висоту до робочої площі. Типово 0.07–0.15 м.">
-                <input type="number" step="0.01" className={inp} value={input.parapetTopFoldM} onChange={(e) => upd("parapetTopFoldM", +e.target.value)} />
+                <NumberInput step="0.01" className={inp} value={input.parapetTopFoldM} onChange={(v) => upd("parapetTopFoldM", v)} />
               </Field>
             </div>
             <Tip>
@@ -299,25 +300,25 @@ function RoofingPage() {
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Аксесуари / комплектація</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              <Field label="Воронки, шт"><input type="number" min={0} className={inp} value={input.funnelsCount} onChange={(e) => upd("funnelsCount", +e.target.value)} /></Field>
+              <Field label="Воронки, шт"><NumberInput min={0} className={inp} value={input.funnelsCount} onChange={(v) => upd("funnelsCount", v)} /></Field>
               {input.system === "rubemast" && (
-                <Field label="Аератори, шт"><input type="number" min={0} className={inp} value={input.aeratorsCount} onChange={(e) => upd("aeratorsCount", +e.target.value)} /></Field>
+                <Field label="Аератори, шт"><NumberInput min={0} className={inp} value={input.aeratorsCount} onChange={(v) => upd("aeratorsCount", v)} /></Field>
               )}
-              <Field label="Капельники, п.м"><input type="number" min={0} className={inp} value={input.dripEdgeMeters} onChange={(e) => upd("dripEdgeMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} /></Field>
+              <Field label="Капельники, п.м"><NumberInput min={0} className={inp} value={input.dripEdgeMeters} onChange={(v) => upd("dripEdgeMeters", v)} placeholder={`≈ ${input.perimeter}`} /></Field>
               {input.system === "pvc" && (<>
-                <Field label="Внутрішні кути, шт"><input type="number" min={0} className={inp} value={input.innerCornersCount} onChange={(e) => upd("innerCornersCount", +e.target.value)} /></Field>
-                <Field label="Зовнішні кути, шт"><input type="number" min={0} className={inp} value={input.outerCornersCount} onChange={(e) => upd("outerCornersCount", +e.target.value)} /></Field>
+                <Field label="Внутрішні кути, шт"><NumberInput min={0} className={inp} value={input.innerCornersCount} onChange={(v) => upd("innerCornersCount", v)} /></Field>
+                <Field label="Зовнішні кути, шт"><NumberInput min={0} className={inp} value={input.outerCornersCount} onChange={(v) => upd("outerCornersCount", v)} /></Field>
                 <Field label="ПВХ-уголок, п.м" hint="Гнучкий ПВХ-профіль для внутрішніх примикань до парапету/стін. Типово = периметру.">
-                  <input type="number" min={0} className={inp} value={input.pvcAngleMeters} onChange={(e) => upd("pvcAngleMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                  <NumberInput min={0} className={inp} value={input.pvcAngleMeters} onChange={(v) => upd("pvcAngleMeters", v)} placeholder={`≈ ${input.perimeter}`} />
                 </Field>
                 <Field label="Прижимна планка, п.м" hint="Алюмінієва планка з герметиком для верхнього примикання мембрани до парапету/стіни.">
-                  <input type="number" min={0} className={inp} value={input.pvcClampStripMeters} onChange={(e) => upd("pvcClampStripMeters", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                  <NumberInput min={0} className={inp} value={input.pvcClampStripMeters} onChange={(v) => upd("pvcClampStripMeters", v)} placeholder={`≈ ${input.perimeter}`} />
                 </Field>
               </>)}
               {input.system === "rubemast" && (<>
-                <Field label="Точки опайки, шт"><input type="number" min={0} className={inp} value={input.opaikaPoints} onChange={(e) => upd("opaikaPoints", +e.target.value)} /></Field>
+                <Field label="Точки опайки, шт"><NumberInput min={0} className={inp} value={input.opaikaPoints} onChange={(v) => upd("opaikaPoints", v)} /></Field>
                 <Field label="Галтелі, п.м" hint="Ц/п галтель по периметру. 0 — використати периметр. Задайте, якщо галтель тільки на частині контуру.">
-                  <input type="number" min={0} disabled={!input.withGaltel} className={inp} value={input.galtelMetersOverride} onChange={(e) => upd("galtelMetersOverride", +e.target.value)} placeholder={`≈ ${input.perimeter}`} />
+                  <NumberInput min={0} disabled={!input.withGaltel} className={inp} value={input.galtelMetersOverride} onChange={(v) => upd("galtelMetersOverride", v)} placeholder={`≈ ${input.perimeter}`} />
                 </Field>
               </>)}
             </div>
@@ -332,11 +333,11 @@ function RoofingPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />Місто</label>
               <Field label="За містом, км в один бік" hint="Пробіг рахується × 2 (туди-назад). Тариф береться з Settings → Логістика.">
-                <input type="number" disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} />
+                <NumberInput disabled={input.cityDelivery} className={inp} value={input.outOfCityKm} onChange={(v) => upd("outOfCityKm", v)} />
               </Field>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Підйом матеріалів на дах</label>
               <Field label="Контейнери на вивіз (8 м³)" hint="Орієнтир: 1 контейнер ≈ 30–40 м² демонтованого рубероїду або 15 м³ утеплювача. Ціна одного вивозу — в Settings.">
-                <input type="number" className={inp} value={input.haulContainers} onChange={(e) => upd("haulContainers", +e.target.value)} />
+                <NumberInput className={inp} value={input.haulContainers} onChange={(v) => upd("haulContainers", v)} />
               </Field>
             </div>
             <Tip>
@@ -355,9 +356,9 @@ function RoofingPage() {
                 </select>
               </Field>
               <label className="flex items-center gap-2 text-sm mt-6"><input type="checkbox" checked={input.withVAT} onChange={(e) => upd("withVAT", e.target.checked)} />ПДВ на матеріали</label>
-              <Field label="Комісія партнера, грн"><input type="number" className={inp} value={input.partnerCommission} onChange={(e) => upd("partnerCommission", +e.target.value)} /></Field>
-              <Field label="Знижка, %"><input type="number" className={inp} value={input.discountPercent} onChange={(e) => upd("discountPercent", +e.target.value)} /></Field>
-              <Field label="Складність, %"><input type="number" className={inp} value={input.complexityPercent} onChange={(e) => upd("complexityPercent", +e.target.value)} /></Field>
+              <Field label="Комісія партнера, грн"><NumberInput className={inp} value={input.partnerCommission} onChange={(v) => upd("partnerCommission", v)} /></Field>
+              <Field label="Знижка, %"><NumberInput className={inp} value={input.discountPercent} onChange={(v) => upd("discountPercent", v)} /></Field>
+              <Field label="Складність, %"><NumberInput className={inp} value={input.complexityPercent} onChange={(v) => upd("complexityPercent", v)} /></Field>
             </div>
           </section>
         </div>

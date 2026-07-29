@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { NumberInput } from "@/components/NumberInput";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,7 +13,7 @@ import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
-  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type PaymentForm, type InsulationType,
+  type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
 } from "@/lib/screed-calc";
 import { generateClientPdf } from "@/lib/pdf";
 import { useI18n } from "@/lib/i18n";
@@ -75,7 +76,7 @@ function OptionToggle({ label, checked, onChange }: { label: string; checked: bo
 
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
-  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true,
+  withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true, withCuts: true, sandType: "standard",
   withComplexPrep: false, withDemolition: false, insulationType: "none",
   cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
@@ -225,19 +226,19 @@ function ScreedPage() {
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("parameters")}</h2>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <Field label="Площа, м²"><input type="number" className={inp} value={input.area} onChange={(e) => upd("area", +e.target.value)} /></Field>
-              <Field label="Периметр, пог.м"><input type="number" className={inp} value={input.perimeter ?? 0} onChange={(e) => upd("perimeter", +e.target.value)} /></Field>
+              <Field label="Площа, м²"><NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} /></Field>
+              <Field label="Периметр, пог.м"><NumberInput className={inp} value={input.perimeter ?? 0} onChange={(v) => upd("perimeter", v)} /></Field>
               <Field label="Кімнат" hint="Якщо більше 1 — додаються деформаційні шви / нарізка.">
-                <input type="number" min="1" className={inp} value={input.roomsCount} onChange={(e) => upd("roomsCount", +e.target.value)} />
+                <NumberInput min="1" className={inp} value={input.roomsCount} onChange={(v) => upd("roomsCount", v)} />
               </Field>
               <Field label="Поверх" hint="Поверх подачі суміші. Від 6-го поверху додається коефіцієнт підйому 5–50%.">
-                <input type="number" className={inp} value={input.floor} onChange={(e) => upd("floor", +e.target.value)} />
+                <NumberInput className={inp} value={input.floor} onChange={(v) => upd("floor", v)} />
               </Field>
               <Field label="Ліфт" hint="Наявність ліфта на об'єкті — впливає на швидкість подачі матеріалу.">
                 <ToggleSwitch checked={input.withLift} onChange={(v) => upd("withLift", v)} />
               </Field>
               <Field label="Товщина, см" hint="Робочий діапазон 4–15 см. Понад 15 см — лише з адмін-дозволом.">
-                <input type="number" step="0.5" className={inp} value={input.thicknessCm} onChange={(e) => upd("thicknessCm", +e.target.value)} />
+                <NumberInput step="0.5" className={inp} value={input.thicknessCm} onChange={(v) => upd("thicknessCm", v)} />
               </Field>
               <Field label="Цемент" hint="М500 (рекомендовано) — стандарт TERZI. Auto бере цемент з профілю суміші.">
                 <select className={sel} value={input.cementType} onChange={(e) => upd("cementType", e.target.value as CementType)}>
@@ -252,6 +253,12 @@ function ScreedPage() {
                   <option value="standard">{t("profileStandard")}</option>
                   <option value="reinforced">{t("profileReinforced")}</option>
                   <option value="manual">{t("profileManual")}</option>
+                </select>
+              </Field>
+              <Field label="Пісок" hint="Пісок з відсівом застосовується для посиленої стяжки (закупка 750 грн/т, продаж 850 грн/т).">
+                <select className={sel} value={input.sandType ?? "standard"} onChange={(e) => upd("sandType", e.target.value as SandType)}>
+                  <option value="standard">Звичайний</option>
+                  <option value="screened">З відсівом (посилена)</option>
                 </select>
               </Field>
             </div>
@@ -279,6 +286,10 @@ function ScreedPage() {
                   <option value="xps50">ХПС 50 мм</option>
                 </select>
               </Field>
+              <OptionToggle label="Демпферна стрічка" checked={input.withDamper} onChange={(v) => upd("withDamper", v)} />
+              <OptionToggle label="Плівка п/е" checked={input.withFilm} onChange={(v) => upd("withFilm", v)} />
+              <OptionToggle label="Шліфовка" checked={input.withGrind} onChange={(v) => upd("withGrind", v)} />
+              <OptionToggle label="Нарізання деформаційних швів" checked={input.withCuts !== false} onChange={(v) => upd("withCuts", v)} />
               <OptionToggle label="Розухилення" checked={input.withSlope} onChange={(v) => upd("withSlope", v)} />
               <OptionToggle label="Складна підготовка" checked={input.withComplexPrep} onChange={(v) => upd("withComplexPrep", v)} />
               <OptionToggle label="Демонтажні роботи" checked={input.withDemolition} onChange={(v) => upd("withDemolition", v)} />
@@ -293,7 +304,7 @@ function ScreedPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.cityDelivery} onChange={(e) => upd("cityDelivery", e.target.checked)} />{t("city")}</label>
               <label className="flex items-center gap-2 text-sm cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withLift} onChange={(e) => upd("withLift", e.target.checked)} />Ліфт / складна подача</label>
-              <Field label={t("outOfCity")}><input type="number" disabled={input.cityDelivery} className={inp + " disabled:opacity-50"} value={input.outOfCityKm} onChange={(e) => upd("outOfCityKm", +e.target.value)} /></Field>
+              <Field label={t("outOfCity")}><NumberInput disabled={input.cityDelivery} className={inp + " disabled:opacity-50"} value={input.outOfCityKm} onChange={(v) => upd("outOfCityKm", v)} /></Field>
               <Field label={t("cementDelivery")}>
                 <select className={sel} value={input.cementDelivery} onChange={(e) => upd("cementDelivery", e.target.value as CementDelivery)}>
                   <option value="own">Свій бус (до 80 мішків)</option>
@@ -324,9 +335,9 @@ function ScreedPage() {
                 </select>
               </Field>
               <label className="flex items-center gap-2 text-sm mt-7 cursor-pointer hover:text-primary transition-colors"><input type="checkbox" className="accent-primary" checked={input.withVAT} onChange={(e) => upd("withVAT", e.target.checked)} />{t("vat")}</label>
-              <Field label={t("partnerCommission")}><input type="number" className={inp} value={input.partnerCommission} onChange={(e) => upd("partnerCommission", +e.target.value)} /></Field>
-              <Field label={t("discount") + " %"}><input type="number" className={inp} value={input.discountPercent} onChange={(e) => upd("discountPercent", +e.target.value)} /></Field>
-              <Field label={t("complexity")}><input type="number" className={inp} value={input.complexityPercent} onChange={(e) => upd("complexityPercent", +e.target.value)} /></Field>
+              <Field label={t("partnerCommission")}><NumberInput className={inp} value={input.partnerCommission} onChange={(v) => upd("partnerCommission", v)} /></Field>
+              <Field label={t("discount") + " %"}><NumberInput className={inp} value={input.discountPercent} onChange={(v) => upd("discountPercent", v)} /></Field>
+              <Field label={t("complexity")}><NumberInput className={inp} value={input.complexityPercent} onChange={(v) => upd("complexityPercent", v)} /></Field>
             </div>
           </section>
         </div>

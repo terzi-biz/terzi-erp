@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Plus, Trash2, RotateCcw, Save } from "lucide-react";
@@ -161,18 +162,18 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                         value={cur.unit} onChange={(e) => onPatch(r.id!, { unit: e.target.value })} />
                     </td>
                     <td className="p-2">
-                      <input type="number" step="0.5" className="w-full bg-input border border-border rounded px-2 py-1 text-right"
-                        value={cur.buy_price} onChange={(e) => onPatch(r.id!, { buy_price: +e.target.value })} />
+                      <NumberInput step="0.5" className="w-full bg-input border border-border rounded px-2 py-1 text-right"
+                        value={cur.buy_price} onChange={(v) => onPatch(r.id!, { buy_price: v })} />
                     </td>
                     <td className="p-2">
-                      <input type="number" step="0.5" className="w-full bg-input border border-border rounded px-2 py-1 text-right"
-                        value={cur.sell_price} onChange={(e) => onPatch(r.id!, { sell_price: +e.target.value })} />
+                      <NumberInput step="0.5" className="w-full bg-input border border-border rounded px-2 py-1 text-right"
+                        value={cur.sell_price} onChange={(v) => onPatch(r.id!, { sell_price: v })} />
                     </td>
                     {isEquip && (
                       <td className="p-2">
-                        <input type="number" className="w-full bg-input border border-border rounded px-2 py-1 text-right"
+                        <NumberInput className="w-full bg-input border border-border rounded px-2 py-1 text-right"
                           value={cur.lifetime_months ?? 0}
-                          onChange={(e) => onPatch(r.id!, { lifetime_months: +e.target.value })} />
+                          onChange={(v) => onPatch(r.id!, { lifetime_months: v })} />
                       </td>
                     )}
                     <td className={`p-2 text-right font-bold ${m >= 30 ? "text-success" : m >= 15 ? "text-warning" : "text-destructive"}`}>

@@ -10,6 +10,7 @@ import { areaLaborTier } from "./area-tiers";
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
 export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
 export type CementDelivery = "own" | "smallManip" | "bigManip" | "manual" | "none";
+export type SandType = "standard" | "screened";
 export type SandDelivery = "city" | "outskirts" | "chornomorsk" | "manual";
 export type PaymentForm = "cash" | "cashless" | "fop";
 export type CementType = "auto" | "m500" | "m400";
@@ -35,6 +36,8 @@ export interface ScreedInput {
   meshType: MeshType;
   withSlope: boolean;
   withGrind: boolean;
+  withCuts: boolean;          // нарізка деформаційних швів
+  sandType?: SandType;        // звичайний пісок або пісок з відсівом (посилена стяжка)
   withComplexPrep: boolean;   // "Складна підготовка" — умовна підготовка основи
   withDemolition: boolean;    // "Демонтажні роботи" — демонтаж старої стяжки/покриття
   insulationType: InsulationType; // Утеплення під стяжку
@@ -76,7 +79,8 @@ export const PROFILE_NORMS: Record<Exclude<Profile, "manual">, NormsPerM3 & { ce
 
 // Закупка / Продаж — синхронізовано з TERZI_Стяжка_v3_2.xlsx (вкладка МАТЕРІАЛИ).
 export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
-  sand:        { buy: 650, sell: 690 },
+  sand:          { buy: 650, sell: 690 },
+  sand_screened: { buy: 750, sell: 850 },
   cement500:   { buy: 165, sell: 172 },
   cement400:   { buy: 150, sell: 162 },
   fiber:       { buy: 100, sell: 230 },
@@ -244,9 +248,11 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
 
   const sandTonsTech = +(norms.sandTonsPerM3 * volumeM3).toFixed(2);
   const sandTonsSale = ceil(sandTonsTech);
-  lines.push({ key: "m_sand", block: "materials", name: "m_sand", unit: "т", qty: sandTonsSale,
-    pricePerUnit: prices.sand.sell, costPerUnit: prices.sand.buy,
-    sum: sandTonsSale * prices.sand.sell, cost: sandTonsTech * prices.sand.buy, showToClient: true });
+  const sandKey = input.sandType === "screened" ? "m_sand_screened" : "m_sand";
+  const sandPrice = (input.sandType === "screened" ? prices.sand_screened : prices.sand) ?? DEFAULT_MATERIAL_PRICES.sand;
+  lines.push({ key: sandKey, block: "materials", name: sandKey, unit: "т", qty: sandTonsSale,
+    pricePerUnit: sandPrice.sell, costPerUnit: sandPrice.buy,
+    sum: sandTonsSale * sandPrice.sell, cost: sandTonsTech * sandPrice.buy, showToClient: true });
 
   const plastL = ceil(norms.plasticizerLPerM3 * volumeM3);
   lines.push({ key: "m_plast", block: "materials", name: "m_plast", unit: "л", qty: plastL,
@@ -338,7 +344,7 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   }
   // Нарізка деформаційних швів — завжди у КП як окрема робота
   // (собівартість входить у фіксовану плату бригаді, тому costPerUnit=0).
-  lines.push({ key: "w_cuts", block: "works", name: "w_cuts", unit: "м²", qty: area,
+  if (input.withCuts !== false) lines.push({ key: "w_cuts", block: "works", name: "w_cuts", unit: "м²", qty: area,
     pricePerUnit: works.cuts, costPerUnit: 0, sum: area * works.cuts, cost: 0, showToClient: true });
   if (input.withGrind) lines.push({ key: "w_grind", block: "works", name: "w_grind", unit: "м²", qty: area,
     pricePerUnit: works.grind, costPerUnit: 0, sum: area * works.grind, cost: 0, showToClient: true });
@@ -469,7 +475,7 @@ export function formatNum(v: number, frac = 1): string {
 export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
     area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
-    withFilm: false, withDamper: false, meshType: "none", withSlope: false, withGrind: false,
+    withFilm: false, withDamper: false, meshType: "none", withSlope: false, withGrind: false, withCuts: true,
     withComplexPrep: false, withDemolition: false, insulationType: "none",
     cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
     payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,

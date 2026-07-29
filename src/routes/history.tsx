@@ -1,3 +1,4 @@
+import { NumberInput } from "@/components/NumberInput";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -329,8 +330,7 @@ function ScheduleDialog({
           </label>
           <label className="block">
             <span className="text-xs uppercase tracking-wider text-muted-foreground">Тривалість (днів)</span>
-            <input type="number" min={1} step={1} className={inp} value={days}
-              onChange={(e) => setDays(Number(e.target.value) || 1)} />
+            <NumberInput min={1} step={1} className={inp} value={days} onChange={(v) => setDays(v || 1)} />
           </label>
         </div>
         <div className="mt-5 flex justify-between gap-2">
