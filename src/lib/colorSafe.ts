@@ -90,7 +90,13 @@ const UNSUPPORTED = /(oklch|oklab|lch|lab|color-mix|color)\(/i;
  */
 export function sanitizeColorsDeep(root: HTMLElement, doc: Document) {
   const win = doc.defaultView ?? window;
-  const nodes: HTMLElement[] = [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))];
+  const nodes: HTMLElement[] = [
+    doc.documentElement as HTMLElement,
+    doc.body,
+    root,
+    ...Array.from(root.querySelectorAll<HTMLElement>("*")),
+  ].filter(Boolean) as HTMLElement[];
+
 
   // Псевдоелементи html2canvas читає окремо — нейтралізуємо їхні кольори
   const style = doc.createElement("style");
