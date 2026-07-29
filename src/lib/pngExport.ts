@@ -12,6 +12,8 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import headerImg from "@/assets/terzi-header.jpg";
 import footerImg from "@/assets/terzi-footer.png";
+import { sanitizeColorsDeep } from "@/lib/colorSafe";
+
 
 /** Ширина «віртуального аркуша» для рендера (px). Відповідає A4 при ~110 DPI. */
 const EXPORT_WIDTH = 1000;
