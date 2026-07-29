@@ -75,7 +75,11 @@ function normalizeClone(original: HTMLElement, clonedEl: HTMLElement, clonedDoc:
   clonedEl.querySelectorAll<HTMLElement>(".print\\:hidden, [data-export-hide]").forEach((el) => {
     el.style.display = "none";
   });
+
+  // html2canvas не парсить oklch() — переводимо всі кольори у rgba()
+  sanitizeColorsDeep(clonedEl, clonedDoc);
 }
+
 
 /** Селектори елементів, по нижній межі яких дозволено різати сторінку. */
 const BREAK_SELECTOR = "[data-pdf-block], tr, thead, tfoot, h1, h2, h3, header";
