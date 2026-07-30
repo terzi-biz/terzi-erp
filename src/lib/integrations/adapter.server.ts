@@ -1,3 +1,6 @@
+import { keycrmAdapter } from "./keycrm/adapter.server";
+import { binotelAdapter } from "./binotel/adapter.server";
+
 /**
  * Реєстр адаптерів провайдерів. Ядро не знає нічого про конкретні сервіси —
  * кожен провайдер реалізує цей інтерфейс і реєструється нижче.
@@ -78,20 +81,9 @@ const echoAdapter: IntegrationAdapter = {
 
 const REGISTRY: Record<string, IntegrationAdapter> = {
   echo: echoAdapter,
+  keycrm: keycrmAdapter,
+  binotel: binotelAdapter,
 };
-
-/** Ліниве підключення адаптерів провайдерів (важкі модулі — лише на сервері). */
-let bootstrapped = false;
-export async function ensureAdapters() {
-  if (bootstrapped) return;
-  bootstrapped = true;
-  const [{ keycrmAdapter }, { binotelAdapter }] = await Promise.all([
-    import("./keycrm/adapter.server"),
-    import("./binotel/adapter.server"),
-  ]);
-  REGISTRY[keycrmAdapter.key] = keycrmAdapter;
-  REGISTRY[binotelAdapter.key] = binotelAdapter;
-}
 
 export function getAdapter(providerKey: string): IntegrationAdapter | null {
   return REGISTRY[providerKey] ?? null;
