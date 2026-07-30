@@ -104,7 +104,7 @@ export async function updateIntegrationOp(
     patch.status = input.enabled ? ((before as any).last_test_ok ? "active" : "connecting") : "disabled";
   }
   if (input.status !== undefined) patch.status = input.status;
-  const { data, error } = await db.from("integrations").update(patch).eq("id", input.id).select("*").maybeSingle();
+  const { data, error } = await db.from("integrations").update(patch as any).eq("id", input.id).select("*").maybeSingle();
   if (error) throw error;
   await writeAudit(actor, {
     module: "integrations",
@@ -235,8 +235,8 @@ export async function saveWebhookOp(
     payload.slug = slug;
   }
   const q = input.id
-    ? db.from("integration_webhooks").update(payload).eq("id", input.id)
-    : db.from("integration_webhooks").insert(payload);
+    ? db.from("integration_webhooks").update(payload as any).eq("id", input.id)
+    : db.from("integration_webhooks").insert(payload as any);
   const { data, error } = await q.select("*").maybeSingle();
   if (error) throw error;
   await writeAudit(actor, {
