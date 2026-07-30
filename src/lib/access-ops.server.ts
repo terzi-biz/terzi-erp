@@ -7,9 +7,8 @@ import {
   requireAccessManager,
   requireOwner,
   writeAudit,
-  type AccessScope,
-  type AccessStatus,
 } from "./access.server";
+import type { AccessScope, AccessStatus } from "./access-constants";
 
 export type AccessUserRow = {
   user_id: string;

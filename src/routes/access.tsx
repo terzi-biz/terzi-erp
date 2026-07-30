@@ -15,7 +15,7 @@ import {
   removeUserOverride, reviewAccessRequest, revokeInvitation, saveAccessRole, saveNotificationRule,
   setUserOverride, terminateUserSessions, transferWorkload, updateUserAccess,
 } from "@/lib/access.functions";
-import { ACCESS_ACTIONS, ACCESS_MODULES, SCOPE_LABELS, STATUS_LABELS } from "@/lib/access.server";
+import { ACCESS_ACTIONS, ACCESS_MODULES, SCOPE_LABELS, STATUS_LABELS } from "@/lib/access-constants";
 
 export const Route = createFileRoute("/access")({
   ssr: false,
