@@ -314,5 +314,6 @@ export const runIntegrationAdapterTest = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { adapterSelfTestOp } = await import("./integrations/sync-ops.server");
-    return adapterSelfTestOp(context.userId, data);
+    const res = await adapterSelfTestOp(context.userId, data);
+    return { ok: res.ok, message: res.message ?? null, httpStatus: res.httpStatus ?? null, data: JSON.parse(JSON.stringify(res.data ?? null)) as unknown as Record<string, unknown> | null };
   });
