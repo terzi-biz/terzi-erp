@@ -35,8 +35,11 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
+import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
+import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
@@ -171,6 +174,16 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmTasksRoute = CrmTasksRouteImport.update({
+  id: '/crm/tasks',
+  path: '/crm/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRequestsRoute = CrmRequestsRouteImport.update({
+  id: '/crm/requests',
+  path: '/crm/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrmLeadsRoute = CrmLeadsRouteImport.update({
   id: '/crm/leads',
   path: '/crm/leads',
@@ -179,6 +192,11 @@ const CrmLeadsRoute = CrmLeadsRouteImport.update({
 const CrmContactsRoute = CrmContactsRouteImport.update({
   id: '/crm/contacts',
   path: '/crm/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmCallsRoute = CrmCallsRouteImport.update({
+  id: '/crm/calls',
+  path: '/crm/calls',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicIntegrationsWorkerRoute =
@@ -220,8 +238,11 @@ export interface FileRoutesByFullPath {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
+  '/crm/requests': typeof CrmRequestsRoute
+  '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -253,8 +274,11 @@ export interface FileRoutesByTo {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
+  '/crm/requests': typeof CrmRequestsRoute
+  '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -287,8 +311,11 @@ export interface FileRoutesById {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
+  '/crm/requests': typeof CrmRequestsRoute
+  '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -322,8 +349,11 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/calls'
     | '/crm/contacts'
     | '/crm/leads'
+    | '/crm/requests'
+    | '/crm/tasks'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
@@ -355,8 +385,11 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/calls'
     | '/crm/contacts'
     | '/crm/leads'
+    | '/crm/requests'
+    | '/crm/tasks'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
@@ -388,8 +421,11 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/calls'
     | '/crm/contacts'
     | '/crm/leads'
+    | '/crm/requests'
+    | '/crm/tasks'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
@@ -422,8 +458,11 @@ export interface RootRouteChildren {
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
+  CrmCallsRoute: typeof CrmCallsRoute
   CrmContactsRoute: typeof CrmContactsRoute
   CrmLeadsRoute: typeof CrmLeadsRoute
+  CrmRequestsRoute: typeof CrmRequestsRoute
+  CrmTasksRoute: typeof CrmTasksRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
@@ -620,6 +659,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm/tasks': {
+      id: '/crm/tasks'
+      path: '/crm/tasks'
+      fullPath: '/crm/tasks'
+      preLoaderRoute: typeof CrmTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/requests': {
+      id: '/crm/requests'
+      path: '/crm/requests'
+      fullPath: '/crm/requests'
+      preLoaderRoute: typeof CrmRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/crm/leads': {
       id: '/crm/leads'
       path: '/crm/leads'
@@ -632,6 +685,13 @@ declare module '@tanstack/react-router' {
       path: '/crm/contacts'
       fullPath: '/crm/contacts'
       preLoaderRoute: typeof CrmContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/calls': {
+      id: '/crm/calls'
+      path: '/crm/calls'
+      fullPath: '/crm/calls'
+      preLoaderRoute: typeof CrmCallsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/integrations/worker': {
@@ -678,8 +738,11 @@ const rootRouteChildren: RootRouteChildren = {
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
+  CrmCallsRoute: CrmCallsRoute,
   CrmContactsRoute: CrmContactsRoute,
   CrmLeadsRoute: CrmLeadsRoute,
+  CrmRequestsRoute: CrmRequestsRoute,
+  CrmTasksRoute: CrmTasksRoute,
   InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,

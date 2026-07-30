@@ -92,6 +92,9 @@ function CrmDashboard() {
           <div className="flex gap-2">
             <Link to="/crm/leads" className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Воронка лідів</Link>
             <Link to="/crm/contacts" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Контакти</Link>
+            <Link to="/crm/requests" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Звернення</Link>
+            <Link to="/crm/calls" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Дзвінки</Link>
+            <Link to="/crm/tasks" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Задачі</Link>
           </div>
         </div>
 
