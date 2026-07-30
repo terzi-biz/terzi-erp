@@ -32,6 +32,7 @@ import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -148,6 +149,11 @@ const ObjectsIdRoute = ObjectsIdRouteImport.update({
   path: '/objects/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -168,6 +174,7 @@ export interface FileRoutesByFullPath {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
@@ -193,6 +200,7 @@ export interface FileRoutesByTo {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
@@ -219,6 +227,7 @@ export interface FileRoutesById {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
@@ -246,6 +255,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
@@ -296,6 +307,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
@@ -322,6 +334,7 @@ export interface RootRouteChildren {
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
+  InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
@@ -492,6 +505,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -514,6 +534,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
+  InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
   ProductionIdRoute: ProductionIdRoute,

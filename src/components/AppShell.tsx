@@ -62,7 +62,10 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/reports", icon: BarChart3, label: t("reports") },
     { to: "/branding", icon: Palette, label: t("branding") },
     { to: "/directions-editor", icon: Sparkles, label: "Конструктор напрямків" },
-    { to: "/settings", icon: Settings, label: t("settings"), badge: pendingApprovals || undefined },
+    ...(canManageAccess
+      ? [{ to: "/access", icon: ShieldCheck, label: "Доступи і ролі", badge: pendingApprovals || undefined }]
+      : []),
+    { to: "/settings", icon: Settings, label: t("settings") },
   ];
 
   const linkCls = (active: boolean) =>
