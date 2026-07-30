@@ -361,7 +361,14 @@ function SettingsPage() {
             <tb.icon className="w-4 h-4" /> {tb.label}
           </button>
         ))}
+        {canManageAccess && (
+          <Link to="/integrations"
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap bg-secondary hover:bg-accent">
+            <Cable className="w-4 h-4" /> Інтеграції та API
+          </Link>
+        )}
       </div>
+
 
       {tab !== "access" && ActionsBar}
 
