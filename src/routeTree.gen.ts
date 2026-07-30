@@ -34,6 +34,7 @@ import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
+import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -161,6 +162,12 @@ const ApiPublicIntegrationsWebhookSlugRoute =
     path: '/api/public/integrations/webhook/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsOauthCallbackRoute =
+  ApiPublicIntegrationsOauthCallbackRouteImport.update({
+    id: '/api/public/integrations/oauth/callback',
+    path: '/api/public/integrations/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByFullPath {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRoutesByTo {
@@ -214,6 +222,7 @@ export interface FileRoutesByTo {
   '/production/$id': typeof ProductionIdRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRoutesById {
@@ -242,6 +251,7 @@ export interface FileRoutesById {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRouteTypes {
@@ -271,6 +281,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -298,6 +309,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects'
     | '/production'
+    | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
     | '__root__'
@@ -325,6 +337,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
 }
@@ -353,6 +366,7 @@ export interface RootRouteChildren {
   ProductionIdRoute: typeof ProductionIdRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
+  ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 
@@ -533,6 +547,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsWebhookSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/oauth/callback': {
+      id: '/api/public/integrations/oauth/callback'
+      path: '/api/public/integrations/oauth/callback'
+      fullPath: '/api/public/integrations/oauth/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -561,6 +582,8 @@ const rootRouteChildren: RootRouteChildren = {
   ProductionIdRoute: ProductionIdRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
+  ApiPublicIntegrationsOauthCallbackRoute:
+    ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
 }
 export const routeTree = rootRouteImport
