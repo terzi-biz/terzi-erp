@@ -10,7 +10,8 @@ export const Route = createFileRoute("/invite/$token")({
   beforeLoad: async ({ params }) => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) {
-      throw redirect({ to: "/login", search: { invite: params.token } as never });
+      if (typeof window !== "undefined") sessionStorage.setItem("terzi:invite", params.token);
+      throw redirect({ to: "/login" });
     }
   },
   head: () => ({
