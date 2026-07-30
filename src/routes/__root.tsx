@@ -66,6 +66,8 @@ function Gate() {
   if (loading) return <div className="min-h-screen grid place-items-center text-muted-foreground text-sm">Завантаження…</div>;
   if (isLogin) return <Outlet />;
   if (!user) return null;
+  // Сторінка активації запрошення доступна до підтвердження доступу
+  if (loc.pathname.startsWith("/invite/")) return <Outlet />;
   if (!accessAllowed) return <AccessWaiting status={approvalStatus} onSignOut={signOut} />;
   return <AppShell><Outlet /></AppShell>;
 }
