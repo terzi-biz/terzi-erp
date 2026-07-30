@@ -125,10 +125,13 @@ export const moveLeadStage = createServerFn({ method: "POST" })
     const { data: prev } = await context.supabase.from("crm_leads").select("stage_id").eq("id", data.id).maybeSingle();
     const { data: stage } = await context.supabase
       .from("crm_stages").select("id, name, is_won, is_lost, probability").eq("id", data.stage_id).maybeSingle();
-    const patch: Record<string, unknown> = { stage_id: data.stage_id, probability: stage?.probability ?? null };
-    if (stage?.is_won) { patch.status = "won"; patch.closed_at = new Date().toISOString(); }
-    else if (stage?.is_lost) { patch.status = "lost"; patch.closed_at = new Date().toISOString(); }
-    else { patch.status = "open"; patch.closed_at = null; }
+    const status = stage?.is_won ? ("won" as const) : stage?.is_lost ? ("lost" as const) : ("open" as const);
+    const patch = {
+      stage_id: data.stage_id,
+      probability: stage?.probability ?? null,
+      status,
+      closed_at: status === "open" ? null : new Date().toISOString(),
+    };
     const { data: out, error } = await context.supabase.from("crm_leads").update(patch).eq("id", data.id).select().single();
     if (error) { console.error("moveLeadStage", error); throw new Error("Не вдалося перемістити лід"); }
     await context.supabase.from("crm_lead_activities").insert({
