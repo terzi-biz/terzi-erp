@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
-  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat,
+  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
