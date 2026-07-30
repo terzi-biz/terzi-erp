@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { Plus, Trash2, RotateCcw, Save } from "lucide-react";
+import { useBlocker } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Plus, Trash2, RotateCcw, Save, AlertTriangle } from "lucide-react";
 import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
 import { toast } from "sonner";
 
@@ -81,6 +82,37 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
     setEdits((e) => { const c = { ...e }; delete c[row.id!]; return c; });
   };
 
+  const dirtyIds = Object.keys(edits).filter((id) => Object.keys(edits[id] ?? {}).length > 0);
+  const dirtyCount = dirtyIds.length;
+
+  const [saving, setSaving] = useState(false);
+  const saveAll = async () => {
+    if (!dirtyCount) return true;
+    setSaving(true);
+    try {
+      const rows = (items as Row[]).filter((r) => dirtyIds.includes(r.id!));
+      for (const r of rows) await upsert({ data: { ...r, ...edits[r.id!] } });
+      setEdits({});
+      await qc.invalidateQueries({ queryKey });
+      toast.success(`Збережено змін: ${rows.length}`);
+      return true;
+    } catch (e) {
+      toast.error("Помилка збереження: " + (e as Error).message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Warn on route change / tab close when there are unsaved edits
+  const blocker = useBlocker({
+    shouldBlockFn: () => dirtyCount > 0,
+    enableBeforeUnload: () => dirtyCount > 0,
+    withResolver: true,
+  });
+
+  useEffect(() => { setEdits({}); }, [module, kind]);
+
   const onAdd = () => {
     saveMut.mutate({
       module, kind, name: "Нова позиція", unit: kind === "equipment" ? "міс." : "шт",
@@ -90,6 +122,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   };
 
   const isEquip = kind === "equipment";
+
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
@@ -126,6 +159,11 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
             className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
             <Plus className="w-3 h-3" /> Додати
           </button>
+          <button onClick={() => saveAll()} disabled={!dirtyCount || saving}
+            className="px-3 py-2 rounded-md bg-success text-success-foreground text-xs font-bold inline-flex items-center gap-2 disabled:opacity-40">
+            <Save className="w-3 h-3" /> {saving ? "Збереження…" : dirtyCount ? `Зберегти зміни (${dirtyCount})` : "Все збережено"}
+          </button>
+
         </div>
       </div>
 
@@ -210,6 +248,48 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
           </table>
         </div>
       )}
+
+      {dirtyCount > 0 && (
+        <div className="sticky bottom-0 mt-4 z-20 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-warning/40 bg-card/95 backdrop-blur px-4 py-3 shadow-lg">
+          <span className="text-xs font-semibold inline-flex items-center gap-2 text-warning">
+            <AlertTriangle className="w-4 h-4" /> Незбережені зміни: {dirtyCount}
+          </span>
+          <div className="flex gap-2">
+            <button onClick={() => setEdits({})} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold">
+              Скасувати зміни
+            </button>
+            <button onClick={() => saveAll()} disabled={saving}
+              className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
+              <Save className="w-3 h-3" /> {saving ? "Збереження…" : "Зберегти зміни"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {blocker.status === "blocked" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4">
+          <div className="panel max-w-sm w-full p-5 space-y-4 bg-card border border-border rounded-lg shadow-xl">
+            <h2 className="font-black text-base">Незбережені зміни</h2>
+            <p className="text-sm text-muted-foreground">
+              У каталозі є {dirtyCount} незбережених змін. Зберегти перед переходом?
+            </p>
+            <div className="flex flex-wrap gap-2 justify-end">
+              <button onClick={() => blocker.reset()} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold">
+                Залишитись
+              </button>
+              <button onClick={() => { setEdits({}); blocker.proceed(); }}
+                className="px-3 py-2 rounded-md bg-destructive/10 text-destructive text-xs font-semibold">
+                Вийти без збереження
+              </button>
+              <button onClick={async () => { if (await saveAll()) blocker.proceed(); }} disabled={saving}
+                className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold">
+                {saving ? "Збереження…" : "Зберегти та вийти"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
