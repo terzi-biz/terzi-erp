@@ -3,8 +3,10 @@ import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, RotateCcw, Save, AlertTriangle } from "lucide-react";
-import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
+import { Plus, Trash2, RotateCcw, Save, AlertTriangle, Pencil, Undo2 } from "lucide-react";
+import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices,
+  getTierMargins, applyTierMargin, setTierCellPrice, resetTierCell, resetTierColumnToSystem } from "@/lib/catalog.functions";
+import { TIER_KEYS, TIER_LABEL, TIER_PRICE_COL, TIER_MANUAL_COL, DEFAULT_TIER_MARGIN, tierPriceFromMargin, type TierKey } from "@/lib/catalog-tiers";
 import { toast } from "sonner";
 
 type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
@@ -23,6 +25,14 @@ interface Row {
   is_custom: boolean;
   is_active: boolean;
   sort_order: number;
+  sell_price_t50?: number | null;
+  sell_price_t100?: number | null;
+  sell_price_t250?: number | null;
+  sell_price_t500?: number | null;
+  manual_t50?: boolean;
+  manual_t100?: boolean;
+  manual_t250?: boolean;
+  manual_t500?: boolean;
 }
 
 const MODULE_LABEL: Record<Module, string> = {
@@ -37,6 +47,9 @@ function margin(buy: number, sell: number) {
   return ((sell - buy) / sell) * 100;
 }
 
+const fmt = (v: number | null | undefined) => (v == null ? "—" : Number(v).toFixed(2));
+
+
 export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const qc = useQueryClient();
   const fetchList = useServerFn(listCatalog);
@@ -50,6 +63,51 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const { data: items = [], isLoading } = useQuery({
     queryKey, queryFn: () => fetchList({ data: { module, kind } }),
   });
+
+  // ---- Ціни по діапазонах площі (нові колонки) ----
+  const fetchMargins = useServerFn(getTierMargins);
+  const applyMargin = useServerFn(applyTierMargin);
+  const setCell = useServerFn(setTierCellPrice);
+  const resetCell = useServerFn(resetTierCell);
+  const resetColumn = useServerFn(resetTierColumnToSystem);
+  const marginsKey = ["catalog-tier-margins", module, kind];
+  const { data: tierMargins } = useQuery({
+    queryKey: marginsKey, queryFn: () => fetchMargins({ data: { module, kind } }),
+  });
+  const marginOf = (t: TierKey) => Number(tierMargins?.[t] ?? DEFAULT_TIER_MARGIN[t]);
+  const [draftMargin, setDraftMargin] = useState<Partial<Record<TierKey, number>>>({});
+  const [preview, setPreview] = useState<TierKey | null>(null);
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey });
+    qc.invalidateQueries({ queryKey: marginsKey });
+  };
+  const applyMut = useMutation({
+    mutationFn: (p: { tier: TierKey; margin_percent: number }) =>
+      applyMargin({ data: { module, kind, ...p } }),
+    onSuccess: (r: { recalculated: number }, v) => {
+      invalidateAll();
+      setPreview(null);
+      setDraftMargin((d) => { const c = { ...d }; delete c[v.tier]; return c; });
+      toast.success(`Перераховано позицій: ${r.recalculated}`);
+    },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+  const cellMut = useMutation({
+    mutationFn: (p: { id: string; tier: TierKey; price: number }) => setCell({ data: p }),
+    onSuccess: () => invalidateAll(),
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+  const resetCellMut = useMutation({
+    mutationFn: (p: { id: string; tier: TierKey }) => resetCell({ data: p }),
+    onSuccess: () => { invalidateAll(); toast.success("Повернуто розрахунок по загальній маржі"); },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+  const resetColMut = useMutation({
+    mutationFn: (tier: TierKey) => resetColumn({ data: { module, kind, tier } }),
+    onSuccess: (r: { recalculated: number }) => { invalidateAll(); setPreview(null); toast.success(`Повернуто системні значення: ${r.recalculated}`); },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+
 
   const saveMut = useMutation({
     mutationFn: (row: Row) => upsert({ data: row }),
@@ -192,7 +250,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
 
       {isLoading ? <div className="text-muted-foreground text-sm">Завантаження…</div> : (
         <div className="panel scroll-x max-h-[calc(100vh-220px)] overflow-y-auto">
-          <table className="w-full text-sm min-w-[640px] sticky-thead">
+          <table className="w-full text-sm min-w-[1240px] sticky-thead">
             <thead className="bg-secondary text-xs uppercase tracking-wider">
 
               <tr>
@@ -203,6 +261,39 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 {isEquip && <th className="text-right p-3 w-20">Міс.</th>}
                 <th className="text-right p-3 w-20">Маржа</th>
                 <th className="text-center p-3 w-20">Тип</th>
+                {TIER_KEYS.map((t) => {
+                  const saved = marginOf(t);
+                  const draft = draftMargin[t] ?? saved;
+                  const changed = Math.abs(draft - saved) > 0.0001;
+                  return (
+                    <th key={t} className="p-2 w-40 align-top border-l border-border">
+                      <div className="text-[10px] font-bold normal-case leading-tight">{TIER_LABEL[t]}</div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="text-[9px] normal-case text-muted-foreground">Маржа, %</span>
+                        <NumberInput step="1"
+                          className="w-16 bg-input border border-border rounded px-1 py-0.5 text-right text-xs"
+                          value={draft}
+                          onChange={(v) => setDraftMargin((d) => ({ ...d, [t]: v }))} />
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <button disabled={!changed} onClick={() => setPreview(t)}
+                          className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-bold normal-case disabled:opacity-40">
+                          Застосувати
+                        </button>
+                        <button disabled={!changed}
+                          onClick={() => setDraftMargin((d) => { const c = { ...d }; delete c[t]; return c; })}
+                          className="px-1.5 py-0.5 rounded bg-secondary text-[9px] font-semibold normal-case disabled:opacity-40">
+                          Відмінити
+                        </button>
+                        <button
+                          onClick={() => confirm(`Повернути системні значення для «${TIER_LABEL[t]}» (маржа ${DEFAULT_TIER_MARGIN[t]}%)?`) && resetColMut.mutate(t)}
+                          className="px-1.5 py-0.5 rounded bg-warning/20 text-warning border border-warning/40 text-[9px] font-semibold normal-case">
+                          Системні
+                        </button>
+                      </div>
+                    </th>
+                  );
+                })}
                 <th className="p-3 w-20" />
               </tr>
             </thead>
@@ -245,6 +336,32 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                         {cur.is_custom ? "Кастом" : "Сист."}
                       </span>
                     </td>
+                    {TIER_KEYS.map((t) => {
+                      const val = (r as any)[TIER_PRICE_COL[t]] as number | null;
+                      const isManual = !!(r as any)[TIER_MANUAL_COL[t]];
+                      return (
+                        <td key={t} className="p-2 border-l border-border">
+                          <div className="flex items-center gap-1">
+                            <TierCell
+                              manual={isManual}
+                              value={val ?? tierPriceFromMargin(r.buy_price, marginOf(t))}
+                              onCommit={(v) => cellMut.mutate({ id: r.id!, tier: t, price: v })} />
+
+                            {isManual ? (
+                              <>
+                                <Pencil className="w-3 h-3 text-primary shrink-0" aria-label="Ціна встановлена вручну" />
+                                <button title="Вернути розрахунок по загальній маржі"
+                                  onClick={() => resetCellMut.mutate({ id: r.id!, tier: t })}
+                                  className="p-1 rounded bg-secondary hover:opacity-80 shrink-0">
+                                  <Undo2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            ) : null}
+                          </div>
+                        </td>
+                      );
+                    })}
+
                     <td className="p-2">
                       <div className="flex gap-1 justify-end">
                         {dirty && (
@@ -263,7 +380,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 );
               })}
               {items.length === 0 && (
-                <tr><td colSpan={isEquip ? 8 : 7} className="p-8 text-center text-muted-foreground">
+                <tr><td colSpan={(isEquip ? 8 : 7) + 4} className="p-8 text-center text-muted-foreground">
                   Каталог порожній. Завантажте дефолти або додайте позицію.
                 </td></tr>
               )}
@@ -312,7 +429,89 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
           </div>
         </div>
       )}
+
+      {preview && (() => {
+        const t = preview;
+        const oldM = marginOf(t);
+        const newM = draftMargin[t] ?? oldM;
+        const affected = (items as Row[]).filter((r) => !(r as any)[TIER_MANUAL_COL[t]]);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4">
+            <div className="panel max-w-2xl w-full bg-card border border-border rounded-lg shadow-xl flex flex-col max-h-[85vh]">
+              <div className="p-5 border-b border-border">
+                <h2 className="font-black text-base">{TIER_LABEL[t]} · попередній перегляд</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Маржа: <b>{oldM}%</b> → <b className="text-primary">{newM}%</b> ·
+                  {" "}позицій до перерахунку: <b>{affected.length}</b>
+                  {items.length - affected.length > 0 && (
+                    <> · вручну змінених (не чіпаємо): <b>{items.length - affected.length}</b></>
+                  )}
+                </p>
+              </div>
+              <div className="overflow-auto p-3">
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-2">Позиція</th>
+                      <th className="text-right p-2 w-24">Закупка</th>
+                      <th className="text-right p-2 w-28">Стара ціна</th>
+                      <th className="text-right p-2 w-28">Нова ціна</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {affected.map((r) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="p-2">{r.name}</td>
+                        <td className="p-2 text-right tabular-nums">{fmt(r.buy_price)}</td>
+                        <td className="p-2 text-right tabular-nums text-muted-foreground">
+                          {fmt((r as any)[TIER_PRICE_COL[t]])}
+                        </td>
+                        <td className="p-2 text-right tabular-nums font-bold text-primary">
+                          {fmt(tierPriceFromMargin(r.buy_price, newM))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 border-t border-border flex flex-wrap gap-2 justify-end">
+                <button onClick={() => setPreview(null)}
+                  className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold">Відмінити</button>
+                <button onClick={() => resetColMut.mutate(t)} disabled={resetColMut.isPending}
+                  className="px-3 py-2 rounded-md bg-warning/20 text-warning border border-warning/40 text-xs font-semibold">
+                  Повернути системні значення
+                </button>
+                <button onClick={() => applyMut.mutate({ tier: t, margin_percent: newM })} disabled={applyMut.isPending}
+                  className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold">
+                  {applyMut.isPending ? "Застосування…" : "Застосувати"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
+
+/** Комірка ціни діапазону: зберігає значення як «ручне» після завершення вводу. */
+function TierCell({ value, manual, onCommit }: { value: number; manual: boolean; onCommit: (v: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? String(value ?? 0);
+  return (
+    <input
+      type="number" step="0.5" inputMode="decimal"
+      className={`w-full bg-input border rounded px-2 py-1 text-right ${manual ? "border-primary" : "border-border"}`}
+      value={shown}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const n = Number(draft);
+        setDraft(null);
+        if (draft !== null && Number.isFinite(n) && n !== value) onCommit(n);
+      }}
+    />
+  );
+}
+
 

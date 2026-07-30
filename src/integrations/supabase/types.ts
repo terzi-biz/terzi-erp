@@ -474,9 +474,17 @@ export type Database = {
           is_custom: boolean
           kind: string
           lifetime_months: number | null
+          manual_t100: boolean
+          manual_t250: boolean
+          manual_t50: boolean
+          manual_t500: boolean
           module: string
           name: string
           sell_price: number
+          sell_price_t100: number | null
+          sell_price_t250: number | null
+          sell_price_t50: number | null
+          sell_price_t500: number | null
           show_in_client: Database["public"]["Enums"]["show_in_client_mode"]
           sort_order: number
           unit: string
@@ -492,9 +500,17 @@ export type Database = {
           is_custom?: boolean
           kind: string
           lifetime_months?: number | null
+          manual_t100?: boolean
+          manual_t250?: boolean
+          manual_t50?: boolean
+          manual_t500?: boolean
           module: string
           name: string
           sell_price?: number
+          sell_price_t100?: number | null
+          sell_price_t250?: number | null
+          sell_price_t50?: number | null
+          sell_price_t500?: number | null
           show_in_client?: Database["public"]["Enums"]["show_in_client_mode"]
           sort_order?: number
           unit: string
@@ -510,12 +526,50 @@ export type Database = {
           is_custom?: boolean
           kind?: string
           lifetime_months?: number | null
+          manual_t100?: boolean
+          manual_t250?: boolean
+          manual_t50?: boolean
+          manual_t500?: boolean
           module?: string
           name?: string
           sell_price?: number
+          sell_price_t100?: number | null
+          sell_price_t250?: number | null
+          sell_price_t50?: number | null
+          sell_price_t500?: number | null
           show_in_client?: Database["public"]["Enums"]["show_in_client_mode"]
           sort_order?: number
           unit?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      catalog_tier_margins: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          margin_percent: number
+          module: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          margin_percent?: number
+          module: string
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          margin_percent?: number
+          module?: string
+          tier?: string
           updated_at?: string
         }
         Relationships: []
