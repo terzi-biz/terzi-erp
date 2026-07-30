@@ -272,9 +272,9 @@ async function applyBuyer(ctx: AdapterContext, ext: any) {
     external_source: "keycrm",
     external_id: externalId,
   };
-  if (contactId) await db.from("crm_contacts").update(row).eq("id", contactId);
+  if (contactId) await db.from("crm_contacts").update(row as any).eq("id", contactId);
   else {
-    const { data, error } = await db.from("crm_contacts").insert({ ...row, owner_id: owner }).select("id").maybeSingle();
+    const { data, error } = await db.from("crm_contacts").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
     if (error) throw error;
     contactId = (data as any).id;
   }
@@ -369,9 +369,9 @@ async function applyLeadCard(ctx: AdapterContext, ext: any) {
       .maybeSingle();
     leadId = (byExt as any)?.id ?? null;
   }
-  if (leadId) await db.from("crm_leads").update(row).eq("id", leadId);
+  if (leadId) await db.from("crm_leads").update(row as any).eq("id", leadId);
   else {
-    const { data, error } = await db.from("crm_leads").insert({ ...row, owner_id: owner }).select("id").maybeSingle();
+    const { data, error } = await db.from("crm_leads").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
     if (error) throw error;
     leadId = (data as any).id;
   }
