@@ -82,6 +82,37 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
     setEdits((e) => { const c = { ...e }; delete c[row.id!]; return c; });
   };
 
+  const dirtyIds = Object.keys(edits).filter((id) => Object.keys(edits[id] ?? {}).length > 0);
+  const dirtyCount = dirtyIds.length;
+
+  const [saving, setSaving] = useState(false);
+  const saveAll = async () => {
+    if (!dirtyCount) return true;
+    setSaving(true);
+    try {
+      const rows = (items as Row[]).filter((r) => dirtyIds.includes(r.id!));
+      for (const r of rows) await upsert({ data: { ...r, ...edits[r.id!] } });
+      setEdits({});
+      await qc.invalidateQueries({ queryKey });
+      toast.success(`Збережено змін: ${rows.length}`);
+      return true;
+    } catch (e) {
+      toast.error("Помилка збереження: " + (e as Error).message);
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Warn on route change / tab close when there are unsaved edits
+  const blocker = useBlocker({
+    shouldBlockFn: () => dirtyCount > 0,
+    enableBeforeUnload: () => dirtyCount > 0,
+    withResolver: true,
+  });
+
+  useEffect(() => { setEdits({}); }, [module, kind]);
+
   const onAdd = () => {
     saveMut.mutate({
       module, kind, name: "Нова позиція", unit: kind === "equipment" ? "міс." : "шт",
@@ -91,6 +122,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   };
 
   const isEquip = kind === "equipment";
+
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
