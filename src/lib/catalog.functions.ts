@@ -458,7 +458,7 @@ export const applyTierMargin = createServerFn({ method: "POST" })
       const prev = r[priceCol] == null ? null : Number(r[priceCol]);
       if (prev === next) continue;
       const { error } = await context.supabase.from("catalog_items")
-        .update({ [priceCol]: next }).eq("id", r.id);
+        .update({ [priceCol]: next } as any).eq("id", r.id);
       if (error) { console.error("applyTierMargin update", error); throw new Error("Не вдалося оновити ціну позиції"); }
       changed.push({ id: r.id, name: r.name, old: prev, new: next });
     }
@@ -492,7 +492,7 @@ export const setTierCellPrice = createServerFn({ method: "POST" })
     const { data: before } = await context.supabase
       .from("catalog_items").select(`id, name, ${priceCol}`).eq("id", data.id).maybeSingle();
     const { data: out, error } = await context.supabase.from("catalog_items")
-      .update({ [priceCol]: data.price, [manualCol]: true }).eq("id", data.id).select().maybeSingle();
+      .update({ [priceCol]: data.price, [manualCol]: true } as any).eq("id", data.id).select().maybeSingle();
     if (error || !out) { console.error("setTierCellPrice", error); throw new Error("Не вдалося зберегти ціну"); }
     await audit(context.userId, {
       module: "catalog", action: "tier_price_manual",
@@ -521,7 +521,7 @@ export const resetTierCell = createServerFn({ method: "POST" })
     const m = mrow ? Number(mrow.margin_percent) : DEFAULT_TIER_MARGIN_S[data.tier];
     const next = tierPrice(Number(r.buy_price) || 0, m);
     const { data: out, error } = await context.supabase.from("catalog_items")
-      .update({ [priceCol]: next, [manualCol]: false }).eq("id", data.id).select().maybeSingle();
+      .update({ [priceCol]: next, [manualCol]: false } as any).eq("id", data.id).select().maybeSingle();
     if (error || !out) { console.error("resetTierCell", error); throw new Error("Не вдалося перерахувати ціну"); }
     await audit(context.userId, {
       module: "catalog", action: "tier_price_reset_to_margin",
@@ -550,7 +550,7 @@ export const resetTierColumnToSystem = createServerFn({ method: "POST" })
       const next = tierPrice(Number(r.buy_price) || 0, m);
       if (r[manualCol]) manualCleared++;
       const { error } = await context.supabase.from("catalog_items")
-        .update({ [priceCol]: next, [manualCol]: false }).eq("id", r.id);
+        .update({ [priceCol]: next, [manualCol]: false } as any).eq("id", r.id);
       if (error) { console.error("resetTierColumnToSystem", error); throw new Error("Не вдалося скинути ціни"); }
       count++;
     }
