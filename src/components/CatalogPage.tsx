@@ -3,8 +3,10 @@ import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { Plus, Trash2, RotateCcw, Save, AlertTriangle } from "lucide-react";
-import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
+import { Plus, Trash2, RotateCcw, Save, AlertTriangle, Pencil, Undo2 } from "lucide-react";
+import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices,
+  getTierMargins, applyTierMargin, setTierCellPrice, resetTierCell, resetTierColumnToSystem } from "@/lib/catalog.functions";
+import { TIER_KEYS, TIER_LABEL, TIER_PRICE_COL, TIER_MANUAL_COL, DEFAULT_TIER_MARGIN, tierPriceFromMargin, type TierKey } from "@/lib/catalog-tiers";
 import { toast } from "sonner";
 
 type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
@@ -23,6 +25,14 @@ interface Row {
   is_custom: boolean;
   is_active: boolean;
   sort_order: number;
+  sell_price_t50?: number | null;
+  sell_price_t100?: number | null;
+  sell_price_t250?: number | null;
+  sell_price_t500?: number | null;
+  manual_t50?: boolean;
+  manual_t100?: boolean;
+  manual_t250?: boolean;
+  manual_t500?: boolean;
 }
 
 const MODULE_LABEL: Record<Module, string> = {
@@ -36,6 +46,9 @@ function margin(buy: number, sell: number) {
   if (!sell) return 0;
   return ((sell - buy) / sell) * 100;
 }
+
+const fmt = (v: number | null | undefined) => (v == null ? "—" : Number(v).toFixed(2));
+
 
 export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const qc = useQueryClient();
