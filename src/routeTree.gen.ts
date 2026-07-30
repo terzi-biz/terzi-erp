@@ -25,6 +25,7 @@ import { Route as DirectionsEditorRouteImport } from './routes/directions-editor
 import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as BrandingRouteImport } from './routes/branding'
+import { Route as AccessRouteImport } from './routes/access'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
@@ -112,6 +113,11 @@ const BrandingRoute = BrandingRouteImport.update({
   path: '/branding',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AccessRoute = AccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -145,6 +151,7 @@ const ObjectsIdRoute = ObjectsIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
@@ -169,6 +176,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
@@ -194,6 +202,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
   '/demolition': typeof DemolitionRoute
@@ -220,6 +229,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/access'
     | '/branding'
     | '/clients'
     | '/demolition'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/access'
     | '/branding'
     | '/clients'
     | '/demolition'
@@ -268,6 +279,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/access'
     | '/branding'
     | '/clients'
     | '/demolition'
@@ -293,6 +305,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccessRoute: typeof AccessRoute
   BrandingRoute: typeof BrandingRoute
   ClientsRoute: typeof ClientsRoute
   DemolitionRoute: typeof DemolitionRoute
@@ -430,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BrandingRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/access': {
+      id: '/access'
+      path: '/access'
+      fullPath: '/access'
+      preLoaderRoute: typeof AccessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -477,6 +497,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccessRoute: AccessRoute,
   BrandingRoute: BrandingRoute,
   ClientsRoute: ClientsRoute,
   DemolitionRoute: DemolitionRoute,
