@@ -64,6 +64,51 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
     queryKey, queryFn: () => fetchList({ data: { module, kind } }),
   });
 
+  // ---- Ціни по діапазонах площі (нові колонки) ----
+  const fetchMargins = useServerFn(getTierMargins);
+  const applyMargin = useServerFn(applyTierMargin);
+  const setCell = useServerFn(setTierCellPrice);
+  const resetCell = useServerFn(resetTierCell);
+  const resetColumn = useServerFn(resetTierColumnToSystem);
+  const marginsKey = ["catalog-tier-margins", module, kind];
+  const { data: tierMargins } = useQuery({
+    queryKey: marginsKey, queryFn: () => fetchMargins({ data: { module, kind } }),
+  });
+  const marginOf = (t: TierKey) => Number(tierMargins?.[t] ?? DEFAULT_TIER_MARGIN[t]);
+  const [draftMargin, setDraftMargin] = useState<Partial<Record<TierKey, number>>>({});
+  const [preview, setPreview] = useState<TierKey | null>(null);
+  const invalidateAll = () => {
+    qc.invalidateQueries({ queryKey });
+    qc.invalidateQueries({ queryKey: marginsKey });
+  };
+  const applyMut = useMutation({
+    mutationFn: (p: { tier: TierKey; margin_percent: number }) =>
+      applyMargin({ data: { module, kind, ...p } }),
+    onSuccess: (r: { recalculated: number }, v) => {
+      invalidateAll();
+      setPreview(null);
+      setDraftMargin((d) => { const c = { ...d }; delete c[v.tier]; return c; });
+      toast.success(`Перераховано позицій: ${r.recalculated}`);
+    },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+  const cellMut = useMutation({
+    mutationFn: (p: { id: string; tier: TierKey; price: number }) => setCell({ data: p }),
+    onSuccess: () => invalidateAll(),
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+  const resetCellMut = useMutation({
+    mutationFn: (p: { id: string; tier: TierKey }) => resetCell({ data: p }),
+    onSuccess: () => { invalidateAll(); toast.success("Повернуто розрахунок по загальній маржі"); },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+  const resetColMut = useMutation({
+    mutationFn: (tier: TierKey) => resetColumn({ data: { module, kind, tier } }),
+    onSuccess: (r: { recalculated: number }) => { invalidateAll(); setPreview(null); toast.success(`Повернуто системні значення: ${r.recalculated}`); },
+    onError: (e: Error) => toast.error("Помилка: " + e.message),
+  });
+
+
   const saveMut = useMutation({
     mutationFn: (row: Row) => upsert({ data: row }),
     onSuccess: () => qc.invalidateQueries({ queryKey }),
