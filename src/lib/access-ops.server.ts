@@ -123,7 +123,7 @@ export async function updateUserAccessOp(actorId: string, input: UpdateUserAcces
     patch.blocked_at = new Date().toISOString();
     patch.blocked_by = actorId;
   }
-  const { data: updated, error } = await db.from("user_access").update(patch).eq("user_id", input.userId).select("*").single();
+  const { data: updated, error } = await db.from("user_access").update(patch as any).eq("user_id", input.userId).select("*").single();
   if (error) throw new Error("Не вдалося зберегти доступ");
 
   // Блокування / розблокування реальних сесій
@@ -622,7 +622,7 @@ export async function saveNotificationRuleOp(actorId: string, input: { id: strin
   if (input.threshold !== undefined) patch.threshold = input.threshold;
   if (input.digest !== undefined) patch.digest = input.digest;
   if (input.channel !== undefined) patch.channel = input.channel;
-  const { data, error } = await db.from("notification_rules").update(patch).eq("id", input.id).select("*").single();
+  const { data, error } = await db.from("notification_rules").update(patch as any).eq("id", input.id).select("*").single();
   if (error) throw new Error("Не вдалося зберегти правило");
   await writeAudit(actor, { module: "settings", action: "notification_rule_updated", entityType: "notification_rule", entityId: input.id, newValue: data });
   return data;
