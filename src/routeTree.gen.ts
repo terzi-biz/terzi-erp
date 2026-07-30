@@ -33,6 +33,7 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 
@@ -156,6 +157,12 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsWorkerRoute =
+  ApiPublicIntegrationsWorkerRouteImport.update({
+    id: '/api/public/integrations/worker',
+    path: '/api/public/integrations/worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsWebhookSlugRoute =
   ApiPublicIntegrationsWebhookSlugRouteImport.update({
     id: '/api/public/integrations/webhook/$slug',
@@ -194,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -222,6 +230,7 @@ export interface FileRoutesByTo {
   '/production/$id': typeof ProductionIdRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -251,6 +260,7 @@ export interface FileRoutesById {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -281,6 +291,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/worker'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -309,6 +320,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects'
     | '/production'
+    | '/api/public/integrations/worker'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -337,6 +349,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/worker'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -366,6 +379,7 @@ export interface RootRouteChildren {
   ProductionIdRoute: typeof ProductionIdRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
+  ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -540,6 +554,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/worker': {
+      id: '/api/public/integrations/worker'
+      path: '/api/public/integrations/worker'
+      fullPath: '/api/public/integrations/worker'
+      preLoaderRoute: typeof ApiPublicIntegrationsWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/webhook/$slug': {
       id: '/api/public/integrations/webhook/$slug'
       path: '/api/public/integrations/webhook/$slug'
@@ -582,6 +603,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductionIdRoute: ProductionIdRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
+  ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
