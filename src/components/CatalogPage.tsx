@@ -250,7 +250,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
 
       {isLoading ? <div className="text-muted-foreground text-sm">Завантаження…</div> : (
         <div className="panel scroll-x max-h-[calc(100vh-220px)] overflow-y-auto">
-          <table className="w-full text-sm min-w-[640px] sticky-thead">
+          <table className="w-full text-sm min-w-[1240px] sticky-thead">
             <thead className="bg-secondary text-xs uppercase tracking-wider">
 
               <tr>
@@ -261,8 +261,43 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 {isEquip && <th className="text-right p-3 w-20">Міс.</th>}
                 <th className="text-right p-3 w-20">Маржа</th>
                 <th className="text-center p-3 w-20">Тип</th>
+                {TIER_KEYS.map((t) => {
+                  const saved = marginOf(t);
+                  const draft = draftMargin[t] ?? saved;
+                  const changed = Math.abs(draft - saved) > 0.0001;
+                  return (
+                    <th key={t} className="p-2 w-40 align-top border-l border-border">
+                      <div className="text-[10px] font-bold normal-case leading-tight">{TIER_LABEL[t]}</div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="text-[9px] normal-case text-muted-foreground">Маржа, %</span>
+                        <NumberInput step="1"
+                          className="w-16 bg-input border border-border rounded px-1 py-0.5 text-right text-xs"
+                          value={draft}
+                          onChange={(v) => setDraftMargin((d) => ({ ...d, [t]: v }))} />
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        <button disabled={!changed} onClick={() => setPreview(t)}
+                          className="px-1.5 py-0.5 rounded bg-primary text-primary-foreground text-[9px] font-bold normal-case disabled:opacity-40">
+                          Застосувати
+                        </button>
+                        <button disabled={!changed}
+                          onClick={() => setDraftMargin((d) => { const c = { ...d }; delete c[t]; return c; })}
+                          className="px-1.5 py-0.5 rounded bg-secondary text-[9px] font-semibold normal-case disabled:opacity-40">
+                          Відмінити
+                        </button>
+                        <button
+                          onClick={() => confirm(`Повернути системні значення для «${TIER_LABEL[t]}» (маржа ${DEFAULT_TIER_MARGIN[t]}%)?`) && resetColMut.mutate(t)}
+                          className="px-1.5 py-0.5 rounded bg-warning/20 text-warning border border-warning/40 text-[9px] font-semibold normal-case">
+                          Системні
+                        </button>
+                      </div>
+                    </th>
+                  );
+                })}
                 <th className="p-3 w-20" />
               </tr>
+            </thead>
+
             </thead>
             <tbody>
               {(items as Row[]).map((r) => {
