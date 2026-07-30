@@ -380,7 +380,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 );
               })}
               {items.length === 0 && (
-                <tr><td colSpan={isEquip ? 8 : 7} className="p-8 text-center text-muted-foreground">
+                <tr><td colSpan={(isEquip ? 8 : 7) + 4} className="p-8 text-center text-muted-foreground">
                   Каталог порожній. Завантажте дефолти або додайте позицію.
                 </td></tr>
               )}
