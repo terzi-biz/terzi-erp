@@ -342,10 +342,11 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                       return (
                         <td key={t} className="p-2 border-l border-border">
                           <div className="flex items-center gap-1">
-                            <NumberInput step="0.5"
-                              className={`w-full bg-input border rounded px-2 py-1 text-right ${isManual ? "border-primary" : "border-border"}`}
+                            <TierCell
+                              manual={isManual}
                               value={val ?? tierPriceFromMargin(r.buy_price, marginOf(t))}
-                              onChange={(v) => cellMut.mutate({ id: r.id!, tier: t, price: v })} />
+                              onCommit={(v) => cellMut.mutate({ id: r.id!, tier: t, price: v })} />
+
                             {isManual ? (
                               <>
                                 <Pencil className="w-3 h-3 text-primary shrink-0" aria-label="Ціна встановлена вручну" />
