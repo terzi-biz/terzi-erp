@@ -1,3 +1,6 @@
+import { keycrmAdapter } from "./keycrm/adapter.server";
+import { binotelAdapter } from "./binotel/adapter.server";
+
 /**
  * Реєстр адаптерів провайдерів. Ядро не знає нічого про конкретні сервіси —
  * кожен провайдер реалізує цей інтерфейс і реєструється нижче.
@@ -37,7 +40,7 @@ export type IntegrationAdapter = {
   /** Перевірка підпису вхідного вебхука. Повертає false → 401. */
   verifyWebhook?: (
     ctx: AdapterContext,
-    req: { rawBody: string; headers: Headers; secret: string | null; signatureHeader: string | null },
+    req: { rawBody: string; headers: Headers; secret: string | null; signatureHeader: string | null; url?: string | null },
   ) => Promise<boolean>;
   /** Приведення сирого запиту до події черги. */
   normalizeEvent?: (ctx: AdapterContext, raw: unknown, headers: Headers) => NormalizedEvent;
@@ -78,6 +81,8 @@ const echoAdapter: IntegrationAdapter = {
 
 const REGISTRY: Record<string, IntegrationAdapter> = {
   echo: echoAdapter,
+  keycrm: keycrmAdapter,
+  binotel: binotelAdapter,
 };
 
 export function getAdapter(providerKey: string): IntegrationAdapter | null {

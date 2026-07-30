@@ -606,6 +606,8 @@ export type Database = {
           address: string | null
           created_at: string
           email: string | null
+          external_id: string | null
+          external_source: string | null
           id: string
           name: string
           notes: string | null
@@ -618,6 +620,8 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           name: string
           notes?: string | null
@@ -630,6 +634,8 @@ export type Database = {
           address?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           name?: string
           notes?: string | null
@@ -815,6 +821,8 @@ export type Database = {
           company: string | null
           created_at: string
           email: string | null
+          external_id: string | null
+          external_source: string | null
           full_name: string
           id: string
           is_active: boolean
@@ -833,6 +841,8 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
+          external_source?: string | null
           full_name: string
           id?: string
           is_active?: boolean
@@ -851,6 +861,8 @@ export type Database = {
           company?: string | null
           created_at?: string
           email?: string | null
+          external_id?: string | null
+          external_source?: string | null
           full_name?: string
           id?: string
           is_active?: boolean
@@ -934,6 +946,8 @@ export type Database = {
           created_at: string
           direction: string | null
           district: string | null
+          external_id: string | null
+          external_source: string | null
           id: string
           lost_reason: string | null
           next_action_at: string | null
@@ -948,6 +962,7 @@ export type Database = {
           tags: Json
           title: string
           updated_at: string
+          utm: Json
         }
         Insert: {
           address?: string | null
@@ -961,6 +976,8 @@ export type Database = {
           created_at?: string
           direction?: string | null
           district?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           lost_reason?: string | null
           next_action_at?: string | null
@@ -975,6 +992,7 @@ export type Database = {
           tags?: Json
           title: string
           updated_at?: string
+          utm?: Json
         }
         Update: {
           address?: string | null
@@ -988,6 +1006,8 @@ export type Database = {
           created_at?: string
           direction?: string | null
           district?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           lost_reason?: string | null
           next_action_at?: string | null
@@ -1002,6 +1022,7 @@ export type Database = {
           tags?: Json
           title?: string
           updated_at?: string
+          utm?: Json
         }
         Relationships: [
           {
@@ -1695,6 +1716,65 @@ export type Database = {
           },
         ]
       }
+      integration_conflicts: {
+        Row: {
+          created_at: string
+          entity: string
+          external_id: string | null
+          external_value: Json
+          id: string
+          integration_id: string
+          internal_id: string | null
+          internal_value: Json
+          reason: string | null
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity: string
+          external_id?: string | null
+          external_value?: Json
+          id?: string
+          integration_id: string
+          internal_id?: string | null
+          internal_value?: Json
+          reason?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity?: string
+          external_id?: string | null
+          external_value?: Json
+          id?: string
+          integration_id?: string
+          internal_id?: string | null
+          internal_value?: Json
+          reason?: string | null
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_conflicts_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_event_logs: {
         Row: {
           attempt: number
@@ -1879,6 +1959,50 @@ export type Database = {
           },
         ]
       }
+      integration_line_map: {
+        Row: {
+          company_number: string | null
+          created_at: string
+          display_name: string | null
+          extension: string
+          id: string
+          integration_id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          company_number?: string | null
+          created_at?: string
+          display_name?: string | null
+          extension: string
+          id?: string
+          integration_id: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          company_number?: string | null
+          created_at?: string
+          display_name?: string | null
+          extension?: string
+          id?: string
+          integration_id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_line_map_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_oauth_states: {
         Row: {
           code_verifier: string | null
@@ -1927,8 +2051,10 @@ export type Database = {
           config_schema: Json
           created_at: string
           description: string | null
+          docs_url: string | null
           is_implemented: boolean
           key: string
+          manifest: Json
           name: string
           secret_keys: Json
           sort_order: number
@@ -1942,8 +2068,10 @@ export type Database = {
           config_schema?: Json
           created_at?: string
           description?: string | null
+          docs_url?: string | null
           is_implemented?: boolean
           key: string
+          manifest?: Json
           name: string
           secret_keys?: Json
           sort_order?: number
@@ -1957,8 +2085,10 @@ export type Database = {
           config_schema?: Json
           created_at?: string
           description?: string | null
+          docs_url?: string | null
           is_implemented?: boolean
           key?: string
+          manifest?: Json
           name?: string
           secret_keys?: Json
           sort_order?: number
@@ -1967,6 +2097,47 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      integration_rate_limits: {
+        Row: {
+          bucket: string
+          created_at: string
+          id: string
+          integration_id: string
+          request_count: number
+          retry_after_until: string | null
+          updated_at: string
+          window_started_at: string
+        }
+        Insert: {
+          bucket?: string
+          created_at?: string
+          id?: string
+          integration_id: string
+          request_count?: number
+          retry_after_until?: string | null
+          updated_at?: string
+          window_started_at?: string
+        }
+        Update: {
+          bucket?: string
+          created_at?: string
+          id?: string
+          integration_id?: string
+          request_count?: number
+          retry_after_until?: string | null
+          updated_at?: string
+          window_started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_rate_limits_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       integration_secrets: {
         Row: {
@@ -2008,6 +2179,162 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_links: {
+        Row: {
+          created_at: string
+          entity: string
+          external_hash: string | null
+          external_id: string
+          external_updated_at: string | null
+          id: string
+          integration_id: string
+          internal_hash: string | null
+          internal_id: string | null
+          internal_table: string | null
+          last_direction: string | null
+          last_synced_at: string
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity: string
+          external_hash?: string | null
+          external_id: string
+          external_updated_at?: string | null
+          id?: string
+          integration_id: string
+          internal_hash?: string | null
+          internal_id?: string | null
+          internal_table?: string | null
+          last_direction?: string | null
+          last_synced_at?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity?: string
+          external_hash?: string | null
+          external_id?: string
+          external_updated_at?: string | null
+          id?: string
+          integration_id?: string
+          internal_hash?: string | null
+          internal_id?: string | null
+          internal_table?: string | null
+          last_direction?: string | null
+          last_synced_at?: string
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_links_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_settings: {
+        Row: {
+          created_at: string
+          entity: string
+          id: string
+          integration_id: string
+          mode: string
+          options: Json
+          poll_enabled: boolean
+          poll_interval_min: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          entity: string
+          id?: string
+          integration_id: string
+          mode?: string
+          options?: Json
+          poll_enabled?: boolean
+          poll_interval_min?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          entity?: string
+          id?: string
+          integration_id?: string
+          mode?: string
+          options?: Json
+          poll_enabled?: boolean
+          poll_interval_min?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_settings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_sync_state: {
+        Row: {
+          created_at: string
+          cursor: string | null
+          entity: string
+          id: string
+          integration_id: string
+          last_error: string | null
+          last_page: number
+          last_run_at: string | null
+          last_status: string | null
+          last_sync_at: string | null
+          stats: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cursor?: string | null
+          entity: string
+          id?: string
+          integration_id: string
+          last_error?: string | null
+          last_page?: number
+          last_run_at?: string | null
+          last_status?: string | null
+          last_sync_at?: string | null
+          stats?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cursor?: string | null
+          entity?: string
+          id?: string
+          integration_id?: string
+          last_error?: string | null
+          last_page?: number
+          last_run_at?: string | null
+          last_status?: string | null
+          last_sync_at?: string | null
+          stats?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_sync_state_integration_id_fkey"
             columns: ["integration_id"]
             isOneToOne: false
             referencedRelation: "integrations"
@@ -2067,6 +2394,7 @@ export type Database = {
           created_at: string
           direction: Database["public"]["Enums"]["integration_webhook_direction"]
           enabled: boolean
+          endpoint_token: string | null
           events: Json
           id: string
           integration_id: string
@@ -2082,6 +2410,7 @@ export type Database = {
           created_at?: string
           direction: Database["public"]["Enums"]["integration_webhook_direction"]
           enabled?: boolean
+          endpoint_token?: string | null
           events?: Json
           id?: string
           integration_id: string
@@ -2097,6 +2426,7 @@ export type Database = {
           created_at?: string
           direction?: Database["public"]["Enums"]["integration_webhook_direction"]
           enabled?: boolean
+          endpoint_token?: string | null
           events?: Json
           id?: string
           integration_id?: string

@@ -192,3 +192,128 @@ export const startIntegrationOAuth = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ integrationId: z.string().uuid(), redirectUri: z.string().url() }).parse(d))
   .handler(async ({ context, data }) => startOAuthOp(context.userId, data));
+
+/* --------------------- Синхронізація та підготовка провайдерів --------------------- */
+
+const syncModeEnum = z.enum(["off", "erp_master", "external_master", "bidirectional"]);
+
+export const listIntegrationSyncSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { listSyncSettingsOp } = await import("./integrations/sync-ops.server");
+    return listSyncSettingsOp(context.userId, data.integrationId);
+  });
+
+export const saveIntegrationSyncSetting = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        integrationId: z.string().uuid(),
+        entity: z.string().min(1).max(40),
+        mode: syncModeEnum,
+        pollEnabled: z.boolean().optional(),
+        pollIntervalMin: z.number().int().min(5).max(1440).optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { saveSyncSettingOp } = await import("./integrations/sync-ops.server");
+    return saveSyncSettingOp(context.userId, data);
+  });
+
+export const runIntegrationSync = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ integrationId: z.string().uuid(), entities: z.array(z.string().max(40)).max(30).optional(), full: z.boolean().optional() }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { runSyncOp } = await import("./integrations/sync-ops.server");
+    return runSyncOp(context.userId, data);
+  });
+
+export const pushIntegrationRecord = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid(), entity: z.string().min(1).max(40), internalId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { pushRecordOp } = await import("./integrations/sync-ops.server");
+    return pushRecordOp(context.userId, data);
+  });
+
+export const listIntegrationConflicts = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid().nullish() }).parse(d ?? {}))
+  .handler(async ({ context, data }) => {
+    const { listConflictsOp } = await import("./integrations/sync-ops.server");
+    return listConflictsOp(context.userId, data.integrationId);
+  });
+
+export const resolveIntegrationConflict = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid(), resolution: z.enum(["keep_erp", "keep_external", "ignore"]) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { resolveConflictOp } = await import("./integrations/sync-ops.server");
+    return resolveConflictOp(context.userId, data);
+  });
+
+export const listIntegrationLineMap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { listLineMapOp } = await import("./integrations/sync-ops.server");
+    return listLineMapOp(context.userId, data.integrationId);
+  });
+
+export const saveIntegrationLineMap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        integrationId: z.string().uuid(),
+        extension: z.string().min(1).max(20),
+        userId: z.string().uuid().nullish(),
+        displayName: z.string().max(80).nullish(),
+        companyNumber: z.string().max(30).nullish(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { saveLineMapOp } = await import("./integrations/sync-ops.server");
+    return saveLineMapOp(context.userId, data);
+  });
+
+export const deleteIntegrationLineMap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { deleteLineMapOp } = await import("./integrations/sync-ops.server");
+    return deleteLineMapOp(context.userId, data.id);
+  });
+
+export const getIntegrationProviderManifest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ providerKey: z.string().min(1).max(40) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { getProviderManifestOp } = await import("./integrations/sync-ops.server");
+    return getProviderManifestOp(context.userId, data.providerKey);
+  });
+
+export const saveIntegrationProviderManifest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ providerKey: z.string().min(1).max(40), manifest: z.record(z.string(), z.unknown()) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { saveProviderManifestOp } = await import("./integrations/sync-ops.server");
+    return saveProviderManifestOp(context.userId, data);
+  });
+
+export const runIntegrationAdapterTest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ integrationId: z.string().uuid(), action: z.enum(["connection", "normalize", "inbound", "outbound"]), payload: z.record(z.string(), z.unknown()).optional() }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { adapterSelfTestOp } = await import("./integrations/sync-ops.server");
+    const res = await adapterSelfTestOp(context.userId, data);
+    return { ok: res.ok, message: res.message ?? null, httpStatus: res.httpStatus ?? null, data: JSON.stringify(res.data ?? null) };
+  });

@@ -29,12 +29,12 @@ export const Route = createFileRoute("/api/public/integrations/webhook/$slug")({
 
         const adapter = getAdapter(integration.provider_key);
         const ctx = await buildContext(integration);
-        const secret = readSecret((hook as any).secret_ref);
+        const secret = readSecret((hook as any).secret_ref) ?? ((hook as any).endpoint_token ?? null);
         const signatureHeader = (hook as any).signature_header ?? "x-signature";
 
         let verified = false;
         if (adapter?.verifyWebhook) {
-          verified = await adapter.verifyWebhook(ctx, { rawBody, headers: request.headers, secret, signatureHeader });
+          verified = await adapter.verifyWebhook(ctx, { rawBody, headers: request.headers, secret, signatureHeader, url: request.url });
         } else if ((hook as any).signature_mode === "none") {
           verified = true;
         } else if (secret) {
