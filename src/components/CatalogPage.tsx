@@ -336,6 +336,31 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                         {cur.is_custom ? "Кастом" : "Сист."}
                       </span>
                     </td>
+                    {TIER_KEYS.map((t) => {
+                      const val = (r as any)[TIER_PRICE_COL[t]] as number | null;
+                      const isManual = !!(r as any)[TIER_MANUAL_COL[t]];
+                      return (
+                        <td key={t} className="p-2 border-l border-border">
+                          <div className="flex items-center gap-1">
+                            <NumberInput step="0.5"
+                              className={`w-full bg-input border rounded px-2 py-1 text-right ${isManual ? "border-primary" : "border-border"}`}
+                              value={val ?? tierPriceFromMargin(r.buy_price, marginOf(t))}
+                              onChange={(v) => cellMut.mutate({ id: r.id!, tier: t, price: v })} />
+                            {isManual ? (
+                              <>
+                                <Pencil className="w-3 h-3 text-primary shrink-0" aria-label="Ціна встановлена вручну" />
+                                <button title="Вернути розрахунок по загальній маржі"
+                                  onClick={() => resetCellMut.mutate({ id: r.id!, tier: t })}
+                                  className="p-1 rounded bg-secondary hover:opacity-80 shrink-0">
+                                  <Undo2 className="w-3 h-3" />
+                                </button>
+                              </>
+                            ) : null}
+                          </div>
+                        </td>
+                      );
+                    })}
+
                     <td className="p-2">
                       <div className="flex gap-1 justify-end">
                         {dirty && (
