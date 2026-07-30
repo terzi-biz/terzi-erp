@@ -86,15 +86,21 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const dirtyCount = dirtyIds.length;
 
   const [saving, setSaving] = useState(false);
-  const saveAll = async () => {
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const saveAll = async (opts?: { silent?: boolean }) => {
     if (!dirtyCount) return true;
     setSaving(true);
     try {
       const rows = (items as Row[]).filter((r) => dirtyIds.includes(r.id!));
       for (const r of rows) await upsert({ data: { ...r, ...edits[r.id!] } });
-      setEdits({});
+      setEdits((e) => {
+        const c = { ...e };
+        for (const r of rows) delete c[r.id!];
+        return c;
+      });
       await qc.invalidateQueries({ queryKey });
-      toast.success(`Збережено змін: ${rows.length}`);
+      setLastSavedAt(Date.now());
+      if (!opts?.silent) toast.success(`Збережено змін: ${rows.length}`);
       return true;
     } catch (e) {
       toast.error("Помилка збереження: " + (e as Error).message);
@@ -104,6 +110,15 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
     }
   };
 
+  // Debounced autosave — правки зберігаються самі через 1.5с після останнього вводу
+  const saveAllRef = useRef(saveAll);
+  saveAllRef.current = saveAll;
+  useEffect(() => {
+    if (!dirtyCount || saving) return;
+    const t = setTimeout(() => { void saveAllRef.current({ silent: true }); }, 1500);
+    return () => clearTimeout(t);
+  }, [edits, dirtyCount, saving]);
+
   // Warn on route change / tab close when there are unsaved edits
   const blocker = useBlocker({
     shouldBlockFn: () => dirtyCount > 0,
@@ -112,6 +127,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   });
 
   useEffect(() => { setEdits({}); }, [module, kind]);
+
 
   const onAdd = () => {
     saveMut.mutate({
