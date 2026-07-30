@@ -35,6 +35,7 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -171,6 +172,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmRequestsRoute = CrmRequestsRouteImport.update({
+  id: '/crm/requests',
+  path: '/crm/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrmLeadsRoute = CrmLeadsRouteImport.update({
   id: '/crm/leads',
   path: '/crm/leads',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/works': typeof WorksRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
+  '/crm/requests': typeof CrmRequestsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -255,6 +262,7 @@ export interface FileRoutesByTo {
   '/works': typeof WorksRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
+  '/crm/requests': typeof CrmRequestsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -289,6 +297,7 @@ export interface FileRoutesById {
   '/works': typeof WorksRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
+  '/crm/requests': typeof CrmRequestsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -324,6 +333,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/crm/contacts'
     | '/crm/leads'
+    | '/crm/requests'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
@@ -357,6 +367,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/crm/contacts'
     | '/crm/leads'
+    | '/crm/requests'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
@@ -390,6 +401,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/crm/contacts'
     | '/crm/leads'
+    | '/crm/requests'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
@@ -424,6 +436,7 @@ export interface RootRouteChildren {
   WorksRoute: typeof WorksRoute
   CrmContactsRoute: typeof CrmContactsRoute
   CrmLeadsRoute: typeof CrmLeadsRoute
+  CrmRequestsRoute: typeof CrmRequestsRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
@@ -620,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm/requests': {
+      id: '/crm/requests'
+      path: '/crm/requests'
+      fullPath: '/crm/requests'
+      preLoaderRoute: typeof CrmRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/crm/leads': {
       id: '/crm/leads'
       path: '/crm/leads'
@@ -680,6 +700,7 @@ const rootRouteChildren: RootRouteChildren = {
   WorksRoute: WorksRoute,
   CrmContactsRoute: CrmContactsRoute,
   CrmLeadsRoute: CrmLeadsRoute,
+  CrmRequestsRoute: CrmRequestsRoute,
   InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
@@ -695,13 +716,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
