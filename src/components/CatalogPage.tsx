@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
 import { useBlocker } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, RotateCcw, Save, AlertTriangle } from "lucide-react";
 import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
 import { toast } from "sonner";
@@ -86,15 +86,21 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   const dirtyCount = dirtyIds.length;
 
   const [saving, setSaving] = useState(false);
-  const saveAll = async () => {
+  const [lastSavedAt, setLastSavedAt] = useState<number | null>(null);
+  const saveAll = async (opts?: { silent?: boolean }) => {
     if (!dirtyCount) return true;
     setSaving(true);
     try {
       const rows = (items as Row[]).filter((r) => dirtyIds.includes(r.id!));
       for (const r of rows) await upsert({ data: { ...r, ...edits[r.id!] } });
-      setEdits({});
+      setEdits((e) => {
+        const c = { ...e };
+        for (const r of rows) delete c[r.id!];
+        return c;
+      });
       await qc.invalidateQueries({ queryKey });
-      toast.success(`Збережено змін: ${rows.length}`);
+      setLastSavedAt(Date.now());
+      if (!opts?.silent) toast.success(`Збережено змін: ${rows.length}`);
       return true;
     } catch (e) {
       toast.error("Помилка збереження: " + (e as Error).message);
@@ -104,6 +110,15 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
     }
   };
 
+  // Debounced autosave — правки зберігаються самі через 1.5с після останнього вводу
+  const saveAllRef = useRef(saveAll);
+  saveAllRef.current = saveAll;
+  useEffect(() => {
+    if (!dirtyCount || saving) return;
+    const t = setTimeout(() => { void saveAllRef.current({ silent: true }); }, 1500);
+    return () => clearTimeout(t);
+  }, [edits, dirtyCount, saving]);
+
   // Warn on route change / tab close when there are unsaved edits
   const blocker = useBlocker({
     shouldBlockFn: () => dirtyCount > 0,
@@ -112,6 +127,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
   });
 
   useEffect(() => { setEdits({}); }, [module, kind]);
+
 
   const onAdd = () => {
     saveMut.mutate({
@@ -163,6 +179,13 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
             className="px-3 py-2 rounded-md bg-success text-success-foreground text-xs font-bold inline-flex items-center gap-2 disabled:opacity-40">
             <Save className="w-3 h-3" /> {saving ? "Збереження…" : dirtyCount ? `Зберегти зміни (${dirtyCount})` : "Все збережено"}
           </button>
+          <span className="text-[10px] text-muted-foreground self-center">
+            {saving ? "Автозбереження…" : dirtyCount ? "Автозбереження за мить…" : lastSavedAt
+              ? `Збережено о ${new Date(lastSavedAt).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+              : "Автозбереження увімкнено"}
+          </span>
+
+
 
         </div>
       </div>
