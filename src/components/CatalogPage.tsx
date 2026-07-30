@@ -297,8 +297,6 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 <th className="p-3 w-20" />
               </tr>
             </thead>
-
-            </thead>
             <tbody>
               {(items as Row[]).map((r) => {
                 const patch = edits[r.id!] ?? {};
