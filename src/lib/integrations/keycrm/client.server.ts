@@ -3,7 +3,7 @@
  * Обмеження: 60 запитів/хв на один API-ключ, спільна черга через таблицю лічильників,
  * обробка 429 з Retry-After, експоненційний бекоф, пагінація.
  */
-import { admin } from "../access.server";
+import { admin } from "../../access.server";
 import { KEYCRM_BASE_URL, KEYCRM_RPM } from "../keycrm-constants";
 
 export class KeyCrmError extends Error {
