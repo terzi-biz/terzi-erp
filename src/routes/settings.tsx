@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
 import { useServerFn } from "@tanstack/react-start";
@@ -361,7 +361,14 @@ function SettingsPage() {
             <tb.icon className="w-4 h-4" /> {tb.label}
           </button>
         ))}
+        {canManageAccess && (
+          <Link to="/integrations"
+            className="flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold whitespace-nowrap bg-secondary hover:bg-accent">
+            <Cable className="w-4 h-4" /> Інтеграції та API
+          </Link>
+        )}
       </div>
+
 
       {tab !== "access" && ActionsBar}
 

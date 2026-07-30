@@ -18,6 +18,7 @@ import { Route as OperationsRouteImport } from './routes/operations'
 import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as EquipmentRouteImport } from './routes/equipment'
@@ -33,6 +34,9 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
+import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
+import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -77,6 +81,11 @@ const LogisticsRoute = LogisticsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsulationRoute = InsulationRouteImport.update({
@@ -154,6 +163,24 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsWorkerRoute =
+  ApiPublicIntegrationsWorkerRouteImport.update({
+    id: '/api/public/integrations/worker',
+    path: '/api/public/integrations/worker',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsWebhookSlugRoute =
+  ApiPublicIntegrationsWebhookSlugRouteImport.update({
+    id: '/api/public/integrations/webhook/$slug',
+    path: '/api/public/integrations/webhook/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsOauthCallbackRoute =
+  ApiPublicIntegrationsOauthCallbackRouteImport.update({
+    id: '/api/public/integrations/oauth/callback',
+    path: '/api/public/integrations/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -165,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
@@ -180,6 +208,9 @@ export interface FileRoutesByFullPath {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
+  '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -191,6 +222,7 @@ export interface FileRoutesByTo {
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
@@ -206,6 +238,9 @@ export interface FileRoutesByTo {
   '/production/$id': typeof ProductionIdRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
+  '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -218,6 +253,7 @@ export interface FileRoutesById {
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
@@ -233,6 +269,9 @@ export interface FileRoutesById {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
+  '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -246,6 +285,7 @@ export interface FileRouteTypes {
     | '/equipment'
     | '/history'
     | '/insulation'
+    | '/integrations'
     | '/login'
     | '/logistics'
     | '/materials'
@@ -261,6 +301,9 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/worker'
+    | '/api/public/integrations/oauth/callback'
+    | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -272,6 +315,7 @@ export interface FileRouteTypes {
     | '/equipment'
     | '/history'
     | '/insulation'
+    | '/integrations'
     | '/login'
     | '/logistics'
     | '/materials'
@@ -287,6 +331,9 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects'
     | '/production'
+    | '/api/public/integrations/worker'
+    | '/api/public/integrations/oauth/callback'
+    | '/api/public/integrations/webhook/$slug'
   id:
     | '__root__'
     | '/'
@@ -298,6 +345,7 @@ export interface FileRouteTypes {
     | '/equipment'
     | '/history'
     | '/insulation'
+    | '/integrations'
     | '/login'
     | '/logistics'
     | '/materials'
@@ -313,6 +361,9 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/worker'
+    | '/api/public/integrations/oauth/callback'
+    | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -325,6 +376,7 @@ export interface RootRouteChildren {
   EquipmentRoute: typeof EquipmentRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
+  IntegrationsRoute: typeof IntegrationsRoute
   LoginRoute: typeof LoginRoute
   LogisticsRoute: typeof LogisticsRoute
   MaterialsRoute: typeof MaterialsRoute
@@ -340,6 +392,9 @@ export interface RootRouteChildren {
   ProductionIdRoute: typeof ProductionIdRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
+  ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
+  ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
+  ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -405,6 +460,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/insulation': {
@@ -512,6 +574,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/worker': {
+      id: '/api/public/integrations/worker'
+      path: '/api/public/integrations/worker'
+      fullPath: '/api/public/integrations/worker'
+      preLoaderRoute: typeof ApiPublicIntegrationsWorkerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/webhook/$slug': {
+      id: '/api/public/integrations/webhook/$slug'
+      path: '/api/public/integrations/webhook/$slug'
+      fullPath: '/api/public/integrations/webhook/$slug'
+      preLoaderRoute: typeof ApiPublicIntegrationsWebhookSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/oauth/callback': {
+      id: '/api/public/integrations/oauth/callback'
+      path: '/api/public/integrations/oauth/callback'
+      fullPath: '/api/public/integrations/oauth/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -525,6 +608,7 @@ const rootRouteChildren: RootRouteChildren = {
   EquipmentRoute: EquipmentRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
+  IntegrationsRoute: IntegrationsRoute,
   LoginRoute: LoginRoute,
   LogisticsRoute: LogisticsRoute,
   MaterialsRoute: MaterialsRoute,
@@ -540,6 +624,10 @@ const rootRouteChildren: RootRouteChildren = {
   ProductionIdRoute: ProductionIdRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
+  ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
+  ApiPublicIntegrationsOauthCallbackRoute:
+    ApiPublicIntegrationsOauthCallbackRoute,
+  ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

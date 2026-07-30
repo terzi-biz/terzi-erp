@@ -1138,6 +1138,491 @@ export type Database = {
           },
         ]
       }
+      integration_event_logs: {
+        Row: {
+          attempt: number
+          created_at: string
+          duration_ms: number | null
+          event_id: string | null
+          http_status: number | null
+          id: string
+          integration_id: string | null
+          level: string
+          message: string | null
+          request_preview: Json | null
+          response_preview: Json | null
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          duration_ms?: number | null
+          event_id?: string | null
+          http_status?: number | null
+          id?: string
+          integration_id?: string | null
+          level?: string
+          message?: string | null
+          request_preview?: Json | null
+          response_preview?: Json | null
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          duration_ms?: number | null
+          event_id?: string | null
+          http_status?: number | null
+          id?: string
+          integration_id?: string | null
+          level?: string
+          message?: string | null
+          request_preview?: Json | null
+          response_preview?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_event_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "integration_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "integration_event_logs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_events: {
+        Row: {
+          attempt: number
+          created_at: string
+          dedup_hash: string | null
+          direction: Database["public"]["Enums"]["integration_event_direction"]
+          entity_id: string | null
+          entity_type: string | null
+          event_type: string
+          id: string
+          idempotency_key: string | null
+          integration_id: string | null
+          last_error: string | null
+          locked_at: string | null
+          max_attempts: number
+          next_retry_at: string
+          payload: Json
+          provider_key: string | null
+          result: Json | null
+          status: Database["public"]["Enums"]["integration_event_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempt?: number
+          created_at?: string
+          dedup_hash?: string | null
+          direction: Database["public"]["Enums"]["integration_event_direction"]
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type: string
+          id?: string
+          idempotency_key?: string | null
+          integration_id?: string | null
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string
+          payload?: Json
+          provider_key?: string | null
+          result?: Json | null
+          status?: Database["public"]["Enums"]["integration_event_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempt?: number
+          created_at?: string
+          dedup_hash?: string | null
+          direction?: Database["public"]["Enums"]["integration_event_direction"]
+          entity_id?: string | null
+          entity_type?: string | null
+          event_type?: string
+          id?: string
+          idempotency_key?: string | null
+          integration_id?: string | null
+          last_error?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          next_retry_at?: string
+          payload?: Json
+          provider_key?: string | null
+          result?: Json | null
+          status?: Database["public"]["Enums"]["integration_event_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_events_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_field_mappings: {
+        Row: {
+          created_at: string
+          default_value: string | null
+          direction: Database["public"]["Enums"]["integration_event_direction"]
+          entity: string
+          id: string
+          integration_id: string
+          required: boolean
+          sort_order: number
+          source_field: string
+          target_field: string
+          transform: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string | null
+          direction?: Database["public"]["Enums"]["integration_event_direction"]
+          entity: string
+          id?: string
+          integration_id: string
+          required?: boolean
+          sort_order?: number
+          source_field: string
+          target_field: string
+          transform?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_value?: string | null
+          direction?: Database["public"]["Enums"]["integration_event_direction"]
+          entity?: string
+          id?: string
+          integration_id?: string
+          required?: boolean
+          sort_order?: number
+          source_field?: string
+          target_field?: string
+          transform?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_field_mappings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_oauth_states: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          integration_id: string
+          redirect_uri: string | null
+          state: string
+          used_at: string | null
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          integration_id: string
+          redirect_uri?: string | null
+          state: string
+          used_at?: string | null
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          integration_id?: string
+          redirect_uri?: string | null
+          state?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_oauth_states_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_providers: {
+        Row: {
+          auth_kind: Database["public"]["Enums"]["integration_auth_kind"]
+          category: string
+          config_schema: Json
+          created_at: string
+          description: string | null
+          is_implemented: boolean
+          key: string
+          name: string
+          secret_keys: Json
+          sort_order: number
+          supports_inbound: boolean
+          supports_outbound: boolean
+          updated_at: string
+        }
+        Insert: {
+          auth_kind?: Database["public"]["Enums"]["integration_auth_kind"]
+          category?: string
+          config_schema?: Json
+          created_at?: string
+          description?: string | null
+          is_implemented?: boolean
+          key: string
+          name: string
+          secret_keys?: Json
+          sort_order?: number
+          supports_inbound?: boolean
+          supports_outbound?: boolean
+          updated_at?: string
+        }
+        Update: {
+          auth_kind?: Database["public"]["Enums"]["integration_auth_kind"]
+          category?: string
+          config_schema?: Json
+          created_at?: string
+          description?: string | null
+          is_implemented?: boolean
+          key?: string
+          name?: string
+          secret_keys?: Json
+          sort_order?: number
+          supports_inbound?: boolean
+          supports_outbound?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      integration_secrets: {
+        Row: {
+          created_at: string
+          id: string
+          integration_id: string
+          masked_hint: string | null
+          rotated_at: string | null
+          secret_key: string
+          secret_ref: string
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          integration_id: string
+          masked_hint?: string | null
+          rotated_at?: string | null
+          secret_key: string
+          secret_ref: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          integration_id?: string
+          masked_hint?: string | null
+          rotated_at?: string | null
+          secret_key?: string
+          secret_ref?: string
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_secrets_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_tokens: {
+        Row: {
+          access_token: string | null
+          account_label: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          integration_id: string
+          refresh_token: string | null
+          scopes: string | null
+          token_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_label?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          integration_id: string
+          refresh_token?: string | null
+          scopes?: string | null
+          token_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          account_label?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          integration_id?: string
+          refresh_token?: string | null
+          scopes?: string | null
+          token_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_tokens_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: true
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integration_webhooks: {
+        Row: {
+          created_at: string
+          direction: Database["public"]["Enums"]["integration_webhook_direction"]
+          enabled: boolean
+          events: Json
+          id: string
+          integration_id: string
+          last_call_at: string | null
+          secret_ref: string | null
+          signature_header: string | null
+          signature_mode: string
+          slug: string | null
+          target_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          direction: Database["public"]["Enums"]["integration_webhook_direction"]
+          enabled?: boolean
+          events?: Json
+          id?: string
+          integration_id: string
+          last_call_at?: string | null
+          secret_ref?: string | null
+          signature_header?: string | null
+          signature_mode?: string
+          slug?: string | null
+          target_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          direction?: Database["public"]["Enums"]["integration_webhook_direction"]
+          enabled?: boolean
+          events?: Json
+          id?: string
+          integration_id?: string
+          last_call_at?: string | null
+          secret_ref?: string | null
+          signature_header?: string | null
+          signature_mode?: string
+          slug?: string | null
+          target_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_webhooks_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      integrations: {
+        Row: {
+          config: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          last_error: string | null
+          last_error_at: string | null
+          last_success_at: string | null
+          last_test_at: string | null
+          last_test_ok: boolean | null
+          name: string
+          provider_key: string
+          slug: string
+          status: Database["public"]["Enums"]["integration_status"]
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_success_at?: string | null
+          last_test_at?: string | null
+          last_test_ok?: boolean | null
+          name: string
+          provider_key: string
+          slug: string
+          status?: Database["public"]["Enums"]["integration_status"]
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          last_error?: string | null
+          last_error_at?: string | null
+          last_success_at?: string | null
+          last_test_at?: string | null
+          last_test_ok?: boolean | null
+          name?: string
+          provider_key?: string
+          slug?: string
+          status?: Database["public"]["Enums"]["integration_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integrations_provider_key_fkey"
+            columns: ["provider_key"]
+            isOneToOne: false
+            referencedRelation: "integration_providers"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
       logistics_items: {
         Row: {
           code: string | null
@@ -2225,6 +2710,21 @@ export type Database = {
         | "archived"
       app_role: "admin" | "director" | "manager" | "finance"
       client_view_mode: "detailed" | "condensed" | "turnkey"
+      integration_auth_kind: "none" | "api_key" | "oauth2" | "hmac" | "basic"
+      integration_event_direction: "inbound" | "outbound"
+      integration_event_status:
+        | "pending"
+        | "processing"
+        | "done"
+        | "failed"
+        | "dead"
+      integration_status:
+        | "disconnected"
+        | "connecting"
+        | "active"
+        | "error"
+        | "disabled"
+      integration_webhook_direction: "inbound" | "outbound"
       invitation_status: "sent" | "accepted" | "revoked" | "expired"
       object_assignment_role:
         | "manager"
@@ -2442,6 +2942,23 @@ export const Constants = {
       ],
       app_role: ["admin", "director", "manager", "finance"],
       client_view_mode: ["detailed", "condensed", "turnkey"],
+      integration_auth_kind: ["none", "api_key", "oauth2", "hmac", "basic"],
+      integration_event_direction: ["inbound", "outbound"],
+      integration_event_status: [
+        "pending",
+        "processing",
+        "done",
+        "failed",
+        "dead",
+      ],
+      integration_status: [
+        "disconnected",
+        "connecting",
+        "active",
+        "error",
+        "disabled",
+      ],
+      integration_webhook_direction: ["inbound", "outbound"],
       invitation_status: ["sent", "accepted", "revoked", "expired"],
       object_assignment_role: [
         "manager",
