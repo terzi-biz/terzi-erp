@@ -30,10 +30,13 @@ import { Route as AccessRouteImport } from './routes/access'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
+import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
+import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
@@ -143,6 +146,11 @@ const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
   path: '/objects/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmIndexRoute = CrmIndexRouteImport.update({
+  id: '/crm/',
+  path: '/crm/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductionIdRoute = ProductionIdRouteImport.update({
   id: '/production/$id',
   path: '/production/$id',
@@ -161,6 +169,16 @@ const ObjectsIdRoute = ObjectsIdRouteImport.update({
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmLeadsRoute = CrmLeadsRouteImport.update({
+  id: '/crm/leads',
+  path: '/crm/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmContactsRoute = CrmContactsRouteImport.update({
+  id: '/crm/contacts',
+  path: '/crm/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicIntegrationsWorkerRoute =
@@ -202,10 +220,13 @@ export interface FileRoutesByFullPath {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/contacts': typeof CrmContactsRoute
+  '/crm/leads': typeof CrmLeadsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -232,10 +253,13 @@ export interface FileRoutesByTo {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/contacts': typeof CrmContactsRoute
+  '/crm/leads': typeof CrmLeadsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/crm': typeof CrmIndexRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -263,10 +287,13 @@ export interface FileRoutesById {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/contacts': typeof CrmContactsRoute
+  '/crm/leads': typeof CrmLeadsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -295,10 +322,13 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/contacts'
+    | '/crm/leads'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
+    | '/crm/'
     | '/objects/'
     | '/production/'
     | '/api/public/integrations/worker'
@@ -325,10 +355,13 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/contacts'
+    | '/crm/leads'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
+    | '/crm'
     | '/objects'
     | '/production'
     | '/api/public/integrations/worker'
@@ -355,10 +388,13 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/contacts'
+    | '/crm/leads'
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
+    | '/crm/'
     | '/objects/'
     | '/production/'
     | '/api/public/integrations/worker'
@@ -386,10 +422,13 @@ export interface RootRouteChildren {
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
+  CrmContactsRoute: typeof CrmContactsRoute
+  CrmLeadsRoute: typeof CrmLeadsRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
+  CrmIndexRoute: typeof CrmIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
   ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
@@ -546,6 +585,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm/': {
+      id: '/crm/'
+      path: '/crm'
+      fullPath: '/crm/'
+      preLoaderRoute: typeof CrmIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/production/$id': {
       id: '/production/$id'
       path: '/production/$id'
@@ -572,6 +618,20 @@ declare module '@tanstack/react-router' {
       path: '/invite/$token'
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/leads': {
+      id: '/crm/leads'
+      path: '/crm/leads'
+      fullPath: '/crm/leads'
+      preLoaderRoute: typeof CrmLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/contacts': {
+      id: '/crm/contacts'
+      path: '/crm/contacts'
+      fullPath: '/crm/contacts'
+      preLoaderRoute: typeof CrmContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/integrations/worker': {
@@ -618,10 +678,13 @@ const rootRouteChildren: RootRouteChildren = {
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
+  CrmContactsRoute: CrmContactsRoute,
+  CrmLeadsRoute: CrmLeadsRoute,
   InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
   ProductionIdRoute: ProductionIdRoute,
+  CrmIndexRoute: CrmIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
   ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,

@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
-  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat,
+  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact,
 } from "lucide-react";
 import { useState, useEffect, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
@@ -54,9 +54,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/objects", icon: Building2, label: "Об'єкти" },
     { to: "/operations", icon: CalendarDays, label: "Операційний календар" },
     { to: "/production", icon: HardHat, label: "Виробництво" },
-
+  ];
+  const crmLinks = [
+    { to: "/crm", icon: BarChart3, label: "Панель CRM" },
+    { to: "/crm/leads", icon: Target, label: "Воронка лідів" },
+    { to: "/crm/contacts", icon: Contact, label: "Контакти" },
     { to: "/clients", icon: Users, label: "Клієнти" },
   ];
+  const [crmOpen, setCrmOpen] = useState(loc.pathname.startsWith("/crm") || loc.pathname === "/clients");
+
   const bottomLinks = [
     { to: "/history", icon: History, label: t("history") },
     { to: "/reports", icon: BarChart3, label: t("reports") },
@@ -98,6 +104,24 @@ export function AppShell({ children }: { children: ReactNode }) {
             <n.icon className="w-4 h-4" />{n.label}
           </Link>
         ))}
+
+        <button onClick={() => setCrmOpen(!crmOpen)}
+          className={`w-full ${linkCls(loc.pathname.startsWith("/crm") || loc.pathname === "/clients")} justify-between`}>
+          <span className="flex items-center gap-3"><Target className="w-4 h-4" />CRM</span>
+          <ChevronDown className={`w-3 h-3 transition-transform ${crmOpen ? "rotate-180" : ""}`} />
+        </button>
+        {crmOpen && (
+          <div className="bg-sidebar-accent/40">
+            {crmLinks.map((n) => (
+              <Link key={n.to} to={n.to}
+                className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === n.to ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
+                <n.icon className="w-3 h-3" /> {n.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+
 
         <div className="mt-2 mb-1 px-5 text-[10px] uppercase tracking-widest text-muted-foreground">Модулі</div>
         {modules.map((m) => {
