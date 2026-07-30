@@ -385,3 +385,184 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "lift_down", name: "Спуск сміття з поверху", unit: "шт", buy_price: 800, sell_price: 1500 },
   ],
 };
+
+/* ==========================================================================
+ * Ціни продажу по діапазонах площі (додаткові колонки каталогу).
+ * Не впливають на існуючі поля sell_price / маржу й на поточну логіку ERP.
+ * ========================================================================== */
+
+const TierEnum = z.enum(["t50", "t100", "t250", "t500"]);
+
+const TIER_PRICE_COL_S = {
+  t50: "sell_price_t50", t100: "sell_price_t100", t250: "sell_price_t250", t500: "sell_price_t500",
+} as const;
+const TIER_MANUAL_COL_S = {
+  t50: "manual_t50", t100: "manual_t100", t250: "manual_t250", t500: "manual_t500",
+} as const;
+const DEFAULT_TIER_MARGIN_S: Record<string, number> = { t50: 80, t100: 60, t250: 45, t500: 35 };
+
+const tierPrice = (buy: number, margin: number) =>
+  Math.round((Number(buy) || 0) * (1 + (Number(margin) || 0) / 100) * 100) / 100;
+
+async function audit(userId: string, entry: Record<string, unknown>) {
+  try {
+    const { loadActor, writeAudit } = await import("@/lib/access.server");
+    const actor = await loadActor(userId);
+    await writeAudit(actor, entry as any);
+  } catch (e) {
+    console.error("catalog tier audit", e);
+  }
+}
+
+export const getTierMargins = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ module: ModuleEnum, kind: KindEnum }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: rows, error } = await context.supabase
+      .from("catalog_tier_margins").select("tier, margin_percent")
+      .eq("module", data.module).eq("kind", data.kind);
+    if (error) { console.error("getTierMargins", error); throw new Error("Не вдалося завантажити маржу колонок"); }
+    const out: Record<string, number> = { ...DEFAULT_TIER_MARGIN_S };
+    for (const r of (rows ?? []) as Array<{ tier: string; margin_percent: number }>) {
+      out[r.tier] = Number(r.margin_percent) || 0;
+    }
+    return out;
+  });
+
+/** Застосувати загальну маржу колонки: перерахунок усіх позицій, крім вручну змінених. */
+export const applyTierMargin = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    module: ModuleEnum, kind: KindEnum, tier: TierEnum,
+    margin_percent: z.number().min(0).max(1000),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await userIsInternal(context.supabase, context.userId))) throw new Error("Недостатньо прав");
+    const priceCol = TIER_PRICE_COL_S[data.tier];
+    const manualCol = TIER_MANUAL_COL_S[data.tier];
+
+    const { data: prevRow } = await context.supabase
+      .from("catalog_tier_margins").select("margin_percent")
+      .eq("module", data.module).eq("kind", data.kind).eq("tier", data.tier).maybeSingle();
+    const oldMargin = prevRow ? Number(prevRow.margin_percent) : DEFAULT_TIER_MARGIN_S[data.tier];
+
+    const { data: items, error: le } = await context.supabase
+      .from("catalog_items").select(`id, name, buy_price, ${priceCol}, ${manualCol}`)
+      .eq("module", data.module).eq("kind", data.kind);
+    if (le) { console.error("applyTierMargin list", le); throw new Error("Не вдалося завантажити позиції"); }
+
+    const changed: Array<{ id: string; name: string; old: number | null; new: number }> = [];
+    for (const r of (items ?? []) as any[]) {
+      if (r[manualCol]) continue;
+      const next = tierPrice(Number(r.buy_price) || 0, data.margin_percent);
+      const prev = r[priceCol] == null ? null : Number(r[priceCol]);
+      if (prev === next) continue;
+      const { error } = await context.supabase.from("catalog_items")
+        .update({ [priceCol]: next }).eq("id", r.id);
+      if (error) { console.error("applyTierMargin update", error); throw new Error("Не вдалося оновити ціну позиції"); }
+      changed.push({ id: r.id, name: r.name, old: prev, new: next });
+    }
+
+    const { error: ue } = await context.supabase.from("catalog_tier_margins")
+      .upsert({ module: data.module, kind: data.kind, tier: data.tier, margin_percent: data.margin_percent },
+        { onConflict: "module,kind,tier" });
+    if (ue) { console.error("applyTierMargin margin", ue); throw new Error("Не вдалося зберегти маржу колонки"); }
+
+    await audit(context.userId, {
+      module: "catalog", action: "tier_margin_apply",
+      entityType: "catalog_tier_margin", entityLabel: `${data.module}/${data.kind}/${data.tier}`,
+      oldValue: { margin_percent: oldMargin },
+      newValue: { margin_percent: data.margin_percent, recalculated: changed.length, items: changed },
+      isCritical: true,
+    });
+
+    return { recalculated: changed.length, oldMargin, newMargin: data.margin_percent };
+  });
+
+/** Ручна ціна в конкретній комірці діапазону. */
+export const setTierCellPrice = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    id: z.string().uuid(), tier: TierEnum, price: z.number().nonnegative(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await userIsInternal(context.supabase, context.userId))) throw new Error("Недостатньо прав");
+    const priceCol = TIER_PRICE_COL_S[data.tier];
+    const manualCol = TIER_MANUAL_COL_S[data.tier];
+    const { data: before } = await context.supabase
+      .from("catalog_items").select(`id, name, ${priceCol}`).eq("id", data.id).maybeSingle();
+    const { data: out, error } = await context.supabase.from("catalog_items")
+      .update({ [priceCol]: data.price, [manualCol]: true }).eq("id", data.id).select().maybeSingle();
+    if (error || !out) { console.error("setTierCellPrice", error); throw new Error("Не вдалося зберегти ціну"); }
+    await audit(context.userId, {
+      module: "catalog", action: "tier_price_manual",
+      entityType: "catalog_item", entityId: data.id, entityLabel: (before as any)?.name ?? null,
+      oldValue: { tier: data.tier, price: (before as any)?.[priceCol] ?? null },
+      newValue: { tier: data.tier, price: data.price, manual: true },
+    });
+    return out;
+  });
+
+/** Повернути розрахунок по загальній маржі для однієї комірки. */
+export const resetTierCell = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid(), tier: TierEnum }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await userIsInternal(context.supabase, context.userId))) throw new Error("Недостатньо прав");
+    const priceCol = TIER_PRICE_COL_S[data.tier];
+    const manualCol = TIER_MANUAL_COL_S[data.tier];
+    const { data: row, error: re } = await context.supabase
+      .from("catalog_items").select(`id, name, module, kind, buy_price, ${priceCol}`)
+      .eq("id", data.id).maybeSingle();
+    if (re || !row) throw new Error("Позицію не знайдено");
+    const r = row as any;
+    const { data: mrow } = await context.supabase.from("catalog_tier_margins")
+      .select("margin_percent").eq("module", r.module).eq("kind", r.kind).eq("tier", data.tier).maybeSingle();
+    const m = mrow ? Number(mrow.margin_percent) : DEFAULT_TIER_MARGIN_S[data.tier];
+    const next = tierPrice(Number(r.buy_price) || 0, m);
+    const { data: out, error } = await context.supabase.from("catalog_items")
+      .update({ [priceCol]: next, [manualCol]: false }).eq("id", data.id).select().maybeSingle();
+    if (error || !out) { console.error("resetTierCell", error); throw new Error("Не вдалося перерахувати ціну"); }
+    await audit(context.userId, {
+      module: "catalog", action: "tier_price_reset_to_margin",
+      entityType: "catalog_item", entityId: data.id, entityLabel: r.name,
+      oldValue: { tier: data.tier, price: r[priceCol] ?? null, manual: true },
+      newValue: { tier: data.tier, price: next, margin_percent: m, manual: false },
+    });
+    return out;
+  });
+
+/** Повернути системні значення для колонки: системна маржа + скидання ручних цін. */
+export const resetTierColumnToSystem = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ module: ModuleEnum, kind: KindEnum, tier: TierEnum }).parse(d))
+  .handler(async ({ data, context }) => {
+    if (!(await userIsInternal(context.supabase, context.userId))) throw new Error("Недостатньо прав");
+    const priceCol = TIER_PRICE_COL_S[data.tier];
+    const manualCol = TIER_MANUAL_COL_S[data.tier];
+    const m = DEFAULT_TIER_MARGIN_S[data.tier];
+    const { data: items, error: le } = await context.supabase
+      .from("catalog_items").select(`id, name, buy_price, ${priceCol}, ${manualCol}`)
+      .eq("module", data.module).eq("kind", data.kind);
+    if (le) throw new Error("Не вдалося завантажити позиції");
+    let count = 0, manualCleared = 0;
+    for (const r of (items ?? []) as any[]) {
+      const next = tierPrice(Number(r.buy_price) || 0, m);
+      if (r[manualCol]) manualCleared++;
+      const { error } = await context.supabase.from("catalog_items")
+        .update({ [priceCol]: next, [manualCol]: false }).eq("id", r.id);
+      if (error) { console.error("resetTierColumnToSystem", error); throw new Error("Не вдалося скинути ціни"); }
+      count++;
+    }
+    const { error: ue } = await context.supabase.from("catalog_tier_margins")
+      .upsert({ module: data.module, kind: data.kind, tier: data.tier, margin_percent: m },
+        { onConflict: "module,kind,tier" });
+    if (ue) throw new Error("Не вдалося зберегти системну маржу");
+    await audit(context.userId, {
+      module: "catalog", action: "tier_reset_system",
+      entityType: "catalog_tier_margin", entityLabel: `${data.module}/${data.kind}/${data.tier}`,
+      newValue: { margin_percent: m, recalculated: count, manual_cleared: manualCleared },
+      isCritical: true,
+    });
+    return { recalculated: count, manualCleared, margin: m };
+  });
