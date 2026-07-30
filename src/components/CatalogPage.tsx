@@ -179,6 +179,13 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
             className="px-3 py-2 rounded-md bg-success text-success-foreground text-xs font-bold inline-flex items-center gap-2 disabled:opacity-40">
             <Save className="w-3 h-3" /> {saving ? "Збереження…" : dirtyCount ? `Зберегти зміни (${dirtyCount})` : "Все збережено"}
           </button>
+          <span className="text-[10px] text-muted-foreground self-center">
+            {saving ? "Автозбереження…" : dirtyCount ? "Автозбереження за мить…" : lastSavedAt
+              ? `Збережено о ${new Date(lastSavedAt).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`
+              : "Автозбереження увімкнено"}
+          </span>
+
+
 
         </div>
       </div>
