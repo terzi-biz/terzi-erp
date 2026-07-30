@@ -30,6 +30,7 @@ import { Route as AccessRouteImport } from './routes/access'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
+import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
@@ -143,6 +144,11 @@ const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
   path: '/objects/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmIndexRoute = CrmIndexRouteImport.update({
+  id: '/crm/',
+  path: '/crm/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductionIdRoute = ProductionIdRouteImport.update({
   id: '/production/$id',
   path: '/production/$id',
@@ -206,6 +212,7 @@ export interface FileRoutesByFullPath {
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/crm': typeof CrmIndexRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -267,6 +275,7 @@ export interface FileRoutesById {
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -299,6 +308,7 @@ export interface FileRouteTypes {
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
+    | '/crm/'
     | '/objects/'
     | '/production/'
     | '/api/public/integrations/worker'
@@ -329,6 +339,7 @@ export interface FileRouteTypes {
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
+    | '/crm'
     | '/objects'
     | '/production'
     | '/api/public/integrations/worker'
@@ -359,6 +370,7 @@ export interface FileRouteTypes {
     | '/objects/$id'
     | '/objects/new'
     | '/production/$id'
+    | '/crm/'
     | '/objects/'
     | '/production/'
     | '/api/public/integrations/worker'
@@ -390,6 +402,7 @@ export interface RootRouteChildren {
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
+  CrmIndexRoute: typeof CrmIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
   ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
@@ -546,6 +559,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm/': {
+      id: '/crm/'
+      path: '/crm'
+      fullPath: '/crm/'
+      preLoaderRoute: typeof CrmIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/production/$id': {
       id: '/production/$id'
       path: '/production/$id'
@@ -622,6 +642,7 @@ const rootRouteChildren: RootRouteChildren = {
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
   ProductionIdRoute: ProductionIdRoute,
+  CrmIndexRoute: CrmIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
   ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
