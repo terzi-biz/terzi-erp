@@ -33,6 +33,11 @@ export const Route = createFileRoute("/integrations")({
   component: IntegrationsPage,
 });
 
+function useMutFn(fn: any) {
+  const call = useServerFn(fn);
+  return (data: any) => (call as any)({ data: data ?? {} });
+}
+
 type Tab = "connections" | "webhooks" | "mapping" | "queue" | "logs";
 
 const TABS: { id: Tab; label: string }[] = [
@@ -141,22 +146,22 @@ function Connections({
   const [name, setName] = useState("");
 
   const create = useMutation({
-    mutationFn: useServerFn(createIntegration),
+    mutationFn: useMutFn(createIntegration),
     onSuccess: () => { toast.success("Підключення створено"); setName(""); setProviderKey(""); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити"),
   });
   const update = useMutation({
-    mutationFn: useServerFn(updateIntegration),
+    mutationFn: useMutFn(updateIntegration),
     onSuccess: () => { toast.success("Збережено"); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const remove = useMutation({
-    mutationFn: useServerFn(deleteIntegration),
+    mutationFn: useMutFn(deleteIntegration),
     onSuccess: () => { toast.success("Видалено"); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const test = useMutation({
-    mutationFn: useServerFn(testIntegrationConnection),
+    mutationFn: useMutFn(testIntegrationConnection),
     onSuccess: (r: any) => { r.ok ? toast.success(r.message) : toast.error(r.message); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
@@ -222,21 +227,21 @@ function ConnectionCard({
   const [eventType, setEventType] = useState("echo.ping");
 
   const bind = useMutation({
-    mutationFn: useServerFn(bindIntegrationSecret),
+    mutationFn: useMutFn(bindIntegrationSecret),
     onSuccess: (r: any) => { r.present ? toast.success("Ключ прив'язано") : toast.warning("Прив'язано, але значення секрету ще не задане"); setSecretRef(""); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const unbind = useMutation({
-    mutationFn: useServerFn(unbindIntegrationSecret),
+    mutationFn: useMutFn(unbindIntegrationSecret),
     onSuccess: () => { toast.success("Прив'язку знято"); onChanged(); },
   });
   const oauth = useMutation({
-    mutationFn: useServerFn(startIntegrationOAuth),
+    mutationFn: useMutFn(startIntegrationOAuth),
     onSuccess: (r: any) => { window.location.href = r.url; },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const testEvent = useMutation({
-    mutationFn: useServerFn(enqueueIntegrationTestEvent),
+    mutationFn: useMutFn(enqueueIntegrationTestEvent),
     onSuccess: (r: any) => { toast.success(r.duplicate ? "Дублікат — подія вже в черзі" : "Подію поставлено в чергу"); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
@@ -359,12 +364,12 @@ function Webhooks({ list, active, onSelect, onChanged }: { list: any[]; active: 
   const [signatureHeader, setSignatureHeader] = useState("x-signature");
 
   const save = useMutation({
-    mutationFn: useServerFn(saveIntegrationWebhook),
+    mutationFn: useMutFn(saveIntegrationWebhook),
     onSuccess: () => { toast.success("Вебхук збережено"); setTargetUrl(""); setSecretRef(""); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const remove = useMutation({
-    mutationFn: useServerFn(deleteIntegrationWebhook),
+    mutationFn: useMutFn(deleteIntegrationWebhook),
     onSuccess: () => { toast.success("Видалено"); onChanged(); },
   });
 
@@ -447,12 +452,12 @@ function Mapping({ list, active, onSelect }: { list: any[]; active: any; onSelec
     enabled: !!active?.id,
   });
   const save = useMutation({
-    mutationFn: useServerFn(saveIntegrationMapping),
+    mutationFn: useMutFn(saveIntegrationMapping),
     onSuccess: () => { toast.success("Збережено"); setSource(""); qc.invalidateQueries({ queryKey: ["int-mappings"] }); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const remove = useMutation({
-    mutationFn: useServerFn(deleteIntegrationMapping),
+    mutationFn: useMutFn(deleteIntegrationMapping),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["int-mappings"] }),
   });
 
@@ -526,16 +531,16 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
     enabled: !!openId,
   });
   const retry = useMutation({
-    mutationFn: useServerFn(retryIntegrationEvent),
+    mutationFn: useMutFn(retryIntegrationEvent),
     onSuccess: (r: any) => { toast[r.status === "done" ? "success" : "error"](`Статус: ${EVENT_STATUS_LABEL[r.status as EventStatus] ?? r.status}`); qc.invalidateQueries({ queryKey: ["int-events"] }); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const cancel = useMutation({
-    mutationFn: useServerFn(cancelIntegrationEvent),
+    mutationFn: useMutFn(cancelIntegrationEvent),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["int-events"] }); onChanged(); },
   });
   const runNow = useMutation({
-    mutationFn: useServerFn(runIntegrationQueue),
+    mutationFn: useMutFn(runIntegrationQueue),
     onSuccess: (r: any) => { toast.success(`Оброблено: ${r.processed}, успішно: ${r.done}`); qc.invalidateQueries({ queryKey: ["int-events"] }); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
@@ -551,7 +556,7 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
           <option value="">Усі статуси</option>
           {(Object.keys(EVENT_STATUS_LABEL) as EventStatus[]).map((s) => <option key={s} value={s}>{EVENT_STATUS_LABEL[s]}</option>)}
         </select>
-        <button onClick={() => runNow.mutate({} as any)} className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent flex items-center gap-2">
+        <button onClick={() => runNow.mutate({})} className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent flex items-center gap-2">
           <RefreshCw className={`w-4 h-4 ${runNow.isPending ? "animate-spin" : ""}`} /> Обробити чергу
         </button>
       </div>

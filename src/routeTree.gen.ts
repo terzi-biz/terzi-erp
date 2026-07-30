@@ -18,6 +18,7 @@ import { Route as OperationsRouteImport } from './routes/operations'
 import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as LogisticsRouteImport } from './routes/logistics'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as EquipmentRouteImport } from './routes/equipment'
@@ -80,6 +81,11 @@ const LogisticsRoute = LogisticsRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InsulationRoute = InsulationRouteImport.update({
@@ -186,6 +192,7 @@ export interface FileRoutesByFullPath {
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
@@ -215,6 +222,7 @@ export interface FileRoutesByTo {
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
@@ -245,6 +253,7 @@ export interface FileRoutesById {
   '/equipment': typeof EquipmentRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
+  '/integrations': typeof IntegrationsRoute
   '/login': typeof LoginRoute
   '/logistics': typeof LogisticsRoute
   '/materials': typeof MaterialsRoute
@@ -276,6 +285,7 @@ export interface FileRouteTypes {
     | '/equipment'
     | '/history'
     | '/insulation'
+    | '/integrations'
     | '/login'
     | '/logistics'
     | '/materials'
@@ -305,6 +315,7 @@ export interface FileRouteTypes {
     | '/equipment'
     | '/history'
     | '/insulation'
+    | '/integrations'
     | '/login'
     | '/logistics'
     | '/materials'
@@ -334,6 +345,7 @@ export interface FileRouteTypes {
     | '/equipment'
     | '/history'
     | '/insulation'
+    | '/integrations'
     | '/login'
     | '/logistics'
     | '/materials'
@@ -364,6 +376,7 @@ export interface RootRouteChildren {
   EquipmentRoute: typeof EquipmentRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
+  IntegrationsRoute: typeof IntegrationsRoute
   LoginRoute: typeof LoginRoute
   LogisticsRoute: typeof LogisticsRoute
   MaterialsRoute: typeof MaterialsRoute
@@ -447,6 +460,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/insulation': {
@@ -588,6 +608,7 @@ const rootRouteChildren: RootRouteChildren = {
   EquipmentRoute: EquipmentRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
+  IntegrationsRoute: IntegrationsRoute,
   LoginRoute: LoginRoute,
   LogisticsRoute: LogisticsRoute,
   MaterialsRoute: MaterialsRoute,
