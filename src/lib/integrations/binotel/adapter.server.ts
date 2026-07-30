@@ -168,6 +168,7 @@ export const binotelAdapter: IntegrationAdapter = {
       direction,
       from_number: call.from ? String(call.from) : null,
       to_number: call.to ? String(call.to) : null,
+      phone_norm: phone,
       started_at: call.startedAt ? new Date(call.startedAt).toISOString() : new Date().toISOString(),
       duration_sec: durationSec,
       status: missed ? "missed" : "answered",

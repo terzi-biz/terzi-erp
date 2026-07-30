@@ -29,7 +29,7 @@ export const Route = createFileRoute("/api/public/integrations/webhook/$slug")({
 
         const adapter = getAdapter(integration.provider_key);
         const ctx = await buildContext(integration);
-        const secret = readSecret((hook as any).secret_ref) ?? readSecret((hook as any).endpoint_token);
+        const secret = readSecret((hook as any).secret_ref) ?? ((hook as any).endpoint_token ?? null);
         const signatureHeader = (hook as any).signature_header ?? "x-signature";
 
         let verified = false;
