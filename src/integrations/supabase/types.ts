@@ -14,6 +14,141 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_permissions: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          is_critical: boolean
+          label: string | null
+          module: string
+          sort_order: number
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean
+          label?: string | null
+          module: string
+          sort_order?: number
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          is_critical?: boolean
+          label?: string | null
+          module?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      access_requests: {
+        Row: {
+          created_at: string
+          current_role_key: string | null
+          display_name: string | null
+          email: string | null
+          id: string
+          kind: Database["public"]["Enums"]["access_request_kind"]
+          reason: string | null
+          requested_action: string | null
+          requested_module: string | null
+          requested_role_key: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewed_by_name: string | null
+          status: Database["public"]["Enums"]["access_request_status"]
+          temporary_until: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_role_key?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["access_request_kind"]
+          reason?: string | null
+          requested_action?: string | null
+          requested_module?: string | null
+          requested_role_key?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          status?: Database["public"]["Enums"]["access_request_status"]
+          temporary_until?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_role_key?: string | null
+          display_name?: string | null
+          email?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["access_request_kind"]
+          reason?: string | null
+          requested_action?: string | null
+          requested_module?: string | null
+          requested_role_key?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewed_by_name?: string | null
+          status?: Database["public"]["Enums"]["access_request_status"]
+          temporary_until?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      access_roles: {
+        Row: {
+          created_at: string
+          default_scope: Database["public"]["Enums"]["access_scope"]
+          description: string | null
+          is_active: boolean
+          is_system: boolean
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+          updated_by: string | null
+          updated_by_name: string | null
+        }
+        Insert: {
+          created_at?: string
+          default_scope?: Database["public"]["Enums"]["access_scope"]
+          description?: string | null
+          is_active?: boolean
+          is_system?: boolean
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Update: {
+          created_at?: string
+          default_scope?: Database["public"]["Enums"]["access_scope"]
+          description?: string | null
+          is_active?: boolean
+          is_system?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          updated_by?: string | null
+          updated_by_name?: string | null
+        }
+        Relationships: []
+      }
       additional_services: {
         Row: {
           code: string | null
@@ -69,6 +204,120 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      archived_records: {
+        Row: {
+          archived_by: string | null
+          archived_by_name: string | null
+          created_at: string
+          entity_id: string
+          entity_label: string | null
+          entity_type: string
+          id: string
+          reason: string | null
+          restored_at: string | null
+          restored_by: string | null
+          snapshot: Json
+        }
+        Insert: {
+          archived_by?: string | null
+          archived_by_name?: string | null
+          created_at?: string
+          entity_id: string
+          entity_label?: string | null
+          entity_type: string
+          id?: string
+          reason?: string | null
+          restored_at?: string | null
+          restored_by?: string | null
+          snapshot: Json
+        }
+        Update: {
+          archived_by?: string | null
+          archived_by_name?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_label?: string | null
+          entity_type?: string
+          id?: string
+          reason?: string | null
+          restored_at?: string | null
+          restored_by?: string | null
+          snapshot?: Json
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_id: string | null
+          actor_name: string | null
+          actor_role: string | null
+          auth_method: string | null
+          client_id: string | null
+          created_at: string
+          device: string | null
+          entity_id: string | null
+          entity_label: string | null
+          entity_type: string | null
+          financial_impact: number | null
+          id: string
+          ip_address: string | null
+          is_critical: boolean
+          module: string
+          new_value: Json | null
+          object_id: string | null
+          old_value: Json | null
+          reason: string | null
+          session_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          auth_method?: string | null
+          client_id?: string | null
+          created_at?: string
+          device?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          financial_impact?: number | null
+          id?: string
+          ip_address?: string | null
+          is_critical?: boolean
+          module: string
+          new_value?: Json | null
+          object_id?: string | null
+          old_value?: Json | null
+          reason?: string | null
+          session_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          actor_name?: string | null
+          actor_role?: string | null
+          auth_method?: string | null
+          client_id?: string | null
+          created_at?: string
+          device?: string | null
+          entity_id?: string | null
+          entity_label?: string | null
+          entity_type?: string | null
+          financial_impact?: number | null
+          id?: string
+          ip_address?: string | null
+          is_critical?: boolean
+          module?: string
+          new_value?: Json | null
+          object_id?: string | null
+          old_value?: Json | null
+          reason?: string | null
+          session_id?: string | null
+        }
+        Relationships: []
       }
       calendar_events: {
         Row: {
@@ -950,6 +1199,45 @@ export type Database = {
           },
         ]
       }
+      notification_rules: {
+        Row: {
+          channel: string
+          created_at: string
+          digest: string
+          enabled: boolean
+          event_key: string
+          id: string
+          name: string
+          recipients: Json
+          threshold: number | null
+          updated_at: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          digest?: string
+          enabled?: boolean
+          event_key: string
+          id?: string
+          name: string
+          recipients?: Json
+          threshold?: number | null
+          updated_at?: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          digest?: string
+          enabled?: boolean
+          event_key?: string
+          id?: string
+          name?: string
+          recipients?: Json
+          threshold?: number | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       object_assignments: {
         Row: {
           created_at: string
@@ -1526,6 +1814,240 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          action: string
+          allowed: boolean
+          created_at: string
+          id: string
+          module: string
+          role_key: string
+          updated_at: string
+        }
+        Insert: {
+          action: string
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          module: string
+          role_key: string
+          updated_at?: string
+        }
+        Update: {
+          action?: string
+          allowed?: boolean
+          created_at?: string
+          id?: string
+          module?: string
+          role_key?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "role_permissions_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      user_access: {
+        Row: {
+          access_expires_at: string | null
+          admin_note: string | null
+          blocked_at: string | null
+          blocked_by: string | null
+          created_at: string
+          department: string | null
+          id: string
+          last_sign_in_at: string | null
+          manager_id: string | null
+          position: string | null
+          role_key: string | null
+          scope: Database["public"]["Enums"]["access_scope"]
+          scope_modules: Json
+          status: Database["public"]["Enums"]["access_status"]
+          temporary: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_expires_at?: string | null
+          admin_note?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          last_sign_in_at?: string | null
+          manager_id?: string | null
+          position?: string | null
+          role_key?: string | null
+          scope?: Database["public"]["Enums"]["access_scope"]
+          scope_modules?: Json
+          status?: Database["public"]["Enums"]["access_status"]
+          temporary?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_expires_at?: string | null
+          admin_note?: string | null
+          blocked_at?: string | null
+          blocked_by?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          last_sign_in_at?: string | null
+          manager_id?: string | null
+          position?: string | null
+          role_key?: string | null
+          scope?: Database["public"]["Enums"]["access_scope"]
+          scope_modules?: Json
+          status?: Database["public"]["Enums"]["access_status"]
+          temporary?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_access_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      user_invitations: {
+        Row: {
+          accepted_at: string | null
+          accepted_user_id: string | null
+          access_expires_at: string | null
+          admin_note: string | null
+          avatar_url: string | null
+          created_at: string
+          created_by: string | null
+          department: string | null
+          email: string
+          expires_at: string
+          first_name: string | null
+          id: string
+          last_name: string | null
+          manager_id: string | null
+          middle_name: string | null
+          overrides: Json
+          phone: string | null
+          position: string | null
+          role_key: string | null
+          scope: Database["public"]["Enums"]["access_scope"]
+          status: Database["public"]["Enums"]["invitation_status"]
+          temporary: boolean
+          token_hash: string
+          updated_at: string
+        }
+        Insert: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          access_expires_at?: string | null
+          admin_note?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          email: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          manager_id?: string | null
+          middle_name?: string | null
+          overrides?: Json
+          phone?: string | null
+          position?: string | null
+          role_key?: string | null
+          scope?: Database["public"]["Enums"]["access_scope"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          temporary?: boolean
+          token_hash: string
+          updated_at?: string
+        }
+        Update: {
+          accepted_at?: string | null
+          accepted_user_id?: string | null
+          access_expires_at?: string | null
+          admin_note?: string | null
+          avatar_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: string | null
+          email?: string
+          expires_at?: string
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          manager_id?: string | null
+          middle_name?: string | null
+          overrides?: Json
+          phone?: string | null
+          position?: string | null
+          role_key?: string | null
+          scope?: Database["public"]["Enums"]["access_scope"]
+          status?: Database["public"]["Enums"]["invitation_status"]
+          temporary?: boolean
+          token_hash?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_invitations_role_key_fkey"
+            columns: ["role_key"]
+            isOneToOne: false
+            referencedRelation: "access_roles"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      user_permission_overrides: {
+        Row: {
+          action: string
+          created_at: string
+          created_by: string | null
+          effect: Database["public"]["Enums"]["permission_effect"]
+          expires_at: string | null
+          id: string
+          module: string
+          reason: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          created_by?: string | null
+          effect: Database["public"]["Enums"]["permission_effect"]
+          expires_at?: string | null
+          id?: string
+          module: string
+          reason?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          created_by?: string | null
+          effect?: Database["public"]["Enums"]["permission_effect"]
+          expires_at?: string | null
+          id?: string
+          module?: string
+          reason?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -1611,8 +2133,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_manage_access: { Args: { _user_id: string }; Returns: boolean }
       can_manage_object: { Args: { _object_id: string }; Returns: boolean }
       can_view_object: { Args: { _object_id: string }; Returns: boolean }
+      has_permission: {
+        Args: { _action: string; _module: string; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1620,10 +2147,31 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_access_owner: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
+      access_request_kind:
+        | "registration"
+        | "recovery"
+        | "elevation"
+        | "temporary"
+      access_request_status:
+        | "pending"
+        | "approved"
+        | "rejected"
+        | "info_requested"
+      access_scope: "own" | "assigned" | "department" | "company" | "custom"
+      access_status:
+        | "invited"
+        | "pending"
+        | "active"
+        | "suspended"
+        | "blocked"
+        | "dismissed"
+        | "archived"
       app_role: "admin" | "director" | "manager" | "finance"
       client_view_mode: "detailed" | "condensed" | "turnkey"
+      invitation_status: "sent" | "accepted" | "revoked" | "expired"
       object_assignment_role:
         | "manager"
         | "surveyor"
@@ -1681,6 +2229,7 @@ export type Database = {
         | "plaster"
         | "polybeton"
         | "other"
+      permission_effect: "allow" | "deny"
       registration_status: "pending" | "approved" | "rejected"
       show_in_client_mode:
         | "always"
@@ -1815,8 +2364,31 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      access_request_kind: [
+        "registration",
+        "recovery",
+        "elevation",
+        "temporary",
+      ],
+      access_request_status: [
+        "pending",
+        "approved",
+        "rejected",
+        "info_requested",
+      ],
+      access_scope: ["own", "assigned", "department", "company", "custom"],
+      access_status: [
+        "invited",
+        "pending",
+        "active",
+        "suspended",
+        "blocked",
+        "dismissed",
+        "archived",
+      ],
       app_role: ["admin", "director", "manager", "finance"],
       client_view_mode: ["detailed", "condensed", "turnkey"],
+      invitation_status: ["sent", "accepted", "revoked", "expired"],
       object_assignment_role: [
         "manager",
         "surveyor",
@@ -1879,6 +2451,7 @@ export const Constants = {
         "polybeton",
         "other",
       ],
+      permission_effect: ["allow", "deny"],
       registration_status: ["pending", "approved", "rejected"],
       show_in_client_mode: [
         "always",
