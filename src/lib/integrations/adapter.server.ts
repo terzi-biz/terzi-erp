@@ -37,7 +37,7 @@ export type IntegrationAdapter = {
   /** Перевірка підпису вхідного вебхука. Повертає false → 401. */
   verifyWebhook?: (
     ctx: AdapterContext,
-    req: { rawBody: string; headers: Headers; secret: string | null; signatureHeader: string | null },
+    req: { rawBody: string; headers: Headers; secret: string | null; signatureHeader: string | null; url?: string | null },
   ) => Promise<boolean>;
   /** Приведення сирого запиту до події черги. */
   normalizeEvent?: (ctx: AdapterContext, raw: unknown, headers: Headers) => NormalizedEvent;
