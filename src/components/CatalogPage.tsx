@@ -1,8 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { Plus, Trash2, RotateCcw, Save } from "lucide-react";
+import { useBlocker } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { Plus, Trash2, RotateCcw, Save, AlertTriangle } from "lucide-react";
 import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices } from "@/lib/catalog.functions";
 import { toast } from "sonner";
 
