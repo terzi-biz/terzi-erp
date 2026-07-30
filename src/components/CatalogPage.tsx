@@ -429,7 +429,89 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
           </div>
         </div>
       )}
+
+      {preview && (() => {
+        const t = preview;
+        const oldM = marginOf(t);
+        const newM = draftMargin[t] ?? oldM;
+        const affected = (items as Row[]).filter((r) => !(r as any)[TIER_MANUAL_COL[t]]);
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4">
+            <div className="panel max-w-2xl w-full bg-card border border-border rounded-lg shadow-xl flex flex-col max-h-[85vh]">
+              <div className="p-5 border-b border-border">
+                <h2 className="font-black text-base">{TIER_LABEL[t]} · попередній перегляд</h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Маржа: <b>{oldM}%</b> → <b className="text-primary">{newM}%</b> ·
+                  {" "}позицій до перерахунку: <b>{affected.length}</b>
+                  {items.length - affected.length > 0 && (
+                    <> · вручну змінених (не чіпаємо): <b>{items.length - affected.length}</b></>
+                  )}
+                </p>
+              </div>
+              <div className="overflow-auto p-3">
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground">
+                    <tr>
+                      <th className="text-left p-2">Позиція</th>
+                      <th className="text-right p-2 w-24">Закупка</th>
+                      <th className="text-right p-2 w-28">Стара ціна</th>
+                      <th className="text-right p-2 w-28">Нова ціна</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {affected.map((r) => (
+                      <tr key={r.id} className="border-t border-border">
+                        <td className="p-2">{r.name}</td>
+                        <td className="p-2 text-right tabular-nums">{fmt(r.buy_price)}</td>
+                        <td className="p-2 text-right tabular-nums text-muted-foreground">
+                          {fmt((r as any)[TIER_PRICE_COL[t]])}
+                        </td>
+                        <td className="p-2 text-right tabular-nums font-bold text-primary">
+                          {fmt(tierPriceFromMargin(r.buy_price, newM))}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 border-t border-border flex flex-wrap gap-2 justify-end">
+                <button onClick={() => setPreview(null)}
+                  className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold">Відмінити</button>
+                <button onClick={() => resetColMut.mutate(t)} disabled={resetColMut.isPending}
+                  className="px-3 py-2 rounded-md bg-warning/20 text-warning border border-warning/40 text-xs font-semibold">
+                  Повернути системні значення
+                </button>
+                <button onClick={() => applyMut.mutate({ tier: t, margin_percent: newM })} disabled={applyMut.isPending}
+                  className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold">
+                  {applyMut.isPending ? "Застосування…" : "Застосувати"}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
+
+/** Комірка ціни діапазону: зберігає значення як «ручне» після завершення вводу. */
+function TierCell({ value, manual, onCommit }: { value: number; manual: boolean; onCommit: (v: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const shown = draft ?? String(value ?? 0);
+  return (
+    <input
+      type="number" step="0.5" inputMode="decimal"
+      className={`w-full bg-input border rounded px-2 py-1 text-right ${manual ? "border-primary" : "border-border"}`}
+      value={shown}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const n = Number(draft);
+        setDraft(null);
+        if (draft !== null && Number.isFinite(n) && n !== value) onCommit(n);
+      }}
+    />
+  );
+}
+
 
