@@ -36,6 +36,7 @@ import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
+import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
@@ -175,6 +176,11 @@ const CrmLeadsRoute = CrmLeadsRouteImport.update({
   path: '/crm/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmContactsRoute = CrmContactsRouteImport.update({
+  id: '/crm/contacts',
+  path: '/crm/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicIntegrationsWorkerRoute =
   ApiPublicIntegrationsWorkerRouteImport.update({
     id: '/api/public/integrations/worker',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
@@ -246,6 +253,7 @@ export interface FileRoutesByTo {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
+  '/crm/contacts': typeof CrmContactsRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
@@ -313,6 +322,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/contacts'
     | '/crm/leads'
     | '/invite/$token'
     | '/objects/$id'
@@ -345,6 +355,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/contacts'
     | '/crm/leads'
     | '/invite/$token'
     | '/objects/$id'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/screed'
     | '/settings'
     | '/works'
+    | '/crm/contacts'
     | '/crm/leads'
     | '/invite/$token'
     | '/objects/$id'
@@ -410,6 +422,7 @@ export interface RootRouteChildren {
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
+  CrmContactsRoute: typeof CrmContactsRoute
   CrmLeadsRoute: typeof CrmLeadsRoute
   InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
@@ -614,6 +627,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm/contacts': {
+      id: '/crm/contacts'
+      path: '/crm/contacts'
+      fullPath: '/crm/contacts'
+      preLoaderRoute: typeof CrmContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/worker': {
       id: '/api/public/integrations/worker'
       path: '/api/public/integrations/worker'
@@ -658,6 +678,7 @@ const rootRouteChildren: RootRouteChildren = {
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
+  CrmContactsRoute: CrmContactsRoute,
   CrmLeadsRoute: CrmLeadsRoute,
   InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
