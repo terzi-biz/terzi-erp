@@ -19,7 +19,16 @@ export const Route = createFileRoute("/api/public/integrations/worker")({
 
         const { runQueue } = await import("@/lib/integrations/core.server");
         const res = await runQueue(10);
-        return Response.json({ ok: true, ...res });
+
+        // Планове опитування keyCRM за налаштованими інтервалами.
+        let polls: unknown[] = [];
+        try {
+          const { runDuePolls } = await import("@/lib/integrations/sync-ops.server");
+          polls = await runDuePolls();
+        } catch (e) {
+          polls = [{ error: e instanceof Error ? e.message : "poll failed" }];
+        }
+        return Response.json({ ok: true, ...res, polls });
       },
     },
   },
