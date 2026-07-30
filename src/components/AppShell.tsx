@@ -59,6 +59,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     { to: "/crm", icon: BarChart3, label: "Панель CRM" },
     { to: "/crm/leads", icon: Target, label: "Воронка лідів" },
     { to: "/crm/contacts", icon: Contact, label: "Контакти" },
+    { to: "/crm/requests", icon: Inbox, label: "Звернення" },
+    { to: "/crm/calls", icon: PhoneCall, label: "Дзвінки" },
+    { to: "/crm/tasks", icon: ListTodo, label: "Задачі" },
     { to: "/clients", icon: Users, label: "Клієнти" },
   ];
   const [crmOpen, setCrmOpen] = useState(loc.pathname.startsWith("/crm") || loc.pathname === "/clients");
