@@ -224,3 +224,120 @@ export const listCalls = createServerFn({ method: "GET" })
     if (error) { console.error("listCalls", error); throw new Error("Не вдалося завантажити дзвінки"); }
     return data ?? [];
   });
+
+const requestInput = z.object({
+  id: z.string().uuid().optional(),
+  channel: z.string().min(1).max(50).default("manual"),
+  subject: z.string().max(200).optional().nullable(),
+  message: z.string().max(4000).optional().nullable(),
+  contact_name: z.string().max(200).optional().nullable(),
+  contact_phone: z.string().max(50).optional().nullable(),
+  contact_email: z.string().max(200).optional().nullable(),
+  source: z.string().max(100).optional().nullable(),
+  campaign: z.string().max(100).optional().nullable(),
+  status: z.enum(["new", "in_progress", "converted", "spam", "closed"]).default("new"),
+});
+
+export const upsertRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => requestInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, ...rest } = data;
+    const { data: out, error } = id
+      ? await context.supabase.from("crm_requests").update(rest).eq("id", id).select().single()
+      : await context.supabase.from("crm_requests").insert({ ...rest, owner_id: context.userId, assigned_to: context.userId }).select().single();
+    if (error) { console.error("upsertRequest", error); throw new Error("Не вдалося зберегти звернення"); }
+    return out;
+  });
+
+export const deleteRequest = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("crm_requests").delete().eq("id", data.id);
+    if (error) { console.error("deleteRequest", error); throw new Error("Не вдалося видалити звернення"); }
+    return { ok: true };
+  });
+
+export const convertRequestToLead = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: req, error: re } = await context.supabase
+      .from("crm_requests").select("*").eq("id", data.id).maybeSingle();
+    if (re || !req) throw new Error("Звернення не знайдено");
+    if (req.lead_id) return { lead_id: req.lead_id };
+
+    let contactId = req.contact_id as string | null;
+    const norm = (req.contact_phone ?? "").replace(/\D/g, "");
+    if (!contactId && norm.length >= 6) {
+      const { data: existing } = await context.supabase
+        .from("crm_contacts").select("id").eq("phone_norm", norm).limit(1).maybeSingle();
+      contactId = existing?.id ?? null;
+    }
+    if (!contactId && (req.contact_name || req.contact_phone)) {
+      const { data: c } = await context.supabase.from("crm_contacts").insert({
+        full_name: req.contact_name || req.contact_phone || "Без імені",
+        phone: req.contact_phone, email: req.contact_email, owner_id: context.userId,
+      }).select("id").single();
+      contactId = c?.id ?? null;
+    }
+
+    const { data: pipeline } = await context.supabase
+      .from("crm_pipelines").select("id").eq("is_active", true).order("sort_order").limit(1).maybeSingle();
+    const { data: stage } = pipeline
+      ? await context.supabase.from("crm_stages").select("id, probability")
+          .eq("pipeline_id", pipeline.id).order("sort_order").limit(1).maybeSingle()
+      : { data: null as any };
+
+    const { data: lead, error: le } = await context.supabase.from("crm_leads").insert({
+      title: req.subject || req.contact_name || `Звернення ${req.channel}`,
+      pipeline_id: pipeline?.id ?? null,
+      stage_id: stage?.id ?? null,
+      contact_id: contactId,
+      source: req.source || req.channel,
+      notes: req.message,
+      owner_id: context.userId,
+      assigned_to: context.userId,
+    }).select().single();
+    if (le || !lead) { console.error("convertRequestToLead", le); throw new Error("Не вдалося створити лід"); }
+
+    await context.supabase.from("crm_requests")
+      .update({ status: "converted", lead_id: lead.id, contact_id: contactId }).eq("id", req.id);
+    await context.supabase.from("crm_lead_activities").insert({
+      lead_id: lead.id, actor_id: context.userId, kind: "created",
+      body: `Лід створено зі звернення (${req.channel})`,
+    });
+    return { lead_id: lead.id };
+  });
+
+export const upsertCall = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    id: z.string().uuid().optional(),
+    direction: z.enum(["inbound", "outbound"]).default("inbound"),
+    from_number: z.string().max(50).optional().nullable(),
+    to_number: z.string().max(50).optional().nullable(),
+    duration_sec: z.number().int().nonnegative().default(0),
+    status: z.string().max(50).optional().nullable(),
+    started_at: z.string().optional(),
+    lead_id: z.string().uuid().optional().nullable(),
+    contact_id: z.string().uuid().optional().nullable(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, ...rest } = data;
+    const { data: out, error } = id
+      ? await context.supabase.from("crm_calls").update(rest).eq("id", id).select().single()
+      : await context.supabase.from("crm_calls").insert({ ...rest, owner_id: context.userId }).select().single();
+    if (error) { console.error("upsertCall", error); throw new Error("Не вдалося зберегти дзвінок"); }
+    return out;
+  });
+
+export const deleteTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("crm_tasks").delete().eq("id", data.id);
+    if (error) { console.error("deleteTask", error); throw new Error("Не вдалося видалити задачу"); }
+    return { ok: true };
+  });
