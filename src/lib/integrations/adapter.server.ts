@@ -80,6 +80,19 @@ const REGISTRY: Record<string, IntegrationAdapter> = {
   echo: echoAdapter,
 };
 
+/** Ліниве підключення адаптерів провайдерів (важкі модулі — лише на сервері). */
+let bootstrapped = false;
+export async function ensureAdapters() {
+  if (bootstrapped) return;
+  bootstrapped = true;
+  const [{ keycrmAdapter }, { binotelAdapter }] = await Promise.all([
+    import("./keycrm/adapter.server"),
+    import("./binotel/adapter.server"),
+  ]);
+  REGISTRY[keycrmAdapter.key] = keycrmAdapter;
+  REGISTRY[binotelAdapter.key] = binotelAdapter;
+}
+
 export function getAdapter(providerKey: string): IntegrationAdapter | null {
   return REGISTRY[providerKey] ?? null;
 }
