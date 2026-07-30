@@ -33,6 +33,7 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -154,6 +155,12 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicIntegrationsWebhookSlugRoute =
+  ApiPublicIntegrationsWebhookSlugRouteImport.update({
+    id: '/api/public/integrations/webhook/$slug',
+    path: '/api/public/integrations/webhook/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -180,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -206,6 +214,7 @@ export interface FileRoutesByTo {
   '/production/$id': typeof ProductionIdRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -233,6 +242,7 @@ export interface FileRoutesById {
   '/production/$id': typeof ProductionIdRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects'
     | '/production'
+    | '/api/public/integrations/webhook/$slug'
   id:
     | '__root__'
     | '/'
@@ -313,6 +325,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/objects/'
     | '/production/'
+    | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -340,6 +353,7 @@ export interface RootRouteChildren {
   ProductionIdRoute: typeof ProductionIdRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
+  ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -512,6 +526,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/webhook/$slug': {
+      id: '/api/public/integrations/webhook/$slug'
+      path: '/api/public/integrations/webhook/$slug'
+      fullPath: '/api/public/integrations/webhook/$slug'
+      preLoaderRoute: typeof ApiPublicIntegrationsWebhookSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -540,6 +561,7 @@ const rootRouteChildren: RootRouteChildren = {
   ProductionIdRoute: ProductionIdRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
+  ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
