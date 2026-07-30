@@ -105,6 +105,24 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
         ))}
 
+        <button onClick={() => setCrmOpen(!crmOpen)}
+          className={`w-full ${linkCls(loc.pathname.startsWith("/crm") || loc.pathname === "/clients")} justify-between`}>
+          <span className="flex items-center gap-3"><Target className="w-4 h-4" />CRM</span>
+          <ChevronDown className={`w-3 h-3 transition-transform ${crmOpen ? "rotate-180" : ""}`} />
+        </button>
+        {crmOpen && (
+          <div className="bg-sidebar-accent/40">
+            {crmLinks.map((n) => (
+              <Link key={n.to} to={n.to}
+                className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === n.to ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
+                <n.icon className="w-3 h-3" /> {n.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+
+
         <div className="mt-2 mb-1 px-5 text-[10px] uppercase tracking-widest text-muted-foreground">Модулі</div>
         {modules.map((m) => {
           const Icon = moduleIcons[m];
