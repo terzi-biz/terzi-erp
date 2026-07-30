@@ -160,7 +160,7 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
             <Plus className="w-3 h-3" /> Додати
           </button>
           <button onClick={() => saveAll()} disabled={!dirtyCount || saving}
-            className="px-3 py-2 rounded-md bg-success text-xs font-bold inline-flex items-center gap-2 text-primary-foreground disabled:opacity-40">
+            className="px-3 py-2 rounded-md bg-success text-success-foreground text-xs font-bold inline-flex items-center gap-2 disabled:opacity-40">
             <Save className="w-3 h-3" /> {saving ? "Збереження…" : dirtyCount ? `Зберегти зміни (${dirtyCount})` : "Все збережено"}
           </button>
 
