@@ -528,6 +528,7 @@ export async function pushInternal(ctx: AdapterContext, entity: string, internal
     internalHash: curHash,
     direction: "outbound",
   });
+  await auditSync(ctx, { action: "sync_outbound_push", entity, externalId: newExternalId, internalId, table, payload: body });
   return { ok: true, message: externalId ? `Оновлено в keyCRM (#${newExternalId})` : `Створено в keyCRM (#${newExternalId})`, data: res };
 }
 
