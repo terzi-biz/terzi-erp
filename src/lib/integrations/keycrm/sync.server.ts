@@ -179,6 +179,29 @@ async function ownerFor(ctx: AdapterContext): Promise<string | null> {
   return ((data as any)?.created_by as string) ?? null;
 }
 
+/** Аудит змін, зроблених синхронізацією (актор — системний, без користувача). */
+async function auditSync(
+  ctx: AdapterContext,
+  input: { action: string; entity: string; externalId: string | null; internalId: string | null; table: string | null; payload?: unknown },
+) {
+  try {
+    const db = await admin();
+    await db.from("audit_logs").insert({
+      actor_id: null,
+      actor_name: "keyCRM sync",
+      actor_role: "system",
+      module: "integrations",
+      action: input.action,
+      entity_type: input.table ?? input.entity,
+      entity_id: input.internalId ?? input.externalId,
+      entity_label: `${input.entity} · keyCRM #${input.externalId ?? "—"}`,
+      new_value: { integration_id: ctx.integration.id, entity: input.entity, external_id: input.externalId, internal_id: input.internalId, payload: input.payload ?? null } as any,
+    });
+  } catch {
+    // Аудит не повинен зупиняти синхронізацію
+  }
+}
+
 /* ------------------------------ ERP writers ------------------------------ */
 
 async function applyPipeline(ctx: AdapterContext, ext: any) {
