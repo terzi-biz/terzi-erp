@@ -54,15 +54,22 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
   });
   const run = useMutation({
     mutationFn: (p: any) => fnRun({ data: p }),
-    onSuccess: (r: any) => {
+    onSuccess: (r: any, vars: any) => {
       const items = (r ?? []) as any[];
-      const created = items.reduce((s, x) => s + (x.created ?? 0), 0);
-      const updated = items.reduce((s, x) => s + (x.updated ?? 0), 0);
-      toast.success(`Синхронізацію завершено: створено ${created}, оновлено ${updated}`);
+      if (vars?.dryRun) {
+        const received = items.reduce((s, x) => s + (x.received ?? 0), 0);
+        const errs = items.filter((x) => x.error).length;
+        toast.success(`Пробний прогін (без запису): прочитано ${received} записів${errs ? `, помилок: ${errs}` : ""}`);
+      } else {
+        const created = items.reduce((s, x) => s + (x.created ?? 0), 0);
+        const updated = items.reduce((s, x) => s + (x.updated ?? 0), 0);
+        toast.success(`Синхронізацію завершено: створено ${created}, оновлено ${updated}`);
+      }
       refresh();
     },
     onError: (e: any) => toast.error(e?.message ?? "Помилка синхронізації"),
   });
+
   const resolve = useMutation({
     mutationFn: (p: any) => fnResolve({ data: p }),
     onSuccess: () => { toast.success("Конфлікт закрито"); refresh(); },
