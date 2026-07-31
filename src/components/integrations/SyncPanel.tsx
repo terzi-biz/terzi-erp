@@ -2,12 +2,11 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
+import { ConflictsPanel } from "./ConflictsPanel";
 import { SYNC_MODE_HINT, SYNC_MODE_LABEL, type SyncMode } from "@/lib/integrations/keycrm-constants";
 import {
-  listIntegrationConflicts,
   listIntegrationSyncSettings,
-  resolveIntegrationConflict,
   runIntegrationSync,
   saveIntegrationSyncSetting,
 } from "@/lib/integrations.functions";
@@ -28,17 +27,10 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
   const fnSettings = useServerFn(listIntegrationSyncSettings);
   const fnSave = useServerFn(saveIntegrationSyncSetting);
   const fnRun = useServerFn(runIntegrationSync);
-  const fnConflicts = useServerFn(listIntegrationConflicts);
-  const fnResolve = useServerFn(resolveIntegrationConflict);
 
   const settings = useQuery({
     queryKey: ["int-sync", current?.id],
     queryFn: () => fnSettings({ data: { integrationId: current.id } }),
-    enabled: !!current,
-  });
-  const conflicts = useQuery({
-    queryKey: ["int-conflicts", current?.id],
-    queryFn: () => fnConflicts({ data: { integrationId: current?.id ?? null } }),
     enabled: !!current,
   });
 
@@ -68,12 +60,6 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
       refresh();
     },
     onError: (e: any) => toast.error(e?.message ?? "Помилка синхронізації"),
-  });
-
-  const resolve = useMutation({
-    mutationFn: (p: any) => fnResolve({ data: p }),
-    onSuccess: () => { toast.success("Конфлікт закрито"); refresh(); },
-    onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
 
   const [pick, setPick] = useState<Record<string, boolean>>({});
