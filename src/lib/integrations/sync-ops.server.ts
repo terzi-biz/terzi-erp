@@ -67,22 +67,23 @@ export async function saveSyncSettingOp(
 
 /* -------------------------------- run sync ------------------------------- */
 
-export async function runSyncOp(userId: string, input: { integrationId: string; entities?: string[]; full?: boolean }) {
+export async function runSyncOp(userId: string, input: { integrationId: string; entities?: string[]; full?: boolean; dryRun?: boolean }) {
   const actor = await requireAccessManager(userId);
   const integration = await loadIntegration(input.integrationId);
   if (!integration) throw new Error("Підключення не знайдено");
   if (integration.provider_key !== "keycrm") throw new Error("Синхронізація доступна лише для keyCRM");
   const ctx = await buildContext(integration);
-  const results = await runKeyCrmSync(ctx, { entities: input.entities, full: input.full });
+  const results = await runKeyCrmSync(ctx, { entities: input.entities, full: input.full, dryRun: input.dryRun });
   await writeAudit(actor, {
     module: "integrations",
-    action: "sync_run",
+    action: input.dryRun ? "sync_dry_run" : "sync_run",
     entityType: "integration",
     entityId: integration.id,
-    newValue: { entities: input.entities ?? "auto", results },
+    newValue: { entities: input.entities ?? "auto", dryRun: Boolean(input.dryRun), results },
   });
   return results;
 }
+
 
 export async function pushRecordOp(userId: string, input: { integrationId: string; entity: string; internalId: string }) {
   const actor = await requireAccessManager(userId);

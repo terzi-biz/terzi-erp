@@ -31,12 +31,12 @@ export type KeyCrmEntityDef = {
 /** Порядок важливий: довідники синхронізуються раніше за записи. */
 export const KEYCRM_ENTITIES: KeyCrmEntityDef[] = [
   { key: "pipelines", label: "Воронки", path: "/pipelines", outbound: false, target: "crm_pipelines" },
-  { key: "pipeline_statuses", label: "Статуси воронок", path: "/pipelines/statuses", outbound: false, target: "crm_stages" },
-  { key: "order_statuses", label: "Статуси замовлень", path: "/order/statuses", outbound: false, target: "reference" },
-  { key: "sources", label: "Джерела", path: "/order/sources", outbound: false, target: "reference" },
+  { key: "pipeline_statuses", label: "Статуси воронок", path: "/pipelines", outbound: false, target: "crm_stages", note: "Читаються по кожній воронці" },
+  { key: "order_statuses", label: "Статуси замовлень", path: "/order/status", outbound: false, target: "reference" },
+  { key: "sources", label: "Джерела", path: "/order/source", outbound: false, target: "reference" },
   { key: "managers", label: "Відповідальні", path: "/users", outbound: false, target: "reference" },
   { key: "custom_fields", label: "Додаткові поля", path: "/custom-fields", outbound: false, target: "reference" },
-  { key: "payment_methods", label: "Способи оплати", path: "/payments/methods", outbound: false, target: "reference" },
+
   { key: "companies", label: "Компанії", path: "/companies", outbound: false, target: "reference" },
   { key: "buyers", label: "Клієнти та покупці", path: "/buyer", outbound: true, target: "crm_contacts" },
   { key: "lead_cards", label: "Картки воронки (ліди)", path: "/pipelines/cards", outbound: true, target: "crm_leads" },

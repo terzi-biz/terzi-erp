@@ -54,15 +54,22 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
   });
   const run = useMutation({
     mutationFn: (p: any) => fnRun({ data: p }),
-    onSuccess: (r: any) => {
+    onSuccess: (r: any, vars: any) => {
       const items = (r ?? []) as any[];
-      const created = items.reduce((s, x) => s + (x.created ?? 0), 0);
-      const updated = items.reduce((s, x) => s + (x.updated ?? 0), 0);
-      toast.success(`Синхронізацію завершено: створено ${created}, оновлено ${updated}`);
+      if (vars?.dryRun) {
+        const received = items.reduce((s, x) => s + (x.received ?? 0), 0);
+        const errs = items.filter((x) => x.error).length;
+        toast.success(`Пробний прогін (без запису): прочитано ${received} записів${errs ? `, помилок: ${errs}` : ""}`);
+      } else {
+        const created = items.reduce((s, x) => s + (x.created ?? 0), 0);
+        const updated = items.reduce((s, x) => s + (x.updated ?? 0), 0);
+        toast.success(`Синхронізацію завершено: створено ${created}, оновлено ${updated}`);
+      }
       refresh();
     },
     onError: (e: any) => toast.error(e?.message ?? "Помилка синхронізації"),
   });
+
   const resolve = useMutation({
     mutationFn: (p: any) => fnResolve({ data: p }),
     onSuccess: () => { toast.success("Конфлікт закрито"); refresh(); },
@@ -103,12 +110,20 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
               {chosen.length ? `Синхронізувати обране (${chosen.length})` : "Синхронізувати активні"}
             </button>
             <button
+              disabled={run.isPending}
+              onClick={() => run.mutate({ integrationId: current.id, entities: chosen.length ? chosen : undefined, dryRun: true })}
+              className="px-3 py-1.5 rounded border border-primary/40 text-primary text-sm font-semibold hover:bg-primary/10 disabled:opacity-50"
+            >
+              Пробний прогін (без запису)
+            </button>
+            <button
               disabled={run.isPending || !chosen.length}
               onClick={() => run.mutate({ integrationId: current.id, entities: chosen, full: true })}
               className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent disabled:opacity-50"
             >
               Повне перезавантаження
             </button>
+
           </div>
         </div>
 
