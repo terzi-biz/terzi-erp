@@ -8,12 +8,25 @@ import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
   BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact, Inbox, PhoneCall, ListTodo,
 } from "lucide-react";
-import { useState, useEffect, type ReactNode } from "react";
+import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
 
 type Mod = "screed" | "roofing" | "insulation" | "demolition";
 
+const AppShellContext = createContext(false);
+
+/** Guards against nested AppShell usage: inner instances render children only. */
 export function AppShell({ children }: { children: ReactNode }) {
+  const nested = useContext(AppShellContext);
+  if (nested) return <>{children}</>;
+  return (
+    <AppShellContext.Provider value={true}>
+      <AppShellLayout>{children}</AppShellLayout>
+    </AppShellContext.Provider>
+  );
+}
+
+function AppShellLayout({ children }: { children: ReactNode }) {
   const { profile, user, roles, signOut } = useAuth();
   const primaryRole = roles.includes("admin") ? "admin" : roles.includes("director") ? "director" : roles.includes("finance") ? "finance" : (roles[0] ?? "manager");
   const canManageAccess = roles.includes("admin") || roles.includes("director");
