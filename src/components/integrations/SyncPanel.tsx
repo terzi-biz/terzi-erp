@@ -2,12 +2,11 @@ import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { AlertTriangle, ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
+import { ConflictsPanel } from "./ConflictsPanel";
 import { SYNC_MODE_HINT, SYNC_MODE_LABEL, type SyncMode } from "@/lib/integrations/keycrm-constants";
 import {
-  listIntegrationConflicts,
   listIntegrationSyncSettings,
-  resolveIntegrationConflict,
   runIntegrationSync,
   saveIntegrationSyncSetting,
 } from "@/lib/integrations.functions";
@@ -28,17 +27,10 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
   const fnSettings = useServerFn(listIntegrationSyncSettings);
   const fnSave = useServerFn(saveIntegrationSyncSetting);
   const fnRun = useServerFn(runIntegrationSync);
-  const fnConflicts = useServerFn(listIntegrationConflicts);
-  const fnResolve = useServerFn(resolveIntegrationConflict);
 
   const settings = useQuery({
     queryKey: ["int-sync", current?.id],
     queryFn: () => fnSettings({ data: { integrationId: current.id } }),
-    enabled: !!current,
-  });
-  const conflicts = useQuery({
-    queryKey: ["int-conflicts", current?.id],
-    queryFn: () => fnConflicts({ data: { integrationId: current?.id ?? null } }),
     enabled: !!current,
   });
 
@@ -68,12 +60,6 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
       refresh();
     },
     onError: (e: any) => toast.error(e?.message ?? "Помилка синхронізації"),
-  });
-
-  const resolve = useMutation({
-    mutationFn: (p: any) => fnResolve({ data: p }),
-    onSuccess: () => { toast.success("Конфлікт закрито"); refresh(); },
-    onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
 
   const [pick, setPick] = useState<Record<string, boolean>>({});
@@ -192,29 +178,8 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
         </div>
       </div>
 
-      <div className="panel p-4 space-y-2">
-        <div className="text-sm font-bold flex items-center gap-2"><AlertTriangle className="w-4 h-4 text-amber-500" /> Конфлікти даних</div>
-        <p className="text-xs text-muted-foreground">Запис змінено з обох боків. Оберіть, яка версія є правильною — рішення журналюється.</p>
-        {((conflicts.data ?? []) as any[]).filter((c) => c.status === "open").length === 0 && (
-          <div className="text-xs text-muted-foreground">Відкритих конфліктів немає.</div>
-        )}
-        <div className="space-y-2">
-          {((conflicts.data ?? []) as any[]).filter((c) => c.status === "open").map((c) => (
-            <div key={c.id} className="rounded border border-border p-2 text-xs space-y-2">
-              <div className="font-semibold">{c.entity} · зовнішній ID {c.external_id ?? "—"} · {fmt(c.created_at)}</div>
-              <div className="grid gap-2 md:grid-cols-2">
-                <pre className="bg-secondary rounded p-2 overflow-x-auto max-h-40">{JSON.stringify(c.internal_value, null, 2)}</pre>
-                <pre className="bg-secondary rounded p-2 overflow-x-auto max-h-40">{JSON.stringify(c.external_value, null, 2)}</pre>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button onClick={() => resolve.mutate({ id: c.id, resolution: "keep_erp" })} className="px-2.5 py-1 rounded bg-primary text-primary-foreground font-semibold">Залишити ERP</button>
-                <button onClick={() => resolve.mutate({ id: c.id, resolution: "keep_external" })} className="px-2.5 py-1 rounded bg-secondary font-semibold hover:bg-accent">Взяти keyCRM</button>
-                <button onClick={() => resolve.mutate({ id: c.id, resolution: "ignore" })} className="px-2.5 py-1 rounded bg-secondary font-semibold hover:bg-accent">Ігнорувати</button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      <ConflictsPanel integrationId={current.id} />
+
     </div>
   );
 }
