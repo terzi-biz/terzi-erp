@@ -628,9 +628,5 @@ export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: stri
       results.push({ entity: def.key, error: e?.message ?? String(e) });
     }
   }
-
-      results.push({ entity: def.key, error: e?.message ?? String(e) });
-    }
-  }
   return results;
 }
