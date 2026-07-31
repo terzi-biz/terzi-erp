@@ -510,7 +510,11 @@ export async function pushInternal(ctx: AdapterContext, entity: string, internal
 /* -------------------------------- polling -------------------------------- */
 
 /** Опитування змін за updated_at із збереженням last_sync_at і пагінацією. */
-export async function pollEntity(ctx: AdapterContext, entity: string, opts: { mode: SyncMode; full?: boolean; maxPages?: number }) {
+export async function pollEntity(
+  ctx: AdapterContext,
+  entity: string,
+  opts: { mode: SyncMode; full?: boolean; maxPages?: number; dryRun?: boolean },
+) {
   const client = apiClient(ctx);
   const path = entityPath(ctx, entity);
   const state = await getState(ctx.integration.id, entity);
@@ -524,9 +528,20 @@ export async function pollEntity(ctx: AdapterContext, entity: string, opts: { mo
 
   let items: any[] = [];
   try {
-    items = await client.paginate(path, query, opts.maxPages ?? 5);
+    if (entity === "pipeline_statuses") {
+      // keyCRM віддає статуси лише в межах конкретної воронки.
+      const pipelines = await client.paginate(entityPath(ctx, "pipelines"), { limit: 50 }, 3);
+      for (const p of pipelines) {
+        const rows = await client.paginate(`${entityPath(ctx, "pipelines")}/${p.id}/statuses`, { limit: 50 }, 3);
+        items.push(...rows.map((r: any) => ({ ...r, pipeline_id: r.pipeline_id ?? p.id })));
+      }
+    } else {
+      items = await client.paginate(path, query, opts.maxPages ?? 5);
+    }
   } catch (e: any) {
-    await setState(ctx.integration.id, entity, { last_run_at: startedAt, last_status: "error", last_error: e?.message ?? String(e) });
+    if (!opts.dryRun) {
+      await setState(ctx.integration.id, entity, { last_run_at: startedAt, last_status: "error", last_error: e?.message ?? String(e) });
+    }
     throw e;
   }
 
@@ -535,6 +550,19 @@ export async function pollEntity(ctx: AdapterContext, entity: string, opts: { mo
       const u = i?.updated_at ?? i?.created_at ?? null;
       return !u || new Date(u).getTime() >= new Date(since).getTime() - 60_000;
     });
+  }
+
+  // Пробний прогін: лише читання з keyCRM, без жодного запису в ERP.
+  if (opts.dryRun) {
+    return {
+      entity,
+      dryRun: true,
+      received: items.length,
+      applied: 0,
+      skipped: items.length,
+      failed: 0,
+      sample: items.slice(0, 3).map((i: any) => ({ id: i?.id ?? null, title: i?.title ?? i?.name ?? i?.full_name ?? null })),
+    };
   }
 
   let applied = 0;
@@ -568,6 +596,7 @@ export async function pollEntity(ctx: AdapterContext, entity: string, opts: { mo
 
   return { entity, received: items.length, applied, skipped, failed };
 }
+
 
 /** Оплати всередині замовлення зберігаємо як окремі довідникові звʼязки. */
 async function extractOrderChildren(ctx: AdapterContext, order: any) {
