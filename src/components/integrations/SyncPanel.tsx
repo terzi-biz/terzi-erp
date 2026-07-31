@@ -110,12 +110,20 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
               {chosen.length ? `Синхронізувати обране (${chosen.length})` : "Синхронізувати активні"}
             </button>
             <button
+              disabled={run.isPending}
+              onClick={() => run.mutate({ integrationId: current.id, entities: chosen.length ? chosen : undefined, dryRun: true })}
+              className="px-3 py-1.5 rounded border border-primary/40 text-primary text-sm font-semibold hover:bg-primary/10 disabled:opacity-50"
+            >
+              Пробний прогін (без запису)
+            </button>
+            <button
               disabled={run.isPending || !chosen.length}
               onClick={() => run.mutate({ integrationId: current.id, entities: chosen, full: true })}
               className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent disabled:opacity-50"
             >
               Повне перезавантаження
             </button>
+
           </div>
         </div>
 
