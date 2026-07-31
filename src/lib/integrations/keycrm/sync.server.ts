@@ -475,6 +475,7 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
     payload: entity === "orders" || entity === "payments" ? ext : {},
   });
 
+  await auditSync(ctx, { action: "sync_inbound_apply", entity, externalId, internalId: result.internalId, table: result.table, payload: ext });
   return { skipped: false, internalId: result.internalId };
 }
 
