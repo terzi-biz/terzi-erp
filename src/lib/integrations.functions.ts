@@ -226,8 +226,16 @@ export const saveIntegrationSyncSetting = createServerFn({ method: "POST" })
 export const runIntegrationSync = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
-    z.object({ integrationId: z.string().uuid(), entities: z.array(z.string().max(40)).max(30).optional(), full: z.boolean().optional() }).parse(d),
+    z
+      .object({
+        integrationId: z.string().uuid(),
+        entities: z.array(z.string().max(40)).max(30).optional(),
+        full: z.boolean().optional(),
+        dryRun: z.boolean().optional(),
+      })
+      .parse(d),
   )
+
   .handler(async ({ context, data }) => {
     const { runSyncOp } = await import("./integrations/sync-ops.server");
     return runSyncOp(context.userId, data);
