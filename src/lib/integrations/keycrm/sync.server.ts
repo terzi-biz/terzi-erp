@@ -612,18 +612,23 @@ async function extractLeadComments(ctx: AdapterContext, card: any) {
 }
 
 /** Повний прогін увімкнених сутностей у правильному порядку. */
-export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: string[]; full?: boolean } = {}) {
+export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: string[]; full?: boolean; dryRun?: boolean } = {}) {
   const modes = await getSyncModes(ctx.integration.id);
   const results: any[] = [];
   for (const def of KEYCRM_ENTITIES) {
     if (opts.entities && !opts.entities.includes(def.key)) continue;
     const setting = modes[def.key];
     const mode = setting?.mode ?? "off";
-    if (mode === "off" || mode === "erp_master") continue;
-    if (!opts.entities && !setting?.poll) continue;
+    // Пробний прогін читає навіть вимкнені сутності — записів у ERP не буде.
+    if (!opts.dryRun && (mode === "off" || mode === "erp_master")) continue;
+    if (!opts.dryRun && !opts.entities && !setting?.poll) continue;
     try {
-      results.push(await pollEntity(ctx, def.key, { mode, full: opts.full }));
+      results.push(await pollEntity(ctx, def.key, { mode, full: opts.full, dryRun: opts.dryRun }));
     } catch (e: any) {
+      results.push({ entity: def.key, error: e?.message ?? String(e) });
+    }
+  }
+
       results.push({ entity: def.key, error: e?.message ?? String(e) });
     }
   }
