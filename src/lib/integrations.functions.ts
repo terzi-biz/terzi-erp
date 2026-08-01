@@ -249,6 +249,23 @@ export const pushIntegrationRecord = createServerFn({ method: "POST" })
     return pushRecordOp(context.userId, data);
   });
 
+export const getKeyCrmOneWayStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { getOneWayStatusOp } = await import("./integrations/sync-ops.server");
+    return getOneWayStatusOp(context.userId, data.integrationId);
+  });
+
+export const setKeyCrmOneWay = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid(), enabled: z.boolean() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { setOneWayInboundOp } = await import("./integrations/sync-ops.server");
+    return setOneWayInboundOp(context.userId, data);
+  });
+
+
 export const listIntegrationConflicts = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ integrationId: z.string().uuid().nullish() }).parse(d ?? {}))
