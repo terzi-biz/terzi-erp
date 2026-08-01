@@ -343,6 +343,247 @@ export type Database = {
         }
         Relationships: []
       }
+      binotel_call_sessions: {
+        Row: {
+          assigned_user_id: string | null
+          call_type: string | null
+          client_id: string | null
+          company_id: string | null
+          contact_id: string | null
+          created_at: string
+          created_contact: boolean
+          created_lead: boolean
+          expires_at: string
+          general_call_id: string | null
+          id: string
+          lead_id: string | null
+          pbx_number: string | null
+          phone_norm: string | null
+          response: Json
+          session_key: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_user_id?: string | null
+          call_type?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_contact?: boolean
+          created_lead?: boolean
+          expires_at?: string
+          general_call_id?: string | null
+          id?: string
+          lead_id?: string | null
+          pbx_number?: string | null
+          phone_norm?: string | null
+          response?: Json
+          session_key: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_user_id?: string | null
+          call_type?: string | null
+          client_id?: string | null
+          company_id?: string | null
+          contact_id?: string | null
+          created_at?: string
+          created_contact?: boolean
+          created_lead?: boolean
+          expires_at?: string
+          general_call_id?: string | null
+          id?: string
+          lead_id?: string | null
+          pbx_number?: string | null
+          phone_norm?: string | null
+          response?: Json
+          session_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      binotel_employee_mappings: {
+        Row: {
+          binotel_email: string | null
+          binotel_employee_id: string | null
+          binotel_employee_name: string | null
+          binotel_internal_number: string | null
+          created_at: string
+          department: string | null
+          id: string
+          is_active: boolean
+          last_synced_at: string | null
+          local_user_id: string | null
+          mapping_status: string
+          raw: Json
+          updated_at: string
+        }
+        Insert: {
+          binotel_email?: string | null
+          binotel_employee_id?: string | null
+          binotel_employee_name?: string | null
+          binotel_internal_number?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          local_user_id?: string | null
+          mapping_status?: string
+          raw?: Json
+          updated_at?: string
+        }
+        Update: {
+          binotel_email?: string | null
+          binotel_employee_id?: string | null
+          binotel_employee_name?: string | null
+          binotel_internal_number?: string | null
+          created_at?: string
+          department?: string | null
+          id?: string
+          is_active?: boolean
+          last_synced_at?: string | null
+          local_user_id?: string | null
+          mapping_status?: string
+          raw?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      binotel_pbx_mappings: {
+        Row: {
+          created_at: string
+          default_assignee: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          pbx_number: string
+          pbx_number_name: string | null
+          pipeline_id: string | null
+          service_direction: string | null
+          source_label: string | null
+          stage_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_assignee?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          pbx_number: string
+          pbx_number_name?: string | null
+          pipeline_id?: string | null
+          service_direction?: string | null
+          source_label?: string | null
+          stage_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_assignee?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          pbx_number?: string
+          pbx_number_name?: string | null
+          pipeline_id?: string | null
+          service_direction?: string | null
+          source_label?: string | null
+          stage_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binotel_pbx_mappings_pipeline_id_fkey"
+            columns: ["pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binotel_pbx_mappings_stage_id_fkey"
+            columns: ["stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      binotel_settings: {
+        Row: {
+          auto_create_contact: boolean
+          auto_create_lead: boolean
+          auto_create_missed_task: boolean
+          created_at: string
+          default_pipeline_id: string | null
+          default_stage_id: string | null
+          escalation_minutes: number
+          id: string
+          integration_id: string | null
+          missed_sla_minutes: number
+          reconcile_window_hours: number
+          route_to_assigned_manager: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          auto_create_contact?: boolean
+          auto_create_lead?: boolean
+          auto_create_missed_task?: boolean
+          created_at?: string
+          default_pipeline_id?: string | null
+          default_stage_id?: string | null
+          escalation_minutes?: number
+          id?: string
+          integration_id?: string | null
+          missed_sla_minutes?: number
+          reconcile_window_hours?: number
+          route_to_assigned_manager?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          auto_create_contact?: boolean
+          auto_create_lead?: boolean
+          auto_create_missed_task?: boolean
+          created_at?: string
+          default_pipeline_id?: string | null
+          default_stage_id?: string | null
+          escalation_minutes?: number
+          id?: string
+          integration_id?: string | null
+          missed_sla_minutes?: number
+          reconcile_window_hours?: number
+          route_to_assigned_manager?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "binotel_settings_default_pipeline_id_fkey"
+            columns: ["default_pipeline_id"]
+            isOneToOne: false
+            referencedRelation: "crm_pipelines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binotel_settings_default_stage_id_fkey"
+            columns: ["default_stage_id"]
+            isOneToOne: false
+            referencedRelation: "crm_stages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "binotel_settings_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       calendar_events: {
         Row: {
           address: string | null
@@ -769,58 +1010,112 @@ export type Database = {
       }
       crm_calls: {
         Row: {
+          answered_at: string | null
+          answered_employee_id: string | null
+          call_tracking: Json
+          client_id: string | null
+          company_id: string | null
           contact_id: string | null
           created_at: string
           direction: Database["public"]["Enums"]["crm_call_direction"]
+          disposition_raw: string | null
           duration_sec: number
+          employee_id: string | null
+          ended_at: string | null
           external_id: string | null
+          external_source: string | null
           from_number: string | null
           id: string
+          internal_number: string | null
+          is_missed: boolean
+          is_new_call: boolean
           lead_id: string | null
           owner_id: string
           payload: Json
+          pbx_number: string | null
+          pbx_number_name: string | null
           phone_norm: string | null
+          provider: string | null
+          recording_available: boolean
+          recording_checked_at: string | null
           recording_url: string | null
           started_at: string
           status: string | null
           to_number: string | null
           updated_at: string
+          wait_seconds: number | null
         }
         Insert: {
+          answered_at?: string | null
+          answered_employee_id?: string | null
+          call_tracking?: Json
+          client_id?: string | null
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           direction?: Database["public"]["Enums"]["crm_call_direction"]
+          disposition_raw?: string | null
           duration_sec?: number
+          employee_id?: string | null
+          ended_at?: string | null
           external_id?: string | null
+          external_source?: string | null
           from_number?: string | null
           id?: string
+          internal_number?: string | null
+          is_missed?: boolean
+          is_new_call?: boolean
           lead_id?: string | null
           owner_id?: string
           payload?: Json
+          pbx_number?: string | null
+          pbx_number_name?: string | null
           phone_norm?: string | null
+          provider?: string | null
+          recording_available?: boolean
+          recording_checked_at?: string | null
           recording_url?: string | null
           started_at?: string
           status?: string | null
           to_number?: string | null
           updated_at?: string
+          wait_seconds?: number | null
         }
         Update: {
+          answered_at?: string | null
+          answered_employee_id?: string | null
+          call_tracking?: Json
+          client_id?: string | null
+          company_id?: string | null
           contact_id?: string | null
           created_at?: string
           direction?: Database["public"]["Enums"]["crm_call_direction"]
+          disposition_raw?: string | null
           duration_sec?: number
+          employee_id?: string | null
+          ended_at?: string | null
           external_id?: string | null
+          external_source?: string | null
           from_number?: string | null
           id?: string
+          internal_number?: string | null
+          is_missed?: boolean
+          is_new_call?: boolean
           lead_id?: string | null
           owner_id?: string
           payload?: Json
+          pbx_number?: string | null
+          pbx_number_name?: string | null
           phone_norm?: string | null
+          provider?: string | null
+          recording_available?: boolean
+          recording_checked_at?: string | null
           recording_url?: string | null
           started_at?: string
           status?: string | null
           to_number?: string | null
           updated_at?: string
+          wait_seconds?: number | null
         }
         Relationships: [
           {
@@ -1262,6 +1557,7 @@ export type Database = {
           created_at: string
           description: string | null
           due_at: string | null
+          external_key: string | null
           id: string
           kind: string
           lead_id: string | null
@@ -1280,6 +1576,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_at?: string | null
+          external_key?: string | null
           id?: string
           kind?: string
           lead_id?: string | null
@@ -1298,6 +1595,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           due_at?: string | null
+          external_key?: string | null
           id?: string
           kind?: string
           lead_id?: string | null
