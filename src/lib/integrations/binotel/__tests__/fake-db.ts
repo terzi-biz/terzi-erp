@@ -5,6 +5,12 @@
  */
 type Row = Record<string, any>;
 
+/** Значення DEFAULT з міграцій, які in-memory сховище не знає саме. */
+const TABLE_DEFAULTS: Record<string, Row> = {
+  crm_leads: { status: "open" },
+  crm_tasks: { status: "open", priority: "normal" },
+};
+
 class Query {
   private op: "select" | "insert" | "update" | "delete" = "select";
   private filters: Array<[string, any]> = [];
@@ -61,7 +67,12 @@ class Query {
   private run(): { data: Row[]; count: number } {
     if (this.op === "insert") {
       const items = Array.isArray(this.payload) ? this.payload : [this.payload!];
-      const created = items.map((r) => ({ id: crypto.randomUUID(), created_at: new Date().toISOString(), ...r }));
+      const created = items.map((r) => ({
+        id: crypto.randomUUID(),
+        created_at: new Date().toISOString(),
+        ...(TABLE_DEFAULTS[this.table] ?? {}),
+        ...r,
+      }));
       this.rows.push(...created);
       return { data: created, count: created.length };
     }

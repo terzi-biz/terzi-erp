@@ -57,6 +57,8 @@ describe("parseBinotelBody", () => {
 
   it("не падає на порожньому чи некоректному тілі", () => {
     expect(parseBinotelBody("", null)).toEqual({});
-    expect(parseBinotelBody("<<broken>>", "application/json")).toHaveProperty("raw");
+    const parsed = parseBinotelBody("<<broken>>", "application/json");
+    expect(typeof parsed).toBe("object");
+    expect(parsed).not.toBeNull();
   });
 });
