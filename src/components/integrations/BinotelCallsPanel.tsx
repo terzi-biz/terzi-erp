@@ -53,6 +53,7 @@ export function BinotelCallsPanel() {
   const [disposition, setDisposition] = useState("all");
   const [direction, setDirection] = useState("all");
   const [sla, setSla] = useState<"all" | "no_task" | "in_sla" | "overdue" | "done">("all");
+  const [openCallId, setOpenCallId] = useState<string | null>(null);
 
   const filters = useMemo(
     () => ({
