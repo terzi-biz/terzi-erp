@@ -66,6 +66,7 @@ function InsulationPage() {
   useEstimatePrefill(search.estimate, (r) => {
     setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
     setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
+    setLink({ clientId: r.client_id ?? null, objectId: r.object_id ?? null });
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as InsulationInput) });
   });
 
@@ -89,6 +90,8 @@ function InsulationPage() {
     mutationFn: () => saveFn({ data: {
       id: estimateId,
       number: estimateNumber, module: "insulation", status: savedStatus as any,
+      client_id: link.clientId,
+      object_id: link.objectId,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: input.thicknessCm,

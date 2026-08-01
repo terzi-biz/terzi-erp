@@ -108,6 +108,7 @@ function ScreedPage() {
       name: r.client_name ?? "", phone: r.client_phone ?? "",
       address: r.address ?? "", manager: r.manager ?? "",
     });
+    setLink({ clientId: r.client_id ?? null, objectId: r.object_id ?? null });
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as ScreedInput) });
   });
 
@@ -124,6 +125,8 @@ function ScreedPage() {
       number: estimateNumber,
       module: "screed",
       status: savedStatus as any,
+      client_id: link.clientId,
+      object_id: link.objectId,
       client_name: client.name || null,
       client_phone: client.phone || null,
       address: client.address || null,
