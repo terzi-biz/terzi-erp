@@ -325,3 +325,40 @@ export const runIntegrationAdapterTest = createServerFn({ method: "POST" })
     const res = await adapterSelfTestOp(context.userId, data);
     return { ok: res.ok, message: res.message ?? null, httpStatus: res.httpStatus ?? null, data: JSON.stringify(res.data ?? null) };
   });
+
+/* ---------------------- Початковий імпорт keyCRM ---------------------- */
+
+export const listKeyCrmImportRuns = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ integrationId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { listImportRunsOp } = await import("./integrations/sync-ops.server");
+    return listImportRunsOp(context.userId, data.integrationId);
+  });
+
+export const startKeyCrmImport = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z.object({ integrationId: z.string().uuid(), entities: z.array(z.string().max(40)).max(20).optional() }).parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { startImportOp } = await import("./integrations/sync-ops.server");
+    return startImportOp(context.userId, data);
+  });
+
+export const runKeyCrmImportChunk = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        integrationId: z.string().uuid(),
+        entity: z.string().min(1).max(40),
+        pageSize: z.number().int().min(10).max(50).optional(),
+        dryRun: z.boolean().optional(),
+      })
+      .parse(d),
+  )
+  .handler(async ({ context, data }) => {
+    const { importChunkOp } = await import("./integrations/sync-ops.server");
+    return importChunkOp(context.userId, data);
+  });

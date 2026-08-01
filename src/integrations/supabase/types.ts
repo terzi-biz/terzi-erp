@@ -1959,6 +1959,71 @@ export type Database = {
           },
         ]
       }
+      integration_import_runs: {
+        Row: {
+          applied: number
+          created_at: string
+          entity: string
+          failed: number
+          finished_at: string | null
+          id: string
+          integration_id: string
+          last_error: string | null
+          page: number
+          page_size: number
+          received: number
+          skipped: number
+          started_at: string | null
+          status: string
+          total_estimate: number | null
+          updated_at: string
+        }
+        Insert: {
+          applied?: number
+          created_at?: string
+          entity: string
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          integration_id: string
+          last_error?: string | null
+          page?: number
+          page_size?: number
+          received?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          total_estimate?: number | null
+          updated_at?: string
+        }
+        Update: {
+          applied?: number
+          created_at?: string
+          entity?: string
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          integration_id?: string
+          last_error?: string | null
+          page?: number
+          page_size?: number
+          received?: number
+          skipped?: number
+          started_at?: string | null
+          status?: string
+          total_estimate?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "integration_import_runs_integration_id_fkey"
+            columns: ["integration_id"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       integration_line_map: {
         Row: {
           company_number: string | null

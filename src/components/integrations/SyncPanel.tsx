@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
 import { ConflictsPanel } from "./ConflictsPanel";
+import { ImportPanel } from "./ImportPanel";
 import { SYNC_MODE_HINT, SYNC_MODE_LABEL, type SyncMode } from "@/lib/integrations/keycrm-constants";
 import {
   listIntegrationSyncSettings,
@@ -82,6 +83,8 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
           ))}
         </div>
       )}
+
+      <ImportPanel integrationId={current.id} />
 
       <div className="panel p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
