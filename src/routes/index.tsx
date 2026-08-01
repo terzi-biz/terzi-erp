@@ -56,7 +56,7 @@ function Dashboard() {
           <h1 className="text-3xl font-black tracking-tight">{t("appName")}</h1>
           <p className="text-muted-foreground mt-1">{t("tagline")}</p>
         </div>
-        <Link to="/screed" className="bg-primary text-primary-foreground px-5 py-3 rounded-md font-bold uppercase tracking-wide text-sm hover:opacity-90 inline-flex items-center gap-2">
+        <Link to="/screed" search={{ estimate: undefined }} className="bg-primary text-primary-foreground px-5 py-3 rounded-md font-bold uppercase tracking-wide text-sm hover:opacity-90 inline-flex items-center gap-2">
           <Plus className="w-4 h-4" /> {t("newEstimate")}
         </Link>
       </header>

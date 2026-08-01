@@ -175,7 +175,7 @@ function ClientsPage() {
                   <FileText className="w-3 h-3" /> Кошториси
                   {expanded[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
-                <Link to="/screed" className="text-xs px-3 py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
+                <Link to="/screed" search={{ estimate: undefined }} className="text-xs px-3 py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
                   + Новий
                 </Link>
                 <button onClick={() => confirm(`Видалити "${c.name}"?`) && delMut.mutate(c.id)}

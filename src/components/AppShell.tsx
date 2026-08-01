@@ -154,7 +154,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
               </button>
               {opened && (
                 <div className="bg-sidebar-accent/40">
-                  <Link to={`/${m}`} className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === `/${m}` ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
+                  <Link to={`/${m}`} search={{ estimate: undefined }} className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === `/${m}` ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
                     <Wrench className="w-3 h-3" /> Калькулятор
                   </Link>
                   <Link to="/materials" search={{ module: m }} className="flex items-center gap-2 pl-12 pr-4 py-2 text-xs text-sidebar-foreground/80 hover:text-sidebar-foreground">
