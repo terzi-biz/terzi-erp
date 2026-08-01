@@ -202,6 +202,8 @@ export function BinotelCallsPanel() {
       </div>
 
       {q.error ? <p className="text-sm text-destructive">{(q.error as any)?.message ?? "Помилка завантаження"}</p> : null}
+
+      {openCallId ? <BinotelCallDialog generalCallId={openCallId} onClose={() => setOpenCallId(null)} /> : null}
     </div>
   );
 }
