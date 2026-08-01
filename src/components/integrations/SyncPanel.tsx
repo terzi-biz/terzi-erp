@@ -4,6 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ArrowLeftRight, Loader2, RefreshCw } from "lucide-react";
 import { ConflictsPanel } from "./ConflictsPanel";
+import { OneWayPanel } from "./OneWayPanel";
+
 import { ImportPanel } from "./ImportPanel";
 import { SYNC_MODE_HINT, SYNC_MODE_LABEL, type SyncMode } from "@/lib/integrations/keycrm-constants";
 import {
