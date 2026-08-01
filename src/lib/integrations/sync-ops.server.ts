@@ -273,3 +273,38 @@ export async function runDuePolls(): Promise<any[]> {
   }
   return out;
 }
+
+/* ------------------------ початковий імпорт keyCRM ------------------------ */
+
+export async function listImportRunsOp(userId: string, integrationId: string) {
+  await canView(userId);
+  const { listImportRuns } = await import("./keycrm/import.server");
+  return listImportRuns(integrationId);
+}
+
+export async function startImportOp(userId: string, input: { integrationId: string; entities?: string[] }) {
+  const actor = await requireAccessManager(userId);
+  const { startImport } = await import("./keycrm/import.server");
+  const res = await startImport(input.integrationId, input.entities);
+  await writeAudit(actor, {
+    module: "integrations",
+    action: "import_start",
+    entityType: "integration",
+    entityId: input.integrationId,
+    newValue: res,
+    isCritical: true,
+  });
+  return res;
+}
+
+export async function importChunkOp(
+  userId: string,
+  input: { integrationId: string; entity: string; pageSize?: number; dryRun?: boolean },
+) {
+  await requireAccessManager(userId);
+  const integration = await loadIntegration(input.integrationId);
+  if (!integration) throw new Error("Підключення не знайдено");
+  const ctx = await buildContext(integration);
+  const { importChunk } = await import("./keycrm/import.server");
+  return importChunk(ctx, input.entity, { pageSize: input.pageSize, dryRun: input.dryRun });
+}
