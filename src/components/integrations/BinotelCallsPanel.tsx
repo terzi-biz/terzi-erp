@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Clock, PhoneIncoming, PhoneMissed, RefreshCw, Search } from "lucide-react";
 import { listBinotelCalls } from "@/lib/binotel.functions";
+import { BinotelCallDialog } from "@/components/integrations/BinotelCallDialog";
 
 const card = "rounded-xl border border-border bg-card p-4";
 const inp = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
@@ -52,6 +53,7 @@ export function BinotelCallsPanel() {
   const [disposition, setDisposition] = useState("all");
   const [direction, setDirection] = useState("all");
   const [sla, setSla] = useState<"all" | "no_task" | "in_sla" | "overdue" | "done">("all");
+  const [openCallId, setOpenCallId] = useState<string | null>(null);
 
   const filters = useMemo(
     () => ({
@@ -169,7 +171,11 @@ export function BinotelCallsPanel() {
             {items.map((c) => {
               const s = SLA_LABEL[c.sla_status] ?? SLA_LABEL.not_applicable!;
               return (
-                <tr key={c.id} className="border-t border-border">
+                <tr
+                  key={c.id}
+                  className={`border-t border-border ${c.external_id ? "cursor-pointer hover:bg-secondary/60" : ""}`}
+                  onClick={() => c.external_id && setOpenCallId(String(c.external_id))}
+                >
                   <td className="px-3 py-2 whitespace-nowrap">{fmtDate(c.started_at)}</td>
                   <td className="px-3 py-2">{c.direction === "inbound" ? "Вхідний" : "Вихідний"}</td>
                   <td className="px-3 py-2">
@@ -196,6 +202,8 @@ export function BinotelCallsPanel() {
       </div>
 
       {q.error ? <p className="text-sm text-destructive">{(q.error as any)?.message ?? "Помилка завантаження"}</p> : null}
+
+      {openCallId ? <BinotelCallDialog generalCallId={openCallId} onClose={() => setOpenCallId(null)} /> : null}
     </div>
   );
 }

@@ -16,7 +16,7 @@ import { sanitizeColorsDeep } from "@/lib/colorSafe";
 
 
 /** Ширина «віртуального аркуша» для рендера (px). Відповідає A4 при ~110 DPI. */
-const EXPORT_WIDTH = 1000;
+const EXPORT_WIDTH = 900;
 const CLONE_MARK = "data-terzi-export-root";
 
 const BASE_OPTS = {
@@ -43,7 +43,14 @@ function normalizeClone(original: HTMLElement, clonedEl: HTMLElement, clonedDoc:
   clonedEl.style.maxWidth = "none";
   clonedEl.style.minWidth = `${EXPORT_WIDTH}px`;
   clonedEl.style.overflow = "visible";
-  clonedEl.style.padding = "18px";
+  // Аркуш друкується «під обріз»: без власних полів, рамок і тіней —
+  // поля задає сам PDF, інакше на сторінці зʼявляється зайва біла рамка.
+  clonedEl.style.padding = "6px";
+  clonedEl.style.margin = "0";
+  clonedEl.style.border = "none";
+  clonedEl.style.borderRadius = "0";
+  clonedEl.style.boxShadow = "none";
+  clonedEl.style.background = "#ffffff";
 
   const origFields = Array.from(
     original.querySelectorAll<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>("input, textarea, select"),
@@ -207,7 +214,7 @@ async function buildPdf(el: HTMLElement): Promise<PdfLayout> {
 
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210, pageH = 297;
-  const sideMargin = 8;              // поля лише для контенту
+  const sideMargin = 5;              // поля лише для контенту
   const usableW = pageW - sideMargin * 2;
 
   // Колонтитули — на всю ширину аркуша (без білих границь)

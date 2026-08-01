@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import {
   DEFAULT_MATERIAL_PRICES, DEFAULT_WORK_PRICES,
   type MaterialPrice,
+  DEFAULT_LOGISTICS_PRICES,
 } from "@/lib/screed-calc";
 import { DEFAULT_ROOFING_PRICES, DEFAULT_ROOFING_WORKS, DEFAULT_ROOFING_WORK_COSTS } from "@/lib/roofing-calc";
 import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
@@ -54,6 +55,22 @@ export function useModulePricing(module: Module) {
     enabled,
   });
 
+  const logistics = useQuery({
+    queryKey: ["catalog", module, "logistics"],
+    queryFn: () => fetchList({ data: { module, kind: "logistics" } }),
+    staleTime: 60_000,
+    enabled,
+  });
+
+  const logisticsPrices = useMemo<Record<string, MaterialPrice>>(() => {
+    const out: Record<string, MaterialPrice> = module === "screed" ? { ...DEFAULT_LOGISTICS_PRICES } : {};
+    for (const r of (logistics.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
+      if (!r.code) continue;
+      out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
+    }
+    return out;
+  }, [logistics.data, module]);
+
   const materialPrices = useMemo<Record<string, MaterialPrice>>(() => {
     const out: Record<string, MaterialPrice> = { ...(MODULE_DEFAULT_MATERIALS[module] ?? {}) };
     for (const r of (mats.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
@@ -80,5 +97,5 @@ export function useModulePricing(module: Module) {
     return out;
   }, [works.data, module]);
 
-  return { materialPrices, workPrices, workCostPrices, loading: mats.isLoading || works.isLoading };
+  return { materialPrices, workPrices, workCostPrices, logisticsPrices, loading: mats.isLoading || works.isLoading };
 }

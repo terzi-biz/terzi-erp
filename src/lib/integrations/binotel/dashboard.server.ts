@@ -102,3 +102,75 @@ export async function binotelCallsDashboardOp(userId: string, f: CallsFilter = {
 
   return { items, stats };
 }
+
+/** Повна картка дзвінка: запис розмови, диспозиція, звʼязані сутності та історія подій. */
+export async function binotelCallDetailOp(userId: string, generalCallId: string) {
+  await canView(userId);
+  const db = await admin();
+
+  const { data: call, error } = await db
+    .from("crm_calls")
+    .select("*")
+    .eq("provider", "binotel")
+    .eq("external_id", generalCallId)
+    .maybeSingle();
+  if (error) throw new Error(`Не вдалося завантажити дзвінок: ${error.message}`);
+  if (!call) throw new Error("Дзвінок не знайдено");
+  const row = call as any;
+
+  const [contactRes, leadRes, taskRes, employeeRes] = await Promise.all([
+    row.contact_id ? db.from("crm_contacts").select("id,full_name,phone").eq("id", row.contact_id).maybeSingle() : Promise.resolve({ data: null }),
+    row.lead_id ? db.from("crm_leads").select("id,title,status_id,pipeline_id").eq("id", row.lead_id).maybeSingle() : Promise.resolve({ data: null }),
+    db.from("crm_tasks").select("id,title,status,due_at,completed_at,assigned_to").eq("external_key", `binotel:missed:${generalCallId}`).maybeSingle(),
+    row.employee_id ? db.from("profiles").select("user_id,display_name,email").eq("user_id", row.employee_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+
+  // Історія подій інтеграції за цим generalCallID + журнал спроб по кожній події.
+  const { data: events } = await db
+    .from("integration_events")
+    .select("id,event_type,direction,status,attempts,created_at,updated_at,idempotency_key,last_error")
+    .eq("provider_key", "binotel")
+    .eq("entity_id", generalCallId)
+    .order("created_at", { ascending: true });
+
+  const eventIds = ((events ?? []) as any[]).map((e) => e.id);
+  let logs: any[] = [];
+  if (eventIds.length) {
+    const { data } = await db
+      .from("integration_event_logs")
+      .select("id,event_id,level,message,http_status,duration_ms,created_at")
+      .in("event_id", eventIds)
+      .order("created_at", { ascending: true });
+    logs = (data ?? []) as any[];
+  }
+
+  const timeline = [
+    ...((events ?? []) as any[]).map((e) => ({
+      kind: "event" as const,
+      at: e.created_at,
+      title: e.event_type,
+      detail: `статус: ${e.status}${e.attempts ? ` · спроб: ${e.attempts}` : ""}${e.last_error ? ` · ${e.last_error}` : ""}`,
+      level: e.status === "failed" ? "error" : "info",
+    })),
+    ...logs.map((l) => ({
+      kind: "log" as const,
+      at: l.created_at,
+      title: l.message ?? "Запис журналу",
+      detail: [l.http_status ? `HTTP ${l.http_status}` : null, l.duration_ms != null ? `${l.duration_ms} мс` : null].filter(Boolean).join(" · "),
+      level: l.level ?? "info",
+    })),
+  ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+  return {
+    call: {
+      ...row,
+      contact_name: (contactRes as any)?.data?.full_name ?? null,
+      employee_name: (employeeRes as any)?.data?.display_name ?? (employeeRes as any)?.data?.email ?? null,
+    },
+    contact: (contactRes as any)?.data ?? null,
+    lead: (leadRes as any)?.data ?? null,
+    task: (taskRes as any)?.data ?? null,
+    sla_status: slaFor(row, (taskRes as any)?.data ?? null),
+    timeline,
+  };
+}

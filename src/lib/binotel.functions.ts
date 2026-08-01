@@ -148,3 +148,11 @@ export const listBinotelCalls = createServerFn({ method: "GET" })
     const { binotelCallsDashboardOp } = await import("./integrations/binotel/dashboard.server");
     return binotelCallsDashboardOp(context.userId, data);
   });
+
+export const getBinotelCallDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ generalCallId: z.string().min(1).max(64) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { binotelCallDetailOp } = await import("./integrations/binotel/dashboard.server");
+    return binotelCallDetailOp(context.userId, data.generalCallId);
+  });
