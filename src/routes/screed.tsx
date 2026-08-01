@@ -89,7 +89,7 @@ function ScreedPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { settings, branding } = useAppStore();
-  const { materialPrices, workPrices } = useModulePricing("screed");
+  const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed");
   const search = Route.useSearch();
   const [input, setInput] = useState<ScreedInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
@@ -112,7 +112,7 @@ function ScreedPage() {
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as ScreedInput) });
   });
 
-  const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings), [input, materialPrices, workPrices, settings]);
+  const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings, logisticsPrices), [input, materialPrices, workPrices, logisticsPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
 
   const upd = <K extends keyof ScreedInput>(k: K, v: ScreedInput[K]) => setInput((s) => ({ ...s, [k]: v }));
