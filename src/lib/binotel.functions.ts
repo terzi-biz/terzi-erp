@@ -128,3 +128,23 @@ export const getBinotelWebhookUrls = createServerFn({ method: "GET" })
     const { binotelWebhookUrlsOp } = await import("./integrations/binotel/ops.server");
     return binotelWebhookUrlsOp(context.userId);
   });
+
+export const listBinotelCalls = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z
+      .object({
+        from: z.string().nullable().optional(),
+        to: z.string().nullable().optional(),
+        generalCallId: z.string().max(64).nullable().optional(),
+        disposition: z.string().max(32).nullable().optional(),
+        direction: z.string().max(16).nullable().optional(),
+        sla: z.enum(["all", "no_task", "in_sla", "overdue", "done"]).optional(),
+        limit: z.number().int().min(1).max(500).optional(),
+      })
+      .parse(d ?? {}),
+  )
+  .handler(async ({ context, data }) => {
+    const { binotelCallsDashboardOp } = await import("./integrations/binotel/dashboard.server");
+    return binotelCallsDashboardOp(context.userId, data);
+  });
