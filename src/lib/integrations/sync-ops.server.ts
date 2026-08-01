@@ -3,7 +3,7 @@ import { admin, loadActor, requireAccessManager, requirePermission, writeAudit }
 import { buildContext, enqueueEvent, loadIntegration, processEvent } from "./core.server";
 import { getAdapter } from "./adapter.server";
 import { runKeyCrmSync } from "./keycrm/sync.server";
-import { KEYCRM_ENTITIES, type SyncMode } from "./keycrm-constants";
+import { KEYCRM_ENTITIES, KEYCRM_WEBHOOK_EVENTS, type SyncMode } from "./keycrm-constants";
 
 async function canView(userId: string) {
   const actor = await loadActor(userId);
