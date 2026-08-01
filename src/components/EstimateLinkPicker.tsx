@@ -32,8 +32,8 @@ export function EstimateLinkPicker({
   const fnSaveClient = useServerFn(upsertClient);
   const fnSaveObject = useServerFn(saveObject);
 
-  const clients = useQuery({ queryKey: ["clients"], queryFn: () => fnClients({}) });
-  const objects = useQuery({ queryKey: ["objects"], queryFn: () => fnObjects({}) });
+  const clients = useQuery({ queryKey: ["clients"], queryFn: () => fnClients() });
+  const objects = useQuery({ queryKey: ["objects"], queryFn: () => fnObjects() });
 
   const [newClient, setNewClient] = useState<null | { name: string; phone: string; address: string }>(null);
   const [newObject, setNewObject] = useState<null | { name: string; address: string }>(null);
