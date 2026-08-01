@@ -407,9 +407,13 @@ export function calculateScreed(
   // Усі ставки — з прайс-книги логістики (каталог `screed.logistics`).
   const stCity = lp("station_city");
   const stKm = lp("station_km");
+  // Ставка «км×2»: якщо у прайсі вказано > 200 грн, трактуємо її як фіксовану
+  // надбавку за виїзд за місто, інакше — як ціну за кілометр.
   const kmQty = input.cityDelivery ? 0 : input.outOfCityKm * 2;
-  const stationSell = input.cityDelivery ? stCity.sell : Math.max(stCity.sell, kmQty * stKm.sell);
-  const stationCost = input.cityDelivery ? stCity.buy : Math.max(stCity.buy, kmQty * stKm.buy);
+  const kmSell = stKm.sell > 200 ? stKm.sell : kmQty * stKm.sell;
+  const kmCost = stKm.buy > 200 ? stKm.buy : kmQty * stKm.buy;
+  const stationSell = input.cityDelivery ? stCity.sell : stCity.sell + kmSell;
+  const stationCost = input.cityDelivery ? stCity.buy : stCity.buy + kmCost;
   lines.push({ key: "log_station", block: "logistics", name: "stationDelivery", unit: "шт", qty: 1,
     pricePerUnit: stationSell, costPerUnit: stationCost,
     sum: stationSell, cost: stationCost, showToClient: true });
