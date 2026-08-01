@@ -1,45 +1,80 @@
-## 1. Що вже є (переиспользуем)
-`user_access` / `role_permissions` / `has_permission` для прав, `audit_logs` + `writeAudit` для журналу, `notification_rules` для сповіщень, патерн `*.functions.ts` (90 server functions) + `*.server.ts`, `settings.tsx` з вкладками (`Tab` union, рядок 27), секрети — тільки backend (`process.env` всередині handler).
+# Незалежний аудит TERZI ERP (read-only)
 
-## 2. Нові таблиці (одна міграція, GRANT + RLS, доступ лише owner/ops_admin)
-- `integration_providers` — довідник адаптерів (key, назва, тип auth, схема конфігу, статус реалізації).
-- `integrations` — підключення: provider_key, назва, стан (`disconnected/connecting/active/error/disabled`), конфіг (без секретів), останній тест, останній успіх/помилка, увімкнено.
-- `integration_secrets` — тільки посилання на ключі у Vault/секрети + метадані (маска, ким і коли оновлено). Значення в таблиці не зберігаються.
-- `integration_oauth_states` — одноразовий state/PKCE, TTL.
-- `integration_tokens` — access/refresh (шифровані), expires_at, scopes.
-- `integration_webhooks` — вхідні ендпоінти (slug, secret_ref, спосіб підпису) і вихідні (URL, події, secret).
-- `integration_events` — черга: напрям, provider, тип події, payload, статус (`pending/processing/done/failed/dead`), attempt, next_retry_at, idempotency_key (unique), dedup_hash.
-- `integration_event_logs` — незмінний журнал спроб: HTTP-код, тривалість, запит/відповідь (обрізані, з маскуванням), помилка.
-- `integration_field_mappings` — provider ↔ ERP-сутність, пара полів, трансформ, напрям, обов'язковість.
+Аудит без жодних змін коду, схеми, RLS, ролей чи даних. Результат — тільки набір звітів у `docs/audit/`.
 
-## 3. HTTP-ендпоінти (TanStack server routes, без Edge Functions)
-- `src/routes/api/public/integrations/$slug/webhook.ts` — прийом вхідних: перевірка підпису над сирим body, idempotency за заголовком/хешем, миттєвий запис у `integration_events` і `200`, обробка асинхронна.
-- `src/routes/api/public/integrations/oauth/callback.ts` — обмін коду, перевірка state.
-- `src/routes/api/public/integrations/worker.ts` — тік черги за секретним заголовком (виклик з pg_cron), бере пачку `pending`/прострочених, обробляє, ставить `next_retry_at`.
+## 1. До чого є доступ
 
-## 4. Backend-логіка
-- `src/lib/integrations.functions.ts` — CRUD підключень, тест з'єднання, вмикання/вимикання, ротація секрету, мапінги, перегляд черги/журналу, ручний retry і «в архів». Усі під `requireSupabaseAuth` + `requirePermission("integrations", …)`.
-- `src/lib/integrations.server.ts` — ядро: реєстр адаптерів, диспетчер черги, backoff (1m/5m/30m/2h/6h, максимум 5 спроб → `dead`), idempotency, маскування секретів у логах, `writeAudit` на кожну зміну.
-- `src/lib/integrations/adapter.ts` — інтерфейс адаптера: `testConnection`, `verifyWebhook`, `normalizeEvent`, `handleEvent`, `send`, `oauth`. Конкретні провайдери — окремими кроками, ядро їх не знає.
+- Повний вихідний код: 165 TS/TSX-файлів, 34 маршрути в `src/routes`, 12 модулів `*.functions.ts`, серверні `*.server.ts`, 3 публічні API-маршрути (`webhook.$slug`, `oauth.callback`, `worker`).
+- 33 SQL-міграції в `supabase/migrations`.
+- Жива база (read-only SQL), схема, RLS-політики, функції, індекси, лінтер БД і сканер безпеки.
+- Локальний dev-сервер на 8080 + Playwright для реального відкриття сторінок і зчитування console/network.
+- Git: гілка `edit/edt-5778a14b…`, commit `b020b04`.
+- Назви env-змінних (6 шт., значення не виводяться).
 
-## 5. UI
-Нова вкладка `integrations` у `src/routes/settings.tsx` + сторінка `src/routes/integrations.tsx`: список підключень зі статусом, картка (конфіг, секрети маскою, OAuth-кнопка, вебхук-URL з копіюванням), мапінг полів, черга подій з фільтрами і ручним retry, журнал помилок. Токени TERZI, адаптив, без нових залежностей.
+## 2. До чого доступу немає
 
-## 6. Права
-Новий модуль `integrations` у `permissions`/`role_permissions`: `view / manage / secrets / retry`. За замовчуванням `manage`+`secrets` лише owner і ops_admin.
+- Значення секретів і API-ключів (keyCRM, Binotel) — не читаються і не виводяться.
+- Production і staging-середовища як окремі інстанси; є лише dev-прев'ю та спільна база.
+- Налаштування бекапів, CI/CD, GitHub Actions, реальні деплой-логи.
+- Зовнішні системи (keyCRM, Binotel, Meta, Google Ads) — жодних викликів, що змінюють дані.
+- Автоматичні тести: у проєкті їх немає — це буде зафіксовано як факт, а не як «пройдено».
+- Реальні сесії інших ролей: перевірка рольових обмежень робиться через читання RLS/SQL, а не входом під чужими акаунтами.
 
-## 7. Ризики
-- Секрети: зберігати лише в Supabase-секретах/Vault, у БД — посилання; логи маскувати за списком чутливих ключів.
-- `/api/public/*` без авторизації — підпис обов'язковий, timing-safe порівняння, читати сире тіло до JSON.
-- Воркер на Cloudflare — короткий CPU-ліміт: маленькі пачки, ідемпотентні кроки, без довгих циклів.
-- Дублікати подій — унікальний `idempotency_key`, `INSERT … ON CONFLICT DO NOTHING`.
-- `integration_event_logs` росте — ретенція (наприклад 90 днів) окремим завданням.
+## 3. План аудиту (етапи 0–15)
 
-## 8. Порядок реалізації
-1) міграція таблиць + права; 2) ядро черги, retry, idempotency, аудит; 3) вхідні вебхуки і воркер; 4) OAuth/API Key і сховище секретів; 5) мапінг полів; 6) UI-вкладка та журнали; 7) тестовий «echo»-адаптер для перевірки ядра — і лише після цього перший реальний провайдер.
+1. Фіксація стану: стек, версії, авторизація, оточення, обмеження.
+2. Інвентаризація: маршрути, сторінки, компоненти, хуки, серверні функції, webhook-и, таблиці, view, SQL-функції, тригери, індекси, FK, enum, RLS, buckets, ролі, міграції, інтеграції.
+3. Frontend-аудит: реальне відкриття кожного маршруту в браузері, перевірка завантаження даних, кнопок без обробників, порожніх/помилкових станів, console-помилок; адаптивність на 320/375/390/430/768/1024/1440/1920.
+4. Backend-аудит: кожна серверна функція — авторизація, валідація, логування, ідемпотентність, retry, витоки, N+1, необмежені вибірки.
+5. Аудит БД: призначення таблиць, кількість записів, сироти, дублі, типи, FK, індекси, drift між міграціями і фактичною схемою.
+6. RLS і ролі: фактична матриця Роль × Розділ × CRUD × експорт × адміністрування, розбіжності «UI дозволяє / БД дозволяє».
+7. Бізнес-логіка CRM: ланцюг Звернення → … → Гарантія, дублювання сутностей (клієнти vs crm_*, об'єкти vs замовлення), статуси і переходи.
+8. Розділи ERP: по кожному — сторінка, маршрут, бекенд, таблиця, дані, дії, ролі, мобільна версія, production-готовність.
+9. Калькулятори: формули, одиниці, округлення, коефіцієнти, маржа, захардкожені ціни, версійність цін.
+10. Задачі, сповіщення, календар, виробництво.
+11. Фінанси (перевірка існування розділу і його повноти).
+12. Інтеграційна готовність і готовність до міграції 2000+ записів: external_id, provider, idempotency, payload hash, reconciliation.
+13. Безпека за OWASP + сканер безпеки + лінтер БД.
+14. Продуктивність і масштабованість на обсягах 2k–10k клієнтів.
+15. Build / lint / typecheck, ручна smoke-матриця з 30 сценаріїв.
+16. Мертвий код і заглушки: TODO/FIXME/mock/placeholder/console.log/порожні catch/кнопки без дій.
 
-## 9. Файли, що зачіпаються
-`src/routes/settings.tsx` (додати вкладку), новий `src/routes/integrations.tsx`, нові `src/routes/api/public/integrations/*`, нові `src/lib/integrations*.ts`, `src/components/AppShell.tsx` (пункт меню за правом), `src/integrations/supabase/types.ts` (регенерація після міграції). Наявні модулі не змінюються.
+## 4. Безпечні команди
 
-## 10. Поза межами кроку
-Конкретні провайдери (Binotel, keyCRM, Meta, Google Ads, WordPress, Telegram), їхні поля й мапінги — окремими етапами після приймання ядра.
+- `bun install --frozen-lockfile` (перевірка цілісності залежностей)
+- `bun run build`
+- `bun run lint`
+- `tsgo --noEmit` (typecheck)
+- `rg` — пошук TODO/mock/hardcode/console.log/порожніх обробників
+- Playwright-скрипти в `/tmp/browser/` — тільки відкриття сторінок і читання стану, без створення/зміни записів
+- Тести: відсутні — буде зафіксовано «Автоматичні тести відсутні»
+
+## 5. Read-only SQL-запити
+
+- Перелік таблиць, колонок, типів, nullable, дефолтів.
+- FK, PK, unique constraints, індекси, enum-типи, тригери, SQL-функції (з `security definer`).
+- Усі RLS-політики та таблиці з/без RLS.
+- `count(*)` і розмір по кожній таблиці.
+- Сироти й дублі: записи без клієнта, ліди без контакту, оплати без замовлення, дублі за телефоном/email/external_id.
+- Storage buckets і їх публічність.
+- `supabase--linter` і сканер безпеки.
+
+Жодних INSERT/UPDATE/DELETE/DDL.
+
+## 6. Документи, які будуть створені (`docs/audit/`)
+
+EXECUTIVE_SUMMARY.md, SYSTEM_ARCHITECTURE.md, FRONTEND_AUDIT.md, BACKEND_AUDIT.md, DATABASE_AUDIT.md, SECURITY_AUDIT.md, RLS_ROLE_MATRIX.md, BUSINESS_LOGIC_AUDIT.md, CRM_AUDIT.md, INTEGRATION_READINESS.md, DATA_MIGRATION_READINESS.md, PERFORMANCE_AUDIT.md, TEST_REPORT.md, DEAD_CODE_AND_STUBS.md, ISSUE_REGISTER.md, ISSUE_REGISTER.json, PAGE_MATRIX.md, DATABASE_MATRIX.md, ROUTE_MATRIX.md, API_AND_FUNCTION_MATRIX.md, FINAL_ROADMAP.md, AUDIT_MANIFEST.md.
+
+Плюс оцінки 0–100 за 27 напрямами, рівень готовності та фінальні відповіді на 30 питань.
+
+## 7. Очікувані обмеження
+
+- Рольові перевірки — статичні (аналіз RLS і серверного коду), бо створювати тестових користувачів заборонено; кожен такий висновок буде позначено як статичний аналіз.
+- Навантажувальні висновки (2k–10k записів) — розрахункові за структурою запитів та індексами, без реального навантаження; позначаються як прогноз.
+- Все, що не вдалося перевірити, буде позначено «НЕ ПЕРЕВІРЕНО» з причиною.
+
+## 8. Технічні деталі виконання
+
+Аудит паралелиться підагентами по доменах (frontend/маршрути, backend/серверні функції, БД+RLS, CRM-логіка, калькулятори, інтеграції, безпека, мертвий код). Кожен підагент повертає факти з посиланням на файл/рядок/SQL-об'єкт; звіти складаються централізовано, з єдиною нумерацією `TERZI-AUDIT-XXX` в ISSUE_REGISTER.
+
+Після завершення аудиту робота зупиняється. Виправлення почнуться лише за командою «ПОЧАТИ ВИПРАВЛЕННЯ ПІСЛЯ АУДИТУ».
