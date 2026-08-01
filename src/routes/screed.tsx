@@ -198,7 +198,18 @@ function ScreedPage() {
           {/* Client */}
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("clientData")}</h2>
+            <div className="mb-4">
+              <EstimateLinkPicker
+                value={link}
+                onChange={(v, meta) => {
+                  setLink(v);
+                  if (meta) setClient((c) => ({ ...c, name: meta.clientName ?? c.name, phone: meta.clientPhone ?? c.phone, address: meta.address ?? c.address }));
+                }}
+                defaults={{ clientName: client.name, clientPhone: client.phone, address: client.address }}
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
               <Field label={t("clientName")}>
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
