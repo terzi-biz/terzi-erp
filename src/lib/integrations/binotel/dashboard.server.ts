@@ -47,7 +47,7 @@ export async function binotelCallsDashboardOp(userId: string, f: CallsFilter = {
   if (f.to) q = q.lte("started_at", new Date(f.to).toISOString());
   if (f.generalCallId) q = q.ilike("external_id", `%${f.generalCallId.replace(/[%_]/g, "")}%`);
   if (f.disposition && f.disposition !== "all") q = q.eq("status", f.disposition);
-  if (f.direction && f.direction !== "all") q = q.eq("direction", f.direction);
+  if (f.direction && f.direction !== "all") q = q.eq("direction", f.direction as "inbound" | "outbound");
 
   const { data: calls, error } = await q;
   if (error) throw new Error(`Не вдалося завантажити дзвінки: ${error.message}`);
