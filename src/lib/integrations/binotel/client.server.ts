@@ -53,6 +53,7 @@ export async function binotelRequest<T = any>(
 
   let lastErr: BinotelError | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {
+    await throttle();
     const started = Date.now();
     let res: Response;
     try {
