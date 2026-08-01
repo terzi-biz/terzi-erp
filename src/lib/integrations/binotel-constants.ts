@@ -6,13 +6,11 @@
 
 export const BINOTEL_BASE_URL = "https://api.binotel.com/api/4.0";
 
-/** Методи REST API 4.0, які використовує ERP. */
+/** Методи REST API 4.0, які використовує ERP (перевірені реальними запитами). */
 export const BINOTEL_ENDPOINTS = {
   employees: "settings/list-of-employees.json",
-  pbxNumbers: "settings/list-of-pbx-numbers.json",
   callsForPeriod: "stats/list-of-calls-for-period.json",
   callRecord: "stats/call-record.json",
-  callDetails: "stats/call-details.json",
   clickToCall: "calls/internal-number-to-external-number.json",
 } as const;
 
