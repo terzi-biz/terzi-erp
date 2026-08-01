@@ -77,22 +77,21 @@ function mapCall(m: Manifest, raw: Record<string, any>) {
 export const binotelAdapter: IntegrationAdapter = {
   key: "binotel",
 
+  /** Реальна перевірка REST API 4.0: список співробітників компанії. */
   async testConnection(ctx) {
-    const m = binotelManifest(ctx);
-    if (!isReady(m)) {
-      return { ok: false, message: `${BINOTEL_STATUS_LABEL}. Заповніть provider manifest (base_url + credential_fields), щоб активувати перевірку.` };
+    const { binotelCreds } = await import("./ops.server");
+    const { binotelRequest, extractCollection } = await import("./client.server");
+    const creds = await binotelCreds(ctx.integration.id);
+    if (!creds.key || !creds.secret) {
+      return { ok: false, message: "Не задано BINOTEL_API_KEY / BINOTEL_API_SECRET" };
     }
-    const test = (m.rest_endpoints as any)?.test ?? null;
-    if (!test?.path) return { ok: false, message: "У маніфесті не задано rest_endpoints.test — додайте після отримання документації." };
-    const field = m.credential_fields.find((f) => f.secret)?.key ?? "api_key";
-    const secret = ctx.secret(field);
-    if (!secret) return { ok: false, message: `Не задано секрет «${field}»` };
-    const res = await fetch(`${String(m.base_url).replace(/\/+$/, "")}${test.path}`, {
-      method: test.method ?? "POST",
-      headers: { "Content-Type": "application/json" },
-      body: test.method === "GET" ? undefined : JSON.stringify({ [field]: secret }),
-    });
-    return { ok: res.ok, message: res.ok ? "Binotel відповідає" : `Binotel: HTTP ${res.status}`, httpStatus: res.status };
+    try {
+      const res = await binotelRequest({ key: creds.key, secret: creds.secret }, "employees", {}, { integrationId: ctx.integration.id });
+      const list = extractCollection(res, ["employeesData", "employees", "data", "list"]);
+      return { ok: true, message: `Binotel відповідає. Співробітників: ${list.length}` };
+    } catch (e: any) {
+      return { ok: false, message: e?.message ?? "Binotel недоступний", httpStatus: e?.status ?? undefined };
+    }
   },
 
   /** Поки правила підпису невідомі — приймаємо лише за секретним endpoint token. */

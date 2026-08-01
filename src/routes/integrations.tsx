@@ -134,7 +134,7 @@ function IntegrationsPage() {
         />
       )}
       {tab === "sync" && <SyncPanel list={list} active={active} onSelect={setSelected} />}
-      {tab === "binotel" && <BinotelPanel list={list} active={active} onSelect={setSelected} />}
+      {tab === "binotel" && <BinotelPanel />}
       {tab === "webhooks" && <Webhooks list={list} active={active} onSelect={setSelected} onChanged={invalidate} />}
       {tab === "mapping" && <Mapping list={list} active={active} onSelect={setSelected} />}
       {tab === "queue" && <Queue list={list} onChanged={invalidate} />}
