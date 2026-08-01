@@ -20,6 +20,7 @@ import {
 } from "@/lib/integrations.functions";
 import { SyncPanel } from "@/components/integrations/SyncPanel";
 import { BinotelPanel } from "@/components/integrations/BinotelPanel";
+import { BinotelCallsPanel } from "@/components/integrations/BinotelCallsPanel";
 
 export const Route = createFileRoute("/integrations")({
   head: () => ({
@@ -40,12 +41,13 @@ function useMutFn(fn: any) {
   return (data: any) => (call as any)({ data: data ?? {} });
 }
 
-type Tab = "connections" | "sync" | "binotel" | "webhooks" | "mapping" | "queue" | "logs";
+type Tab = "connections" | "sync" | "binotel" | "binotel-calls" | "webhooks" | "mapping" | "queue" | "logs";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "connections", label: "Підключення" },
   { id: "sync", label: "Синхронізація keyCRM" },
   { id: "binotel", label: "Binotel" },
+  { id: "binotel-calls", label: "Дзвінки Binotel" },
   { id: "webhooks", label: "Вебхуки" },
   { id: "mapping", label: "Мапінг полів" },
   { id: "queue", label: "Черга подій" },
@@ -135,6 +137,7 @@ function IntegrationsPage() {
       )}
       {tab === "sync" && <SyncPanel list={list} active={active} onSelect={setSelected} />}
       {tab === "binotel" && <BinotelPanel />}
+      {tab === "binotel-calls" && <BinotelCallsPanel />}
       {tab === "webhooks" && <Webhooks list={list} active={active} onSelect={setSelected} onChanged={invalidate} />}
       {tab === "mapping" && <Mapping list={list} active={active} onSelect={setSelected} />}
       {tab === "queue" && <Queue list={list} onChanged={invalidate} />}
