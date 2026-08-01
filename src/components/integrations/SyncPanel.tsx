@@ -84,7 +84,10 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
         </div>
       )}
 
+      <OneWayPanel integrationId={current.id} />
+
       <ImportPanel integrationId={current.id} />
+
 
       <div className="panel p-4 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
