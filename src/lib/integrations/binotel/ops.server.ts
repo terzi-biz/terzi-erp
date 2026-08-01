@@ -443,8 +443,8 @@ export async function binotelWebhookUrlsOp(userId: string) {
   return {
     baseConfigured: Boolean(base),
     tokenConfigured: Boolean(creds.webhookToken),
-    callSettings: `${base || "{ERP_PUBLIC_BASE_URL}"}/api/public/binotel/call-settings`,
-    callCompleted: `${base || "{ERP_PUBLIC_BASE_URL}"}/api/public/binotel/call-completed`,
+    callSettings: `${base || "{ERP_PUBLIC_BASE_URL}"}/api/public/integrations/binotel/call-settings`,
+    callCompleted: `${base || "{ERP_PUBLIC_BASE_URL}"}/api/public/integrations/binotel/call-completed`,
     tokenHeader: "x-endpoint-token",
   };
 }
