@@ -628,9 +628,25 @@ export async function saveNotificationRuleOp(actorId: string, input: { id: strin
 }
 
 /** Критична дія: остаточне видалення — лише власник, з повторним підтвердженням пароля. */
+const OWNER_PWD_WINDOW_MIN = 15;
+const OWNER_PWD_MAX_FAILS = 5;
+
 export async function verifyOwnerPasswordOp(userId: string, password: string) {
   await requireOwner(userId);
   const db = await admin();
+
+  const since = new Date(Date.now() - OWNER_PWD_WINDOW_MIN * 60_000).toISOString();
+  const { count: fails } = await db
+    .from("auth_rate_limits")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("action", "verify_owner_password")
+    .eq("succeeded", false)
+    .gte("created_at", since);
+  if ((fails ?? 0) >= OWNER_PWD_MAX_FAILS) {
+    throw new Error(`Забагато невдалих спроб. Спробуйте через ${OWNER_PWD_WINDOW_MIN} хв`);
+  }
+
   const { data: authUser } = await db.auth.admin.getUserById(userId);
   const email = authUser?.user?.email;
   if (!email) throw new Error("Не вдалося визначити акаунт");
@@ -639,7 +655,12 @@ export async function verifyOwnerPasswordOp(userId: string, password: string) {
     auth: { storage: undefined, persistSession: false, autoRefreshToken: false },
   });
   const { error } = await client.auth.signInWithPassword({ email, password });
+  await db.from("auth_rate_limits").insert({
+    user_id: userId, action: "verify_owner_password", succeeded: !error,
+  });
   if (error) throw new Error("Пароль не підтверджено");
+  await db.from("auth_rate_limits")
+    .delete().eq("user_id", userId).eq("action", "verify_owner_password").eq("succeeded", false);
   return { ok: true };
 }
 
