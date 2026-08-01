@@ -11,6 +11,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
+import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
   type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness, type RubemastBrand,
@@ -83,6 +84,7 @@ function RoofingPage() {
   const search = Route.useSearch();
   const [input, setInput] = useState<RoofingInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
+  const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
@@ -91,6 +93,7 @@ function RoofingPage() {
   useEstimatePrefill(search.estimate, (r) => {
     setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
     setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
+    setLink({ clientId: r.client_id ?? null, objectId: r.object_id ?? null });
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as RoofingInput) });
   });
 
@@ -119,6 +122,8 @@ function RoofingPage() {
     mutationFn: () => saveFn({ data: {
       id: estimateId,
       number: estimateNumber, module: "roofing", status: savedStatus as any,
+      client_id: link.clientId,
+      object_id: link.objectId,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: null,
@@ -189,6 +194,7 @@ function RoofingPage() {
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="sm:col-span-2"><EstimateLinkPicker value={link} onChange={(v, meta) => { setLink(v); if (meta) setClient((c) => ({ ...c, name: meta.clientName ?? c.name, phone: meta.clientPhone ?? c.phone, address: meta.address ?? c.address })); }} defaults={{ clientName: client.name, clientPhone: client.phone, address: client.address }} /></div>
               <Field label="Замовник"><input className={inp} value={client.name} onChange={(e) => setClient({ ...client, name: e.target.value })} /></Field>
               <Field label="Телефон"><input className={inp} value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} /></Field>
               <Field label="Адреса"><input className={inp} value={client.address} onChange={(e) => setClient({ ...client, address: e.target.value })} /></Field>

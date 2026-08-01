@@ -11,6 +11,7 @@ import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
+import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
@@ -92,6 +93,8 @@ function ScreedPage() {
   const search = Route.useSearch();
   const [input, setInput] = useState<ScreedInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
+  const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
+
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
@@ -105,6 +108,7 @@ function ScreedPage() {
       name: r.client_name ?? "", phone: r.client_phone ?? "",
       address: r.address ?? "", manager: r.manager ?? "",
     });
+    setLink({ clientId: r.client_id ?? null, objectId: r.object_id ?? null });
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as ScreedInput) });
   });
 
@@ -121,6 +125,8 @@ function ScreedPage() {
       number: estimateNumber,
       module: "screed",
       status: savedStatus as any,
+      client_id: link.clientId,
+      object_id: link.objectId,
       client_name: client.name || null,
       client_phone: client.phone || null,
       address: client.address || null,
@@ -192,7 +198,18 @@ function ScreedPage() {
           {/* Client */}
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("clientData")}</h2>
+            <div className="mb-4">
+              <EstimateLinkPicker
+                value={link}
+                onChange={(v, meta) => {
+                  setLink(v);
+                  if (meta) setClient((c) => ({ ...c, name: meta.clientName ?? c.name, phone: meta.clientPhone ?? c.phone, address: meta.address ?? c.address }));
+                }}
+                defaults={{ clientName: client.name, clientPhone: client.phone, address: client.address }}
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
               <Field label={t("clientName")}>
                 <div className="relative">
                   <User className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
