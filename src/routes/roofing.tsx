@@ -11,6 +11,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
+import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
   type RoofingInput, type RoofSystem, type PaymentForm, type PvcThickness, type RubemastBrand,

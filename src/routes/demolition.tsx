@@ -11,6 +11,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import {
+import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
   calculateDemolition, DEFAULT_DEMOLITION_LOGISTICS, DEFAULT_DEMOLITION_WORKS,
   type DemolitionInput, type DemoType, type ContainerSize, type PaymentForm,
 } from "@/lib/demolition-calc";

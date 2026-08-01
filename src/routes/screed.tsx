@@ -11,6 +11,7 @@ import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
+import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
