@@ -101,11 +101,25 @@ async function settings(integrationId: string | null) {
   );
 }
 
+/**
+ * Власник записів (owner_id): автор підключення, а якщо підключення ще немає —
+ * перший адміністратор системи. Без нього дзвінок не можна записати.
+ */
 async function ownerFor(integrationId: string | null) {
-  if (!integrationId) return null;
   const db = await admin();
-  const { data } = await db.from("integrations").select("created_by").eq("id", integrationId).maybeSingle();
-  return ((data as any)?.created_by as string) ?? null;
+  if (integrationId) {
+    const { data } = await db.from("integrations").select("created_by").eq("id", integrationId).maybeSingle();
+    const owner = ((data as any)?.created_by as string) ?? null;
+    if (owner) return owner;
+  }
+  const { data: adminRole } = await db
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return ((adminRole as any)?.user_id as string) ?? null;
 }
 
 /** Правила маршрутизації за номером АТС (напрямок, воронка, менеджер за замовчуванням). */
