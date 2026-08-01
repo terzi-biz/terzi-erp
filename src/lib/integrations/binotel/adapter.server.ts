@@ -87,7 +87,7 @@ export const binotelAdapter: IntegrationAdapter = {
     }
     try {
       const res = await binotelRequest({ key: creds.key, secret: creds.secret }, "employees", {}, { integrationId: ctx.integration.id });
-      const list = extractCollection(res, ["employeesData", "employees", "data", "list"]);
+      const list = extractCollection(res, ["listOfEmployees", "employeesData", "employees", "data"]);
       return { ok: true, message: `Binotel відповідає. Співробітників: ${list.length}` };
     } catch (e: any) {
       return { ok: false, message: e?.message ?? "Binotel недоступний", httpStatus: e?.status ?? undefined };

@@ -159,7 +159,7 @@ export async function binotelTestConnectionOp(userId: string) {
   try {
     const auth = requireCreds(creds);
     const res = await binotelRequest(auth, "employees", {}, { integrationId: integration?.id ?? null });
-    const list = extractCollection(res, ["employeesData", "employees", "data", "list"]);
+    const list = extractCollection(res, ["listOfEmployees", "employeesData", "employees", "data"]);
     if (integration) {
       await db
         .from("integrations")
@@ -193,7 +193,7 @@ export async function binotelSyncEmployeesOp(userId: string) {
   const auth = requireCreds(await binotelCreds(integration?.id ?? null));
 
   const res = await binotelRequest(auth, "employees", {}, { integrationId: integration?.id ?? null });
-  const list = extractCollection(res, ["employeesData", "employees", "data", "list"]);
+  const list = extractCollection(res, ["listOfEmployees", "employeesData", "employees", "data"]);
 
   const { data: profiles } = await db.from("profiles").select("user_id,email,display_name,phone,department,position");
   const byEmail = new Map((profiles ?? []).map((p: any) => [String(p.email ?? "").toLowerCase(), p]));
