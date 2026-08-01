@@ -194,6 +194,7 @@ function RoofingPage() {
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="sm:col-span-2"><EstimateLinkPicker value={link} onChange={(v, meta) => { setLink(v); if (meta) setClient((c) => ({ ...c, name: meta.clientName ?? c.name, phone: meta.clientPhone ?? c.phone, address: meta.address ?? c.address })); }} defaults={{ clientName: client.name, clientPhone: client.phone, address: client.address }} /></div>
               <Field label="Замовник"><input className={inp} value={client.name} onChange={(e) => setClient({ ...client, name: e.target.value })} /></Field>
               <Field label="Телефон"><input className={inp} value={client.phone} onChange={(e) => setClient({ ...client, phone: e.target.value })} /></Field>
               <Field label="Адреса"><input className={inp} value={client.address} onChange={(e) => setClient({ ...client, address: e.target.value })} /></Field>
