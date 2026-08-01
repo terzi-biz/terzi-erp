@@ -326,7 +326,7 @@ export async function handleCallCompleted(integrationId: string | null, raw: Bin
     leadId = (data as any)?.id ?? null;
     createdLead = Boolean(leadId);
     if (leadId) {
-      await db.from("crm_lead_events").insert({ lead_id: leadId, actor_id: owner, kind: "created", body: "Створено з дзвінка Binotel" } as any);
+      await db.from("crm_lead_activities").insert({ lead_id: leadId, actor_id: owner, kind: "created", body: "Створено з дзвінка Binotel" } as any);
     }
   }
 
