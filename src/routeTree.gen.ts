@@ -43,6 +43,8 @@ import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
+import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
+import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
@@ -217,6 +219,18 @@ const ApiPublicIntegrationsOauthCallbackRoute =
     path: '/api/public/integrations/oauth/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsBinotelCallSettingsRoute =
+  ApiPublicIntegrationsBinotelCallSettingsRouteImport.update({
+    id: '/api/public/integrations/binotel/call-settings',
+    path: '/api/public/integrations/binotel/call-settings',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsBinotelCallCompletedRoute =
+  ApiPublicIntegrationsBinotelCallCompletedRouteImport.update({
+    id: '/api/public/integrations/binotel/call-completed',
+    path: '/api/public/integrations/binotel/call-completed',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -251,6 +265,8 @@ export interface FileRoutesByFullPath {
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
+  '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -287,6 +303,8 @@ export interface FileRoutesByTo {
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
+  '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -324,6 +342,8 @@ export interface FileRoutesById {
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
+  '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -362,6 +382,8 @@ export interface FileRouteTypes {
     | '/objects/'
     | '/production/'
     | '/api/public/integrations/worker'
+    | '/api/public/integrations/binotel/call-completed'
+    | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -398,6 +420,8 @@ export interface FileRouteTypes {
     | '/objects'
     | '/production'
     | '/api/public/integrations/worker'
+    | '/api/public/integrations/binotel/call-completed'
+    | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -434,6 +458,8 @@ export interface FileRouteTypes {
     | '/objects/'
     | '/production/'
     | '/api/public/integrations/worker'
+    | '/api/public/integrations/binotel/call-completed'
+    | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -471,6 +497,8 @@ export interface RootRouteChildren {
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
   ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
+  ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
+  ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -715,6 +743,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsOauthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/binotel/call-settings': {
+      id: '/api/public/integrations/binotel/call-settings'
+      path: '/api/public/integrations/binotel/call-settings'
+      fullPath: '/api/public/integrations/binotel/call-settings'
+      preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/binotel/call-completed': {
+      id: '/api/public/integrations/binotel/call-completed'
+      path: '/api/public/integrations/binotel/call-completed'
+      fullPath: '/api/public/integrations/binotel/call-completed'
+      preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -751,6 +793,10 @@ const rootRouteChildren: RootRouteChildren = {
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
   ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
+  ApiPublicIntegrationsBinotelCallCompletedRoute:
+    ApiPublicIntegrationsBinotelCallCompletedRoute,
+  ApiPublicIntegrationsBinotelCallSettingsRoute:
+    ApiPublicIntegrationsBinotelCallSettingsRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
