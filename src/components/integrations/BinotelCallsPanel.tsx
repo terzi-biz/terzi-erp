@@ -171,7 +171,11 @@ export function BinotelCallsPanel() {
             {items.map((c) => {
               const s = SLA_LABEL[c.sla_status] ?? SLA_LABEL.not_applicable!;
               return (
-                <tr key={c.id} className="border-t border-border">
+                <tr
+                  key={c.id}
+                  className={`border-t border-border ${c.external_id ? "cursor-pointer hover:bg-secondary/60" : ""}`}
+                  onClick={() => c.external_id && setOpenCallId(String(c.external_id))}
+                >
                   <td className="px-3 py-2 whitespace-nowrap">{fmtDate(c.started_at)}</td>
                   <td className="px-3 py-2">{c.direction === "inbound" ? "Вхідний" : "Вихідний"}</td>
                   <td className="px-3 py-2">
