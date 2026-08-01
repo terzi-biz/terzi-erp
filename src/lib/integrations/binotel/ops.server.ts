@@ -159,7 +159,7 @@ export async function binotelTestConnectionOp(userId: string) {
   try {
     const auth = requireCreds(creds);
     const res = await binotelRequest(auth, "employees", {}, { integrationId: integration?.id ?? null });
-    const list = extractCollection(res, ["employeesData", "employees", "data", "list"]);
+    const list = extractCollection(res, ["listOfEmployees", "employeesData", "employees", "data"]);
     if (integration) {
       await db
         .from("integrations")
@@ -193,7 +193,7 @@ export async function binotelSyncEmployeesOp(userId: string) {
   const auth = requireCreds(await binotelCreds(integration?.id ?? null));
 
   const res = await binotelRequest(auth, "employees", {}, { integrationId: integration?.id ?? null });
-  const list = extractCollection(res, ["employeesData", "employees", "data", "list"]);
+  const list = extractCollection(res, ["listOfEmployees", "employeesData", "employees", "data"]);
 
   const { data: profiles } = await db.from("profiles").select("user_id,email,display_name,phone,department,position");
   const byEmail = new Map((profiles ?? []).map((p: any) => [String(p.email ?? "").toLowerCase(), p]));
@@ -208,9 +208,9 @@ export async function binotelSyncEmployeesOp(userId: string) {
   let autoMapped = 0;
 
   for (const raw of list) {
-    const extId = str(raw.id ?? raw.employeeID ?? raw.employee_id);
+    const extId = str(raw.employeeID ?? raw.employee_id ?? raw.id);
     const email = str(raw.email ?? raw.employeeEmail)?.toLowerCase() ?? null;
-    const internal = str(raw.internalNumber ?? raw.internal_number ?? raw.number);
+    const internal = str(raw.endpointData?.internalNumber ?? raw.internalNumber ?? raw.internal_number);
     const name = str(raw.name ?? raw.employeeName ?? raw.fullName);
     if (!extId && !internal && !email) continue;
 
@@ -356,24 +356,39 @@ export async function binotelDeletePbxOp(userId: string, id: string) {
   return { ok: true };
 }
 
-/** Імпорт номерів АТС із Binotel (створює лише відсутні, наявні налаштування не чіпає). */
-export async function binotelSyncPbxOp(userId: string) {
+/**
+ * Довідника номерів АТС у REST API 4.0 немає (метод відсутній), тому список
+ * лінійних номерів збираємо з фактичних дзвінків за останні дні (`pbxNumberData`).
+ * Створює лише відсутні записи, наявні налаштування не змінює.
+ */
+export async function binotelSyncPbxOp(userId: string, days = 7) {
   await requireAccessManager(userId);
   const db = await admin();
   const integration = await getBinotelIntegration();
   const auth = requireCreds(await binotelCreds(integration?.id ?? null));
-  const res = await binotelRequest(auth, "pbxNumbers", {}, { integrationId: integration?.id ?? null });
-  const list = extractCollection(res, ["pbxNumbersData", "numbersData", "data", "list"]);
+
+  const stop = Math.floor(Date.now() / 1000);
+  const found = new Map<string, string | null>();
+  // Вікна по 24 години, щоб не перевищувати обмеження періоду.
+  for (let d = 0; d < days; d++) {
+    const windowStop = stop - d * 86_400;
+    const windowStart = windowStop - 86_400;
+    const res = await binotelRequest(auth, "callsForPeriod", { startTime: windowStart, stopTime: windowStop }, { integrationId: integration?.id ?? null, quiet: true });
+    const calls = extractCollection(res, ["callDetails", "calls", "data"]);
+    for (const c of calls) {
+      const number = str(c?.pbxNumberData?.number);
+      if (number && !found.has(number)) found.set(number, str(c?.pbxNumberData?.name));
+    }
+  }
+
   let created = 0;
-  for (const raw of list) {
-    const number = str(raw.number ?? raw.pbxNumber ?? raw.id);
-    if (!number) continue;
+  for (const [number, name] of found) {
     const { data: exists } = await db.from("binotel_pbx_mappings").select("id").eq("pbx_number", number).maybeSingle();
     if (exists) continue;
-    await db.from("binotel_pbx_mappings").insert({ pbx_number: number, pbx_number_name: str(raw.name ?? raw.title) });
+    await db.from("binotel_pbx_mappings").insert({ pbx_number: number, pbx_number_name: name });
     created++;
   }
-  return { total: list.length, created };
+  return { total: found.size, created };
 }
 
 export async function binotelGetSettingsOp(userId: string) {

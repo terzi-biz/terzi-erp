@@ -27,7 +27,19 @@ export type BinotelCallOptions = {
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-/** Один запит до REST 4.0 із повторами на 429/5xx. */
+/**
+ * Binotel відхиляє надто часті запити (код 106) — тримаємо мінімальний
+ * інтервал між викликами в межах одного процесу.
+ */
+const MIN_GAP_MS = 4500;
+let lastCallAt = 0;
+async function throttle() {
+  const wait = lastCallAt + MIN_GAP_MS - Date.now();
+  if (wait > 0) await sleep(wait);
+  lastCallAt = Date.now();
+}
+
+/** Один запит до REST 4.0 із повторами на 429/5xx та на «занадто часті запити». */
 export async function binotelRequest<T = any>(
   creds: BinotelCredentials,
   endpoint: BinotelEndpointKey | string,
@@ -41,6 +53,7 @@ export async function binotelRequest<T = any>(
 
   let lastErr: BinotelError | null = null;
   for (let attempt = 0; attempt < 3; attempt++) {
+    await throttle();
     const started = Date.now();
     let res: Response;
     try {
@@ -87,6 +100,14 @@ export async function binotelRequest<T = any>(
 
     const status = String(json?.status ?? "").toLowerCase();
     if (status && status !== "success") {
+      const code = Number(json?.code ?? 0);
+      // 106 — «занадто часті запити»: чекаємо і повторюємо.
+      if (code === 106) {
+        const secs = Number(String(json?.message ?? "").match(/(\d+)\s*sec/i)?.[1] ?? 5);
+        lastErr = new BinotelError(`Binotel: ${json?.message ?? "занадто часті запити"}`, res.status, true);
+        await sleep(Math.min(secs + 1, 15) * 1000);
+        continue;
+      }
       throw new BinotelError(json?.message ? `Binotel: ${json.message}` : "Binotel повернув помилку", res.status, false);
     }
     return json as T;
