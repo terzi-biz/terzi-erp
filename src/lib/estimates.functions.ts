@@ -38,6 +38,8 @@ const estimateInput = z.object({
   module: z.enum(["screed", "roofing", "insulation", "demolition"]),
   status: z.enum(ESTIMATE_STATUSES).default("preliminary"),
   client_id: z.string().uuid().optional().nullable(),
+  object_id: z.string().uuid().optional().nullable(),
+
   client_name: z.string().max(200).optional().nullable(),
   client_phone: z.string().max(50).optional().nullable(),
   address: z.string().max(500).optional().nullable(),
