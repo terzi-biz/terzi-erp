@@ -56,6 +56,7 @@ function InsulationPage() {
   const search = Route.useSearch();
   const [input, setInput] = useState<InsulationInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
+  const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");

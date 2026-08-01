@@ -84,6 +84,7 @@ function RoofingPage() {
   const search = Route.useSearch();
   const [input, setInput] = useState<RoofingInput>(defaultInput);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
+  const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
