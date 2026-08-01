@@ -84,12 +84,134 @@ export async function runSyncOp(userId: string, input: { integrationId: string; 
   return results;
 }
 
+/* ------------------- односторонній режим keyCRM → ERP -------------------- */
+
+/** Стан одностороннього режиму + дані вхідного вебхука. */
+export async function getOneWayStatusOp(userId: string, integrationId: string) {
+  await canView(userId);
+  const db = await admin();
+  const integration = await loadIntegration(integrationId);
+  if (!integration) throw new Error("Підключення не знайдено");
+  const { data: hook } = await db
+    .from("integration_webhooks")
+    .select("*")
+    .eq("integration_id", integrationId)
+    .eq("direction", "inbound")
+    .maybeSingle();
+  const { data: settings } = await db
+    .from("integration_sync_settings")
+    .select("entity,mode")
+    .eq("integration_id", integrationId);
+  const outbound = (settings ?? []).filter((s: any) => s.mode === "erp_master" || s.mode === "bidirectional");
+  return {
+    one_way: Boolean(((integration.config ?? {}) as any).one_way_inbound),
+    outbound_entities: outbound.map((s: any) => s.entity),
+    webhook: hook
+      ? {
+          slug: (hook as any).slug,
+          enabled: (hook as any).enabled,
+          token: (hook as any).endpoint_token ?? null,
+          last_call_at: (hook as any).last_call_at ?? null,
+          events: KEYCRM_WEBHOOK_EVENTS.map((e) => e.key),
+        }
+      : null,
+  };
+}
+
+/**
+ * Вмикає односторонню синхронізацію keyCRM → ERP:
+ * усі сутності переводяться в режим «keyCRM — головна», зворотний запис
+ * блокується, а вхідний вебхук вмикається з секретним токеном.
+ */
+export async function setOneWayInboundOp(userId: string, input: { integrationId: string; enabled: boolean }) {
+  const actor = await requireAccessManager(userId);
+  const db = await admin();
+  const integration = await loadIntegration(input.integrationId);
+  if (!integration) throw new Error("Підключення не знайдено");
+  if (integration.provider_key !== "keycrm") throw new Error("Доступно лише для keyCRM");
+
+  if (input.enabled) {
+    for (const e of KEYCRM_ENTITIES) {
+      await db.from("integration_sync_settings").upsert(
+        { integration_id: integration.id, entity: e.key, mode: "external_master" as SyncMode, poll_enabled: true, poll_interval_min: 15 },
+        { onConflict: "integration_id,entity" },
+      );
+    }
+  }
+
+  await db
+    .from("integrations")
+    .update({ config: { ...((integration.config ?? {}) as Record<string, unknown>), one_way_inbound: input.enabled } as any })
+    .eq("id", integration.id);
+
+  // Вхідний вебхук: створюємо за потреби і гарантуємо наявність токена
+  const { data: hook } = await db
+    .from("integration_webhooks")
+    .select("*")
+    .eq("integration_id", integration.id)
+    .eq("direction", "inbound")
+    .maybeSingle();
+
+  let row: any = hook;
+  const token = (hook as any)?.endpoint_token ?? `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
+  if (!hook) {
+    const slug = `keycrm-${integration.id.slice(0, 8)}`;
+    const { data: created } = await db
+      .from("integration_webhooks")
+      .insert({
+        integration_id: integration.id,
+        direction: "inbound",
+        slug,
+        enabled: input.enabled,
+        signature_mode: "token",
+        signature_header: "x-endpoint-token",
+        endpoint_token: token,
+        events: KEYCRM_WEBHOOK_EVENTS.map((e) => e.key) as any,
+      } as any)
+      .select("*")
+      .maybeSingle();
+    row = created;
+  } else {
+    const { data: updated } = await db
+      .from("integration_webhooks")
+      .update({
+        enabled: input.enabled,
+        endpoint_token: token,
+        signature_mode: "token",
+        signature_header: "x-endpoint-token",
+        events: KEYCRM_WEBHOOK_EVENTS.map((e) => e.key) as any,
+      } as any)
+      .eq("id", (hook as any).id)
+      .select("*")
+      .maybeSingle();
+    row = updated;
+  }
+
+  await writeAudit(actor, {
+    module: "integrations",
+    action: input.enabled ? "sync_one_way_on" : "sync_one_way_off",
+    entityType: "integration",
+    entityId: integration.id,
+    newValue: { one_way_inbound: input.enabled },
+    isCritical: true,
+  });
+
+  return {
+    ok: true,
+    one_way: input.enabled,
+    webhook: row ? { slug: row.slug, token: row.endpoint_token, enabled: row.enabled, events: KEYCRM_WEBHOOK_EVENTS.map((e) => e.key) } : null,
+  };
+}
 
 export async function pushRecordOp(userId: string, input: { integrationId: string; entity: string; internalId: string }) {
   const actor = await requireAccessManager(userId);
   const integration = await loadIntegration(input.integrationId);
   if (!integration) throw new Error("Підключення не знайдено");
+  if (((integration.config ?? {}) as any).one_way_inbound) {
+    throw new Error("Увімкнено односторонній режим keyCRM → ERP: зворотний запис заблоковано");
+  }
   const res = await enqueueEvent({
+
     integrationId: integration.id,
     providerKey: integration.provider_key,
     direction: "outbound",
