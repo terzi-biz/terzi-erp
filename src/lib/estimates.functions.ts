@@ -341,7 +341,11 @@ export const updateEstimateStatus = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), status: z.enum(ESTIMATE_STATUSES) }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: prev } = await context.supabase
-      .from("estimates").select("status").eq("id", data.id).maybeSingle();
+      .from("estimates").select("status,client_id,object_id,client_name,address").eq("id", data.id).maybeSingle();
+    if (prev) {
+      await checkLinks(context.supabase, { ...(prev as any), status: data.status });
+    }
+
     const { data: out, error } = await context.supabase
       .from("estimates").update({ status: data.status }).eq("id", data.id)
       .select("id,status").maybeSingle();
