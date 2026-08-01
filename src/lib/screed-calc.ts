@@ -151,6 +151,23 @@ export const DEFAULT_SETTINGS = {
 
 export type Settings = typeof DEFAULT_SETTINGS;
 
+/**
+ * Логістика — прайс-книга (кодами каталогу `screed.logistics`).
+ * buy = собівартість TERZI, sell = ціна для клієнта. Редагується у Налаштуваннях,
+ * тут лише дефолти на випадок відсутності запису в каталозі.
+ */
+export const DEFAULT_LOGISTICS_PRICES: Record<string, MaterialPrice> = {
+  station_city: { buy: 500, sell: 2000 },
+  station_km: { buy: 40, sell: 60 },
+  cement_own: { buy: 0, sell: 1500 },
+  cement_small_manip: { buy: 1500, sell: 2500 },
+  cement_big_manip: { buy: 2500, sell: 3000 },
+  sand_city: { buy: 1700, sell: 2000 },
+  sand_outskirts: { buy: 1700, sell: 2200 },
+  sand_chornomorsk: { buy: 1700, sell: 2500 },
+  lift: { buy: 1000, sell: 2000 },
+};
+
 export function floorCoef(floor: number): number {
   if (floor <= 5) return 1.0;
   if (floor <= 10) return 1.05;
@@ -209,7 +226,15 @@ export interface CalcResult {
 const ceil = Math.ceil;
 const round = (v: number, step = 1) => Math.round(v / step) * step;
 
-export function calculateScreed(input: ScreedInput, prices: Record<string, MaterialPrice> = DEFAULT_MATERIAL_PRICES, works = DEFAULT_WORK_PRICES, s: Settings = DEFAULT_SETTINGS): CalcResult {
+export function calculateScreed(
+  input: ScreedInput,
+  prices: Record<string, MaterialPrice> = DEFAULT_MATERIAL_PRICES,
+  works = DEFAULT_WORK_PRICES,
+  s: Settings = DEFAULT_SETTINGS,
+  logisticsPrices: Record<string, MaterialPrice> = DEFAULT_LOGISTICS_PRICES,
+): CalcResult {
+  const lp = (code: string): MaterialPrice =>
+    logisticsPrices[code] ?? DEFAULT_LOGISTICS_PRICES[code] ?? { buy: 0, sell: 0 };
   const warnings: string[] = [];
 
   // Thickness gating
@@ -379,35 +404,40 @@ export function calculateScreed(input: ScreedInput, prices: Record<string, Mater
   
 
   // ===== Logistics =====
-  const stationDeliveryClient = input.cityDelivery
-    ? s.cityStationDelivery
-    : Math.max(s.cityStationDelivery, input.outOfCityKm * 2 * 60);
+  // Усі ставки — з прайс-книги логістики (каталог `screed.logistics`).
+  const stCity = lp("station_city");
+  const stKm = lp("station_km");
+  const kmQty = input.cityDelivery ? 0 : input.outOfCityKm * 2;
+  const stationSell = input.cityDelivery ? stCity.sell : Math.max(stCity.sell, kmQty * stKm.sell);
+  const stationCost = input.cityDelivery ? stCity.buy : Math.max(stCity.buy, kmQty * stKm.buy);
   lines.push({ key: "log_station", block: "logistics", name: "stationDelivery", unit: "шт", qty: 1,
-    pricePerUnit: stationDeliveryClient, costPerUnit: stationDeliveryClient,
-    sum: stationDeliveryClient, cost: stationDeliveryClient, showToClient: true });
+    pricePerUnit: stationSell, costPerUnit: stationCost,
+    sum: stationSell, cost: stationCost, showToClient: true });
 
   if (input.withLift) {
+    const lift = lp("lift");
     lines.push({ key: "log_lift", block: "logistics", name: "Підйом матеріалів / складна подача", unit: "шт", qty: 1,
-      pricePerUnit: s.brigadeLiftClient, costPerUnit: s.brigadeLiftCost,
-      sum: s.brigadeLiftClient, cost: s.brigadeLiftCost, showToClient: true });
+      pricePerUnit: lift.sell, costPerUnit: lift.buy,
+      sum: lift.sell, cost: lift.buy, showToClient: true });
   }
 
   if (input.cementDelivery !== "none") {
-    let cClient = 0, cCost = 0, cName = "Доставка цементу";
-    if (input.cementDelivery === "own") { cClient = s.cementOwnBusToClient; cCost = 0; }
-    else if (input.cementDelivery === "smallManip") { cClient = s.smallManipClient; cCost = s.smallManipCost; }
-    else if (input.cementDelivery === "bigManip") { cClient = s.bigManipClient; cCost = s.bigManipCost; }
-    lines.push({ key: "log_cement", block: "logistics", name: cName, unit: "шт", qty: 1,
-      pricePerUnit: cClient, costPerUnit: cCost, sum: cClient, cost: cCost, showToClient: true });
+    const cementCode =
+      input.cementDelivery === "smallManip" ? "cement_small_manip" :
+      input.cementDelivery === "bigManip" ? "cement_big_manip" : "cement_own";
+    const cm = lp(cementCode);
+    lines.push({ key: "log_cement", block: "logistics", name: "Доставка цементу", unit: "шт", qty: 1,
+      pricePerUnit: cm.sell, costPerUnit: cm.buy, sum: cm.sell, cost: cm.buy, showToClient: true });
   }
 
   const sandTrips = Math.max(1, ceil(sandTonsSale / s.sandTripCapacity));
-  let sandPerTripClient = s.sandCityClient, sandPerTripCost = s.sandCityCost;
-  if (input.sandDelivery === "outskirts") { sandPerTripClient = s.sandOutskirtsClient; sandPerTripCost = s.sandCityCost; }
-  if (input.sandDelivery === "chornomorsk") { sandPerTripClient = s.sandChornomorskClient; sandPerTripCost = s.sandCityCost; }
+  const sandCode =
+    input.sandDelivery === "outskirts" ? "sand_outskirts" :
+    input.sandDelivery === "chornomorsk" ? "sand_chornomorsk" : "sand_city";
+  const sandP = lp(sandCode);
   lines.push({ key: "log_sand", block: "logistics", name: "Доставка піску", unit: "ходка", qty: sandTrips,
-    pricePerUnit: sandPerTripClient, costPerUnit: sandPerTripCost,
-    sum: sandTrips * sandPerTripClient, cost: sandTrips * sandPerTripCost, showToClient: true });
+    pricePerUnit: sandP.sell, costPerUnit: sandP.buy,
+    sum: sandTrips * sandP.sell, cost: sandTrips * sandP.buy, showToClient: true });
 
   // Дизель уже врахований як матеріальна лінія (m_diesel) вище.
 
