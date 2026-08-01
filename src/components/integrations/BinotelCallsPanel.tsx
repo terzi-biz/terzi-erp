@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { AlertTriangle, Clock, PhoneIncoming, PhoneMissed, RefreshCw, Search } from "lucide-react";
 import { listBinotelCalls } from "@/lib/binotel.functions";
+import { BinotelCallDialog } from "@/components/integrations/BinotelCallDialog";
 
 const card = "rounded-xl border border-border bg-card p-4";
 const inp = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
