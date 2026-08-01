@@ -208,9 +208,9 @@ export async function binotelSyncEmployeesOp(userId: string) {
   let autoMapped = 0;
 
   for (const raw of list) {
-    const extId = str(raw.id ?? raw.employeeID ?? raw.employee_id);
+    const extId = str(raw.employeeID ?? raw.employee_id ?? raw.id);
     const email = str(raw.email ?? raw.employeeEmail)?.toLowerCase() ?? null;
-    const internal = str(raw.internalNumber ?? raw.internal_number ?? raw.number);
+    const internal = str(raw.endpointData?.internalNumber ?? raw.internalNumber ?? raw.internal_number);
     const name = str(raw.name ?? raw.employeeName ?? raw.fullName);
     if (!extId && !internal && !email) continue;
 
