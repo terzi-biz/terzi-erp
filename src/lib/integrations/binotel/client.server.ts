@@ -100,6 +100,14 @@ export async function binotelRequest<T = any>(
 
     const status = String(json?.status ?? "").toLowerCase();
     if (status && status !== "success") {
+      const code = Number(json?.code ?? 0);
+      // 106 — «занадто часті запити»: чекаємо і повторюємо.
+      if (code === 106) {
+        const secs = Number(String(json?.message ?? "").match(/(\d+)\s*sec/i)?.[1] ?? 5);
+        lastErr = new BinotelError(`Binotel: ${json?.message ?? "занадто часті запити"}`, res.status, true);
+        await sleep(Math.min(secs + 1, 15) * 1000);
+        continue;
+      }
       throw new BinotelError(json?.message ? `Binotel: ${json.message}` : "Binotel повернув помилку", res.status, false);
     }
     return json as T;
