@@ -470,7 +470,6 @@ function ScreedPage() {
         <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
         <button onClick={() => setInput(defaultInput)} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><RotateCcw className="w-3.5 h-3.5" />{t("reset")}</button>
         <button onClick={onSave} disabled={saveMut.isPending} className={`${btnBase} bg-secondary hover:bg-secondary/80 disabled:opacity-50`}><Save className="w-3.5 h-3.5" />{saveMut.isPending ? "…" : t("save")}</button>
-        <button onClick={() => window.print()} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><Printer className="w-3.5 h-3.5" />{t("print")}</button>
         <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
 
       </div>
