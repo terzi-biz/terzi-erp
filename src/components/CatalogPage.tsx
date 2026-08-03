@@ -308,10 +308,12 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 const m = margin(cur.buy_price, cur.sell_price);
                 return (
                   <tr key={r.id} className="border-t border-border">
-                    <td className="p-2">
+                    <td className="p-2 min-w-[340px] w-[340px]">
                       <input className="w-full bg-input border border-border rounded px-2 py-1"
+                        title={cur.name}
                         value={cur.name} onChange={(e) => onPatch(r.id!, { name: e.target.value })} />
                     </td>
+
                     <td className="p-2">
                       <input className="w-full bg-input border border-border rounded px-2 py-1"
                         value={cur.unit} onChange={(e) => onPatch(r.id!, { unit: e.target.value })} />
