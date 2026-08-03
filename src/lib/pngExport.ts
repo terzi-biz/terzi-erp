@@ -227,16 +227,15 @@ async function buildPageCanvases(el: HTMLElement): Promise<PagedSheet> {
     }
   };
 
-  // ---- Спроба вмістити все на одну сторінку ----
+  // ---- Одна сторінка: тільки якщо контент реально вміщається (без стиснення) ----
   const naturalHmm = (canvas.height / canvas.width) * usableW;
-  if (naturalHmm <= contentHmm / 0.6) {
-    const fitW = Math.min(usableW, (contentHmm / naturalHmm) * usableW);
-    const fitH = Math.min(contentHmm, naturalHmm);
+  if (naturalHmm <= contentHmm) {
     const { c, ctx } = mkPage();
     drawFrame(ctx, 1, 1);
-    ctx.drawImage(canvas, ((PAGE_W_MM - fitW) / 2) * PAGE_PPM, contentTop * PAGE_PPM, fitW * PAGE_PPM, fitH * PAGE_PPM);
+    ctx.drawImage(canvas, SIDE_MARGIN_MM * PAGE_PPM, contentTop * PAGE_PPM, usableW * PAGE_PPM, naturalHmm * PAGE_PPM);
     return { pages: [c], cuts: [canvas.height], canvasHeight: canvas.height };
   }
+
 
   // ---- Пагінація по рядках таблиць ----
   const pxPerMm = canvas.width / usableW;
