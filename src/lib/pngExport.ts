@@ -145,27 +145,6 @@ function triggerDownload(url: string, filename: string) {
 const MAX_CANVAS_PX = 16000;
 const MAX_CANVAS_AREA = 16_000_000;
 
-/** Підбирає найбільший можливий scale, який не перевищує ліміти канви. */
-async function captureBest(el: HTMLElement): Promise<{ canvas: HTMLCanvasElement; breaks: number[] }> {
-  const approxH = Math.max(
-    1,
-    el.scrollHeight * (EXPORT_WIDTH / Math.max(1, el.offsetWidth || EXPORT_WIDTH)),
-  );
-  const bySide = MAX_CANVAS_PX / Math.max(EXPORT_WIDTH, approxH);
-  const byArea = Math.sqrt(MAX_CANVAS_AREA / (EXPORT_WIDTH * approxH));
-  const cap = Math.max(2, Math.min(4, Math.floor(Math.min(bySide, byArea) * 10) / 10));
-  const attempts = Array.from(new Set([cap, 3, 2.5, 2])).filter((v) => v >= 2 && v <= cap || v === 2);
-  for (const s of attempts) {
-    try {
-      const res = await captureSheet(el, s);
-      if (res.canvas.width > 0 && res.canvas.height > 0) return res;
-    } catch {
-      /* пробуємо менший масштаб */
-    }
-  }
-  return captureSheet(el, 2);
-}
-
 /** Створює PNG-blob максимальної якості з готової канви. */
 function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
   return new Promise((res) => {
@@ -342,48 +321,3 @@ export async function exportElementAsPng(el: HTMLElement, filename: string): Pro
   const blob = await canvasToPngBlob(out);
   if (blob) await savePngBlob(blob, filename);
 }
-
-// ---------- Попередній перегляд ----------
-export interface ExportPreview {
-  /** PNG-прев'ю аркуша (blob URL) — це саме той файл, що збережеться. */
-  imageUrl: string;
-  width: number;
-  height: number;
-  /** Розриви сторінок у відсотках висоти аркуша (без останнього). */
-  breakRatios: number[];
-  totalPages: number;
-  /** Blob URL готового PDF — для перегляду у вбудованому viewer. */
-  pdfUrl: string;
-  /** Готові файли — щоб «Зберегти» віддавало точно те, що показано у перегляді. */
-  pngBlob: Blob;
-  pdfBlob: Blob;
-}
-
-/**
- * Готує прев'ю: зображення кошторису + позиції розривів сторінок + сам PDF.
- * Захоплення послідовне (не Promise.all): паралельний html2canvas на одному
- * елементі дає різну розкладку в Safari/Firefox.
- */
-export async function buildExportPreview(el: HTMLElement): Promise<ExportPreview> {
-  const { canvas } = await captureBest(el);
-  const layout = await buildPdf(el);
-  const breakRatios = layout.cuts
-    .slice(0, -1)
-    .map((c) => c / layout.canvasHeight)
-    .filter((r) => r > 0.01 && r < 0.99);
-  const pngBlob = (await canvasToPngBlob(canvas)) ?? new Blob();
-  const pdfBlob = layout.doc.output("blob") as Blob;
-  return {
-    imageUrl: URL.createObjectURL(pngBlob),
-    width: canvas.width,
-    height: canvas.height,
-    breakRatios,
-    totalPages: layout.totalPages,
-    pdfUrl: URL.createObjectURL(pdfBlob),
-    pngBlob,
-    pdfBlob,
-  };
-}
-
-
-
