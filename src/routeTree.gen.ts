@@ -25,6 +25,8 @@ import { Route as MaterialsRouteImport } from './routes/materials'
 import { Route as OperationsRouteImport } from './routes/operations'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as RoofingRouteImport } from './routes/roofing'
+import { Route as Roofing_pvcRouteImport } from './routes/roofing_pvc'
+import { Route as Roofing_rubRouteImport } from './routes/roofing_rub'
 import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as WorksRouteImport } from './routes/works'
@@ -124,6 +126,16 @@ const ReportsRoute = ReportsRouteImport.update({
 const RoofingRoute = RoofingRouteImport.update({
   id: '/roofing',
   path: '/roofing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Roofing_pvcRoute = Roofing_pvcRouteImport.update({
+  id: '/roofing_pvc',
+  path: '/roofing_pvc',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const Roofing_rubRoute = Roofing_rubRouteImport.update({
+  id: '/roofing_rub',
+  path: '/roofing_rub',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ScreedRoute = ScreedRouteImport.update({
@@ -249,6 +261,8 @@ export interface FileRoutesByFullPath {
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
+  '/roofing_pvc': typeof Roofing_pvcRoute
+  '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
@@ -287,6 +301,8 @@ export interface FileRoutesByTo {
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
+  '/roofing_pvc': typeof Roofing_pvcRoute
+  '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
@@ -326,6 +342,8 @@ export interface FileRoutesById {
   '/operations': typeof OperationsRoute
   '/reports': typeof ReportsRoute
   '/roofing': typeof RoofingRoute
+  '/roofing_pvc': typeof Roofing_pvcRoute
+  '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
   '/works': typeof WorksRoute
@@ -366,6 +384,8 @@ export interface FileRouteTypes {
     | '/operations'
     | '/reports'
     | '/roofing'
+    | '/roofing_pvc'
+    | '/roofing_rub'
     | '/screed'
     | '/settings'
     | '/works'
@@ -404,6 +424,8 @@ export interface FileRouteTypes {
     | '/operations'
     | '/reports'
     | '/roofing'
+    | '/roofing_pvc'
+    | '/roofing_rub'
     | '/screed'
     | '/settings'
     | '/works'
@@ -442,6 +464,8 @@ export interface FileRouteTypes {
     | '/operations'
     | '/reports'
     | '/roofing'
+    | '/roofing_pvc'
+    | '/roofing_rub'
     | '/screed'
     | '/settings'
     | '/works'
@@ -481,6 +505,8 @@ export interface RootRouteChildren {
   OperationsRoute: typeof OperationsRoute
   ReportsRoute: typeof ReportsRoute
   RoofingRoute: typeof RoofingRoute
+  Roofing_pvcRoute: typeof Roofing_pvcRoute
+  Roofing_rubRoute: typeof Roofing_rubRoute
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
   WorksRoute: typeof WorksRoute
@@ -615,6 +641,20 @@ declare module '@tanstack/react-router' {
       path: '/roofing'
       fullPath: '/roofing'
       preLoaderRoute: typeof RoofingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roofing_pvc': {
+      id: '/roofing_pvc'
+      path: '/roofing_pvc'
+      fullPath: '/roofing_pvc'
+      preLoaderRoute: typeof Roofing_pvcRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roofing_rub': {
+      id: '/roofing_rub'
+      path: '/roofing_rub'
+      fullPath: '/roofing_rub'
+      preLoaderRoute: typeof Roofing_rubRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/screed': {
@@ -777,6 +817,8 @@ const rootRouteChildren: RootRouteChildren = {
   OperationsRoute: OperationsRoute,
   ReportsRoute: ReportsRoute,
   RoofingRoute: RoofingRoute,
+  Roofing_pvcRoute: Roofing_pvcRoute,
+  Roofing_rubRoute: Roofing_rubRoute,
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
   WorksRoute: WorksRoute,
@@ -804,3 +846,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

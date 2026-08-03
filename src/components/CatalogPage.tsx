@@ -9,7 +9,7 @@ import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults,
 import { TIER_KEYS, TIER_LABEL, TIER_PRICE_COL, TIER_MANUAL_COL, DEFAULT_TIER_MARGIN, tierPriceFromMargin, type TierKey } from "@/lib/catalog-tiers";
 import { toast } from "sonner";
 
-type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
+type Module = "screed" | "roofing" | "roofing_pvc" | "roofing_rub" | "insulation" | "demolition" | "common";
 type Kind = "material" | "work" | "equipment" | "logistics";
 
 interface Row {
@@ -36,8 +36,10 @@ interface Row {
 }
 
 const MODULE_LABEL: Record<Module, string> = {
-  screed: "Стяжка", roofing: "Покрівля", insulation: "Утеплення", demolition: "Демонтаж", common: "Спільні",
+  screed: "Стяжка", roofing: "Покрівля (архів)", roofing_pvc: "Покрівля · ПВХ мембрана",
+  roofing_rub: "Покрівля · Руберойд", insulation: "Утеплення", demolition: "Демонтаж", common: "Спільні",
 };
+
 const KIND_LABEL: Record<Kind, string> = {
   material: "Матеріали", work: "Роботи", equipment: "Обладнання", logistics: "Логістика",
 };
@@ -250,11 +252,12 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
 
       {isLoading ? <div className="text-muted-foreground text-sm">Завантаження…</div> : (
         <div className="panel scroll-x max-h-[calc(100vh-220px)] overflow-y-auto">
-          <table className="w-full text-sm min-w-[1240px] sticky-thead">
+          <table className="w-full text-sm min-w-[1500px] sticky-thead">
             <thead className="bg-secondary text-xs uppercase tracking-wider">
 
               <tr>
-                <th className="text-left p-3">Назва</th>
+                <th className="text-left p-3 min-w-[340px] w-[340px]">Назва</th>
+
                 <th className="text-left p-3 w-20">Од.</th>
                 <th className="text-right p-3 w-28">{isEquip ? "Вартість" : "Закупка"}</th>
                 <th className="text-right p-3 w-28">{isEquip ? "Амортиз./міс." : "Продаж"}</th>
@@ -305,10 +308,12 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
                 const m = margin(cur.buy_price, cur.sell_price);
                 return (
                   <tr key={r.id} className="border-t border-border">
-                    <td className="p-2">
+                    <td className="p-2 min-w-[340px] w-[340px]">
                       <input className="w-full bg-input border border-border rounded px-2 py-1"
+                        title={cur.name}
                         value={cur.name} onChange={(e) => onPatch(r.id!, { name: e.target.value })} />
                     </td>
+
                     <td className="p-2">
                       <input className="w-full bg-input border border-border rounded px-2 py-1"
                         value={cur.unit} onChange={(e) => onPatch(r.id!, { unit: e.target.value })} />

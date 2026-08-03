@@ -35,7 +35,7 @@ export const STATUS_LABELS: Record<string, string> = {
 const estimateInput = z.object({
   id: z.string().uuid().optional(),
   number: z.string().min(1).max(100),
-  module: z.enum(["screed", "roofing", "insulation", "demolition"]),
+  module: z.enum(["screed", "roofing", "roofing_pvc", "roofing_rub", "insulation", "demolition"]),
   status: z.enum(ESTIMATE_STATUSES).default("preliminary"),
   client_id: z.string().uuid().optional().nullable(),
   object_id: z.string().uuid().optional().nullable(),
