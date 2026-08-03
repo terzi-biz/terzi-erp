@@ -11,6 +11,7 @@ import {
 import { DEFAULT_ROOFING_PRICES, DEFAULT_ROOFING_WORKS, DEFAULT_ROOFING_WORK_COSTS } from "@/lib/roofing-calc";
 import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
 import { DEFAULT_DEMOLITION_PRICES, DEFAULT_DEMOLITION_WORKS } from "@/lib/demolition-calc";
+import { TIER_PRICE_COL, tierForArea } from "@/lib/catalog-tiers";
 
 const MODULE_DEFAULT_MATERIALS: Record<string, Record<string, MaterialPrice>> = {
   screed: DEFAULT_MATERIAL_PRICES,
