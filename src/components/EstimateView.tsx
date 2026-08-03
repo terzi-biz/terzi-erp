@@ -185,11 +185,12 @@ export function EstimateView({
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
-  // Окремі стани редагування для кожного режиму
-  const [clientOverrides, setClientOverrides] = useState<Record<string, Override>>({});
-  const [clientExtras, setClientExtras] = useState<ExtraLine[]>([]);
-  const [internalOverrides, setInternalOverrides] = useState<Record<string, Override>>({});
-  const [internalExtras, setInternalExtras] = useState<ExtraLine[]>([]);
+  // Окремі стани редагування для кожного режиму (зберігаються локально під ключем кошторису)
+  const editKey = `terzi:estimate-edits:${estimateId ?? estimateNumber ?? module}`;
+  const [clientOverrides, setClientOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:client:ov`, {});
+  const [clientExtras, setClientExtras] = usePersistedState<ExtraLine[]>(`${editKey}:client:ex`, []);
+  const [internalOverrides, setInternalOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:internal:ov`, {});
+  const [internalExtras, setInternalExtras] = usePersistedState<ExtraLine[]>(`${editKey}:internal:ex`, []);
 
   const activeRef = mode === "internal" ? internalRef : clientRef;
   const filenamePdf = buildFilename({ mode, module, area, address: client.address, ext: "pdf" });
