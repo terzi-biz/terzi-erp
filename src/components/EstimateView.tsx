@@ -195,7 +195,7 @@ export function EstimateView({
   const activeRef = mode === "internal" ? internalRef : clientRef;
   const filenamePdf = buildFilename({ mode, module, area, address: client.address, ext: "pdf" });
   const filenamePng = buildFilename({ mode, module, area, address: client.address, ext: "png" });
-  const [previewOpen, setPreviewOpen] = useState(false);
+  
 
   const onPdf = () => activeRef.current && exportElementAsPdf(activeRef.current, filenamePdf);
   const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
