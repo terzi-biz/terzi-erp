@@ -43,9 +43,9 @@ function DemolitionPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { demolitionCoeffs, branding } = useAppStore();
-  const { materialPrices, workPrices } = useModulePricing("demolition");
   const search = Route.useSearch();
   const [input, setInput] = useState<DemolitionInput>(defaultInput);
+  const { materialPrices, workPrices } = useModulePricing("demolition", input.area);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
   const [showInternal, setShowInternal] = useState(isInternal);

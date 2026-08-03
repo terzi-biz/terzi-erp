@@ -52,9 +52,9 @@ function InsulationPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { insulationCoeffs, branding } = useAppStore();
-  const { materialPrices, workPrices } = useModulePricing("insulation");
   const search = Route.useSearch();
   const [input, setInput] = useState<InsulationInput>(defaultInput);
+  const { materialPrices, workPrices } = useModulePricing("insulation", input.area);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
   const [showInternal, setShowInternal] = useState(isInternal);

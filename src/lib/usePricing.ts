@@ -11,6 +11,7 @@ import {
 import { DEFAULT_ROOFING_PRICES, DEFAULT_ROOFING_WORKS, DEFAULT_ROOFING_WORK_COSTS } from "@/lib/roofing-calc";
 import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
 import { DEFAULT_DEMOLITION_PRICES, DEFAULT_DEMOLITION_WORKS } from "@/lib/demolition-calc";
+import { TIER_PRICE_COL, tierForArea } from "@/lib/catalog-tiers";
 
 const MODULE_DEFAULT_MATERIALS: Record<string, Record<string, MaterialPrice>> = {
   screed: DEFAULT_MATERIAL_PRICES,
@@ -33,14 +34,36 @@ const MODULE_DEFAULT_WORK_COSTS: Record<string, Record<string, number>> = {
 
 type Module = "screed" | "roofing" | "insulation" | "demolition";
 
+type TierRow = {
+  code: string | null;
+  buy_price: number;
+  sell_price: number;
+  sell_price_t50?: number | null;
+  sell_price_t100?: number | null;
+  sell_price_t250?: number | null;
+  sell_price_t500?: number | null;
+};
+
+/** Ціна продажу з урахуванням діапазону площі; фолбек — базова sell_price. */
+function sellForArea(r: TierRow, area?: number): number {
+  if (typeof area === "number" && area > 0) {
+    const col = TIER_PRICE_COL[tierForArea(area)];
+    const v = Number((r as Record<string, unknown>)[col] ?? 0);
+    if (v > 0) return v;
+  }
+  return Number(r.sell_price) || 0;
+}
+
 /**
  * Load catalog items from DB for a module and overlay them on top of
  * the calculator's defaults. Items are matched by `code`.
+ * `area` (м²) вибирає колонку ціни продажу: ≤50 / 50–100 / 100–250 / >250.
  */
-export function useModulePricing(module: Module) {
+export function useModulePricing(module: Module, area?: number) {
   const fetchList = useServerFn(listCatalog);
   const { session } = useAuth();
   const enabled = !!session?.access_token;
+
 
   const mats = useQuery({
     queryKey: ["catalog", module, "material"],
@@ -64,30 +87,31 @@ export function useModulePricing(module: Module) {
 
   const logisticsPrices = useMemo<Record<string, MaterialPrice>>(() => {
     const out: Record<string, MaterialPrice> = module === "screed" ? { ...DEFAULT_LOGISTICS_PRICES } : {};
-    for (const r of (logistics.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
+    for (const r of (logistics.data ?? []) as TierRow[]) {
       if (!r.code) continue;
-      out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
+      out[r.code] = { buy: Number(r.buy_price) || 0, sell: sellForArea(r, area) };
     }
     return out;
-  }, [logistics.data, module]);
+  }, [logistics.data, module, area]);
 
   const materialPrices = useMemo<Record<string, MaterialPrice>>(() => {
     const out: Record<string, MaterialPrice> = { ...(MODULE_DEFAULT_MATERIALS[module] ?? {}) };
-    for (const r of (mats.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
+    for (const r of (mats.data ?? []) as TierRow[]) {
       if (!r.code) continue;
-      out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
+      out[r.code] = { buy: Number(r.buy_price) || 0, sell: sellForArea(r, area) };
     }
     return out;
-  }, [mats.data, module]);
+  }, [mats.data, module, area]);
 
   const workPrices = useMemo(() => {
     const out: Record<string, number> = { ...(MODULE_DEFAULT_WORKS[module] ?? {}) };
-    for (const r of (works.data ?? []) as Array<{ code: string | null; sell_price: number }>) {
+    for (const r of (works.data ?? []) as TierRow[]) {
       if (!r.code) continue;
-      out[r.code] = Number(r.sell_price) || 0;
+      out[r.code] = sellForArea(r, area);
     }
     return out;
-  }, [works.data, module]);
+  }, [works.data, module, area]);
+
   const workCostPrices = useMemo(() => {
     const out: Record<string, number> = { ...(MODULE_DEFAULT_WORK_COSTS[module] ?? {}) };
     for (const r of (works.data ?? []) as Array<{ code: string | null; buy_price: number }>) {

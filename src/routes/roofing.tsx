@@ -80,9 +80,9 @@ function RoofingPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { roofingCoeffs, branding } = useAppStore();
-  const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing");
   const search = Route.useSearch();
   const [input, setInput] = useState<RoofingInput>(defaultInput);
+  const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing", input.area);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
