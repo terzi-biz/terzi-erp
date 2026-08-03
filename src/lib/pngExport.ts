@@ -141,30 +141,8 @@ function triggerDownload(url: string, filename: string) {
 }
 
 // ---------- PNG (максимальна якість) ----------
-/** Ліміти канви: довша сторона та загальна площа (найсуворіший — iOS Safari). */
-const MAX_CANVAS_PX = 16000;
-const MAX_CANVAS_AREA = 16_000_000;
 
-/** Підбирає найбільший можливий scale, який не перевищує ліміти канви. */
-async function captureBest(el: HTMLElement): Promise<{ canvas: HTMLCanvasElement; breaks: number[] }> {
-  const approxH = Math.max(
-    1,
-    el.scrollHeight * (EXPORT_WIDTH / Math.max(1, el.offsetWidth || EXPORT_WIDTH)),
-  );
-  const bySide = MAX_CANVAS_PX / Math.max(EXPORT_WIDTH, approxH);
-  const byArea = Math.sqrt(MAX_CANVAS_AREA / (EXPORT_WIDTH * approxH));
-  const cap = Math.max(2, Math.min(4, Math.floor(Math.min(bySide, byArea) * 10) / 10));
-  const attempts = Array.from(new Set([cap, 3, 2.5, 2])).filter((v) => v >= 2 && v <= cap || v === 2);
-  for (const s of attempts) {
-    try {
-      const res = await captureSheet(el, s);
-      if (res.canvas.width > 0 && res.canvas.height > 0) return res;
-    } catch {
-      /* пробуємо менший масштаб */
-    }
-  }
-  return captureSheet(el, 2);
-}
+
 
 /** Створює PNG-blob максимальної якості з готової канви. */
 function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
@@ -187,13 +165,6 @@ export async function savePngBlob(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 8000);
 }
 
-export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
-  const { canvas } = await captureBest(el);
-  const blob = await canvasToPngBlob(canvas);
-  if (blob) await savePngBlob(blob, filename);
-}
-
-
 // ---------- Розкладка PDF ----------
 interface PdfLayout {
   doc: jsPDF;
@@ -203,55 +174,71 @@ interface PdfLayout {
   canvasHeight: number;
 }
 
-async function buildPdf(el: HTMLElement): Promise<PdfLayout> {
-  const scale = 2;
+const PAGE_W_MM = 210;
+const PAGE_H_MM = 297;
+const SIDE_MARGIN_MM = 5;
+/** Роздільність рендера сторінки (px на мм) — ~200 DPI. */
+const PAGE_PPM = 8;
+
+interface PagedSheet {
+  pages: HTMLCanvasElement[];
+  cuts: number[];
+  canvasHeight: number;
+}
+
+/**
+ * Готує готові сторінки A4 (колонтитули + зріз кошторису) як канви.
+ * Використовується І для PDF, І для PNG — тому обидва файли ідентичні.
+ */
+async function buildPageCanvases(el: HTMLElement): Promise<PagedSheet> {
   const [hdr, ftr, sheet] = await Promise.all([
     loadImage(headerImg),
     loadImage(footerImg),
-    captureSheet(el, scale),
+    captureSheet(el, 2),
   ]);
   const { canvas, breaks: points } = sheet;
 
-  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-  const pageW = 210, pageH = 297;
-  const sideMargin = 5;              // поля лише для контенту
-  const usableW = pageW - sideMargin * 2;
-
-  // Колонтитули — на всю ширину аркуша (без білих границь)
-  const hdrHmm = (hdr.height / hdr.width) * pageW;
-  const ftrHmm = (ftr.height / ftr.width) * pageW;
+  const usableW = PAGE_W_MM - SIDE_MARGIN_MM * 2;
+  const hdrHmm = (hdr.height / hdr.width) * PAGE_W_MM;
+  const ftrHmm = (ftr.height / ftr.width) * PAGE_W_MM;
   const contentTop = hdrHmm + 3;
-  const contentBottom = pageH - ftrHmm - 3;
+  const contentBottom = PAGE_H_MM - ftrHmm - 3;
   const contentHmm = contentBottom - contentTop;
 
-  const drawFrame = (pageNum: number, totalPages: number) => {
-    pdf.addImage(hdr, "JPEG", 0, 0, pageW, hdrHmm);
-    pdf.addImage(ftr, "PNG", 0, pageH - ftrHmm, pageW, ftrHmm);
+  const mkPage = (): { c: HTMLCanvasElement; ctx: CanvasRenderingContext2D } => {
+    const c = document.createElement("canvas");
+    c.width = Math.round(PAGE_W_MM * PAGE_PPM);
+    c.height = Math.round(PAGE_H_MM * PAGE_PPM);
+    const ctx = c.getContext("2d")!;
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, c.width, c.height);
+    return { c, ctx };
+  };
+
+  const drawFrame = (ctx: CanvasRenderingContext2D, pageNum: number, totalPages: number) => {
+    ctx.drawImage(hdr, 0, 0, PAGE_W_MM * PAGE_PPM, hdrHmm * PAGE_PPM);
+    ctx.drawImage(ftr, 0, (PAGE_H_MM - ftrHmm) * PAGE_PPM, PAGE_W_MM * PAGE_PPM, ftrHmm * PAGE_PPM);
     if (totalPages > 1) {
-      pdf.setFontSize(8);
-      pdf.setTextColor(120, 120, 120);
-      pdf.text(`${pageNum} / ${totalPages}`, pageW - sideMargin, contentBottom + 2.4, { align: "right" });
+      ctx.fillStyle = "#787878";
+      ctx.font = `${Math.round(2.8 * PAGE_PPM)}px Helvetica, Arial, sans-serif`;
+      ctx.textAlign = "right";
+      ctx.fillText(`${pageNum} / ${totalPages}`, (PAGE_W_MM - SIDE_MARGIN_MM) * PAGE_PPM, (contentBottom + 2.4) * PAGE_PPM);
+      ctx.textAlign = "left";
     }
   };
 
-  // ---- Спроба вмістити все на одну сторінку (зменшенням масштабу до 60%) ----
+  // ---- Спроба вмістити все на одну сторінку ----
   const naturalHmm = (canvas.height / canvas.width) * usableW;
   if (naturalHmm <= contentHmm / 0.6) {
     const fitW = Math.min(usableW, (contentHmm / naturalHmm) * usableW);
     const fitH = Math.min(contentHmm, naturalHmm);
-    drawFrame(1, 1);
-    pdf.addImage(
-      canvas.toDataURL("image/jpeg", 0.94),
-      "JPEG",
-      (pageW - fitW) / 2,
-      contentTop,
-      fitW,
-      fitH,
-    );
-    return { doc: pdf, cuts: [canvas.height], totalPages: 1, canvasHeight: canvas.height };
+    const { c, ctx } = mkPage();
+    drawFrame(ctx, 1, 1);
+    ctx.drawImage(canvas, ((PAGE_W_MM - fitW) / 2) * PAGE_PPM, contentTop * PAGE_PPM, fitW * PAGE_PPM, fitH * PAGE_PPM);
+    return { pages: [c], cuts: [canvas.height], canvasHeight: canvas.height };
   }
 
-  // ---- Інакше — пагінація по рядках таблиць (точки виміряні у клоні) ----
+  // ---- Пагінація по рядках таблиць ----
   const pxPerMm = canvas.width / usableW;
   const contentPx = Math.floor(contentHmm * pxPerMm);
 
@@ -275,33 +262,36 @@ async function buildPdf(el: HTMLElement): Promise<PdfLayout> {
   }
   const totalPages = cuts.length || 1;
 
+  const pages: HTMLCanvasElement[] = [];
   let offset = 0;
   for (let i = 0; i < cuts.length; i++) {
-    if (i > 0) pdf.addPage();
-    drawFrame(i + 1, totalPages);
+    const { c, ctx } = mkPage();
+    drawFrame(ctx, i + 1, totalPages);
     const cut = cuts[i];
     const sliceH = cut - offset;
-    if (sliceH <= 0) continue;
-    const slice = document.createElement("canvas");
-    slice.width = canvas.width;
-    slice.height = sliceH;
-    const ctx = slice.getContext("2d")!;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, slice.width, slice.height);
-    ctx.drawImage(canvas, 0, -offset);
-    const drawnHmm = (sliceH / canvas.width) * usableW;
-    pdf.addImage(
-      slice.toDataURL("image/jpeg", 0.92),
-      "JPEG",
-      sideMargin,
-      contentTop,
-      usableW,
-      Math.min(drawnHmm, contentHmm),
-    );
+    if (sliceH > 0) {
+      const drawnHmm = Math.min((sliceH / canvas.width) * usableW, contentHmm);
+      ctx.drawImage(
+        canvas,
+        0, offset, canvas.width, sliceH,
+        SIDE_MARGIN_MM * PAGE_PPM, contentTop * PAGE_PPM, usableW * PAGE_PPM, drawnHmm * PAGE_PPM,
+      );
+    }
     offset = cut;
+    pages.push(c);
   }
 
-  return { doc: pdf, cuts, totalPages, canvasHeight: canvas.height };
+  return { pages, cuts, canvasHeight: canvas.height };
+}
+
+async function buildPdf(el: HTMLElement): Promise<PdfLayout> {
+  const { pages, cuts, canvasHeight } = await buildPageCanvases(el);
+  const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
+  pages.forEach((page, i) => {
+    if (i > 0) pdf.addPage();
+    pdf.addImage(page.toDataURL("image/jpeg", 0.94), "JPEG", 0, 0, PAGE_W_MM, PAGE_H_MM);
+  });
+  return { doc: pdf, cuts, totalPages: pages.length || 1, canvasHeight };
 }
 
 export async function exportElementAsPdf(el: HTMLElement, filename: string): Promise<void> {
@@ -309,47 +299,24 @@ export async function exportElementAsPdf(el: HTMLElement, filename: string): Pro
   doc.save(filename);
 }
 
-// ---------- Попередній перегляд ----------
-export interface ExportPreview {
-  /** PNG-прев'ю аркуша (blob URL) — це саме той файл, що збережеться. */
-  imageUrl: string;
-  width: number;
-  height: number;
-  /** Розриви сторінок у відсотках висоти аркуша (без останнього). */
-  breakRatios: number[];
-  totalPages: number;
-  /** Blob URL готового PDF — для перегляду у вбудованому viewer. */
-  pdfUrl: string;
-  /** Готові файли — щоб «Зберегти» віддавало точно те, що показано у перегляді. */
-  pngBlob: Blob;
-  pdfBlob: Blob;
-}
-
 /**
- * Готує прев'ю: зображення кошторису + позиції розривів сторінок + сам PDF.
- * Захоплення послідовне (не Promise.all): паралельний html2canvas на одному
- * елементі дає різну розкладку в Safari/Firefox.
+ * PNG — точна копія PDF: ті самі сторінки A4 з колонтитулами,
+ * складені вертикально в одне зображення.
  */
-export async function buildExportPreview(el: HTMLElement): Promise<ExportPreview> {
-  const { canvas } = await captureBest(el);
-  const layout = await buildPdf(el);
-  const breakRatios = layout.cuts
-    .slice(0, -1)
-    .map((c) => c / layout.canvasHeight)
-    .filter((r) => r > 0.01 && r < 0.99);
-  const pngBlob = (await canvasToPngBlob(canvas)) ?? new Blob();
-  const pdfBlob = layout.doc.output("blob") as Blob;
-  return {
-    imageUrl: URL.createObjectURL(pngBlob),
-    width: canvas.width,
-    height: canvas.height,
-    breakRatios,
-    totalPages: layout.totalPages,
-    pdfUrl: URL.createObjectURL(pdfBlob),
-    pngBlob,
-    pdfBlob,
-  };
+export async function exportElementAsPng(el: HTMLElement, filename: string): Promise<void> {
+  const { pages } = await buildPageCanvases(el);
+  const gap = pages.length > 1 ? Math.round(4 * PAGE_PPM) : 0;
+  const out = document.createElement("canvas");
+  out.width = pages[0]?.width ?? Math.round(PAGE_W_MM * PAGE_PPM);
+  out.height = pages.reduce((h, p) => h + p.height, 0) + gap * Math.max(0, pages.length - 1);
+  const ctx = out.getContext("2d")!;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, out.width, out.height);
+  let y = 0;
+  for (const p of pages) {
+    ctx.drawImage(p, 0, y);
+    y += p.height + gap;
+  }
+  const blob = await canvasToPngBlob(out);
+  if (blob) await savePngBlob(blob, filename);
 }
-
-
-
