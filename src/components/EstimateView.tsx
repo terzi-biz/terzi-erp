@@ -306,9 +306,6 @@ export function EstimateView({
         </>
       )}
 
-      {/* Експорт та планування — ПІД кошторисом */}
-      {ToolbarBlock}
-
       {mode === "internal" && isInternal && (() => {
         const m = module.toLowerCase();
         const moduleKey: "screed" | "roofing" | "insulation" | "demolition" | undefined =
@@ -332,8 +329,12 @@ export function EstimateView({
           />
         ) : null;
       })()}
+
+      {/* Експорт — у самому низу */}
+      {ToolbarBlock}
     </div>
   );
+}
 }
 
 
