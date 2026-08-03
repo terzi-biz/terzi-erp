@@ -7,6 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
 import { useAppStore, generateEstimateNumber } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
+import { usePersistedState } from "@/lib/usePersistedState";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
@@ -90,9 +91,9 @@ function ScreedPage() {
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { settings, branding } = useAppStore();
   const search = Route.useSearch();
-  const [input, setInput] = useState<ScreedInput>(defaultInput);
+  const [input, setInput] = usePersistedState<ScreedInput>("terzi:draft:screed:input", defaultInput);
   const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed", input.area);
-  const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
+  const [client, setClient] = usePersistedState("terzi:draft:screed:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
 
   const [showInternal, setShowInternal] = useState(isInternal);

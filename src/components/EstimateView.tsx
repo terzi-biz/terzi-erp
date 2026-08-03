@@ -15,6 +15,7 @@ import { generateEstimatePdf } from "@/lib/estimate-pdf";
 
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { usePersistedState } from "@/lib/usePersistedState";
 import { SchedulePanel } from "@/components/SchedulePanel";
 import { TERZI_LOGO_URL } from "@/components/TerziLogo";
 
@@ -56,30 +57,11 @@ interface ExtraLine {
 }
 
 /**
- * Ручні правки кошторису зберігаються локально (на пристрої) під ключем кошторису,
- * щоб вони не зникали при перемиканні вкладок «Калькулятор / Кошторис» чи перезавантаженні
+ * Ручні правки кошторису зберігаються локально (на пристрої) під стабільним ключем кошторису,
+ * щоб вони не зникали при перемиканні вкладок браузера, поверненні на сторінку чи перезавантаженні
  * і потрапляли у PDF/PNG, які генеруються з цього ж аркуша.
  */
-function usePersistedState<T>(key: string | null, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
-  const [state, setState] = useState<T>(() => {
-    if (!key || typeof window === "undefined") return initial;
-    try {
-      const raw = window.localStorage.getItem(key);
-      return raw ? (JSON.parse(raw) as T) : initial;
-    } catch {
-      return initial;
-    }
-  });
-  useEffect(() => {
-    if (!key || typeof window === "undefined") return;
-    try {
-      window.localStorage.setItem(key, JSON.stringify(state));
-    } catch {
-      /* сховище недоступне — правки лишаються лише в памʼяті */
-    }
-  }, [key, state]);
-  return [state, setState];
-}
+
 
 export type ShowInClientMode = "always" | "detailed_only" | "condensed_only" | "never";
 export type ClientViewMode = "detailed" | "condensed" | "turnkey";
@@ -181,17 +163,23 @@ export function EstimateView({
   estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange,
 }: Props) {
   const t = useT();
-  const [mode, setMode] = useState<"client" | "internal">(isInternal ? "internal" : "client");
-  const [clientViewMode, setClientViewMode] = useState<ClientViewMode>(initialClientViewMode ?? "detailed");
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
-  // Окремі стани редагування для кожного режиму (зберігаються локально під ключем кошторису)
-  const editKey = `terzi:estimate-edits:${estimateId ?? estimateNumber ?? module}`;
-  const [clientOverrides, setClientOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:client:ov`, {});
-  const [clientExtras, setClientExtras] = usePersistedState<ExtraLine[]>(`${editKey}:client:ex`, []);
-  const [internalOverrides, setInternalOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:internal:ov`, {});
-  const [internalExtras, setInternalExtras] = usePersistedState<ExtraLine[]>(`${editKey}:internal:ex`, []);
+  // Стабільний ключ (не залежить від згенерованого номера), щоб правки не губилися
+  // при поверненні на сторінку чи перезавантаженні вкладки.
+  const editKey = `terzi:estimate-edits:${estimateId ?? module}`;
+  const [mode, setMode] = usePersistedState<"client" | "internal">(
+    `${editKey}:mode`, isInternal ? "internal" : "client",
+  );
+  const [clientViewMode, setClientViewMode] = usePersistedState<ClientViewMode>(
+    `${editKey}:cvm`, initialClientViewMode ?? "detailed",
+  );
+
+  // ЄДИНИЙ стан правок для обох виглядів: зміни у внутрішньому кошторисі
+  // одразу відображаються в КП і навпаки.
+  const [overrides, setOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:ov`, {});
+  const [extras, setExtras] = usePersistedState<ExtraLine[]>(`${editKey}:ex`, []);
 
   const blockOrderTop = ["materials", "works", "logistics"];
   const groupedTop = blockOrderTop.map((b) => ({
@@ -202,8 +190,9 @@ export function EstimateView({
 
   // Ефективні (з урахуванням ручних правок) рядки рахуємо на рівні батьківського
   // компонента, щоб і аркуш на екрані, і PDF-таблиця будувались з одних даних.
-  const effInternal = useEffectiveBlocks(groupedTop, internalOverrides, internalExtras, false, t);
-  const effClient = useEffectiveBlocks(groupedTop, clientOverrides, clientExtras, true, t, clientViewMode);
+  const effInternal = useEffectiveBlocks(groupedTop, overrides, extras, false, t);
+  const effClient = useEffectiveBlocks(groupedTop, overrides, extras, true, t, clientViewMode);
+
 
   const baseLinesCost = result.lines.reduce((a, r) => a + r.cost, 0);
   const baseLinesSell = result.lines.reduce((a, r) => a + r.sum, 0);
@@ -287,14 +276,9 @@ export function EstimateView({
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
   const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
-  const onResetActive = () => {
-    if (mode === "client") { setClientOverrides({}); setClientExtras([]); }
-    else { setInternalOverrides({}); setInternalExtras([]); }
-  };
+  const onResetActive = () => { setOverrides({}); setExtras([]); };
 
-  const hasEdits = mode === "client"
-    ? (Object.keys(clientOverrides).length > 0 || clientExtras.length > 0)
-    : (Object.keys(internalOverrides).length > 0 || internalExtras.length > 0);
+  const hasEdits = Object.keys(overrides).length > 0 || extras.length > 0;
 
   const blockOrder = ["materials", "works", "logistics"];
   const grouped = blockOrder.map((b) => ({
@@ -351,8 +335,8 @@ export function EstimateView({
           <div className="relative z-10">
             <InternalSheet result={result} client={client} branding={branding} module={module}
               area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-              overrides={internalOverrides} setOverrides={setInternalOverrides}
-              extras={internalExtras} setExtras={setInternalExtras}
+              overrides={overrides} setOverrides={setOverrides}
+              extras={extras} setExtras={setExtras}
               effective={effInternal} totals={internalTotals} />
           </div>
         </div>
@@ -386,8 +370,8 @@ export function EstimateView({
               <ClientSheet
                 result={result} client={client} branding={branding} module={module}
                 area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-                overrides={clientOverrides} setOverrides={setClientOverrides}
-                extras={clientExtras} setExtras={setClientExtras}
+                overrides={overrides} setOverrides={setOverrides}
+                extras={extras} setExtras={setExtras}
                 clientViewMode={clientViewMode}
                 effective={effClient} totals={clientTotals}
               />
