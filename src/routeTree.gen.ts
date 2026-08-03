@@ -9,126 +9,46 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as WorksRouteImport } from './routes/works'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ScreedRouteImport } from './routes/screed'
-import { Route as RoofingRouteImport } from './routes/roofing'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as OperationsRouteImport } from './routes/operations'
-import { Route as MaterialsRouteImport } from './routes/materials'
-import { Route as LogisticsRouteImport } from './routes/logistics'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as IntegrationsRouteImport } from './routes/integrations'
-import { Route as InsulationRouteImport } from './routes/insulation'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as EquipmentRouteImport } from './routes/equipment'
-import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
-import { Route as DemolitionRouteImport } from './routes/demolition'
-import { Route as ClientsRouteImport } from './routes/clients'
-import { Route as BrandingRouteImport } from './routes/branding'
-import { Route as AccessRouteImport } from './routes/access'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as ProductionIndexRouteImport } from './routes/production.index'
-import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
+import { Route as AccessRouteImport } from './routes/access'
+import { Route as BrandingRouteImport } from './routes/branding'
+import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as DemolitionRouteImport } from './routes/demolition'
+import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
+import { Route as EquipmentRouteImport } from './routes/equipment'
+import { Route as HistoryRouteImport } from './routes/history'
+import { Route as InsulationRouteImport } from './routes/insulation'
+import { Route as IntegrationsRouteImport } from './routes/integrations'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LogisticsRouteImport } from './routes/logistics'
+import { Route as MaterialsRouteImport } from './routes/materials'
+import { Route as OperationsRouteImport } from './routes/operations'
+import { Route as ReportsRouteImport } from './routes/reports'
+import { Route as RoofingRouteImport } from './routes/roofing'
+import { Route as ScreedRouteImport } from './routes/screed'
+import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WorksRouteImport } from './routes/works'
 import { Route as CrmIndexRouteImport } from './routes/crm.index'
-import { Route as ProductionIdRouteImport } from './routes/production.$id'
-import { Route as ObjectsNewRouteImport } from './routes/objects.new'
-import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
-import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
-import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
-import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
-import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
 import { Route as CrmCallsRouteImport } from './routes/crm.calls'
+import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
+import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
+import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
+import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
+import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
+import { Route as ObjectsNewRouteImport } from './routes/objects.new'
+import { Route as ProductionIndexRouteImport } from './routes/production.index'
+import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
-import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
-import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
-import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
+import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
+import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
+import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
-const WorksRoute = WorksRouteImport.update({
-  id: '/works',
-  path: '/works',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ScreedRoute = ScreedRouteImport.update({
-  id: '/screed',
-  path: '/screed',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoofingRoute = RoofingRouteImport.update({
-  id: '/roofing',
-  path: '/roofing',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OperationsRoute = OperationsRouteImport.update({
-  id: '/operations',
-  path: '/operations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MaterialsRoute = MaterialsRouteImport.update({
-  id: '/materials',
-  path: '/materials',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LogisticsRoute = LogisticsRouteImport.update({
-  id: '/logistics',
-  path: '/logistics',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IntegrationsRoute = IntegrationsRouteImport.update({
-  id: '/integrations',
-  path: '/integrations',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InsulationRoute = InsulationRouteImport.update({
-  id: '/insulation',
-  path: '/insulation',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EquipmentRoute = EquipmentRouteImport.update({
-  id: '/equipment',
-  path: '/equipment',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DirectionsEditorRoute = DirectionsEditorRouteImport.update({
-  id: '/directions-editor',
-  path: '/directions-editor',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DemolitionRoute = DemolitionRouteImport.update({
-  id: '/demolition',
-  path: '/demolition',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientsRoute = ClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const BrandingRoute = BrandingRouteImport.update({
-  id: '/branding',
-  path: '/branding',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AccessRoute = AccessRouteImport.update({
@@ -136,19 +56,89 @@ const AccessRoute = AccessRouteImport.update({
   path: '/access',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const BrandingRoute = BrandingRouteImport.update({
+  id: '/branding',
+  path: '/branding',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductionIndexRoute = ProductionIndexRouteImport.update({
-  id: '/production/',
-  path: '/production/',
+const ClientsRoute = ClientsRouteImport.update({
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
-  id: '/objects/',
-  path: '/objects/',
+const DemolitionRoute = DemolitionRouteImport.update({
+  id: '/demolition',
+  path: '/demolition',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DirectionsEditorRoute = DirectionsEditorRouteImport.update({
+  id: '/directions-editor',
+  path: '/directions-editor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EquipmentRoute = EquipmentRouteImport.update({
+  id: '/equipment',
+  path: '/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HistoryRoute = HistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InsulationRoute = InsulationRouteImport.update({
+  id: '/insulation',
+  path: '/insulation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IntegrationsRoute = IntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LogisticsRoute = LogisticsRouteImport.update({
+  id: '/logistics',
+  path: '/logistics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MaterialsRoute = MaterialsRouteImport.update({
+  id: '/materials',
+  path: '/materials',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OperationsRoute = OperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RoofingRoute = RoofingRouteImport.update({
+  id: '/roofing',
+  path: '/roofing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScreedRoute = ScreedRouteImport.update({
+  id: '/screed',
+  path: '/screed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SettingsRoute = SettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorksRoute = WorksRouteImport.update({
+  id: '/works',
+  path: '/works',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmIndexRoute = CrmIndexRouteImport.update({
@@ -156,39 +146,9 @@ const CrmIndexRoute = CrmIndexRouteImport.update({
   path: '/crm/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ProductionIdRoute = ProductionIdRouteImport.update({
-  id: '/production/$id',
-  path: '/production/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ObjectsNewRoute = ObjectsNewRouteImport.update({
-  id: '/objects/new',
-  path: '/objects/new',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ObjectsIdRoute = ObjectsIdRouteImport.update({
-  id: '/objects/$id',
-  path: '/objects/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const InviteTokenRoute = InviteTokenRouteImport.update({
-  id: '/invite/$token',
-  path: '/invite/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CrmTasksRoute = CrmTasksRouteImport.update({
-  id: '/crm/tasks',
-  path: '/crm/tasks',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CrmRequestsRoute = CrmRequestsRouteImport.update({
-  id: '/crm/requests',
-  path: '/crm/requests',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CrmLeadsRoute = CrmLeadsRouteImport.update({
-  id: '/crm/leads',
-  path: '/crm/leads',
+const CrmCallsRoute = CrmCallsRouteImport.update({
+  id: '/crm/calls',
+  path: '/crm/calls',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmContactsRoute = CrmContactsRouteImport.update({
@@ -196,9 +156,49 @@ const CrmContactsRoute = CrmContactsRouteImport.update({
   path: '/crm/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CrmCallsRoute = CrmCallsRouteImport.update({
-  id: '/crm/calls',
-  path: '/crm/calls',
+const CrmLeadsRoute = CrmLeadsRouteImport.update({
+  id: '/crm/leads',
+  path: '/crm/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmRequestsRoute = CrmRequestsRouteImport.update({
+  id: '/crm/requests',
+  path: '/crm/requests',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmTasksRoute = CrmTasksRouteImport.update({
+  id: '/crm/tasks',
+  path: '/crm/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
+  id: '/objects/',
+  path: '/objects/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjectsIdRoute = ObjectsIdRouteImport.update({
+  id: '/objects/$id',
+  path: '/objects/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ObjectsNewRoute = ObjectsNewRouteImport.update({
+  id: '/objects/new',
+  path: '/objects/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductionIndexRoute = ProductionIndexRouteImport.update({
+  id: '/production/',
+  path: '/production/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductionIdRoute = ProductionIdRouteImport.update({
+  id: '/production/$id',
+  path: '/production/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicIntegrationsWorkerRoute =
@@ -207,16 +207,10 @@ const ApiPublicIntegrationsWorkerRoute =
     path: '/api/public/integrations/worker',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicIntegrationsWebhookSlugRoute =
-  ApiPublicIntegrationsWebhookSlugRouteImport.update({
-    id: '/api/public/integrations/webhook/$slug',
-    path: '/api/public/integrations/webhook/$slug',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiPublicIntegrationsOauthCallbackRoute =
-  ApiPublicIntegrationsOauthCallbackRouteImport.update({
-    id: '/api/public/integrations/oauth/callback',
-    path: '/api/public/integrations/oauth/callback',
+const ApiPublicIntegrationsBinotelCallCompletedRoute =
+  ApiPublicIntegrationsBinotelCallCompletedRouteImport.update({
+    id: '/api/public/integrations/binotel/call-completed',
+    path: '/api/public/integrations/binotel/call-completed',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicIntegrationsBinotelCallSettingsRoute =
@@ -225,10 +219,16 @@ const ApiPublicIntegrationsBinotelCallSettingsRoute =
     path: '/api/public/integrations/binotel/call-settings',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicIntegrationsBinotelCallCompletedRoute =
-  ApiPublicIntegrationsBinotelCallCompletedRouteImport.update({
-    id: '/api/public/integrations/binotel/call-completed',
-    path: '/api/public/integrations/binotel/call-completed',
+const ApiPublicIntegrationsOauthCallbackRoute =
+  ApiPublicIntegrationsOauthCallbackRouteImport.update({
+    id: '/api/public/integrations/oauth/callback',
+    path: '/api/public/integrations/oauth/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsWebhookSlugRoute =
+  ApiPublicIntegrationsWebhookSlugRouteImport.update({
+    id: '/api/public/integrations/webhook/$slug',
+    path: '/api/public/integrations/webhook/$slug',
     getParentRoute: () => rootRouteImport,
   } as any)
 
@@ -505,123 +505,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/works': {
-      id: '/works'
-      path: '/works'
-      fullPath: '/works'
-      preLoaderRoute: typeof WorksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/screed': {
-      id: '/screed'
-      path: '/screed'
-      fullPath: '/screed'
-      preLoaderRoute: typeof ScreedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/roofing': {
-      id: '/roofing'
-      path: '/roofing'
-      fullPath: '/roofing'
-      preLoaderRoute: typeof RoofingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/operations': {
-      id: '/operations'
-      path: '/operations'
-      fullPath: '/operations'
-      preLoaderRoute: typeof OperationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/materials': {
-      id: '/materials'
-      path: '/materials'
-      fullPath: '/materials'
-      preLoaderRoute: typeof MaterialsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/logistics': {
-      id: '/logistics'
-      path: '/logistics'
-      fullPath: '/logistics'
-      preLoaderRoute: typeof LogisticsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/integrations': {
-      id: '/integrations'
-      path: '/integrations'
-      fullPath: '/integrations'
-      preLoaderRoute: typeof IntegrationsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/insulation': {
-      id: '/insulation'
-      path: '/insulation'
-      fullPath: '/insulation'
-      preLoaderRoute: typeof InsulationRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/equipment': {
-      id: '/equipment'
-      path: '/equipment'
-      fullPath: '/equipment'
-      preLoaderRoute: typeof EquipmentRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/directions-editor': {
-      id: '/directions-editor'
-      path: '/directions-editor'
-      fullPath: '/directions-editor'
-      preLoaderRoute: typeof DirectionsEditorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/demolition': {
-      id: '/demolition'
-      path: '/demolition'
-      fullPath: '/demolition'
-      preLoaderRoute: typeof DemolitionRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clients': {
-      id: '/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof ClientsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/branding': {
-      id: '/branding'
-      path: '/branding'
-      fullPath: '/branding'
-      preLoaderRoute: typeof BrandingRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/access': {
@@ -631,25 +519,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AccessRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/branding': {
+      id: '/branding'
+      path: '/branding'
+      fullPath: '/branding'
+      preLoaderRoute: typeof BrandingRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/production/': {
-      id: '/production/'
-      path: '/production'
-      fullPath: '/production/'
-      preLoaderRoute: typeof ProductionIndexRouteImport
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
+      preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/objects/': {
-      id: '/objects/'
-      path: '/objects'
-      fullPath: '/objects/'
-      preLoaderRoute: typeof ObjectsIndexRouteImport
+    '/demolition': {
+      id: '/demolition'
+      path: '/demolition'
+      fullPath: '/demolition'
+      preLoaderRoute: typeof DemolitionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/directions-editor': {
+      id: '/directions-editor'
+      path: '/directions-editor'
+      fullPath: '/directions-editor'
+      preLoaderRoute: typeof DirectionsEditorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/equipment': {
+      id: '/equipment'
+      path: '/equipment'
+      fullPath: '/equipment'
+      preLoaderRoute: typeof EquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/history': {
+      id: '/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof HistoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/insulation': {
+      id: '/insulation'
+      path: '/insulation'
+      fullPath: '/insulation'
+      preLoaderRoute: typeof InsulationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations': {
+      id: '/integrations'
+      path: '/integrations'
+      fullPath: '/integrations'
+      preLoaderRoute: typeof IntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/logistics': {
+      id: '/logistics'
+      path: '/logistics'
+      fullPath: '/logistics'
+      preLoaderRoute: typeof LogisticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/materials': {
+      id: '/materials'
+      path: '/materials'
+      fullPath: '/materials'
+      preLoaderRoute: typeof MaterialsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/operations': {
+      id: '/operations'
+      path: '/operations'
+      fullPath: '/operations'
+      preLoaderRoute: typeof OperationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/roofing': {
+      id: '/roofing'
+      path: '/roofing'
+      fullPath: '/roofing'
+      preLoaderRoute: typeof RoofingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/screed': {
+      id: '/screed'
+      path: '/screed'
+      fullPath: '/screed'
+      preLoaderRoute: typeof ScreedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/settings': {
+      id: '/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/works': {
+      id: '/works'
+      path: '/works'
+      fullPath: '/works'
+      preLoaderRoute: typeof WorksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm/': {
@@ -659,53 +645,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/production/$id': {
-      id: '/production/$id'
-      path: '/production/$id'
-      fullPath: '/production/$id'
-      preLoaderRoute: typeof ProductionIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/objects/new': {
-      id: '/objects/new'
-      path: '/objects/new'
-      fullPath: '/objects/new'
-      preLoaderRoute: typeof ObjectsNewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/objects/$id': {
-      id: '/objects/$id'
-      path: '/objects/$id'
-      fullPath: '/objects/$id'
-      preLoaderRoute: typeof ObjectsIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/invite/$token': {
-      id: '/invite/$token'
-      path: '/invite/$token'
-      fullPath: '/invite/$token'
-      preLoaderRoute: typeof InviteTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/crm/tasks': {
-      id: '/crm/tasks'
-      path: '/crm/tasks'
-      fullPath: '/crm/tasks'
-      preLoaderRoute: typeof CrmTasksRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/crm/requests': {
-      id: '/crm/requests'
-      path: '/crm/requests'
-      fullPath: '/crm/requests'
-      preLoaderRoute: typeof CrmRequestsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/crm/leads': {
-      id: '/crm/leads'
-      path: '/crm/leads'
-      fullPath: '/crm/leads'
-      preLoaderRoute: typeof CrmLeadsRouteImport
+    '/crm/calls': {
+      id: '/crm/calls'
+      path: '/crm/calls'
+      fullPath: '/crm/calls'
+      preLoaderRoute: typeof CrmCallsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm/contacts': {
@@ -715,11 +659,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/crm/calls': {
-      id: '/crm/calls'
-      path: '/crm/calls'
-      fullPath: '/crm/calls'
-      preLoaderRoute: typeof CrmCallsRouteImport
+    '/crm/leads': {
+      id: '/crm/leads'
+      path: '/crm/leads'
+      fullPath: '/crm/leads'
+      preLoaderRoute: typeof CrmLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/requests': {
+      id: '/crm/requests'
+      path: '/crm/requests'
+      fullPath: '/crm/requests'
+      preLoaderRoute: typeof CrmRequestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/tasks': {
+      id: '/crm/tasks'
+      path: '/crm/tasks'
+      fullPath: '/crm/tasks'
+      preLoaderRoute: typeof CrmTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objects/': {
+      id: '/objects/'
+      path: '/objects'
+      fullPath: '/objects/'
+      preLoaderRoute: typeof ObjectsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objects/$id': {
+      id: '/objects/$id'
+      path: '/objects/$id'
+      fullPath: '/objects/$id'
+      preLoaderRoute: typeof ObjectsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/objects/new': {
+      id: '/objects/new'
+      path: '/objects/new'
+      fullPath: '/objects/new'
+      preLoaderRoute: typeof ObjectsNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/production/': {
+      id: '/production/'
+      path: '/production'
+      fullPath: '/production/'
+      preLoaderRoute: typeof ProductionIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/production/$id': {
+      id: '/production/$id'
+      path: '/production/$id'
+      fullPath: '/production/$id'
+      preLoaderRoute: typeof ProductionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/integrations/worker': {
@@ -729,18 +729,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/integrations/webhook/$slug': {
-      id: '/api/public/integrations/webhook/$slug'
-      path: '/api/public/integrations/webhook/$slug'
-      fullPath: '/api/public/integrations/webhook/$slug'
-      preLoaderRoute: typeof ApiPublicIntegrationsWebhookSlugRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/public/integrations/oauth/callback': {
-      id: '/api/public/integrations/oauth/callback'
-      path: '/api/public/integrations/oauth/callback'
-      fullPath: '/api/public/integrations/oauth/callback'
-      preLoaderRoute: typeof ApiPublicIntegrationsOauthCallbackRouteImport
+    '/api/public/integrations/binotel/call-completed': {
+      id: '/api/public/integrations/binotel/call-completed'
+      path: '/api/public/integrations/binotel/call-completed'
+      fullPath: '/api/public/integrations/binotel/call-completed'
+      preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/integrations/binotel/call-settings': {
@@ -750,11 +743,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/integrations/binotel/call-completed': {
-      id: '/api/public/integrations/binotel/call-completed'
-      path: '/api/public/integrations/binotel/call-completed'
-      fullPath: '/api/public/integrations/binotel/call-completed'
-      preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRouteImport
+    '/api/public/integrations/oauth/callback': {
+      id: '/api/public/integrations/oauth/callback'
+      path: '/api/public/integrations/oauth/callback'
+      fullPath: '/api/public/integrations/oauth/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsOauthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/webhook/$slug': {
+      id: '/api/public/integrations/webhook/$slug'
+      path: '/api/public/integrations/webhook/$slug'
+      fullPath: '/api/public/integrations/webhook/$slug'
+      preLoaderRoute: typeof ApiPublicIntegrationsWebhookSlugRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
