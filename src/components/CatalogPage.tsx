@@ -252,11 +252,12 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
 
       {isLoading ? <div className="text-muted-foreground text-sm">Завантаження…</div> : (
         <div className="panel scroll-x max-h-[calc(100vh-220px)] overflow-y-auto">
-          <table className="w-full text-sm min-w-[1240px] sticky-thead">
+          <table className="w-full text-sm min-w-[1500px] sticky-thead">
             <thead className="bg-secondary text-xs uppercase tracking-wider">
 
               <tr>
-                <th className="text-left p-3">Назва</th>
+                <th className="text-left p-3 min-w-[340px] w-[340px]">Назва</th>
+
                 <th className="text-left p-3 w-20">Од.</th>
                 <th className="text-right p-3 w-28">{isEquip ? "Вартість" : "Закупка"}</th>
                 <th className="text-right p-3 w-28">{isEquip ? "Амортиз./міс." : "Продаж"}</th>
