@@ -42,6 +42,7 @@ import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
+import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
@@ -213,6 +214,11 @@ const ProductionIdRoute = ProductionIdRouteImport.update({
   path: '/production/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
+  id: '/.lovable/oauth/consent',
+  path: '/.lovable/oauth/consent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicIntegrationsWorkerRoute =
   ApiPublicIntegrationsWorkerRouteImport.update({
     id: '/api/public/integrations/worker',
@@ -278,6 +284,7 @@ export interface FileRoutesByFullPath {
   '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -318,6 +325,7 @@ export interface FileRoutesByTo {
   '/crm': typeof CrmIndexRoute
   '/objects': typeof ObjectsIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -359,6 +367,7 @@ export interface FileRoutesById {
   '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -401,6 +410,7 @@ export interface FileRouteTypes {
     | '/crm/'
     | '/objects/'
     | '/production/'
+    | '/.lovable/oauth/consent'
     | '/api/public/integrations/worker'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
@@ -441,6 +451,7 @@ export interface FileRouteTypes {
     | '/crm'
     | '/objects'
     | '/production'
+    | '/.lovable/oauth/consent'
     | '/api/public/integrations/worker'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
@@ -481,6 +492,7 @@ export interface FileRouteTypes {
     | '/crm/'
     | '/objects/'
     | '/production/'
+    | '/.lovable/oauth/consent'
     | '/api/public/integrations/worker'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
@@ -522,6 +534,7 @@ export interface RootRouteChildren {
   CrmIndexRoute: typeof CrmIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
+  DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
   ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -762,6 +775,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/.lovable/oauth/consent': {
+      id: '/.lovable/oauth/consent'
+      path: '/.lovable/oauth/consent'
+      fullPath: '/.lovable/oauth/consent'
+      preLoaderRoute: typeof DotlovableOauthConsentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/worker': {
       id: '/api/public/integrations/worker'
       path: '/api/public/integrations/worker'
@@ -834,6 +854,7 @@ const rootRouteChildren: RootRouteChildren = {
   CrmIndexRoute: CrmIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
+  DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
   ApiPublicIntegrationsBinotelCallCompletedRoute:
     ApiPublicIntegrationsBinotelCallCompletedRoute,
