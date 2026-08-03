@@ -378,25 +378,26 @@ export function calculateScreed(
   if (input.withSlope) lines.push({ key: "w_slope", block: "works", name: "w_slope", unit: "м²", qty: area,
     pricePerUnit: works.slope, costPerUnit: s.brigadeSlopeCost, sum: area * works.slope, cost: area * s.brigadeSlopeCost, showToClient: true });
 
-  lines.push({ key: "w_cement_unload", block: "works", name: "w_cement_unload", unit: "міш.", qty: cementBags,
-    pricePerUnit: works.cementUnload, costPerUnit: s.brigadeUnloadCost,
-    sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
+  // Вивантаження цементу — ОПЦІЙНА позиція. Якщо вимкнена, вона не потрапляє
+  // ані в КП, ані в собівартість бригади.
+  if (input.withCementUnload) {
+    lines.push({ key: "w_cement_unload", block: "works", name: "w_cement_unload", unit: "міш.", qty: cementBags,
+      pricePerUnit: works.cementUnload, costPerUnit: s.brigadeUnloadCost,
+      sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
+  }
 
-  // Собівартість бригади за стяжку — фіксована для об'єктів до 100 м²
-  // (11 000 грн включають укладання стяжки, плівки, демпфера, шліфовку/затирку,
-  // нарізку деформаційних швів), понад 100 м² додається 110 грн/м² за кожен м²
-  // зверх 100. Клієнту всі ці позиції показуються окремими лініями вище,
-  // а тут заносимо єдиний внутрішній рядок собівартості, щоб він був видимий
-  // у Внутрішньому кошторисі як "Бригада (стяжка + опції)".
-  const laborTier = areaLaborTier(area);
-  const brigadeBaseCost = (area <= 100 ? s.brigadeMin : s.brigadeMin + (area - 100) * s.brigadePerM2) * laborTier.coef;
-  const foremanCost = (area <= 100 ? s.foremanMin : area * s.foremanPerM2) * laborTier.coef;
+  // Собівартість бригади: до 100 м² включно — фіксовано 11 000 грн за об'єкт;
+  // понад 100 м² — 110 грн/м² на ВСЮ площу (напр. 110 м² → 110 × 110 = 12 100).
+  // Плюс бригадир — 10 грн/м². Тарифні коефіцієнти площі тут не застосовуються,
+  // ставки задані прямо.
+  const brigadeBaseCost = area <= 100 ? s.brigadeMin : area * s.brigadePerM2;
+  const foremanCost = area * s.foremanPerM2;
 
   lines.push({ key: "w_brigade", block: "works", name: "Бригада (стяжка, плівка, демпфер, шліфовка, шви)",
     unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: brigadeBaseCost,
     sum: 0, cost: brigadeBaseCost, showToClient: false });
-  lines.push({ key: "w_foreman", block: "works", name: "Бригадир",
-    unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: foremanCost,
+  lines.push({ key: "w_foreman", block: "works", name: "Бригадир (10 грн/м²)",
+    unit: "м²", qty: area, pricePerUnit: 0, costPerUnit: s.foremanPerM2,
     sum: 0, cost: foremanCost, showToClient: false });
   
   
