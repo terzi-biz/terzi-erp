@@ -5,7 +5,6 @@
  * 7 m³, 60 bags cement М500, 13.9 t sand (14 t to client), 10 L plast,
  * 11 packs fiber, 22 L diesel (floors 1–5).
  */
-import { areaLaborTier } from "./area-tiers";
 
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
 export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
