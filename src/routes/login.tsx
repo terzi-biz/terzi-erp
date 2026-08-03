@@ -7,7 +7,12 @@ import { useAuth } from "@/lib/auth";
 import heroAsset from "@/assets/terzi-hero.jpeg.asset.json";
 import { TerziLogo } from "@/components/TerziLogo";
 
+function safeNext(value: unknown): string {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : "";
+}
+
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) }),
   component: LoginPage,
   head: () => ({
     meta: [
