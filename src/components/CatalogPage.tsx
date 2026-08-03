@@ -36,8 +36,10 @@ interface Row {
 }
 
 const MODULE_LABEL: Record<Module, string> = {
-  screed: "Стяжка", roofing: "Покрівля", insulation: "Утеплення", demolition: "Демонтаж", common: "Спільні",
+  screed: "Стяжка", roofing: "Покрівля (архів)", roofing_pvc: "Покрівля · ПВХ мембрана",
+  roofing_rub: "Покрівля · Руберойд", insulation: "Утеплення", demolition: "Демонтаж", common: "Спільні",
 };
+
 const KIND_LABEL: Record<Kind, string> = {
   material: "Матеріали", work: "Роботи", equipment: "Обладнання", logistics: "Логістика",
 };
