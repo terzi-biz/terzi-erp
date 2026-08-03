@@ -1,0 +1,204 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://xjhrqxtppzfhetpwuwiy.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "terzi-erp-system",
+      "version": "0.1.0",
+      "title": "TERZI ERP system"
+    },
+    "tools": [
+      {
+        "name": "list_clients",
+        "title": "Список клієнтів",
+        "description": "Повертає клієнтів TERZI ERP, доступних користувачу. Можна фільтрувати за пошуковим рядком (ім'я, телефон, email).",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Пошук за ім'ям, телефоном або email.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "default": 20,
+              "description": "Кількість записів.",
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_objects",
+        "title": "Список об'єктів",
+        "description": "Повертає об'єкти TERZI ERP з адресою, статусами та плановими датами.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Пошук за назвою, номером або адресою.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_estimates",
+        "title": "Список кошторисів",
+        "description": "Повертає кошториси TERZI ERP (номер, напрямок, клієнт, площа, статус, сума для клієнта). Внутрішні фінансові показники не повертаються.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "module": {
+              "description": "Фільтр за напрямком.",
+              "type": "string",
+              "enum": [
+                "screed",
+                "roofing",
+                "roofing_pvc",
+                "roofing_rub",
+                "insulation",
+                "demolition"
+              ]
+            },
+            "status": {
+              "description": "Фільтр за статусом кошторису.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_leads",
+        "title": "Список лідів",
+        "description": "Повертає ліди CRM TERZI: назва, напрямок, статус, джерело, бюджет, наступна дія.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "search": {
+              "description": "Пошук за назвою або адресою ліда.",
+              "type": "string",
+              "minLength": 1
+            },
+            "limit": {
+              "default": 20,
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100
+            }
+          }
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_lead",
+        "title": "Створити лід",
+        "description": "Створює новий лід у CRM TERZI від імені користувача, що увійшов у систему.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "title": {
+              "type": "string",
+              "minLength": 2,
+              "description": "Назва ліда, напр. «Стяжка, вул. Дерибасівська 12»."
+            },
+            "direction": {
+              "description": "Напрямок робіт: стяжка, покрівля, утеплення, демонтаж.",
+              "type": "string",
+              "minLength": 1
+            },
+            "source": {
+              "description": "Джерело звернення.",
+              "type": "string",
+              "minLength": 1
+            },
+            "address": {
+              "type": "string",
+              "minLength": 1
+            },
+            "district": {
+              "type": "string",
+              "minLength": 1
+            },
+            "area": {
+              "description": "Площа, м².",
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "budget": {
+              "description": "Орієнтовний бюджет, грн.",
+              "type": "number",
+              "minimum": 0
+            },
+            "notes": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "title"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
