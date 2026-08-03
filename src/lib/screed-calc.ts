@@ -5,7 +5,6 @@
  * 7 m³, 60 bags cement М500, 13.9 t sand (14 t to client), 10 L plast,
  * 11 packs fiber, 22 L diesel (floors 1–5).
  */
-import { areaLaborTier } from "./area-tiers";
 
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
 export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
@@ -39,6 +38,7 @@ export interface ScreedInput {
   withCuts: boolean;          // нарізка деформаційних швів
   sandType?: SandType;        // звичайний пісок або пісок з відсівом (посилена стяжка)
   withComplexPrep: boolean;   // "Складна підготовка" — умовна підготовка основи
+  withCementUnload?: boolean; // Вивантаження мішків цементу (опція, +10 грн/міш. бригаді)
   withDemolition: boolean;    // "Демонтажні роботи" — демонтаж старої стяжки/покриття
   insulationType: InsulationType; // Утеплення під стяжку
 
@@ -127,14 +127,14 @@ export const DEFAULT_SETTINGS = {
   sandCityCost: 1700, sandCityClient: 2000, // місто (клієнт 2000, закупка 1700)
   sandOutskirtsClient: 2200,
   sandChornomorskClient: 2500,
-  brigadeMin: 11000,       // фіксована оплата бригаді за об'єкт до 100 м² (включає укладання стяжки, плівки, демпфера, шліфовку і нарізку швів)
-  brigadePerM2: 110,       // понад 100 м² — додатково 110 грн/м² на кожен м² зверх 100
-  foremanMin: 1000,        // мін. оплата бригадиру за об'єкт ≤100 м²
-  foremanPerM2: 10,        // оплата бригадиру 10 грн/м² (понад 100 м²)
+  brigadeMin: 11000,       // фіксована оплата бригаді за об'єкт до 100 м² включно
+  brigadePerM2: 110,       // понад 100 м² — 110 грн/м² на ВСЮ площу (110 м² → 110×110)
+  foremanMin: 0,           // бригадир оплачується строго за м² (див. foremanPerM2)
+  foremanPerM2: 10,        // оплата бригадиру 10 грн/м²
   brigadePrepCost: 5,      // підготовка складних об'єктів
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
-  brigadeUnloadCost: 5,
+  brigadeUnloadCost: 10,   // вивантаження цементу — 10 грн/мішок бригаді (опція)
   brigadeLiftCost: 1000,   // підйом матеріалу на поверх (за об'єкт)
   brigadeLiftClient: 2000,
   amortEquipPerM2: 30,
@@ -378,25 +378,26 @@ export function calculateScreed(
   if (input.withSlope) lines.push({ key: "w_slope", block: "works", name: "w_slope", unit: "м²", qty: area,
     pricePerUnit: works.slope, costPerUnit: s.brigadeSlopeCost, sum: area * works.slope, cost: area * s.brigadeSlopeCost, showToClient: true });
 
-  lines.push({ key: "w_cement_unload", block: "works", name: "w_cement_unload", unit: "міш.", qty: cementBags,
-    pricePerUnit: works.cementUnload, costPerUnit: s.brigadeUnloadCost,
-    sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
+  // Вивантаження цементу — ОПЦІЙНА позиція. Якщо вимкнена, вона не потрапляє
+  // ані в КП, ані в собівартість бригади.
+  if (input.withCementUnload) {
+    lines.push({ key: "w_cement_unload", block: "works", name: "w_cement_unload", unit: "міш.", qty: cementBags,
+      pricePerUnit: works.cementUnload, costPerUnit: s.brigadeUnloadCost,
+      sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
+  }
 
-  // Собівартість бригади за стяжку — фіксована для об'єктів до 100 м²
-  // (11 000 грн включають укладання стяжки, плівки, демпфера, шліфовку/затирку,
-  // нарізку деформаційних швів), понад 100 м² додається 110 грн/м² за кожен м²
-  // зверх 100. Клієнту всі ці позиції показуються окремими лініями вище,
-  // а тут заносимо єдиний внутрішній рядок собівартості, щоб він був видимий
-  // у Внутрішньому кошторисі як "Бригада (стяжка + опції)".
-  const laborTier = areaLaborTier(area);
-  const brigadeBaseCost = (area <= 100 ? s.brigadeMin : s.brigadeMin + (area - 100) * s.brigadePerM2) * laborTier.coef;
-  const foremanCost = (area <= 100 ? s.foremanMin : area * s.foremanPerM2) * laborTier.coef;
+  // Собівартість бригади: до 100 м² включно — фіксовано 11 000 грн за об'єкт;
+  // понад 100 м² — 110 грн/м² на ВСЮ площу (напр. 110 м² → 110 × 110 = 12 100).
+  // Плюс бригадир — 10 грн/м². Тарифні коефіцієнти площі тут не застосовуються,
+  // ставки задані прямо.
+  const brigadeBaseCost = area <= 100 ? s.brigadeMin : area * s.brigadePerM2;
+  const foremanCost = area * s.foremanPerM2;
 
   lines.push({ key: "w_brigade", block: "works", name: "Бригада (стяжка, плівка, демпфер, шліфовка, шви)",
     unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: brigadeBaseCost,
     sum: 0, cost: brigadeBaseCost, showToClient: false });
-  lines.push({ key: "w_foreman", block: "works", name: "Бригадир",
-    unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: foremanCost,
+  lines.push({ key: "w_foreman", block: "works", name: "Бригадир (10 грн/м²)",
+    unit: "м²", qty: area, pricePerUnit: 0, costPerUnit: s.foremanPerM2,
     sum: 0, cost: foremanCost, showToClient: false });
   
   

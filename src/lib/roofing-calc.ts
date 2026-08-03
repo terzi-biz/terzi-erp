@@ -15,7 +15,6 @@
  *  (useModulePricing("roofing")).
  */
 import type { MaterialPrice } from "./screed-calc";
-import { areaLaborTier } from "./area-tiers";
 import {
   ROOFING_KB_PRICE_OVERRIDES,
   ROOFING_KB_WORK_OVERRIDES,
@@ -589,8 +588,12 @@ export function calculateRoofing(
 
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  const laborTier = areaLaborTier(area);
-  const worksCost = Math.max(c.brigadeMin, worksAddCost) * laborTier.coef;
+  // Оплата бригаді: до 100 м² включно — фіксовано 11 000 грн за об'єкт,
+  // понад 100 м² — 110 грн/м² на всю площу. Це нижня межа (floor) для суми
+  // ПМЗ майстрів по роботах. Додатково бригадир — 10 грн/м².
+  const brigadeFloor = area <= 100 ? 11000 : area * 110;
+  const foremanCost = area * 10;
+  const worksCost = Math.max(brigadeFloor, worksAddCost) + foremanCost;
   
   const logisticsCost = lines.filter((l) => l.block === "logistics").reduce((a, l) => a + l.cost, 0);
   const amortEquip = area * c.amortEquipPerM2;

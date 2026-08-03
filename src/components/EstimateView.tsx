@@ -10,7 +10,8 @@ import { NumberInput } from "@/components/NumberInput";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
-import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
+import { exportElementAsPng } from "@/lib/pngExport";
+import { generateEstimatePdf } from "@/lib/estimate-pdf";
 
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
@@ -192,12 +193,99 @@ export function EstimateView({
   const [internalOverrides, setInternalOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:internal:ov`, {});
   const [internalExtras, setInternalExtras] = usePersistedState<ExtraLine[]>(`${editKey}:internal:ex`, []);
 
+  const blockOrderTop = ["materials", "works", "logistics"];
+  const groupedTop = blockOrderTop.map((b) => ({
+    block: b,
+    label: BLOCK_LABELS[b] ?? b,
+    rows: result.lines.filter((l) => l.block === b),
+  })).filter((g) => g.rows.length > 0);
+
+  // Ефективні (з урахуванням ручних правок) рядки рахуємо на рівні батьківського
+  // компонента, щоб і аркуш на екрані, і PDF-таблиця будувались з одних даних.
+  const effInternal = useEffectiveBlocks(groupedTop, internalOverrides, internalExtras, false, t);
+  const effClient = useEffectiveBlocks(groupedTop, clientOverrides, clientExtras, true, t, clientViewMode);
+
+  const baseLinesCost = result.lines.reduce((a, r) => a + r.cost, 0);
+  const baseLinesSell = result.lines.reduce((a, r) => a + r.sum, 0);
+  const hiddenCost = result.totalCost - baseLinesCost;
+  const hiddenSell = result.totalClient - baseLinesSell;
+
+  const internalTotals = (() => {
+    const cost = effInternal.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.cost, 0), 0) + hiddenCost;
+    const sell = effInternal.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0) + hiddenSell;
+    return {
+      totalCost: cost, totalSell: sell, grossProfit: sell - cost,
+      marginPct: sell > 0 ? ((sell - cost) / sell) * 100 : 0,
+      pricePerM2: area > 0 ? sell / area : 0,
+    };
+  })();
+  const clientTotals = (() => {
+    const sell = effClient.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0) + hiddenSell;
+    return { totalSell: sell, pricePerM2: area > 0 ? sell / area : 0 };
+  })();
+
   const activeRef = mode === "internal" ? internalRef : clientRef;
   const filenamePdf = buildFilename({ mode, module, area, address: client.address, ext: "pdf" });
   const filenamePng = buildFilename({ mode, module, area, address: client.address, ext: "png" });
   
 
-  const onPdf = () => activeRef.current && exportElementAsPdf(activeRef.current, filenamePdf);
+  /** PDF генерується справжньою таблицею (не скріншотом аркуша). */
+  const onPdf = async () => {
+    const isInt = mode === "internal";
+    const src = isInt ? effInternal : effClient;
+    const blocks = isInt
+      ? src.map((g) => ({
+          title: g.label,
+          rows: g.rows.map((r) => ({
+            name: r.name, unit: r.unit, qty: r.qty,
+            costPerUnit: r.costPerUnit, pricePerUnit: r.pricePerUnit,
+            cost: r.cost, sum: r.sum,
+          })),
+        }))
+      : clientViewMode === "turnkey"
+        ? [{
+            title: "Комплекс робіт",
+            rows: [{
+              name: `Комплекс робіт під ключ (${module}, ${area} м²)`, unit: "компл.", qty: 1,
+              pricePerUnit: clientTotals.totalSell, sum: clientTotals.totalSell,
+            }],
+          }]
+        : clientViewMode === "condensed"
+          ? [{
+              title: "Роботи та матеріали",
+              rows: src.map((g) => {
+                const sub = g.rows.reduce((a, r) => a + r.sum, 0);
+                return { name: g.label, unit: "компл.", qty: 1, pricePerUnit: sub, sum: sub };
+              }),
+            }]
+          : src.map((g) => ({
+              title: g.label,
+              rows: g.rows.map((r) => ({
+                name: r.name, unit: r.unit, qty: r.qty, pricePerUnit: r.pricePerUnit, sum: r.sum,
+              })),
+            }));
+
+    const blob = await generateEstimatePdf({
+      mode: isInt ? "internal" : "client",
+      number: estimateNumber,
+      date: new Date().toLocaleDateString("uk-UA"),
+      clientName: client.name, clientPhone: client.phone,
+      address: client.address, manager: client.manager,
+      module, area, thicknessCm,
+      blocks,
+      totalSell: isInt ? internalTotals.totalSell : clientTotals.totalSell,
+      totalCost: internalTotals.totalCost,
+      grossProfit: internalTotals.grossProfit,
+      marginPercent: internalTotals.marginPct,
+      pricePerM2: isInt ? internalTotals.pricePerM2 : clientTotals.pricePerM2,
+      branding,
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filenamePdf;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  };
   const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
   const onResetActive = () => {
     if (mode === "client") { setClientOverrides({}); setClientExtras([]); }
@@ -264,7 +352,8 @@ export function EstimateView({
             <InternalSheet result={result} client={client} branding={branding} module={module}
               area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
               overrides={internalOverrides} setOverrides={setInternalOverrides}
-              extras={internalExtras} setExtras={setInternalExtras} />
+              extras={internalExtras} setExtras={setInternalExtras}
+              effective={effInternal} totals={internalTotals} />
           </div>
         </div>
       )}
@@ -300,6 +389,7 @@ export function EstimateView({
                 overrides={clientOverrides} setOverrides={setClientOverrides}
                 extras={clientExtras} setExtras={setClientExtras}
                 clientViewMode={clientViewMode}
+                effective={effClient} totals={clientTotals}
               />
             </div>
           </div>
@@ -385,6 +475,8 @@ interface EditableSheetProps extends SheetProps {
   extras: ExtraLine[];
   setExtras: React.Dispatch<React.SetStateAction<ExtraLine[]>>;
   clientViewMode?: ClientViewMode;
+  effective: EffectiveBlock[];
+  totals: { totalSell: number; pricePerM2: number; totalCost?: number; grossProfit?: number; marginPct?: number };
 }
 
 /** Спільний вхідний CSS для клітинок таблиці. */
@@ -401,6 +493,12 @@ function isRowVisibleToClient(r: EstimateLine, cvm: ClientViewMode): boolean {
   }
   return r.showToClient !== false;
 }
+
+export interface EffectiveRow {
+  id: string; name: string; unit: string; qty: number;
+  pricePerUnit: number; costPerUnit: number; sum: number; cost: number; isExtra: boolean;
+}
+export interface EffectiveBlock { block: string; label: string; rows: EffectiveRow[] }
 
 /** Спільна побудова ефективних блоків (з урахуванням правок і extras). */
 function useEffectiveBlocks(
@@ -450,24 +548,12 @@ function InternalSheet(p: EditableSheetProps) {
   const setOv = (id: string, patch: Partial<Override>) =>
     setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
-  const effective = useEffectiveBlocks(p.grouped, overrides, extras, false, t);
-
-  // Preserve engine-computed hidden cost/sell adjustments (brigade base, foreman,
-  // amortization, complexity, discount, partner commission, FOP, VAT, min-check
-  // rounding) that never appear as visible line items. Without this, editing or
-  // dropping a row would silently discard those totals.
-  const baseLinesCost = p.result.lines.reduce((a, r) => a + r.cost, 0);
-  const baseLinesSell = p.result.lines.reduce((a, r) => a + r.sum, 0);
-  const hiddenCost = p.result.totalCost - baseLinesCost;
-  const hiddenSell = p.result.totalClient - baseLinesSell;
-
-  const effCost = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.cost, 0), 0);
-  const effSell = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
-  const totalCost = effCost + hiddenCost;
-  const totalSell = effSell + hiddenSell;
-  const grossProfit = totalSell - totalCost;
-  const marginPct = totalSell > 0 ? (grossProfit / totalSell) * 100 : 0;
-  const pricePerM2 = p.area > 0 ? totalSell / p.area : 0;
+  const effective = p.effective;
+  const totalCost = p.totals.totalCost ?? 0;
+  const totalSell = p.totals.totalSell;
+  const grossProfit = p.totals.grossProfit ?? 0;
+  const marginPct = p.totals.marginPct ?? 0;
+  const pricePerM2 = p.totals.pricePerM2;
 
 
   const addExtra = (block: string) => {
@@ -600,16 +686,9 @@ function ClientSheet(p: EditableSheetProps) {
     setOverrides((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
 
   const cvm = p.clientViewMode ?? "detailed";
-  const effective = useEffectiveBlocks(p.grouped, overrides, extras, true, t, cvm);
-
-  // Паритет з двигуном та Внутрішнім кошторисом: враховуємо приховані адюстменти
-  // (складність, знижка, партнерська комісія, FOP, ПДВ, мінімальний чек, округлення).
-  // Без цього «РАЗОМ» у КП розходиться з підсумком проекту.
-  const baseLinesSell = p.result.lines.reduce((a, r) => a + r.sum, 0);
-  const hiddenSell = p.result.totalClient - baseLinesSell;
-  const effSell = effective.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0);
-  const grandTotal = effSell + hiddenSell;
-  const pricePerM2 = p.area > 0 ? grandTotal / p.area : 0;
+  const effective = p.effective;
+  const grandTotal = p.totals.totalSell;
+  const pricePerM2 = p.totals.pricePerM2;
 
   const addExtra = (block: string) => {
     setExtras((s) => [...s, {

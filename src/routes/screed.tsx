@@ -78,7 +78,7 @@ function OptionToggle({ label, checked, onChange }: { label: string; checked: bo
 const defaultInput: ScreedInput = {
   area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
   withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true, withCuts: true, sandType: "standard",
-  withComplexPrep: false, withDemolition: false, insulationType: "none",
+  withComplexPrep: false, withCementUnload: false, withDemolition: false, insulationType: "none",
   cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
 };
@@ -305,6 +305,7 @@ function ScreedPage() {
               <OptionToggle label="Нарізання деформаційних швів" checked={input.withCuts !== false} onChange={(v) => upd("withCuts", v)} />
               <OptionToggle label="Розухилення" checked={input.withSlope} onChange={(v) => upd("withSlope", v)} />
               <OptionToggle label="Складна підготовка" checked={input.withComplexPrep} onChange={(v) => upd("withComplexPrep", v)} />
+              <OptionToggle label="Вивантаження мішків цементу" checked={input.withCementUnload === true} onChange={(v) => upd("withCementUnload", v)} />
               <OptionToggle label="Демонтажні роботи" checked={input.withDemolition} onChange={(v) => upd("withDemolition", v)} />
               <OptionToggle label="Підйом матеріалу на поверх" checked={input.withLift} onChange={(v) => upd("withLift", v)} />
             </div>
