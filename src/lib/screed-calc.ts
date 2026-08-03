@@ -39,6 +39,7 @@ export interface ScreedInput {
   withCuts: boolean;          // нарізка деформаційних швів
   sandType?: SandType;        // звичайний пісок або пісок з відсівом (посилена стяжка)
   withComplexPrep: boolean;   // "Складна підготовка" — умовна підготовка основи
+  withCementUnload?: boolean; // Вивантаження мішків цементу (опція, +10 грн/міш. бригаді)
   withDemolition: boolean;    // "Демонтажні роботи" — демонтаж старої стяжки/покриття
   insulationType: InsulationType; // Утеплення під стяжку
 
