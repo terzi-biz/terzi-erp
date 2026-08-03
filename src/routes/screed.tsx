@@ -150,17 +150,13 @@ function ScreedPage() {
   });
   const onSave = () => saveMut.mutate();
 
-  const onPdf = async () => {
-    const blob = await generateClientPdf({
-      number: generateEstimateNumber(),
-      date: new Date().toLocaleDateString("uk-UA"),
-      clientName: client.name, clientPhone: client.phone, address: client.address, manager: client.manager,
-      area: input.area, thicknessCm: result.thicknessUsed, result, branding, lang, module: t("screed"),
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `TERZI-${Date.now()}.pdf`; a.click();
-    URL.revokeObjectURL(url);
+  // PDF формується тільки з аркуша «Кошторис / КП», щоб у файл потрапили ручні правки.
+  const onPdf = () => {
+    setView("estimate");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.info("Відкрито аркуш «Кошторис / КП» — натисніть «Друк PDF» під кошторисом (з усіма правками)");
   };
+
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2.5 text-sm focus:border-primary hover:border-border/80 outline-none transition-colors";
   const inpWithIcon = inp + " pl-9";
