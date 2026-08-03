@@ -226,9 +226,6 @@ export function EstimateView({
             <RotateCcw className="w-3 h-3" /> Скинути правки
           </button>
         )}
-        <button onClick={() => setPreviewOpen(true)} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
-          <Eye className="w-3 h-3" /> Перегляд
-        </button>
         <button onClick={onPng} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
           <ImageIcon className="w-3 h-3" /> Зображення
         </button>
