@@ -16,7 +16,7 @@ import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
 } from "@/lib/screed-calc";
-import { generateClientPdf } from "@/lib/pdf";
+
 import { useI18n } from "@/lib/i18n";
 import {
   AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff,
@@ -150,17 +150,13 @@ function ScreedPage() {
   });
   const onSave = () => saveMut.mutate();
 
-  const onPdf = async () => {
-    const blob = await generateClientPdf({
-      number: generateEstimateNumber(),
-      date: new Date().toLocaleDateString("uk-UA"),
-      clientName: client.name, clientPhone: client.phone, address: client.address, manager: client.manager,
-      area: input.area, thicknessCm: result.thicknessUsed, result, branding, lang, module: t("screed"),
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a"); a.href = url; a.download = `TERZI-${Date.now()}.pdf`; a.click();
-    URL.revokeObjectURL(url);
+  // PDF формується тільки з аркуша «Кошторис / КП», щоб у файл потрапили ручні правки.
+  const onPdf = () => {
+    setView("estimate");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast.info("Відкрито аркуш «Кошторис / КП» — натисніть «Друк PDF» під кошторисом (з усіма правками)");
   };
+
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2.5 text-sm focus:border-primary hover:border-border/80 outline-none transition-colors";
   const inpWithIcon = inp + " pl-9";
@@ -476,6 +472,7 @@ function ScreedPage() {
         <button onClick={onSave} disabled={saveMut.isPending} className={`${btnBase} bg-secondary hover:bg-secondary/80 disabled:opacity-50`}><Save className="w-3.5 h-3.5" />{saveMut.isPending ? "…" : t("save")}</button>
         <button onClick={() => window.print()} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><Printer className="w-3.5 h-3.5" />{t("print")}</button>
         <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
+
       </div>
     </div>
   );

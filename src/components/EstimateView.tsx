@@ -7,7 +7,7 @@
  * Перемикач Внутрішня/Клієнтська винесений вниз під кошторис.
  */
 import { NumberInput } from "@/components/NumberInput";
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
@@ -52,6 +52,32 @@ interface ExtraLine {
   qty: number;
   pricePerUnit: number;
   costPerUnit: number;
+}
+
+/**
+ * Ручні правки кошторису зберігаються локально (на пристрої) під ключем кошторису,
+ * щоб вони не зникали при перемиканні вкладок «Калькулятор / Кошторис» чи перезавантаженні
+ * і потрапляли у PDF/PNG, які генеруються з цього ж аркуша.
+ */
+function usePersistedState<T>(key: string | null, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [state, setState] = useState<T>(() => {
+    if (!key || typeof window === "undefined") return initial;
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as T) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    if (!key || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(state));
+    } catch {
+      /* сховище недоступне — правки лишаються лише в памʼяті */
+    }
+  }, [key, state]);
+  return [state, setState];
 }
 
 export type ShowInClientMode = "always" | "detailed_only" | "condensed_only" | "never";
@@ -159,11 +185,12 @@ export function EstimateView({
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
-  // Окремі стани редагування для кожного режиму
-  const [clientOverrides, setClientOverrides] = useState<Record<string, Override>>({});
-  const [clientExtras, setClientExtras] = useState<ExtraLine[]>([]);
-  const [internalOverrides, setInternalOverrides] = useState<Record<string, Override>>({});
-  const [internalExtras, setInternalExtras] = useState<ExtraLine[]>([]);
+  // Окремі стани редагування для кожного режиму (зберігаються локально під ключем кошторису)
+  const editKey = `terzi:estimate-edits:${estimateId ?? estimateNumber ?? module}`;
+  const [clientOverrides, setClientOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:client:ov`, {});
+  const [clientExtras, setClientExtras] = usePersistedState<ExtraLine[]>(`${editKey}:client:ex`, []);
+  const [internalOverrides, setInternalOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:internal:ov`, {});
+  const [internalExtras, setInternalExtras] = usePersistedState<ExtraLine[]>(`${editKey}:internal:ex`, []);
 
   const activeRef = mode === "internal" ? internalRef : clientRef;
   const filenamePdf = buildFilename({ mode, module, area, address: client.address, ext: "pdf" });
