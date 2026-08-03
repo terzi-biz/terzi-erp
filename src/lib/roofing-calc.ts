@@ -15,7 +15,6 @@
  *  (useModulePricing("roofing")).
  */
 import type { MaterialPrice } from "./screed-calc";
-import { areaLaborTier } from "./area-tiers";
 import {
   ROOFING_KB_PRICE_OVERRIDES,
   ROOFING_KB_WORK_OVERRIDES,
