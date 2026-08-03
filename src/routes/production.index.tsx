@@ -19,7 +19,7 @@ export const Route = createFileRoute("/production/")({
 });
 
 const MODULE_LABEL: Record<string, string> = {
-  screed: "Стяжка", roofing: "Покрівля", insulation: "Утеплення", demolition: "Демонтаж",
+  screed: "Стяжка", roofing: "Покрівля", roofing_pvc: "Покрівля · ПВХ", roofing_rub: "Покрівля · Руберойд", insulation: "Утеплення", demolition: "Демонтаж",
 };
 
 function ProductionListPage() {
