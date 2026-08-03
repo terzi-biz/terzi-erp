@@ -127,14 +127,14 @@ export const DEFAULT_SETTINGS = {
   sandCityCost: 1700, sandCityClient: 2000, // місто (клієнт 2000, закупка 1700)
   sandOutskirtsClient: 2200,
   sandChornomorskClient: 2500,
-  brigadeMin: 11000,       // фіксована оплата бригаді за об'єкт до 100 м² (включає укладання стяжки, плівки, демпфера, шліфовку і нарізку швів)
-  brigadePerM2: 110,       // понад 100 м² — додатково 110 грн/м² на кожен м² зверх 100
-  foremanMin: 1000,        // мін. оплата бригадиру за об'єкт ≤100 м²
-  foremanPerM2: 10,        // оплата бригадиру 10 грн/м² (понад 100 м²)
+  brigadeMin: 11000,       // фіксована оплата бригаді за об'єкт до 100 м² включно
+  brigadePerM2: 110,       // понад 100 м² — 110 грн/м² на ВСЮ площу (110 м² → 110×110)
+  foremanMin: 0,           // бригадир оплачується строго за м² (див. foremanPerM2)
+  foremanPerM2: 10,        // оплата бригадиру 10 грн/м²
   brigadePrepCost: 5,      // підготовка складних об'єктів
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
-  brigadeUnloadCost: 5,
+  brigadeUnloadCost: 10,   // вивантаження цементу — 10 грн/мішок бригаді (опція)
   brigadeLiftCost: 1000,   // підйом матеріалу на поверх (за об'єкт)
   brigadeLiftClient: 2000,
   amortEquipPerM2: 30,
