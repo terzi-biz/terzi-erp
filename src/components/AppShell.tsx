@@ -11,7 +11,15 @@ import {
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
 
-type Mod = "screed" | "roofing" | "insulation" | "demolition";
+type Mod = "screed" | "roofing_pvc" | "roofing_rub" | "insulation" | "demolition";
+
+const MOD_LABEL: Record<Mod, string> = {
+  screed: "Стяжка",
+  roofing_pvc: "Покрівля · ПВХ мембрана",
+  roofing_rub: "Покрівля · Руберойд",
+  insulation: "Утеплення",
+  demolition: "Демонтаж",
+};
 
 const AppShellContext = createContext(false);
 
@@ -49,9 +57,9 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   useEffect(() => { setMobileOpen(false); }, [loc.pathname, loc.searchStr]);
 
   const moduleIcons: Record<Mod, typeof Layers> = {
-    screed: Layers, roofing: Home, insulation: Snowflake, demolition: Hammer,
+    screed: Layers, roofing_pvc: Home, roofing_rub: Home, insulation: Snowflake, demolition: Hammer,
   };
-  const modules: Mod[] = ["screed", "roofing", "insulation", "demolition"];
+  const modules: Mod[] = ["screed", "roofing_pvc", "roofing_rub", "insulation", "demolition"];
 
   const initialOpen = (() => {
     const search = typeof window !== "undefined" ? window.location.search : "";
@@ -149,7 +157,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             <div key={m}>
               <button onClick={() => setOpenMod(opened ? null : m)}
                 className={`w-full ${linkCls(isActive)} justify-between`}>
-                <span className="flex items-center gap-3"><Icon className="w-4 h-4" />{t(m)}</span>
+                <span className="flex items-center gap-3"><Icon className="w-4 h-4" />{MOD_LABEL[m]}</span>
                 <ChevronDown className={`w-3 h-3 transition-transform ${opened ? "rotate-180" : ""}`} />
               </button>
               {opened && (
