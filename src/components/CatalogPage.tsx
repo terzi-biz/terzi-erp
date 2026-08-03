@@ -9,7 +9,7 @@ import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults,
 import { TIER_KEYS, TIER_LABEL, TIER_PRICE_COL, TIER_MANUAL_COL, DEFAULT_TIER_MARGIN, tierPriceFromMargin, type TierKey } from "@/lib/catalog-tiers";
 import { toast } from "sonner";
 
-type Module = "screed" | "roofing" | "insulation" | "demolition" | "common";
+type Module = "screed" | "roofing" | "roofing_pvc" | "roofing_rub" | "insulation" | "demolition" | "common";
 type Kind = "material" | "work" | "equipment" | "logistics";
 
 interface Row {

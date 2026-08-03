@@ -3,7 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { ROOFING_KB_MATERIALS, ROOFING_KB_WORKS } from "@/lib/roofing-knowledge.generated";
 
-const ModuleEnum = z.enum(["screed", "roofing", "insulation", "demolition", "common"]);
+const ModuleEnum = z.enum(["screed", "roofing", "roofing_pvc", "roofing_rub", "insulation", "demolition", "common"]);
 const KindEnum = z.enum(["material", "work", "equipment", "logistics"]);
 
 const itemInput = z.object({
@@ -386,6 +386,86 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
     { code: "lift_down", name: "Спуск сміття з поверху", unit: "шт", buy_price: 800, sell_price: 1500 },
   ],
 };
+
+/* ==========================================================================
+ * Розділення покрівлі на два самостійні напрямки:
+ *   roofing_pvc — ПВХ-мембрана Sika
+ *   roofing_rub — Руберойд / наплавні бітумні системи
+ * Кожен має власний список матеріалів / робіт / обладнання / логістики.
+ * Старий модуль `roofing` лишається для історичних кошторисів.
+ * ========================================================================== */
+
+const dedupeSeeds = (items: SeedItem[]): SeedItem[] => {
+  const seen = new Set<string>();
+  return items.filter((s) => {
+    const k = s.code ?? s.name;
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+};
+
+const pickSeeds = (key: string, codes: string[]): SeedItem[] =>
+  codes
+    .map((c) => (DEFAULT_SEEDS[key] ?? []).find((s) => s.code === c))
+    .filter(Boolean) as SeedItem[];
+
+const PVC_MATERIAL_CODES = [
+  "pvc_15_sika", "pvc_18_sika", "pvc_metal", "geo_300",
+  "funnel_scupper_75", "funnel_scupper_110", "funnel_gully_160", "funnel_drain_90",
+  "pvc_angle", "pvc_clamp", "drip_edge", "inner_corner", "outer_corner",
+  "fastener", "dowel_8x50", "dowel_8x100", "screw_5x70", "washer_50", "drill_sds_8",
+  "sika_sealant", "xps_50",
+];
+const PVC_WORK_CODES = [
+  "prep", "demount", "geo_lay", "slope", "pvc_lay", "pvc_lay_lin",
+  "funnel", "aerator", "opaika", "drip_edge", "corner",
+  "pvc_angle_lay", "pvc_clamp_lay", "parapet", "gasblock_parapet", "insul_1layer",
+];
+const RUB_MATERIAL_CODES = [
+  "ruberit_roll", "aquaizol_roll", "ruberit_eko_35", "ruberit_eko_40",
+  "aquaizol_eko_30", "aquaizol_eko_40", "aquaizol_app_30", "aquaizol_app_45", "aquaizol_sbs_40",
+  "primer", "opaika_mastic", "opaika_mastic_3kg", "gas",
+  "funnel", "aerator", "flugarka_75", "galtel_mix", "drip_edge", "xps_50",
+];
+const RUB_WORK_CODES = [
+  "prep", "demount", "primer_apply", "slope", "rubemast_lay", "rubemast_lay_lin",
+  "funnel", "aerator", "opaika", "galtel", "parapet", "drip_edge",
+  "gasblock_parapet", "insul_1layer",
+];
+
+/** Аератори/воронки ПВХ по діаметрах — окремі позиції для нового калькулятора. */
+const PVC_EXTRA_MATERIALS: SeedItem[] = [
+  { code: "pvc_aerator_75", name: "Аератор/флюгарка ПВХ d 75 мм з ковпачком", unit: "шт", buy_price: 730, sell_price: 949 },
+  { code: "pvc_aerator_110", name: "Аератор/флюгарка ПВХ d 110 мм з ковпачком", unit: "шт", buy_price: 890, sell_price: 1157 },
+  { code: "pvc_aerator_160", name: "Аератор/флюгарка ПВХ d 160 мм з ковпачком", unit: "шт", buy_price: 1290, sell_price: 1677 },
+];
+const RUB_EXTRA_MATERIALS: SeedItem[] = [
+  { code: "aerator_75", name: "Аератор бітумний d 75 мм", unit: "шт", buy_price: 150, sell_price: 195 },
+  { code: "aerator_110", name: "Аератор бітумний d 110 мм", unit: "шт", buy_price: 234, sell_price: 304 },
+  { code: "aerator_160", name: "Аератор бітумний d 160 мм", unit: "шт", buy_price: 390, sell_price: 507 },
+];
+
+DEFAULT_SEEDS["roofing_pvc.material"] = dedupeSeeds([
+  ...pickSeeds("roofing.material", PVC_MATERIAL_CODES),
+  ...PVC_EXTRA_MATERIALS,
+]);
+DEFAULT_SEEDS["roofing_pvc.work"] = pickSeeds("roofing.work", PVC_WORK_CODES);
+DEFAULT_SEEDS["roofing_pvc.equipment"] = (DEFAULT_SEEDS["roofing.equipment"] ?? []).filter((s) => s.code !== "burner");
+DEFAULT_SEEDS["roofing_pvc.logistics"] = DEFAULT_SEEDS["roofing.logistics"] ?? [];
+
+DEFAULT_SEEDS["roofing_rub.material"] = dedupeSeeds([
+  ...pickSeeds("roofing.material", RUB_MATERIAL_CODES),
+  ...RUB_EXTRA_MATERIALS,
+  ...ROOFING_FILE_MATERIAL_SEEDS,
+]);
+DEFAULT_SEEDS["roofing_rub.work"] = dedupeSeeds([
+  ...pickSeeds("roofing.work", RUB_WORK_CODES),
+  ...ROOFING_FILE_WORK_SEEDS,
+]);
+DEFAULT_SEEDS["roofing_rub.equipment"] = (DEFAULT_SEEDS["roofing.equipment"] ?? []).filter((s) => s.code !== "leister");
+DEFAULT_SEEDS["roofing_rub.logistics"] = DEFAULT_SEEDS["roofing.logistics"] ?? [];
+
 
 /* ==========================================================================
  * Ціни продажу по діапазонах площі (додаткові колонки каталогу).

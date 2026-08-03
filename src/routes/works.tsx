@@ -3,7 +3,7 @@ import { z } from "zod";
 import { CatalogPage } from "@/components/CatalogPage";
 
 const search = z.object({
-  module: z.enum(["screed", "roofing", "insulation", "demolition", "common"]).default("screed"),
+  module: z.enum(["screed", "roofing", "roofing_pvc", "roofing_rub", "insulation", "demolition", "common"]).default("screed"),
 });
 
 export const Route = createFileRoute("/works")({
