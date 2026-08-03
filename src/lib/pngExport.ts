@@ -141,9 +141,8 @@ function triggerDownload(url: string, filename: string) {
 }
 
 // ---------- PNG (максимальна якість) ----------
-/** Ліміти канви: довша сторона та загальна площа (найсуворіший — iOS Safari). */
-const MAX_CANVAS_PX = 16000;
-const MAX_CANVAS_AREA = 16_000_000;
+
+
 
 /** Створює PNG-blob максимальної якості з готової канви. */
 function canvasToPngBlob(canvas: HTMLCanvasElement): Promise<Blob | null> {
