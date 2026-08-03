@@ -3946,14 +3946,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      can_manage_access: { Args: { _user_id: string }; Returns: boolean }
-      can_manage_object: { Args: { _object_id: string }; Returns: boolean }
-      can_view_object: { Args: { _object_id: string }; Returns: boolean }
-      crm_is_manager: { Args: never; Returns: boolean }
-      has_permission: {
-        Args: { _action: string; _module: string; _user_id: string }
-        Returns: boolean
-      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3961,7 +3953,6 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_access_owner: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       access_request_kind:
