@@ -7,7 +7,7 @@
  * Перемикач Внутрішня/Клієнтська винесений вниз під кошторис.
  */
 import { NumberInput } from "@/components/NumberInput";
-import { Fragment, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng, exportElementAsPdf } from "@/lib/pngExport";
