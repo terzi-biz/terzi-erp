@@ -16,7 +16,7 @@ import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
 } from "@/lib/screed-calc";
-import { generateClientPdf } from "@/lib/pdf";
+
 import { useI18n } from "@/lib/i18n";
 import {
   AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff,
