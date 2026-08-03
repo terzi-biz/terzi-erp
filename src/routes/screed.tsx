@@ -89,9 +89,9 @@ function ScreedPage() {
   const { roles, profile } = useAuth();
   const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
   const { settings, branding } = useAppStore();
-  const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed");
   const search = Route.useSearch();
   const [input, setInput] = useState<ScreedInput>(defaultInput);
+  const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed", input.area);
   const [client, setClient] = useState({ name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
   const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
 
