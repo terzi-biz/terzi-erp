@@ -162,17 +162,23 @@ export function EstimateView({
   estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange,
 }: Props) {
   const t = useT();
-  const [mode, setMode] = useState<"client" | "internal">(isInternal ? "internal" : "client");
-  const [clientViewMode, setClientViewMode] = useState<ClientViewMode>(initialClientViewMode ?? "detailed");
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
-  // Окремі стани редагування для кожного режиму (зберігаються локально під ключем кошторису)
-  const editKey = `terzi:estimate-edits:${estimateId ?? estimateNumber ?? module}`;
-  const [clientOverrides, setClientOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:client:ov`, {});
-  const [clientExtras, setClientExtras] = usePersistedState<ExtraLine[]>(`${editKey}:client:ex`, []);
-  const [internalOverrides, setInternalOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:internal:ov`, {});
-  const [internalExtras, setInternalExtras] = usePersistedState<ExtraLine[]>(`${editKey}:internal:ex`, []);
+  // Стабільний ключ (не залежить від згенерованого номера), щоб правки не губилися
+  // при поверненні на сторінку чи перезавантаженні вкладки.
+  const editKey = `terzi:estimate-edits:${estimateId ?? module}`;
+  const [mode, setMode] = usePersistedState<"client" | "internal">(
+    `${editKey}:mode`, isInternal ? "internal" : "client",
+  );
+  const [clientViewMode, setClientViewMode] = usePersistedState<ClientViewMode>(
+    `${editKey}:cvm`, initialClientViewMode ?? "detailed",
+  );
+
+  // ЄДИНИЙ стан правок для обох виглядів: зміни у внутрішньому кошторисі
+  // одразу відображаються в КП і навпаки.
+  const [overrides, setOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:ov`, {});
+  const [extras, setExtras] = usePersistedState<ExtraLine[]>(`${editKey}:ex`, []);
 
   const blockOrderTop = ["materials", "works", "logistics"];
   const groupedTop = blockOrderTop.map((b) => ({
@@ -183,8 +189,9 @@ export function EstimateView({
 
   // Ефективні (з урахуванням ручних правок) рядки рахуємо на рівні батьківського
   // компонента, щоб і аркуш на екрані, і PDF-таблиця будувались з одних даних.
-  const effInternal = useEffectiveBlocks(groupedTop, internalOverrides, internalExtras, false, t);
-  const effClient = useEffectiveBlocks(groupedTop, clientOverrides, clientExtras, true, t, clientViewMode);
+  const effInternal = useEffectiveBlocks(groupedTop, overrides, extras, false, t);
+  const effClient = useEffectiveBlocks(groupedTop, overrides, extras, true, t, clientViewMode);
+
 
   const baseLinesCost = result.lines.reduce((a, r) => a + r.cost, 0);
   const baseLinesSell = result.lines.reduce((a, r) => a + r.sum, 0);
