@@ -33,14 +33,36 @@ const MODULE_DEFAULT_WORK_COSTS: Record<string, Record<string, number>> = {
 
 type Module = "screed" | "roofing" | "insulation" | "demolition";
 
+type TierRow = {
+  code: string | null;
+  buy_price: number;
+  sell_price: number;
+  sell_price_t50?: number | null;
+  sell_price_t100?: number | null;
+  sell_price_t250?: number | null;
+  sell_price_t500?: number | null;
+};
+
+/** Ціна продажу з урахуванням діапазону площі; фолбек — базова sell_price. */
+function sellForArea(r: TierRow, area?: number): number {
+  if (typeof area === "number" && area > 0) {
+    const col = TIER_PRICE_COL[tierForArea(area)];
+    const v = Number((r as Record<string, unknown>)[col] ?? 0);
+    if (v > 0) return v;
+  }
+  return Number(r.sell_price) || 0;
+}
+
 /**
  * Load catalog items from DB for a module and overlay them on top of
  * the calculator's defaults. Items are matched by `code`.
+ * `area` (м²) вибирає колонку ціни продажу: ≤50 / 50–100 / 100–250 / >250.
  */
-export function useModulePricing(module: Module) {
+export function useModulePricing(module: Module, area?: number) {
   const fetchList = useServerFn(listCatalog);
   const { session } = useAuth();
   const enabled = !!session?.access_token;
+
 
   const mats = useQuery({
     queryKey: ["catalog", module, "material"],
