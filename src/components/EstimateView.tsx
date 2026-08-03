@@ -335,7 +335,6 @@ export function EstimateView({
     </div>
   );
 }
-}
 
 
 
