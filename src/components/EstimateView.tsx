@@ -252,15 +252,6 @@ export function EstimateView({
         </button>
       </div>
 
-      {previewOpen && (
-        <ExportPreviewDialog
-          target={activeRef.current}
-          filenamePng={filenamePng}
-          filenamePdf={filenamePdf}
-          onClose={() => setPreviewOpen(false)}
-        />
-      )}
-
       <div className="text-[11px] text-muted-foreground panel p-2 px-3">
         Ви можете редагувати будь-яку позицію: назву, одиницю, кількість
         {mode === "internal" ? ", закупку та ціну продажу" : " та ціну"}. Натисніть «+ позицію» у блоці, щоб додати власну, або <Trash2 className="w-3 h-3 inline" /> щоб прибрати.
