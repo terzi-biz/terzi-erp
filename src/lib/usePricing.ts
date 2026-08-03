@@ -87,30 +87,31 @@ export function useModulePricing(module: Module, area?: number) {
 
   const logisticsPrices = useMemo<Record<string, MaterialPrice>>(() => {
     const out: Record<string, MaterialPrice> = module === "screed" ? { ...DEFAULT_LOGISTICS_PRICES } : {};
-    for (const r of (logistics.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
+    for (const r of (logistics.data ?? []) as TierRow[]) {
       if (!r.code) continue;
-      out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
+      out[r.code] = { buy: Number(r.buy_price) || 0, sell: sellForArea(r, area) };
     }
     return out;
-  }, [logistics.data, module]);
+  }, [logistics.data, module, area]);
 
   const materialPrices = useMemo<Record<string, MaterialPrice>>(() => {
     const out: Record<string, MaterialPrice> = { ...(MODULE_DEFAULT_MATERIALS[module] ?? {}) };
-    for (const r of (mats.data ?? []) as Array<{ code: string | null; buy_price: number; sell_price: number }>) {
+    for (const r of (mats.data ?? []) as TierRow[]) {
       if (!r.code) continue;
-      out[r.code] = { buy: Number(r.buy_price) || 0, sell: Number(r.sell_price) || 0 };
+      out[r.code] = { buy: Number(r.buy_price) || 0, sell: sellForArea(r, area) };
     }
     return out;
-  }, [mats.data, module]);
+  }, [mats.data, module, area]);
 
   const workPrices = useMemo(() => {
     const out: Record<string, number> = { ...(MODULE_DEFAULT_WORKS[module] ?? {}) };
-    for (const r of (works.data ?? []) as Array<{ code: string | null; sell_price: number }>) {
+    for (const r of (works.data ?? []) as TierRow[]) {
       if (!r.code) continue;
-      out[r.code] = Number(r.sell_price) || 0;
+      out[r.code] = sellForArea(r, area);
     }
     return out;
-  }, [works.data, module]);
+  }, [works.data, module, area]);
+
   const workCostPrices = useMemo(() => {
     const out: Record<string, number> = { ...(MODULE_DEFAULT_WORK_COSTS[module] ?? {}) };
     for (const r of (works.data ?? []) as Array<{ code: string | null; buy_price: number }>) {
