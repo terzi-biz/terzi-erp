@@ -15,6 +15,7 @@ import { generateEstimatePdf } from "@/lib/estimate-pdf";
 
 import type { Branding } from "@/lib/store";
 import { useT } from "@/lib/i18n";
+import { usePersistedState } from "@/lib/usePersistedState";
 import { SchedulePanel } from "@/components/SchedulePanel";
 import { TERZI_LOGO_URL } from "@/components/TerziLogo";
 
@@ -275,14 +276,9 @@ export function EstimateView({
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
   const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
-  const onResetActive = () => {
-    if (mode === "client") { setClientOverrides({}); setClientExtras([]); }
-    else { setInternalOverrides({}); setInternalExtras([]); }
-  };
+  const onResetActive = () => { setOverrides({}); setExtras([]); };
 
-  const hasEdits = mode === "client"
-    ? (Object.keys(clientOverrides).length > 0 || clientExtras.length > 0)
-    : (Object.keys(internalOverrides).length > 0 || internalExtras.length > 0);
+  const hasEdits = Object.keys(overrides).length > 0 || extras.length > 0;
 
   const blockOrder = ["materials", "works", "logistics"];
   const grouped = blockOrder.map((b) => ({
@@ -339,8 +335,8 @@ export function EstimateView({
           <div className="relative z-10">
             <InternalSheet result={result} client={client} branding={branding} module={module}
               area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-              overrides={internalOverrides} setOverrides={setInternalOverrides}
-              extras={internalExtras} setExtras={setInternalExtras}
+              overrides={overrides} setOverrides={setOverrides}
+              extras={extras} setExtras={setExtras}
               effective={effInternal} totals={internalTotals} />
           </div>
         </div>
@@ -374,8 +370,8 @@ export function EstimateView({
               <ClientSheet
                 result={result} client={client} branding={branding} module={module}
                 area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
-                overrides={clientOverrides} setOverrides={setClientOverrides}
-                extras={clientExtras} setExtras={setClientExtras}
+                overrides={overrides} setOverrides={setOverrides}
+                extras={extras} setExtras={setExtras}
                 clientViewMode={clientViewMode}
                 effective={effClient} totals={clientTotals}
               />
