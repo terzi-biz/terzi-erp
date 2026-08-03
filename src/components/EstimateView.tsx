@@ -54,6 +54,32 @@ interface ExtraLine {
   costPerUnit: number;
 }
 
+/**
+ * Ручні правки кошторису зберігаються локально (на пристрої) під ключем кошторису,
+ * щоб вони не зникали при перемиканні вкладок «Калькулятор / Кошторис» чи перезавантаженні
+ * і потрапляли у PDF/PNG, які генеруються з цього ж аркуша.
+ */
+function usePersistedState<T>(key: string | null, initial: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+  const [state, setState] = useState<T>(() => {
+    if (!key || typeof window === "undefined") return initial;
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw ? (JSON.parse(raw) as T) : initial;
+    } catch {
+      return initial;
+    }
+  });
+  useEffect(() => {
+    if (!key || typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(key, JSON.stringify(state));
+    } catch {
+      /* сховище недоступне — правки лишаються лише в памʼяті */
+    }
+  }, [key, state]);
+  return [state, setState];
+}
+
 export type ShowInClientMode = "always" | "detailed_only" | "condensed_only" | "never";
 export type ClientViewMode = "detailed" | "condensed" | "turnkey";
 
