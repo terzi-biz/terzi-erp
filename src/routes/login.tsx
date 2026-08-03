@@ -7,7 +7,12 @@ import { useAuth } from "@/lib/auth";
 import heroAsset from "@/assets/terzi-hero.jpeg.asset.json";
 import { TerziLogo } from "@/components/TerziLogo";
 
+function safeNext(value: unknown): string {
+  return typeof value === "string" && value.startsWith("/") && !value.startsWith("//") ? value : "";
+}
+
 export const Route = createFileRoute("/login")({
+  validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) }),
   component: LoginPage,
   head: () => ({
     meta: [
@@ -38,39 +43,47 @@ function LoginPage() {
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const { next } = Route.useSearch();
+
+  function goNext() {
+    if (next) window.location.href = next;
+    else nav({ to: "/" });
+  }
 
   useEffect(() => {
-    if (!loading && user && accessAllowed) nav({ to: "/" });
-  }, [user, loading, accessAllowed, nav]);
+    if (!loading && user && accessAllowed) goNext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, loading, accessAllowed, next]);
 
   async function withProvider(p: "google" | "apple") {
     setErr(null); setBusy(true);
     const res = await lovable.auth.signInWithOAuth(p, {
-      redirect_uri: window.location.origin,
+      redirect_uri: next ? `${window.location.origin}${next}` : window.location.origin,
       extraParams: p === "google" ? { prompt: "select_account" } : undefined,
     });
     if (res.error) { setErr(res.error.message ?? "Помилка входу"); setBusy(false); return; }
     if (!res.redirected) {
       await router.invalidate();
-      nav({ to: "/" });
+      goNext();
       setBusy(false);
     }
   }
 
   async function withEmail(e: React.FormEvent) {
     e.preventDefault(); setErr(null); setBusy(true);
+    const returnTo = next ? `${window.location.origin}${next}` : `${window.location.origin}/login`;
     const { error } = await (mode === "signin"
       ? supabase.auth.signInWithPassword({ email, password: pwd })
       : supabase.auth.signUp({
           email,
           password: pwd,
-          options: { emailRedirectTo: `${window.location.origin}/login`, data: { full_name: name } },
+          options: { emailRedirectTo: returnTo, data: { full_name: name } },
         }));
     setBusy(false);
     if (error) setErr(error.message);
     else {
       await router.invalidate();
-      nav({ to: "/" });
+      goNext();
     }
   }
 
