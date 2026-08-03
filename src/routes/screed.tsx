@@ -19,7 +19,7 @@ import {
 
 import { useI18n } from "@/lib/i18n";
 import {
-  AlertTriangle, CheckCircle2, Download, Save, Printer, RotateCcw, Eye, EyeOff,
+  AlertTriangle, CheckCircle2, Download, Save, RotateCcw, Eye, EyeOff,
   Calculator, FileText, HelpCircle, User, MapPin, Phone, Search,
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
