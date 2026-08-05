@@ -586,15 +586,15 @@ export async function terminateSessionsOp(actorId: string, targetUserId: string)
   return { ok: true };
 }
 
-/** Передача клієнтів, об'єктів і кошторисів іншому співробітнику. */
+/** Передача клієнтів, замовлень і кошторисів іншому співробітнику. */
 export async function transferWorkloadOp(actorId: string, fromUserId: string, toUserId: string) {
   const actor = await requireAccessManager(actorId);
   const db = await admin();
   const [clients, objects, estimates, assignments] = await Promise.all([
     db.from("clients").update({ owner_id: toUserId }).eq("owner_id", fromUserId).select("id"),
-    db.from("objects").update({ manager_id: toUserId }).eq("manager_id", fromUserId).select("id"),
+    db.from("orders").update({ manager_id: toUserId }).eq("manager_id", fromUserId).select("id"),
     db.from("estimates").update({ owner_id: toUserId }).eq("owner_id", fromUserId).select("id"),
-    db.from("object_assignments").update({ user_id: toUserId }).eq("user_id", fromUserId).select("id"),
+    db.from("order_assignments").update({ user_id: toUserId }).eq("user_id", fromUserId).select("id"),
   ]);
   const result = {
     clients: clients.data?.length ?? 0,

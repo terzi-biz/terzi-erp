@@ -20,7 +20,7 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
     let query = supabase
       .from("estimates")
-      .select("id,number,module,client_id,client_name,object_id,address,area,status,total,duration_days,manager,created_at")
+      .select("id,number,module,client_id,client_name,order_id,address,area,status,total,duration_days,manager,created_at")
       .order("created_at", { ascending: false })
       .limit(limit ?? 20);
     if (module) query = query.eq("module", module);

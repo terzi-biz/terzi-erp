@@ -38,7 +38,7 @@ const estimateInput = z.object({
   module: z.enum(["screed", "roofing", "roofing_pvc", "roofing_rub", "insulation", "demolition"]),
   status: z.enum(ESTIMATE_STATUSES).default("preliminary"),
   client_id: z.string().uuid().optional().nullable(),
-  object_id: z.string().uuid().optional().nullable(),
+  order_id: z.string().uuid().optional().nullable(),
 
   client_name: z.string().max(200).optional().nullable(),
   client_phone: z.string().max(50).optional().nullable(),
@@ -204,31 +204,31 @@ export const getEstimate = createServerFn({ method: "POST" })
   });
 
 const AUDITED_FIELDS = [
-  "number","status","client_id","object_id","client_name","client_phone","address","manager",
+  "number","status","client_id","order_id","client_name","client_phone","address","manager",
   "area","thickness_cm","total_client","total_cost","gross_profit","margin_percent",
 ] as const;
 
-/** Статуси, для яких обов'язковий звʼязок з клієнтом і об'єктом. */
+/** Статуси, для яких обов'язковий звʼязок з клієнтом і замовленням. */
 const LINK_REQUIRED_STATUSES = new Set(["final", "inWork", "done"]);
 
 /**
- * Перевірка зв'язності перед збереженням: клієнт та об'єкт існують,
+ * Перевірка зв'язності перед збереженням: клієнт та замовлення існують,
  * доступні користувачу і належать один одному.
- * Повертає нормалізовані client_id/object_id/адресу.
+ * Повертає нормалізовані client_id/order_id/адресу.
  */
 async function checkLinks(
   supabase: any,
-  row: { client_id?: string | null; object_id?: string | null; status: string; client_name?: string | null; address?: string | null },
-): Promise<{ client_id: string | null; object_id: string | null; client_name?: string | null; address?: string | null }> {
+  row: { client_id?: string | null; order_id?: string | null; status: string; client_name?: string | null; address?: string | null },
+): Promise<{ client_id: string | null; order_id: string | null; client_name?: string | null; address?: string | null }> {
   let clientId = row.client_id ?? null;
-  const objectId = row.object_id ?? null;
+  const orderId = row.order_id ?? null;
   let clientName = row.client_name ?? null;
   let address = row.address ?? null;
 
   let object: any = null;
-  if (objectId) {
-    const { data } = await supabase.from("objects").select("id,name,address,client_id").eq("id", objectId).maybeSingle();
-    if (!data) throw new Error("Об'єкт не знайдено або немає доступу — оберіть інший об'єкт");
+  if (orderId) {
+    const { data } = await supabase.from("orders").select("id,name,address,client_id").eq("id", orderId).maybeSingle();
+    if (!data) throw new Error("Замовлення не знайдено або немає доступу — оберіть інший замовлення");
     object = data;
   }
 
@@ -240,9 +240,9 @@ async function checkLinks(
   }
 
   if (object) {
-    if (!object.client_id) throw new Error(`Об'єкт «${object.name}» не привʼязаний до клієнта — спочатку вкажіть клієнта в картці об'єкта`);
+    if (!object.client_id) throw new Error(`Замовлення «${object.name}» не привʼязаний до клієнта — спочатку вкажіть клієнта в картці замовлення`);
     if (clientId && clientId !== object.client_id) {
-      throw new Error("Обраний об'єкт належить іншому клієнту — перевірте звʼязку клієнт ↔ об'єкт");
+      throw new Error("Обраний замовлення належить іншому клієнту — перевірте звʼязку клієнт ↔ замовлення");
     }
     if (!clientId) {
       clientId = object.client_id;
@@ -254,12 +254,12 @@ async function checkLinks(
 
   if (LINK_REQUIRED_STATUSES.has(row.status)) {
     if (!clientId) throw new Error("Для цього статусу кошторис має бути привʼязаний до клієнта");
-    if (!objectId) throw new Error("Для цього статусу кошторис має бути привʼязаний до об'єкта");
+    if (!orderId) throw new Error("Для цього статусу кошторис має бути привʼязаний до замовлення");
   }
 
   if (client && !clientName) clientName = client.name ?? null;
 
-  return { client_id: clientId, object_id: objectId, client_name: clientName, address };
+  return { client_id: clientId, order_id: orderId, client_name: clientName, address };
 }
 
 export const saveEstimate = createServerFn({ method: "POST" })
@@ -341,7 +341,7 @@ export const updateEstimateStatus = createServerFn({ method: "POST" })
     z.object({ id: z.string().uuid(), status: z.enum(ESTIMATE_STATUSES) }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: prev } = await context.supabase
-      .from("estimates").select("status,client_id,object_id,client_name,address").eq("id", data.id).maybeSingle();
+      .from("estimates").select("status,client_id,order_id,client_name,address").eq("id", data.id).maybeSingle();
     if (prev) {
       await checkLinks(context.supabase, { ...(prev as any), status: data.status });
     }

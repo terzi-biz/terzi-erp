@@ -77,7 +77,7 @@ function Consent() {
       <div className="rounded-2xl border border-border/60 bg-card p-6 shadow-xl">
         <h1 className="text-xl font-black tracking-tight">Підключити «{clientName}» до вашого акаунта?</h1>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Застосунок отримає доступ до даних TERZI ERP від вашого імені та в межах ваших прав: клієнти, об'єкти,
+          Застосунок отримає доступ до даних TERZI ERP від вашого імені та в межах ваших прав: клієнти, замовлення,
           кошториси та ліди CRM.
         </p>
         {error ? <p role="alert" className="mt-4 text-sm text-destructive">{error}</p> : null}

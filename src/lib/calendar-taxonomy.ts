@@ -30,7 +30,7 @@ export const EVENT_TYPES: { key: string; label: string; category: EventCategory 
   { key: "measure_report", label: "Підготовка звіту", category: "measure" },
   { key: "measure_handoff", label: "Передача даних кошториснику", category: "measure" },
   // Виробництво
-  { key: "site_prepare", label: "Підготовка об'єкта", category: "production" },
+  { key: "site_prepare", label: "Підготовка замовлення", category: "production" },
   { key: "equipment_delivery", label: "Доставка обладнання", category: "production" },
   { key: "material_delivery", label: "Доставка матеріалів", category: "production" },
   { key: "work_start", label: "Початок робіт", category: "production" },
@@ -39,7 +39,7 @@ export const EVENT_TYPES: { key: string; label: string; category: EventCategory 
   { key: "photo_report", label: "Фотозвіт", category: "production" },
   { key: "acceptance", label: "Приймання", category: "production" },
   { key: "fixes", label: "Усунення зауважень", category: "production" },
-  { key: "handover", label: "Здача об'єкта", category: "production" },
+  { key: "handover", label: "Здача замовлення", category: "production" },
   // Керівництво
   { key: "daily_standup", label: "Щоденна планерка", category: "management" },
   { key: "owner_meeting", label: "Зустріч з власником", category: "management" },
@@ -48,13 +48,13 @@ export const EVENT_TYPES: { key: string; label: string; category: EventCategory 
   { key: "sales_meeting", label: "Нарада з продажів", category: "management" },
   { key: "production_meeting", label: "Виробнича нарада", category: "management" },
   { key: "hr_meeting", label: "HR-зустріч", category: "management" },
-  { key: "site_audit", label: "Контроль об'єкта", category: "management" },
+  { key: "site_audit", label: "Контроль замовлення", category: "management" },
   { key: "payment_approve", label: "Погодження платежу", category: "management" },
   { key: "discount_approve", label: "Погодження знижки", category: "management" },
   // Маркетинг
   { key: "creative", label: "Підготовка креативу", category: "marketing" },
   { key: "ads_launch", label: "Запуск реклами", category: "marketing" },
-  { key: "shooting", label: "Зйомка об'єкта", category: "marketing" },
+  { key: "shooting", label: "Зйомка замовлення", category: "marketing" },
   { key: "content_publish", label: "Публікація контенту", category: "marketing" },
   { key: "ads_analysis", label: "Аналіз кампанії", category: "marketing" },
   { key: "marketing_report", label: "Підготовка звіту", category: "marketing" },

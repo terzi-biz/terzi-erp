@@ -72,7 +72,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
 
   const topLinks = [
     { to: "/", icon: LayoutDashboard, label: t("dashboard") },
-    { to: "/objects", icon: Building2, label: "Об'єкти" },
+    { to: "/orders", icon: Building2, label: "Замовлення" },
     { to: "/operations", icon: CalendarDays, label: "Операційний календар" },
     { to: "/production", icon: HardHat, label: "Виробництво" },
   ];

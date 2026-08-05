@@ -127,15 +127,15 @@ export const DEFAULT_SETTINGS = {
   sandCityCost: 1700, sandCityClient: 2000, // місто (клієнт 2000, закупка 1700)
   sandOutskirtsClient: 2200,
   sandChornomorskClient: 2500,
-  brigadeMin: 11000,       // фіксована оплата бригаді за об'єкт до 100 м² включно
+  brigadeMin: 11000,       // фіксована оплата бригаді за замовлення до 100 м² включно
   brigadePerM2: 110,       // понад 100 м² — 110 грн/м² на ВСЮ площу (110 м² → 110×110)
   foremanMin: 0,           // бригадир оплачується строго за м² (див. foremanPerM2)
   foremanPerM2: 10,        // оплата бригадиру 10 грн/м²
-  brigadePrepCost: 5,      // підготовка складних об'єктів
+  brigadePrepCost: 5,      // підготовка складних замовлень
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
   brigadeUnloadCost: 10,   // вивантаження цементу — 10 грн/мішок бригаді (опція)
-  brigadeLiftCost: 1000,   // підйом матеріалу на поверх (за об'єкт)
+  brigadeLiftCost: 1000,   // підйом матеріалу на поверх (за замовлення)
   brigadeLiftClient: 2000,
   amortEquipPerM2: 30,
   amortTransportPerM2: 15,
@@ -386,7 +386,7 @@ export function calculateScreed(
       sum: cementBags * works.cementUnload, cost: cementBags * s.brigadeUnloadCost, showToClient: true });
   }
 
-  // Собівартість бригади: до 100 м² включно — фіксовано 11 000 грн за об'єкт;
+  // Собівартість бригади: до 100 м² включно — фіксовано 11 000 грн за замовлення;
   // понад 100 м² — 110 грн/м² на ВСЮ площу (напр. 110 м² → 110 × 110 = 12 100).
   // Плюс бригадир — 10 грн/м². Тарифні коефіцієнти площі тут не застосовуються,
   // ставки задані прямо.
@@ -394,7 +394,7 @@ export function calculateScreed(
   const foremanCost = area * s.foremanPerM2;
 
   lines.push({ key: "w_brigade", block: "works", name: "Бригада (стяжка, плівка, демпфер, шліфовка, шви)",
-    unit: "об'єкт", qty: 1, pricePerUnit: 0, costPerUnit: brigadeBaseCost,
+    unit: "замовлення", qty: 1, pricePerUnit: 0, costPerUnit: brigadeBaseCost,
     sum: 0, cost: brigadeBaseCost, showToClient: false });
   lines.push({ key: "w_foreman", block: "works", name: "Бригадир (10 грн/м²)",
     unit: "м²", qty: area, pricePerUnit: 0, costPerUnit: s.foremanPerM2,

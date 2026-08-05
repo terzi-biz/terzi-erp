@@ -559,7 +559,7 @@ export function calculateRoofing(
   }
 
   // Бригадна оплата тепер закладена у costPerUnit кожної роботи (ПМЗ Майстерів).
-  // Залишаємо мін. оплату як floor для дуже малих об'єктів.
+  // Залишаємо мін. оплату як floor для дуже малих замовлень.
   void c.brigadePerM2Rubemast; void c.brigadePerM2Pvc;
 
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
@@ -588,7 +588,7 @@ export function calculateRoofing(
 
   const materialsCost = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.cost, 0);
   const worksAddCost = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.cost, 0);
-  // Оплата бригаді: до 100 м² включно — фіксовано 11 000 грн за об'єкт,
+  // Оплата бригаді: до 100 м² включно — фіксовано 11 000 грн за замовлення,
   // понад 100 м² — 110 грн/м² на всю площу. Це нижня межа (floor) для суми
   // ПМЗ майстрів по роботах. Додатково бригадир — 10 грн/м².
   const brigadeFloor = area <= 100 ? 11000 : area * 110;

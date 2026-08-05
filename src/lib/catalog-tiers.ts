@@ -41,7 +41,7 @@ export function tierPriceFromMargin(buyPrice: number, marginPercent: number): nu
   return Math.round(v * 100) / 100;
 }
 
-/** Який ціновий діапазон застосовувати для площі об'єкта (м²). */
+/** Який ціновий діапазон застосовувати для площі замовлення (м²). */
 export function tierForArea(area: number): TierKey {
   const a = Number(area) || 0;
   if (a <= 50) return "t50";

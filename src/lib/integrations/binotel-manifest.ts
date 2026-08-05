@@ -50,7 +50,7 @@ export const BINOTEL_CAPABILITIES: { key: string; label: string; ready: boolean 
   { key: "phone_norm", label: "Нормалізація телефонів і пошук клієнта", ready: true },
   { key: "lead_create", label: "Створення ліда з дзвінка", ready: true },
   { key: "missed_task", label: "Задача по пропущеному дзвінку", ready: true },
-  { key: "link_entities", label: "Привʼязка дзвінка до клієнта, ліда, замовлення, обʼєкта", ready: true },
+  { key: "link_entities", label: "Привʼязка дзвінка до клієнта, ліда, замовлення, замовлення", ready: true },
   { key: "line_map", label: "Звʼязок внутрішніх ліній зі співробітниками", ready: true },
   { key: "click_to_call", label: "Click-to-Call (інтерфейс готовий, метод API — після документації)", ready: false },
   { key: "recording", label: "Запис розмови (потрібні правила отримання посилання)", ready: false },

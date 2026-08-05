@@ -10,10 +10,10 @@ import { ensureProductionVersion, updateFactLine } from "@/lib/estimates.functio
 
 export const Route = createFileRoute("/production/$id")({
   head: () => ({ meta: [
-    { title: "План-факт об'єкта — TERZI" },
+    { title: "План-факт замовлення — TERZI" },
     { name: "description", content: "Внесення фактичних обсягів і цін по позиціях кошторису TERZI з підрахунком відхилень." },
-    { property: "og:title", content: "План-факт об'єкта — TERZI" },
-    { property: "og:description", content: "Фактичні обсяги, ціни та відхилення по об'єкту TERZI." },
+    { property: "og:title", content: "План-факт замовлення — TERZI" },
+    { property: "og:description", content: "Фактичні обсяги, ціни та відхилення по замовленню TERZI." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ] }),

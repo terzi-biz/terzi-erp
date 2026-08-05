@@ -58,7 +58,7 @@ export const syncEstimateToCalendar = createServerFn({ method: "POST" })
     end.setDate(end.getDate() + Math.max(1, Math.ceil(data.durationDays)));
 
     const moduleLabel = MODULE_LABEL[est.module] ?? est.module;
-    const summary = `[${moduleLabel}] ${est.client_name ?? "Клієнт"} — ${est.address ?? "Об'єкт"}${est.area ? ` (${est.area} м²)` : ""}`;
+    const summary = `[${moduleLabel}] ${est.client_name ?? "Клієнт"} — ${est.address ?? "Замовлення"}${est.area ? ` (${est.area} м²)` : ""}`;
     const description = [
       `Кошторис №${est.number}`,
       `Менеджер: ${est.manager ?? "—"}`,

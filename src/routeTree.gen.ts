@@ -43,6 +43,9 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
+import { Route as OrdersIndexRouteImport } from './routes/orders.index'
+import { Route as OrdersIdRouteImport } from './routes/orders.$id'
+import { Route as OrdersNewRouteImport } from './routes/orders.new'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -225,6 +228,21 @@ const ObjectsNewRoute = ObjectsNewRouteImport.update({
   path: '/objects/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersIndexRoute = OrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersIdRoute = OrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersNewRoute = OrdersNewRouteImport.update({
+  id: '/orders/new',
+  path: '/orders/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductionIndexRoute = ProductionIndexRouteImport.update({
   id: '/production/',
   path: '/production/',
@@ -310,9 +328,12 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/orders/$id': typeof OrdersIdRoute
+  '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
+  '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -355,9 +376,12 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/orders/$id': typeof OrdersIdRoute
+  '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm': typeof CrmIndexRoute
   '/objects': typeof ObjectsIndexRoute
+  '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -401,9 +425,12 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/orders/$id': typeof OrdersIdRoute
+  '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
+  '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -448,9 +475,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
+    | '/orders/$id'
+    | '/orders/new'
     | '/production/$id'
     | '/crm/'
     | '/objects/'
+    | '/orders/'
     | '/production/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -493,9 +523,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
+    | '/orders/$id'
+    | '/orders/new'
     | '/production/$id'
     | '/crm'
     | '/objects'
+    | '/orders'
     | '/production'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -538,9 +571,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
+    | '/orders/$id'
+    | '/orders/new'
     | '/production/$id'
     | '/crm/'
     | '/objects/'
+    | '/orders/'
     | '/production/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -584,9 +620,12 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
+  OrdersIdRoute: typeof OrdersIdRoute
+  OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
   CrmIndexRoute: typeof CrmIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
+  OrdersIndexRoute: typeof OrdersIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -837,6 +876,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders/': {
+      id: '/orders/'
+      path: '/orders'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof OrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/$id': {
+      id: '/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/orders/$id'
+      preLoaderRoute: typeof OrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/new': {
+      id: '/orders/new'
+      path: '/orders/new'
+      fullPath: '/orders/new'
+      preLoaderRoute: typeof OrdersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/production/': {
       id: '/production/'
       path: '/production'
@@ -937,9 +997,12 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
+  OrdersIdRoute: OrdersIdRoute,
+  OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
   CrmIndexRoute: CrmIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
+  OrdersIndexRoute: OrdersIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,

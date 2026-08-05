@@ -12,12 +12,12 @@ function safeNext(value: unknown): string {
 }
 
 export const Route = createFileRoute("/login")({
-  validateSearch: (s: Record<string, unknown>) => ({ next: safeNext(s.next) }),
+  validateSearch: (s: Record<string, unknown>): { next?: string } => ({ next: safeNext(s.next) || undefined }),
   component: LoginPage,
   head: () => ({
     meta: [
       { title: "Вхід у ERP систему TERZI" },
-      { name: "description", content: "Вхід у ERP систему TERZI: кошториси, заміри, об'єкти, бригади та комунікації в єдиній системі." },
+      { name: "description", content: "Вхід у ERP систему TERZI: кошториси, заміри, замовлення, бригади та комунікації в єдиній системі." },
       { property: "og:title", content: "Вхід у ERP систему TERZI" },
       { property: "og:description", content: "Один підрядник. Одна відповідальність. Готовий результат." },
       { property: "og:type", content: "website" },
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/login")({
 const BADGES = [
   { icon: FileCheck2, title: "ОФІЦІЙНИЙ ДОГОВІР", text: "Прозорі умови співпраці та фіксовані ціни" },
   { icon: ShieldCheck, title: "ГАРАНТІЯ ДО 10 РОКІВ", text: "На виконані роботи та матеріали" },
-  { icon: Building2, title: "4 000+ ОБ'ЄКТІВ", text: "Успішно реалізованих об'єктів" },
+  { icon: Building2, title: "4 000+ ОБ'ЄКТІВ", text: "Успішно реалізованих замовлень" },
 ];
 
 function LoginPage() {
@@ -211,7 +211,7 @@ function LoginPage() {
               <span className="text-primary">Готовий результат.</span>
             </div>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">
-              Керуйте кошторисами, замірами, об'єктами, бригадами та комунікаціями в єдиній системі.
+              Керуйте кошторисами, замірами, замовленнями, бригадами та комунікаціями в єдиній системі.
               Прозорість процесів, контроль витрат і впевненість у кожному рішенні.
             </p>
 

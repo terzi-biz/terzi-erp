@@ -134,7 +134,7 @@ function UsersTab({ isOwner }: { isOwner: boolean }) {
 
   const transfer = useMutation({
     mutationFn: (input: { fromUserId: string; toUserId: string }) => transferFn({ data: input }),
-    onSuccess: (r: any) => toast.success(`Передано: клієнтів ${r.clients}, об'єктів ${r.objects}, кошторисів ${r.estimates}`),
+    onSuccess: (r: any) => toast.success(`Передано: клієнтів ${r.clients}, замовлень ${r.objects}, кошторисів ${r.estimates}`),
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося передати"),
   });
 
@@ -351,7 +351,7 @@ function UserCard({ user, roles, users, isOwner, onClose, onSave, onTransfer }: 
 
         <section className="panel mt-4 space-y-3 p-4">
           <h3 className="text-xs font-bold uppercase tracking-widest text-primary">Звільнення і передача роботи</h3>
-          <Field label="Передати клієнтів / об'єкти / кошториси">
+          <Field label="Передати клієнтів / замовлення / кошториси">
             <select value={transferTo} onChange={(e) => setTransferTo(e.target.value)} className="inp">
               <option value="">Оберіть співробітника</option>
               {users.filter((u) => u.user_id !== user.user_id).map((u) => (
@@ -728,7 +728,7 @@ function LogsTab() {
           {ACCESS_MODULES.map((m) => <option key={m.key} value={m.key}>{m.label}</option>)}
         </select>
         <input value={filters.search} onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-          placeholder="Пошук за дією, об'єктом, користувачем" className="flex-1 min-w-[200px] rounded border border-border bg-input px-3 py-2 text-sm" />
+          placeholder="Пошук за дією, замовленням, користувачем" className="flex-1 min-w-[200px] rounded border border-border bg-input px-3 py-2 text-sm" />
         <label className="flex items-center gap-2 text-xs font-semibold">
           <input type="checkbox" checked={filters.criticalOnly} onChange={(e) => setFilters((f) => ({ ...f, criticalOnly: e.target.checked }))} />
           Лише критичні
@@ -746,7 +746,7 @@ function LogsTab() {
               <th className="px-4 py-3 text-left">Користувач</th>
               <th className="px-4 py-3 text-left">Модуль</th>
               <th className="px-4 py-3 text-left">Дія</th>
-              <th className="px-4 py-3 text-left">Об'єкт</th>
+              <th className="px-4 py-3 text-left">Замовлення</th>
             </tr>
           </thead>
           <tbody>

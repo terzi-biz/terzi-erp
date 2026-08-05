@@ -15,7 +15,7 @@ export interface AutoEventInput {
   starts_at: string;
   ends_at: string;
   all_day?: boolean;
-  object_id?: string | null;
+  order_id?: string | null;
   client_id?: string | null;
   measurement_id?: string | null;
   estimate_id?: string | null;
@@ -54,7 +54,7 @@ export async function syncAutoEvent(
       starts_at: input.starts_at,
       ends_at: input.ends_at,
       all_day: input.all_day ?? false,
-      object_id: input.object_id ?? null,
+      order_id: input.order_id ?? null,
       client_id: input.client_id ?? null,
       measurement_id: input.measurement_id ?? null,
       estimate_id: input.estimate_id ?? null,

@@ -16,7 +16,7 @@ export const listCalendarEvents = createServerFn({ method: "POST" })
 
     if (data.employeeId) q = q.eq("employee_id", data.employeeId);
     if (data.crewKey) q = q.eq("crew_key", data.crewKey);
-    if (data.objectId) q = q.eq("object_id", data.objectId);
+    if (data.orderId) q = q.eq("order_id", data.orderId);
     if (data.statuses?.length) q = q.in("status", data.statuses);
     if (data.categories?.length) q = q.in("category", data.categories);
     if (data.directions?.length) q = q.in("direction", data.directions);
@@ -105,15 +105,15 @@ export const listEmployees = createServerFn({ method: "GET" })
     return await listStaffDirectory();
   });
 
-export const listCalendarObjects = createServerFn({ method: "GET" })
+export const listCalendarOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
-      .from("objects")
+      .from("orders")
       .select("id,number,name,address,client_id")
       .order("created_at", { ascending: false })
       .limit(300);
-    if (error) throw new Error("Не вдалося завантажити об'єкти");
+    if (error) throw new Error("Не вдалося завантажити замовлення");
     return data ?? [];
   });
 
