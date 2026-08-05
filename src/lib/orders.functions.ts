@@ -15,7 +15,7 @@ export const FINANCIAL_STATUSES = [
   "no_invoice","awaiting_payment","partial_payment","prepayment_received",
   "has_debt","paid","financially_closed",
 ] as const;
-export const OBJECT_SERVICES = [
+export const ORDER_SERVICES = [
   "screed","roofing_pvc","roofing_ruberoid","insulation","demolition","plaster","polybeton","other",
 ] as const;
 export const RISK_LEVELS = ["green","yellow","red"] as const;
@@ -66,7 +66,7 @@ const orderInput = z.object({
   risk_level: z.enum(RISK_LEVELS).optional(),
   planned_start: z.string().optional().nullable(),
   planned_end: z.string().optional().nullable(),
-  services: z.array(z.enum(OBJECT_SERVICES)).optional(),
+  services: z.array(z.enum(ORDER_SERVICES)).optional(),
 });
 
 export const listOrders = createServerFn({ method: "GET" })
@@ -244,7 +244,7 @@ const zoneInput = z.object({
   id: z.string().uuid().optional(),
   order_id: z.string().uuid(),
   name: z.string().min(1).max(200),
-  service: z.enum(OBJECT_SERVICES).optional().nullable(),
+  service: z.enum(ORDER_SERVICES).optional().nullable(),
   area: z.number().optional().nullable(),
   perimeter: z.number().optional().nullable(),
   thickness_cm: z.number().optional().nullable(),
@@ -258,7 +258,7 @@ const zoneInput = z.object({
   status: z.string().max(50).optional(),
 });
 
-export const saveObjectZone = createServerFn({ method: "POST" })
+export const saveOrderZone = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => zoneInput.parse(d))
   .handler(async ({ data, context }) => {
@@ -266,21 +266,21 @@ export const saveObjectZone = createServerFn({ method: "POST" })
     const { data: out, error } = id
       ? await context.supabase.from("order_zones").update(rest).eq("id", id).select().single()
       : await context.supabase.from("order_zones").insert(rest).select().single();
-    if (error) { console.error("saveObjectZone", error); throw new Error("Не вдалося зберегти зону"); }
+    if (error) { console.error("saveOrderZone", error); throw new Error("Не вдалося зберегти зону"); }
     return out;
   });
 
-export const deleteObjectZone = createServerFn({ method: "POST" })
+export const deleteOrderZone = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("order_zones").delete().eq("id", data.id);
-    if (error) { console.error("deleteObjectZone", error); throw new Error("Не вдалося видалити зону"); }
+    if (error) { console.error("deleteOrderZone", error); throw new Error("Не вдалося видалити зону"); }
     return { ok: true };
   });
 
 // Comments
-export const addObjectComment = createServerFn({ method: "POST" })
+export const addOrderComment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({
     order_id: z.string().uuid(),
@@ -293,12 +293,12 @@ export const addObjectComment = createServerFn({ method: "POST" })
     const { data: out, error } = await context.supabase.from("order_comments").insert({
       order_id: data.order_id, body: data.body, author_id: context.userId, author_name,
     }).select().single();
-    if (error) { console.error("addObjectComment", error); throw new Error("Не вдалося додати коментар"); }
+    if (error) { console.error("addOrderComment", error); throw new Error("Не вдалося додати коментар"); }
     return out;
   });
 
 // Assignments
-export const setObjectAssignment = createServerFn({ method: "POST" })
+export const setOrderAssignment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({
     order_id: z.string().uuid(),
@@ -314,7 +314,7 @@ export const setObjectAssignment = createServerFn({ method: "POST" })
         order_id: data.order_id, role: data.role,
         user_id: data.user_id ?? null, display_name: data.display_name ?? null,
       });
-      if (error) { console.error("setObjectAssignment", error); throw new Error("Не вдалося зберегти призначення"); }
+      if (error) { console.error("setOrderAssignment", error); throw new Error("Не вдалося зберегти призначення"); }
     }
     return { ok: true };
   });
@@ -336,7 +336,7 @@ const measurementInput = z.object({
   status: z.enum(["draft","done","cancelled"]).default("draft"),
 });
 
-export const saveObjectMeasurement = createServerFn({ method: "POST" })
+export const saveOrderMeasurement = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => measurementInput.parse(d))
   .handler(async ({ data, context }) => {
@@ -345,7 +345,7 @@ export const saveObjectMeasurement = createServerFn({ method: "POST" })
     const { data: out, error } = id
       ? await context.supabase.from("order_measurements").update(row).eq("id", id).select().single()
       : await context.supabase.from("order_measurements").insert(row).select().single();
-    if (error) { console.error("saveObjectMeasurement", error); throw new Error("Не вдалося зберегти замер"); }
+    if (error) { console.error("saveOrderMeasurement", error); throw new Error("Не вдалося зберегти замер"); }
 
     // Авто-подія календаря «Замір»
     const { data: obj } = await context.supabase
@@ -388,7 +388,7 @@ export const saveObjectMeasurement = createServerFn({ method: "POST" })
     return out;
   });
 
-export const linkEstimateToObject = createServerFn({ method: "POST" })
+export const linkEstimateToOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({
     estimate_id: z.string().uuid(),
@@ -397,6 +397,6 @@ export const linkEstimateToObject = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("estimates").update({ order_id: data.order_id }).eq("id", data.estimate_id);
-    if (error) { console.error("linkEstimateToObject", error); throw new Error("Не вдалося прив'язати кошторис"); }
+    if (error) { console.error("linkEstimateToOrder", error); throw new Error("Не вдалося прив'язати кошторис"); }
     return { ok: true };
   });
