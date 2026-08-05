@@ -94,7 +94,7 @@ export async function exportEntityOp(userId: string, input: { entityKey: string;
   const entity = getEntity(input.entityKey);
   if (!entity) throw new Error("Невідомий розділ для вивантаження");
   const actor = await ensure(userId, entity, "export");
-  const db = await admin();
+  const db = (await admin()) as any;
 
   const cols = [...entity.fields.map((f) => f.key), ...(entity.lookups ?? []).map((l) => l.column)];
   const limit = Math.min(Math.max(input.limit ?? 5000, 1), 20000);
@@ -149,7 +149,7 @@ export async function importEntityOp(
   if (!entity) throw new Error("Невідомий розділ для імпорту");
   if (entity.exportOnly) throw new Error(`Розділ «${entity.label}» доступний лише для вивантаження`);
   const actor = await ensure(userId, entity, "create");
-  const db = await admin();
+  const db = (await admin()) as any;
 
   const issues: ImportIssue[] = [];
   const prepared: { row: number; payload: Record<string, unknown> }[] = [];
