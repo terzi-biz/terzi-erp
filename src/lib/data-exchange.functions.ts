@@ -7,7 +7,8 @@ export const exportErpEntity = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ entityKey: z.string().min(1).max(60), limit: z.number().int().min(1).max(20000).optional() }).parse(d))
   .handler(async ({ context, data }) => {
     const { exportEntityOp } = await import("./data-exchange/ops.server");
-    return exportEntityOp(context.userId, data);
+    const res = await exportEntityOp(context.userId, data);
+    return { entityKey: res.entityKey, label: res.label, count: res.count, rowsJson: JSON.stringify(res.rows) };
   });
 
 export const importErpEntity = createServerFn({ method: "POST" })
@@ -24,5 +25,6 @@ export const importErpEntity = createServerFn({ method: "POST" })
   )
   .handler(async ({ context, data }) => {
     const { importEntityOp } = await import("./data-exchange/ops.server");
-    return importEntityOp(context.userId, data);
+    const res = await importEntityOp(context.userId, data);
+    return { ...res, preview: JSON.stringify(res.preview) };
   });
