@@ -16,6 +16,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
 import { Route as EquipmentRouteImport } from './routes/equipment'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
@@ -90,6 +91,11 @@ const DirectionsEditorRoute = DirectionsEditorRouteImport.update({
 const EquipmentRoute = EquipmentRouteImport.update({
   id: '/equipment',
   path: '/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -309,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
+  '/finance': typeof FinanceRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/integrations': typeof IntegrationsRoute
@@ -358,6 +365,7 @@ export interface FileRoutesByTo {
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
+  '/finance': typeof FinanceRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/integrations': typeof IntegrationsRoute
@@ -408,6 +416,7 @@ export interface FileRoutesById {
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
+  '/finance': typeof FinanceRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/integrations': typeof IntegrationsRoute
@@ -459,6 +468,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/directions-editor'
     | '/equipment'
+    | '/finance'
     | '/history'
     | '/insulation'
     | '/integrations'
@@ -508,6 +518,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/directions-editor'
     | '/equipment'
+    | '/finance'
     | '/history'
     | '/insulation'
     | '/integrations'
@@ -557,6 +568,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/directions-editor'
     | '/equipment'
+    | '/finance'
     | '/history'
     | '/insulation'
     | '/integrations'
@@ -607,6 +619,7 @@ export interface RootRouteChildren {
   DemolitionRoute: typeof DemolitionRoute
   DirectionsEditorRoute: typeof DirectionsEditorRoute
   EquipmentRoute: typeof EquipmentRoute
+  FinanceRoute: typeof FinanceRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
   IntegrationsRoute: typeof IntegrationsRoute
@@ -698,6 +711,13 @@ declare module '@tanstack/react-router' {
       path: '/equipment'
       fullPath: '/equipment'
       preLoaderRoute: typeof EquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -991,6 +1011,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemolitionRoute: DemolitionRoute,
   DirectionsEditorRoute: DirectionsEditorRoute,
   EquipmentRoute: EquipmentRoute,
+  FinanceRoute: FinanceRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
   IntegrationsRoute: IntegrationsRoute,
