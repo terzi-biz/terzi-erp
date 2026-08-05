@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
-  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact, Inbox, PhoneCall, ListTodo,
+  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact, Inbox, PhoneCall, ListTodo, Boxes, Wallet,
 } from "lucide-react";
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
@@ -75,6 +75,8 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     { to: "/orders", icon: Building2, label: "Замовлення" },
     { to: "/operations", icon: CalendarDays, label: "Операційний календар" },
     { to: "/production", icon: HardHat, label: "Виробництво" },
+    { to: "/warehouse", icon: Boxes, label: "Склад" },
+    { to: "/finance", icon: Wallet, label: "Фінанси" },
   ];
   const crmLinks = [
     { to: "/crm", icon: BarChart3, label: "Панель CRM" },
