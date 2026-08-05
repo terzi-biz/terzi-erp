@@ -408,13 +408,39 @@ function ProductionTab({ o }: { o: any }) {
 }
 
 function FinanceTab({ o }: { o: any }) {
-  const totalClient = (o.estimates ?? []).reduce((s: number, e: any) => s + Number(e.total_client ?? 0), 0);
+  const pnlFn = useServerFn(getOrderPnl);
+  const resFn = useServerFn(listReservations);
+  const { data: pnl } = useQuery({ queryKey: ["order-pnl", o.id], queryFn: () => pnlFn({ data: { order_id: o.id } }) });
+  const { data: reservations = [] } = useQuery({ queryKey: ["order-reservations", o.id], queryFn: () => resFn({ data: { order_id: o.id } }) });
+
   return (
-    <div className="grid md:grid-cols-3 gap-3">
-      <StatBox label="План. виручка" value={formatUah(totalClient)} />
-      <StatBox label="Оплачено" value={formatUah(0)} />
-      <StatBox label="Заборгованість" value={formatUah(totalClient)} />
-      <div className="md:col-span-3 text-xs text-muted-foreground">Повний платіжний календар та факт оплат буде підключено окремим релізом.</div>
+    <div className="space-y-4">
+      <div className="grid md:grid-cols-3 gap-3">
+        <StatBox label="Виручка (план)" value={formatUah(pnl?.revenuePlan ?? 0)} />
+        <StatBox label="Оплачено (факт)" value={formatUah(pnl?.revenueFact ?? 0)} />
+        <StatBox label="Виставлено рахунків" value={formatUah(pnl?.invoiced ?? 0)} />
+        <StatBox label="Собівартість (план)" value={formatUah(pnl?.costPlan ?? 0)} />
+        <StatBox label="Витрати (факт)" value={formatUah(pnl?.costFact ?? 0)} />
+        <StatBox label="Прибуток факт / план" value={`${formatUah(pnl?.profitFact ?? 0)} / ${formatUah(pnl?.profitPlan ?? 0)}`} />
+      </div>
+
+      <div>
+        <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Резерв матеріалів на складі</div>
+        {(reservations as any[]).length === 0 && <div className="text-xs text-muted-foreground">Резервів під це замовлення немає.</div>}
+        <div className="space-y-1">
+          {(reservations as any[]).map((r) => (
+            <div key={r.id} className="flex justify-between text-sm border-b border-border/50 py-1.5">
+              <span>{r.item?.name ?? "—"}</span>
+              <span className="text-muted-foreground">{Number(r.qty).toFixed(2)} {r.item?.unit} · {r.warehouse?.name ?? "—"}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex gap-3 text-xs">
+        <Link to="/finance" className="text-primary font-semibold hover:underline">Відкрити Фінанси</Link>
+        <Link to="/warehouse" className="text-primary font-semibold hover:underline">Відкрити Склад</Link>
+      </div>
     </div>
   );
 }
