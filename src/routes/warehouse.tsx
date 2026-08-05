@@ -91,7 +91,7 @@ function WarehousePage() {
           {[
             ["Позицій", String(totals.positions)],
             ["Вартість запасів", formatUah(totals.value)],
-            ["У резерві (од.)", totals.reserved.toFixed(2)},
+            ["У резерві (од.)", totals.reserved.toFixed(2)],
             ["Нижче мінімуму", String(totals.low)],
           ].map(([l, v]) => (
             <div key={l as string} className="bg-card border border-border rounded-lg p-4">

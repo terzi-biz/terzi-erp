@@ -30,6 +30,7 @@ import { Route as Roofing_pvcRouteImport } from './routes/roofing_pvc'
 import { Route as Roofing_rubRouteImport } from './routes/roofing_rub'
 import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as WorksRouteImport } from './routes/works'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -159,6 +160,11 @@ const ScreedRoute = ScreedRouteImport.update({
 const SettingsRoute = SettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WarehouseRoute = WarehouseRouteImport.update({
+  id: '/warehouse',
+  path: '/warehouse',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorksRoute = WorksRouteImport.update({
@@ -317,6 +323,7 @@ export interface FileRoutesByFullPath {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
+  '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -365,6 +372,7 @@ export interface FileRoutesByTo {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
+  '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -414,6 +422,7 @@ export interface FileRoutesById {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
+  '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -464,6 +473,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
+    | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -512,6 +522,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
+    | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -560,6 +571,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
+    | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -609,6 +621,7 @@ export interface RootRouteChildren {
   Roofing_rubRoute: typeof Roofing_rubRoute
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
+  WarehouseRoute: typeof WarehouseRoute
   WorksRoute: typeof WorksRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -783,6 +796,13 @@ declare module '@tanstack/react-router' {
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/warehouse': {
+      id: '/warehouse'
+      path: '/warehouse'
+      fullPath: '/warehouse'
+      preLoaderRoute: typeof WarehouseRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/works': {
@@ -985,6 +1005,7 @@ const rootRouteChildren: RootRouteChildren = {
   Roofing_rubRoute: Roofing_rubRoute,
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
+  WarehouseRoute: WarehouseRoute,
   WorksRoute: WorksRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
