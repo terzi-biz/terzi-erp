@@ -139,7 +139,7 @@ function ClientsPage() {
                 <input className={inp} placeholder="Телефон" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <input className={inp} placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
-              <input className={inp} placeholder="Адреса об'єкта" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <input className={inp} placeholder="Адреса замовлення" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
               <textarea className={inp} placeholder="Нотатки" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               <select className={inp} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "lead" })}>
                 {Object.entries(STATUSES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}

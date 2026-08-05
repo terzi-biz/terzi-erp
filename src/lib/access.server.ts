@@ -99,7 +99,7 @@ export type AuditEntry = {
   entityId?: string | null;
   entityLabel?: string | null;
   clientId?: string | null;
-  objectId?: string | null;
+  orderId?: string | null;
   oldValue?: unknown;
   newValue?: unknown;
   reason?: string | null;
@@ -133,7 +133,7 @@ export async function writeAudit(actor: Actor, entry: AuditEntry) {
     entity_id: entry.entityId ?? null,
     entity_label: entry.entityLabel ?? null,
     client_id: entry.clientId ?? null,
-    object_id: entry.objectId ?? null,
+    order_id: entry.orderId ?? null,
     old_value: (entry.oldValue ?? null) as any,
     new_value: (entry.newValue ?? null) as any,
     reason: entry.reason ?? null,

@@ -94,7 +94,7 @@ function ScreedPage() {
   const [input, setInput] = usePersistedState<ScreedInput>("terzi:draft:screed:input", defaultInput);
   const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed", input.area);
   const [client, setClient] = usePersistedState("terzi:draft:screed:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
-  const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
+  const [link, setLink] = useState<EstimateLink>({ clientId: null, orderId: null });
 
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
@@ -109,7 +109,7 @@ function ScreedPage() {
       name: r.client_name ?? "", phone: r.client_phone ?? "",
       address: r.address ?? "", manager: r.manager ?? "",
     });
-    setLink({ clientId: r.client_id ?? null, objectId: r.object_id ?? null });
+    setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as ScreedInput) });
   });
 
@@ -127,7 +127,7 @@ function ScreedPage() {
       module: "screed",
       status: savedStatus as any,
       client_id: link.clientId,
-      object_id: link.objectId,
+      order_id: link.orderId,
       client_name: client.name || null,
       client_phone: client.phone || null,
       address: client.address || null,
@@ -248,7 +248,7 @@ function ScreedPage() {
               <Field label="Поверх" hint="Поверх подачі суміші. Від 6-го поверху додається коефіцієнт підйому 5–50%.">
                 <NumberInput className={inp} value={input.floor} onChange={(v) => upd("floor", v)} />
               </Field>
-              <Field label="Ліфт" hint="Наявність ліфта на об'єкті — впливає на швидкість подачі матеріалу.">
+              <Field label="Ліфт" hint="Наявність ліфта на замовленні — впливає на швидкість подачі матеріалу.">
                 <ToggleSwitch checked={input.withLift} onChange={(v) => upd("withLift", v)} />
               </Field>
               <Field label="Товщина, см" hint="Робочий діапазон 4–15 см. Понад 15 см — лише з адмін-дозволом.">

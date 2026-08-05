@@ -47,8 +47,8 @@
       },
       {
         "name": "list_objects",
-        "title": "Список об'єктів",
-        "description": "Повертає об'єкти TERZI ERP з адресою, статусами та плановими датами.",
+        "title": "Список замовлень",
+        "description": "Повертає замовлення TERZI ERP з адресою, статусами та плановими датами.",
         "annotations": {
           "readOnlyHint": true,
           "idempotentHint": true,

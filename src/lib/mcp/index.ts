@@ -1,6 +1,6 @@
 import { auth, defineMcp } from "@lovable.dev/mcp-js";
 import listClients from "./tools/list-clients";
-import listObjects from "./tools/list-objects";
+import listOrders from "./tools/list-objects";
 import listEstimates from "./tools/list-estimates";
 import listLeads from "./tools/list-leads";
 import createLead from "./tools/create-lead";
@@ -12,10 +12,10 @@ export default defineMcp({
   title: "TERZI ERP system",
   version: "0.1.0",
   instructions:
-    "Інструменти TERZI ERP: клієнти, об'єкти, кошториси та ліди CRM. Кожен виклик виконується від імені користувача, що увійшов у систему, з урахуванням його прав доступу. Внутрішні фінансові дані (собівартість, маржа, прибуток) через MCP не передаються.",
+    "Інструменти TERZI ERP: клієнти, замовлення, кошториси та ліди CRM. Кожен виклик виконується від імені користувача, що увійшов у систему, з урахуванням його прав доступу. Внутрішні фінансові дані (собівартість, маржа, прибуток) через MCP не передаються.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated",
   }),
-  tools: [listClients, listObjects, listEstimates, listLeads, createLead],
+  tools: [listClients, listOrders, listEstimates, listLeads, createLead],
 });

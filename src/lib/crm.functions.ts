@@ -79,7 +79,7 @@ const leadInput = z.object({
   stage_id: z.string().uuid().optional().nullable(),
   contact_id: z.string().uuid().optional().nullable(),
   client_id: z.string().uuid().optional().nullable(),
-  object_id: z.string().uuid().optional().nullable(),
+  order_id: z.string().uuid().optional().nullable(),
   source: z.string().max(100).optional().nullable(),
   direction: z.string().max(100).optional().nullable(),
   budget: z.number().nonnegative().optional().nullable(),

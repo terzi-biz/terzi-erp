@@ -16,6 +16,7 @@ import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
 import { Route as EquipmentRouteImport } from './routes/equipment'
+import { Route as FinanceRouteImport } from './routes/finance'
 import { Route as HistoryRouteImport } from './routes/history'
 import { Route as InsulationRouteImport } from './routes/insulation'
 import { Route as IntegrationsRouteImport } from './routes/integrations'
@@ -30,6 +31,7 @@ import { Route as Roofing_pvcRouteImport } from './routes/roofing_pvc'
 import { Route as Roofing_rubRouteImport } from './routes/roofing_rub'
 import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as SettingsRouteImport } from './routes/settings'
+import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as WorksRouteImport } from './routes/works'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -43,6 +45,9 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
+import { Route as OrdersIndexRouteImport } from './routes/orders.index'
+import { Route as OrdersIdRouteImport } from './routes/orders.$id'
+import { Route as OrdersNewRouteImport } from './routes/orders.new'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
@@ -86,6 +91,11 @@ const DirectionsEditorRoute = DirectionsEditorRouteImport.update({
 const EquipmentRoute = EquipmentRouteImport.update({
   id: '/equipment',
   path: '/equipment',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinanceRoute = FinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HistoryRoute = HistoryRouteImport.update({
@@ -158,6 +168,11 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WarehouseRoute = WarehouseRouteImport.update({
+  id: '/warehouse',
+  path: '/warehouse',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const WorksRoute = WorksRouteImport.update({
   id: '/works',
   path: '/works',
@@ -225,6 +240,21 @@ const ObjectsNewRoute = ObjectsNewRouteImport.update({
   path: '/objects/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OrdersIndexRoute = OrdersIndexRouteImport.update({
+  id: '/orders/',
+  path: '/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersIdRoute = OrdersIdRouteImport.update({
+  id: '/orders/$id',
+  path: '/orders/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdersNewRoute = OrdersNewRouteImport.update({
+  id: '/orders/new',
+  path: '/orders/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProductionIndexRoute = ProductionIndexRouteImport.update({
   id: '/production/',
   path: '/production/',
@@ -285,6 +315,7 @@ export interface FileRoutesByFullPath {
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
+  '/finance': typeof FinanceRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/integrations': typeof IntegrationsRoute
@@ -299,6 +330,7 @@ export interface FileRoutesByFullPath {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
+  '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -310,9 +342,12 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/orders/$id': typeof OrdersIdRoute
+  '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
+  '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -330,6 +365,7 @@ export interface FileRoutesByTo {
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
+  '/finance': typeof FinanceRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/integrations': typeof IntegrationsRoute
@@ -344,6 +380,7 @@ export interface FileRoutesByTo {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
+  '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -355,9 +392,12 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/orders/$id': typeof OrdersIdRoute
+  '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm': typeof CrmIndexRoute
   '/objects': typeof ObjectsIndexRoute
+  '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -376,6 +416,7 @@ export interface FileRoutesById {
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
   '/equipment': typeof EquipmentRoute
+  '/finance': typeof FinanceRoute
   '/history': typeof HistoryRoute
   '/insulation': typeof InsulationRoute
   '/integrations': typeof IntegrationsRoute
@@ -390,6 +431,7 @@ export interface FileRoutesById {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRoute
+  '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -401,9 +443,12 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
+  '/orders/$id': typeof OrdersIdRoute
+  '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
   '/objects/': typeof ObjectsIndexRoute
+  '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -423,6 +468,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/directions-editor'
     | '/equipment'
+    | '/finance'
     | '/history'
     | '/insulation'
     | '/integrations'
@@ -437,6 +483,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
+    | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -448,9 +495,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
+    | '/orders/$id'
+    | '/orders/new'
     | '/production/$id'
     | '/crm/'
     | '/objects/'
+    | '/orders/'
     | '/production/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -468,6 +518,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/directions-editor'
     | '/equipment'
+    | '/finance'
     | '/history'
     | '/insulation'
     | '/integrations'
@@ -482,6 +533,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
+    | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -493,9 +545,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
+    | '/orders/$id'
+    | '/orders/new'
     | '/production/$id'
     | '/crm'
     | '/objects'
+    | '/orders'
     | '/production'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -513,6 +568,7 @@ export interface FileRouteTypes {
     | '/demolition'
     | '/directions-editor'
     | '/equipment'
+    | '/finance'
     | '/history'
     | '/insulation'
     | '/integrations'
@@ -527,6 +583,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
+    | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -538,9 +595,12 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/objects/$id'
     | '/objects/new'
+    | '/orders/$id'
+    | '/orders/new'
     | '/production/$id'
     | '/crm/'
     | '/objects/'
+    | '/orders/'
     | '/production/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
@@ -559,6 +619,7 @@ export interface RootRouteChildren {
   DemolitionRoute: typeof DemolitionRoute
   DirectionsEditorRoute: typeof DirectionsEditorRoute
   EquipmentRoute: typeof EquipmentRoute
+  FinanceRoute: typeof FinanceRoute
   HistoryRoute: typeof HistoryRoute
   InsulationRoute: typeof InsulationRoute
   IntegrationsRoute: typeof IntegrationsRoute
@@ -573,6 +634,7 @@ export interface RootRouteChildren {
   Roofing_rubRoute: typeof Roofing_rubRoute
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRoute
+  WarehouseRoute: typeof WarehouseRoute
   WorksRoute: typeof WorksRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -584,9 +646,12 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
+  OrdersIdRoute: typeof OrdersIdRoute
+  OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
   CrmIndexRoute: typeof CrmIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
+  OrdersIndexRoute: typeof OrdersIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
@@ -646,6 +711,13 @@ declare module '@tanstack/react-router' {
       path: '/equipment'
       fullPath: '/equipment'
       preLoaderRoute: typeof EquipmentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance': {
+      id: '/finance'
+      path: '/finance'
+      fullPath: '/finance'
+      preLoaderRoute: typeof FinanceRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/history': {
@@ -746,6 +818,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/warehouse': {
+      id: '/warehouse'
+      path: '/warehouse'
+      fullPath: '/warehouse'
+      preLoaderRoute: typeof WarehouseRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/works': {
       id: '/works'
       path: '/works'
@@ -837,6 +916,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ObjectsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/orders/': {
+      id: '/orders/'
+      path: '/orders'
+      fullPath: '/orders/'
+      preLoaderRoute: typeof OrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/$id': {
+      id: '/orders/$id'
+      path: '/orders/$id'
+      fullPath: '/orders/$id'
+      preLoaderRoute: typeof OrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/orders/new': {
+      id: '/orders/new'
+      path: '/orders/new'
+      fullPath: '/orders/new'
+      preLoaderRoute: typeof OrdersNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/production/': {
       id: '/production/'
       path: '/production'
@@ -911,6 +1011,7 @@ const rootRouteChildren: RootRouteChildren = {
   DemolitionRoute: DemolitionRoute,
   DirectionsEditorRoute: DirectionsEditorRoute,
   EquipmentRoute: EquipmentRoute,
+  FinanceRoute: FinanceRoute,
   HistoryRoute: HistoryRoute,
   InsulationRoute: InsulationRoute,
   IntegrationsRoute: IntegrationsRoute,
@@ -925,6 +1026,7 @@ const rootRouteChildren: RootRouteChildren = {
   Roofing_rubRoute: Roofing_rubRoute,
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRoute,
+  WarehouseRoute: WarehouseRoute,
   WorksRoute: WorksRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
@@ -937,9 +1039,12 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
+  OrdersIdRoute: OrdersIdRoute,
+  OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
   CrmIndexRoute: CrmIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
+  OrdersIndexRoute: OrdersIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,

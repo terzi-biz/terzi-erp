@@ -4,17 +4,17 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Building2, Loader2, Plus, User } from "lucide-react";
 import { listClients, upsertClient } from "@/lib/clients.functions";
-import { listObjects, saveObject } from "@/lib/objects.functions";
+import { listOrders, saveOrder } from "@/lib/orders.functions";
 
 export type EstimateLink = {
   clientId: string | null;
-  objectId: string | null;
+  orderId: string | null;
 };
 
 const inp = "w-full bg-input border border-border rounded-lg px-3 py-2 text-sm";
 
 /**
- * Привʼязка кошторису до клієнта та об'єкта зі швидким створенням,
+ * Привʼязка кошторису до клієнта та замовлення зі швидким створенням,
  * якщо потрібного запису ще немає.
  */
 export function EstimateLinkPicker({
@@ -28,12 +28,12 @@ export function EstimateLinkPicker({
 }) {
   const qc = useQueryClient();
   const fnClients = useServerFn(listClients);
-  const fnObjects = useServerFn(listObjects);
+  const fnObjects = useServerFn(listOrders);
   const fnSaveClient = useServerFn(upsertClient);
-  const fnSaveObject = useServerFn(saveObject);
+  const fnSaveObject = useServerFn(saveOrder);
 
   const clients = useQuery({ queryKey: ["clients"], queryFn: () => fnClients() });
-  const objects = useQuery({ queryKey: ["objects"], queryFn: () => fnObjects() });
+  const objects = useQuery({ queryKey: ["orders"], queryFn: () => fnObjects() });
 
   const [newClient, setNewClient] = useState<null | { name: string; phone: string; address: string }>(null);
   const [newObject, setNewObject] = useState<null | { name: string; address: string }>(null);
@@ -50,7 +50,7 @@ export function EstimateLinkPicker({
     onSuccess: (row: any, p) => {
       qc.invalidateQueries({ queryKey: ["clients"] });
       setNewClient(null);
-      onChange({ clientId: row.id, objectId: null }, { clientName: row.name, clientPhone: p.phone, address: p.address });
+      onChange({ clientId: row.id, orderId: null }, { clientName: row.name, clientPhone: p.phone, address: p.address });
       toast.success("Клієнта створено");
     },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити клієнта"),
@@ -60,12 +60,12 @@ export function EstimateLinkPicker({
     mutationFn: (p: { name: string; address: string }) =>
       fnSaveObject({ data: { name: p.name, address: p.address || null, client_id: value.clientId } }),
     onSuccess: (row: any) => {
-      qc.invalidateQueries({ queryKey: ["objects"] });
+      qc.invalidateQueries({ queryKey: ["orders"] });
       setNewObject(null);
-      onChange({ clientId: value.clientId, objectId: row.id }, { address: row.address ?? undefined });
-      toast.success("Об'єкт створено");
+      onChange({ clientId: value.clientId, orderId: row.id }, { address: row.address ?? undefined });
+      toast.success("Замовлення створено");
     },
-    onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити об'єкт"),
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити замовлення"),
   });
 
   const loading = clients.isLoading || objects.isLoading;
@@ -83,7 +83,7 @@ export function EstimateLinkPicker({
               onChange={(e) => {
                 const id = e.target.value || null;
                 const c = clientList.find((x) => x.id === id);
-                onChange({ clientId: id, objectId: null }, c ? { clientName: c.name, clientPhone: c.phone ?? "", address: c.address ?? "" } : undefined);
+                onChange({ clientId: id, orderId: null }, c ? { clientName: c.name, clientPhone: c.phone ?? "", address: c.address ?? "" } : undefined);
               }}
             >
               <option value="">— не привʼязано —</option>
@@ -102,17 +102,17 @@ export function EstimateLinkPicker({
           </div>
         </div>
 
-        {/* Об'єкт */}
+        {/* Замовлення */}
         <div className="space-y-1">
-          <label className="text-xs uppercase text-muted-foreground flex items-center gap-1"><Building2 className="w-3 h-3" /> Об'єкт</label>
+          <label className="text-xs uppercase text-muted-foreground flex items-center gap-1"><Building2 className="w-3 h-3" /> Замовлення</label>
           <div className="flex gap-2">
             <select
               className={inp}
-              value={value.objectId ?? ""}
+              value={value.orderId ?? ""}
               onChange={(e) => {
                 const id = e.target.value || null;
                 const o = objectList.find((x) => x.id === id);
-                onChange({ clientId: o?.client_id ?? value.clientId, objectId: id }, o ? { address: o.address ?? "" } : undefined);
+                onChange({ clientId: o?.client_id ?? value.clientId, orderId: id }, o ? { address: o.address ?? "" } : undefined);
               }}
             >
               <option value="">— не привʼязано —</option>
@@ -125,7 +125,7 @@ export function EstimateLinkPicker({
               disabled={!value.clientId}
               onClick={() => setNewObject({ name: defaults?.address ?? "", address: defaults?.address ?? "" })}
               className="px-2 rounded-lg bg-secondary hover:bg-accent disabled:opacity-40"
-              title={value.clientId ? "Швидко створити об'єкт" : "Спочатку оберіть клієнта"}
+              title={value.clientId ? "Швидко створити замовлення" : "Спочатку оберіть клієнта"}
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -138,8 +138,8 @@ export function EstimateLinkPicker({
       {!value.clientId && (
         <div className="text-xs text-amber-600">Кошторис не привʼязаний до клієнта. Для статусів «Фінальний», «В роботі», «Виконано» звʼязка обовʼязкова.</div>
       )}
-      {value.clientId && !value.objectId && (
-        <div className="text-xs text-amber-600">Оберіть або створіть об'єкт для цього клієнта.</div>
+      {value.clientId && !value.orderId && (
+        <div className="text-xs text-amber-600">Оберіть або створіть замовлення для цього клієнта.</div>
       )}
 
       {newClient && (
@@ -164,8 +164,8 @@ export function EstimateLinkPicker({
 
       {newObject && (
         <div className="panel p-3 space-y-2">
-          <div className="text-sm font-semibold">Новий об'єкт</div>
-          <input className={inp} placeholder="Назва об'єкта" value={newObject.name} onChange={(e) => setNewObject({ ...newObject, name: e.target.value })} />
+          <div className="text-sm font-semibold">Новий замовлення</div>
+          <input className={inp} placeholder="Назва замовлення" value={newObject.name} onChange={(e) => setNewObject({ ...newObject, name: e.target.value })} />
           <input className={inp} placeholder="Адреса" value={newObject.address} onChange={(e) => setNewObject({ ...newObject, address: e.target.value })} />
           <div className="flex gap-2">
             <button

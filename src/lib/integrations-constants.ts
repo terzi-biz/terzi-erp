@@ -54,7 +54,7 @@ export const DIRECTION_LABEL: Record<EventDirection, string> = {
 export const MAPPING_ENTITIES: { key: string; label: string; fields: string[] }[] = [
   { key: "lead", label: "Лід", fields: ["name", "phone", "email", "source", "note", "address"] },
   { key: "client", label: "Клієнт", fields: ["name", "phone", "email", "address", "notes", "status"] },
-  { key: "object", label: "Об'єкт", fields: ["name", "address", "district", "object_type", "notes", "source"] },
+  { key: "object", label: "Замовлення", fields: ["name", "address", "district", "order_type", "notes", "source"] },
   { key: "call", label: "Дзвінок", fields: ["phone", "direction", "duration", "recording_url", "started_at"] },
   { key: "message", label: "Повідомлення", fields: ["chat_id", "text", "author", "sent_at"] },
   { key: "task", label: "Задача", fields: ["title", "description", "due_at", "assignee"] },

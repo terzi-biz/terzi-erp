@@ -14,7 +14,7 @@ import { listBookings, upsertBooking, deleteBooking } from "@/lib/bookings.funct
 import { BRIGADES, findBrigade } from "@/lib/brigades";
 import {
   listCalendarEvents, upsertCalendarEvent, deleteCalendarEvent,
-  moveCalendarEvent, setCalendarEventStatus, listEmployees, listCalendarObjects,
+  moveCalendarEvent, setCalendarEventStatus, listEmployees, listCalendarOrders,
 } from "@/lib/calendar.functions";
 import {
   DIRECTIONS, EVENT_TYPES, EVENT_CATEGORIES, EVENT_STATUSES, PRIORITIES, DEPARTMENTS,
@@ -64,7 +64,7 @@ interface Ev {
   id: string; title: string; event_type: string; category: string; direction: string | null;
   status: string; priority: string; starts_at: string; ends_at: string; all_day: boolean;
   address: string | null; client_name: string | null; area: number | null; description: string | null;
-  employee_id: string | null; crew_key: string | null; object_id: string | null;
+  employee_id: string | null; crew_key: string | null; order_id: string | null;
   estimate_id: string | null; responsible_user_id: string | null; participants: string[] | null;
 }
 
@@ -110,7 +110,7 @@ function OperationsPage() {
 
   const fetchEvents = useServerFn(listCalendarEvents);
   const fetchEmployees = useServerFn(listEmployees);
-  const fetchObjects = useServerFn(listCalendarObjects);
+  const fetchObjects = useServerFn(listCalendarOrders);
   const fetchBookings = useServerFn(listBookings);
   const getSchedule = useServerFn(getOperationsSchedule);
   const saveEvent = useServerFn(upsertCalendarEvent);
@@ -203,14 +203,14 @@ function OperationsPage() {
     const todayEvents = events.filter((e) => sameDay(new Date(e.starts_at), now));
     const measures = todayEvents.filter((e) => e.category === "measure");
     const crewsBusy = new Set((bookings as any[]).map((b) => b.brigade_key)).size;
-    const activeObjects = new Set(events.map((e) => e.object_id).filter(Boolean)).size;
+    const activeObjects = new Set(events.map((e) => e.order_id).filter(Boolean)).size;
     const overdue = events.filter((e) => e.status !== "done" && e.status !== "cancelled" && new Date(e.ends_at) < now).length;
     const load = BRIGADES.length ? Math.round((crewsBusy / BRIGADES.length) * 100) : 0;
     const output = (estimateRows as any[]).reduce((s, r) => s + (Number(r.area) || 0), 0);
     return [
       { label: "Заміри сьогодні", value: String(measures.length), plan: "План: 15", tone: measures.length >= 15 ? "good" : "warn" },
       { label: "Бригади в роботі", value: `${crewsBusy}/${BRIGADES.length}`, plan: "Активні бригади", tone: crewsBusy > 0 ? "good" : "muted" },
-      { label: "Активні об'єкти", value: String(activeObjects), plan: "Цього тижня", tone: "muted" },
+      { label: "Активні замовлення", value: String(activeObjects), plan: "Цього тижня", tone: "muted" },
       { label: "Завантаження", value: `${load}%`, plan: load > 90 ? "Високе" : load > 40 ? "Оптимальне" : "Низьке", tone: load > 90 ? "warn" : "good" },
       { label: "Виробіток за тиждень", value: `${Math.round(output)} м²`, plan: "За кошторисами", tone: "muted" },
       { label: "Прострочені події", value: String(overdue), plan: overdue ? "Критично" : "Немає", tone: overdue ? "bad" : "good" },
@@ -497,7 +497,7 @@ function TopBar(props: {
         <div className="flex min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-terzi-carbon/60 px-3 md:w-72">
           <Search className="h-4 w-4 shrink-0 text-terzi-steel/60" />
           <input value={props.search} onChange={(e) => props.setSearch(e.target.value)}
-            placeholder="Пошук об'єктів, клієнтів, задач…"
+            placeholder="Пошук замовлень, клієнтів, задач…"
             className="h-11 w-full min-w-0 bg-transparent text-sm outline-none placeholder:text-terzi-steel/40" />
         </div>
         <button onClick={props.onFilters}
@@ -1045,7 +1045,7 @@ function EventSheet({ ev, empById, onClose, onEdit, onDelete, onStatus }: {
         {ev.crew_key && <Row icon={HardHat} text={findBrigade(ev.crew_key)?.label ?? ev.crew_key} />}
         {ev.description && <p className="whitespace-pre-wrap rounded-lg border border-white/10 bg-terzi-carbon/60 p-3 text-[13px] text-terzi-steel">{ev.description}</p>}
         <div className="flex flex-wrap gap-2 pt-1">
-          {ev.object_id && <Link to="/objects/$id" params={{ id: ev.object_id }} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold"><Building2 className="h-3.5 w-3.5" />Відкрити об'єкт</Link>}
+          {ev.order_id && <Link to="/orders/$id" params={{ id: ev.order_id }} className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold"><Building2 className="h-3.5 w-3.5" />Відкрити замовлення</Link>}
           {ev.estimate_id && <Link to="/history" className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold">Кошторис</Link>}
           <Link to="/clients" className="inline-flex min-h-[40px] items-center gap-1.5 rounded-lg border border-white/10 px-3 text-xs font-semibold">Клієнти</Link>
         </div>
@@ -1079,7 +1079,7 @@ function EventEditor({ value, employees, objects, onClose, onSave, saving }: {
       area: v.area ? Number(v.area) : null,
       employee_id: v.employee_id || null, responsible_user_id: v.responsible_user_id || v.employee_id || null,
       manager_id: v.manager_id || null, participants: v.participants ?? [],
-      crew_key: v.crew_key || null, object_id: v.object_id || null,
+      crew_key: v.crew_key || null, order_id: v.order_id || null,
       client_id: v.client_id || null, estimate_id: v.estimate_id || null,
       reminders: v.reminders ?? [], checklist: v.checklist ?? [],
     });
@@ -1125,10 +1125,10 @@ function EventEditor({ value, employees, objects, onClose, onSave, saving }: {
             <option value="">—</option>
             {BRIGADES.map((b) => <option key={b.key} value={b.key}>{b.label}</option>)}
           </select></div>
-        <div className="sm:col-span-2"><label className={labelCls}>Об'єкт</label>
-          <select className={fieldCls} value={v.object_id ?? ""} onChange={(e) => {
+        <div className="sm:col-span-2"><label className={labelCls}>Замовлення</label>
+          <select className={fieldCls} value={v.order_id ?? ""} onChange={(e) => {
             const o = objects.find((x) => x.id === e.target.value);
-            setV((p: any) => ({ ...p, object_id: e.target.value || null, address: o?.address ?? p.address, client_id: o?.client_id ?? p.client_id }));
+            setV((p: any) => ({ ...p, order_id: e.target.value || null, address: o?.address ?? p.address, client_id: o?.client_id ?? p.client_id }));
           }}>
             <option value="">—</option>
             {objects.map((o) => <option key={o.id} value={o.id}>{o.number} · {o.name || o.address}</option>)}
@@ -1139,7 +1139,7 @@ function EventEditor({ value, employees, objects, onClose, onSave, saving }: {
           <input className={fieldCls} value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></div>
         <div><label className={labelCls}>Площа, м²</label>
           <input className={fieldCls} inputMode="decimal" value={v.area ?? ""} onChange={(e) => set("area", e.target.value)} /></div>
-        <div><label className={labelCls}>Зона об'єкта</label>
+        <div><label className={labelCls}>Зона замовлення</label>
           <input className={fieldCls} value={v.zone ?? ""} onChange={(e) => set("zone", e.target.value)} /></div>
         <div><label className={labelCls}>Пріоритет</label>
           <select className={fieldCls} value={v.priority} onChange={(e) => set("priority", e.target.value)}>
@@ -1172,7 +1172,7 @@ function BookingEditor({ value, onClose, onSave, onDelete }: {
         </div>
       }>
       <div className="space-y-3">
-        <div><label className={labelCls}>Об'єкт / роботи</label><input className={fieldCls} value={v.title ?? ""} onChange={(e) => set("title", e.target.value)} /></div>
+        <div><label className={labelCls}>Замовлення / роботи</label><input className={fieldCls} value={v.title ?? ""} onChange={(e) => set("title", e.target.value)} /></div>
         <div><label className={labelCls}>Клієнт</label><input className={fieldCls} value={v.client ?? ""} onChange={(e) => set("client", e.target.value)} /></div>
         <div><label className={labelCls}>Адреса</label><input className={fieldCls} value={v.address ?? ""} onChange={(e) => set("address", e.target.value)} /></div>
         <div><label className={labelCls}>Примітка</label><textarea rows={3} className={fieldCls} value={v.notes ?? ""} onChange={(e) => set("notes", e.target.value)} /></div>

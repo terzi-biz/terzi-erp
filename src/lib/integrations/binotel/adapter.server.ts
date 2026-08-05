@@ -30,7 +30,7 @@ async function findByPhone(phone: string | null) {
   if (contact) {
     const { data } = await db
       .from("crm_leads")
-      .select("id,title,status,object_id,client_id")
+      .select("id,title,status,order_id,client_id")
       .eq("contact_id", (contact as any).id)
       .order("created_at", { ascending: false })
       .limit(1)

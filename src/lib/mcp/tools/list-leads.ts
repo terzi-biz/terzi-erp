@@ -16,7 +16,7 @@ export default defineTool({
     const supabase = supabaseForUser(ctx);
     let query = supabase
       .from("crm_leads")
-      .select("id,title,status,direction,source,budget,area,address,district,client_id,object_id,next_action_at,created_at")
+      .select("id,title,status,direction,source,budget,area,address,district,client_id,order_id,next_action_at,created_at")
       .order("created_at", { ascending: false })
       .limit(limit ?? 20);
     if (search) {

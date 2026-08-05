@@ -9,9 +9,9 @@ import { listProductionEstimates, STATUS_LABELS } from "@/lib/estimates.function
 export const Route = createFileRoute("/production/")({
   head: () => ({ meta: [
     { title: "Виробництво — план-факт | TERZI" },
-    { name: "description", content: "Екран прораба TERZI: активні об'єкти в роботі, внесення фактичних обсягів і цін, відхилення від плану." },
+    { name: "description", content: "Екран прораба TERZI: активні замовлення в роботі, внесення фактичних обсягів і цін, відхилення від плану." },
     { property: "og:title", content: "Виробництво — план-факт | TERZI" },
-    { property: "og:description", content: "Активні об'єкти в роботі та облік фактичних обсягів TERZI." },
+    { property: "og:description", content: "Активні замовлення в роботі та облік фактичних обсягів TERZI." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ] }),
@@ -37,7 +37,7 @@ function ProductionListPage() {
         </div>
         <div>
           <h1 className="text-xl md:text-2xl font-black tracking-tight">Виробництво</h1>
-          <p className="text-sm text-muted-foreground">Об'єкти в роботі — план-факт по позиціях</p>
+          <p className="text-sm text-muted-foreground">Замовлення в роботі — план-факт по позиціях</p>
         </div>
       </header>
 

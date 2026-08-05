@@ -6,7 +6,7 @@ export const ACCESS_MODULES: { key: string; label: string }[] = [
   { key: "dashboard", label: "Головна панель" },
   { key: "leads", label: "Ліди" },
   { key: "clients", label: "Клієнти" },
-  { key: "objects", label: "Об'єкти" },
+  { key: "orders", label: "Замовлення" },
   { key: "measurements", label: "Заміри" },
   { key: "estimates", label: "Кошториси" },
   { key: "proposals", label: "Комерційні пропозиції" },

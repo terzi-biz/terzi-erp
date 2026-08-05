@@ -57,7 +57,7 @@ function InsulationPage() {
   const [input, setInput] = usePersistedState<InsulationInput>("terzi:draft:insulation:input", defaultInput);
   const { materialPrices, workPrices } = useModulePricing("insulation", input.area);
   const [client, setClient] = usePersistedState("terzi:draft:insulation:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
-  const [link, setLink] = useState<EstimateLink>({ clientId: null, objectId: null });
+  const [link, setLink] = useState<EstimateLink>({ clientId: null, orderId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
@@ -67,7 +67,7 @@ function InsulationPage() {
   useEstimatePrefill(search.estimate, (r) => {
     setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
     setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
-    setLink({ clientId: r.client_id ?? null, objectId: r.object_id ?? null });
+    setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
     if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as InsulationInput) });
   });
 
@@ -92,7 +92,7 @@ function InsulationPage() {
       id: estimateId,
       number: estimateNumber, module: "insulation", status: savedStatus as any,
       client_id: link.clientId,
-      object_id: link.objectId,
+      order_id: link.orderId,
       client_name: client.name || null, client_phone: client.phone || null,
       address: client.address || null, manager: client.manager || null,
       area: input.area, thickness_cm: input.thicknessCm,
@@ -164,7 +164,7 @@ function InsulationPage() {
 
         <div className="space-y-4 md:space-y-6">
           <section className="panel p-4 md:p-5">
-            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані об'єкта</h2>
+            <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Дані замовлення</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="sm:col-span-2"><EstimateLinkPicker value={link} onChange={(v, meta) => { setLink(v); if (meta) setClient((c) => ({ ...c, name: meta.clientName ?? c.name, phone: meta.clientPhone ?? c.phone, address: meta.address ?? c.address })); }} defaults={{ clientName: client.name, clientPhone: client.phone, address: client.address }} /></div>
               <Field label="Замовник"><input className={inp} value={client.name} onChange={(e) => setClient({ ...client, name: e.target.value })} /></Field>
