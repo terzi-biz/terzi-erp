@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
   LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
-  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact, Inbox, PhoneCall, ListTodo, Boxes, Wallet,
+  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact, Inbox, PhoneCall, ListTodo, Boxes, Wallet, ArrowDownUp,
 } from "lucide-react";
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
@@ -94,6 +94,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     { to: "/reports", icon: BarChart3, label: t("reports") },
     { to: "/branding", icon: Palette, label: t("branding") },
     { to: "/directions-editor", icon: Sparkles, label: "Конструктор напрямків" },
+    { to: "/data-exchange", icon: ArrowDownUp, label: "Імпорт та експорт" },
     ...(canManageAccess
       ? [{ to: "/access", icon: ShieldCheck, label: "Доступи і ролі", badge: pendingApprovals || undefined }, { to: "/integrations", icon: Cable, label: "Інтеграції та API" }]
       : []),
