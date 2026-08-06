@@ -77,7 +77,7 @@ const defaultInput: RoofingInput = {
 };
 
 function RoofingPage() {
-  const { roles, profile } = useAuth();
+  const { profile } = useAuth();
   // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
   const isInternal = true;
   const { roofingCoeffs, branding } = useAppStore();

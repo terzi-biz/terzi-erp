@@ -87,7 +87,7 @@ const defaultInput: ScreedInput = {
 function ScreedPage() {
   const t = useT();
   const lang = useI18n((s) => s.lang);
-  const { roles, profile } = useAuth();
+  const { profile } = useAuth();
   // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
   const isInternal = true;
   const { settings, branding } = useAppStore();

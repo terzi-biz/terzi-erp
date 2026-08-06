@@ -41,7 +41,7 @@ const defaultInput: DemolitionInput = {
 };
 
 function DemolitionPage() {
-  const { roles, profile } = useAuth();
+  const { profile } = useAuth();
   // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
   const isInternal = true;
   const { demolitionCoeffs, branding } = useAppStore();

@@ -77,7 +77,7 @@ const defaultInput: PvcInput = {
 };
 
 function PvcPage() {
-  const { roles, profile } = useAuth();
+  const { profile } = useAuth();
   // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
   const isInternal = true;
   const { branding } = useAppStore();
