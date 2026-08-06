@@ -444,7 +444,7 @@ export async function binotelSyncCallHistoryOp(userId: string, days = 7) {
       last_success_at: applied > 0 ? syncedAt : integration.last_success_at,
       last_error: errors[0] ?? null,
       last_error_at: errors.length ? syncedAt : null,
-    })
+    } as any)
     .eq("id", integration.id);
 
   await writeAudit(actor, {
