@@ -21,6 +21,7 @@ export const importErpEntity = createServerFn({ method: "POST" })
         rowsJson: z.string().min(2).max(8_000_000),
         dryRun: z.boolean().default(true),
         updateExisting: z.boolean().default(true),
+        changedOnly: z.boolean().default(true),
       })
       .parse(d),
   )
@@ -34,6 +35,7 @@ export const importErpEntity = createServerFn({ method: "POST" })
       rows: parsed as Record<string, unknown>[],
       dryRun: data.dryRun,
       updateExisting: data.updateExisting,
+      changedOnly: data.changedOnly,
     });
     return { ...res, preview: JSON.stringify(res.preview) };
   });

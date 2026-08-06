@@ -176,7 +176,16 @@ async function ownerFor(ctx: AdapterContext): Promise<string | null> {
   if (cfgOwner) return String(cfgOwner);
   const db = await admin();
   const { data } = await db.from("integrations").select("created_by").eq("id", ctx.integration.id).maybeSingle();
-  return ((data as any)?.created_by as string) ?? null;
+  const creator = ((data as any)?.created_by as string) ?? null;
+  if (creator) return creator;
+  const { data: adminRole } = await db
+    .from("user_roles")
+    .select("user_id")
+    .eq("role", "admin")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  return ((adminRole as any)?.user_id as string) ?? null;
 }
 
 /** Аудит змін, зроблених синхронізацією (актор — системний, без користувача). */
@@ -272,6 +281,30 @@ async function applyBuyer(ctx: AdapterContext, ext: any) {
 
   const link = await getLink(ctx.integration.id, "buyers", externalId);
   let contactId: string | null = link?.internal_id ?? null;
+  let clientId: string | null = null;
+
+  const { data: existingClient } = await db
+    .from("clients")
+    .select("id")
+    .eq("external_source", "keycrm")
+    .eq("external_id", externalId)
+    .maybeSingle();
+  clientId = (existingClient as any)?.id ?? null;
+  const clientRow = {
+    name: fullName,
+    phone: phone ?? null,
+    email: email ?? null,
+    external_source: "keycrm",
+    external_id: externalId,
+  };
+  if (clientId) {
+    const { error } = await db.from("clients").update(clientRow as any).eq("id", clientId);
+    if (error) throw error;
+  } else {
+    const { data, error } = await db.from("clients").insert({ ...clientRow, owner_id: owner } as any).select("id").maybeSingle();
+    if (error) throw error;
+    clientId = (data as any)?.id ?? null;
+  }
 
   if (!contactId) {
     const { data: byExt } = await db
@@ -294,14 +327,58 @@ async function applyBuyer(ctx: AdapterContext, ext: any) {
     company: ext.company?.name ?? ext.company_name ?? null,
     external_source: "keycrm",
     external_id: externalId,
+    client_id: clientId,
   };
-  if (contactId) await db.from("crm_contacts").update(row as any).eq("id", contactId);
+  if (contactId) {
+    const { error } = await db.from("crm_contacts").update(row as any).eq("id", contactId);
+    if (error) throw error;
+  }
   else {
     const { data, error } = await db.from("crm_contacts").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
     if (error) throw error;
     contactId = (data as any).id;
   }
   return { internalId: contactId, table: "crm_contacts" };
+}
+
+async function applyOrder(ctx: AdapterContext, ext: any) {
+  const db = await admin();
+  const owner = await ownerFor(ctx);
+  if (!owner) throw new Error("Не визначено власника записів");
+  const externalId = String(ext.id);
+  const link = await getLink(ctx.integration.id, "orders", externalId);
+  let internalId: string | null = link?.internal_id ?? null;
+  const buyerExt = ext.buyer?.id ?? ext.buyer_id ?? ext.client_id ?? null;
+  let clientId: string | null = null;
+  if (buyerExt != null) {
+    const buyerLink = await getLink(ctx.integration.id, "buyers", String(buyerExt));
+    if (buyerLink?.internal_id) {
+      const { data: contact } = await db.from("crm_contacts").select("client_id").eq("id", buyerLink.internal_id).maybeSingle();
+      clientId = (contact as any)?.client_id ?? null;
+    }
+  }
+  const row = {
+    number: `KCRM-${externalId}`,
+    name: String(ext.title ?? ext.name ?? `Замовлення keyCRM #${externalId}`),
+    client_id: clientId,
+    source: ext.source?.name ?? ext.source_name ?? ext.source ?? "keyCRM",
+    address: ext.shipping?.address ?? ext.delivery_address ?? ext.address ?? null,
+    crm_link: `keycrm:order:${externalId}`,
+    notes: ext.manager_comment ?? ext.comment ?? null,
+  };
+  if (!internalId) {
+    const { data: byNumber } = await db.from("orders").select("id").eq("number", row.number).maybeSingle();
+    internalId = (byNumber as any)?.id ?? null;
+  }
+  if (internalId) {
+    const { error } = await db.from("orders").update(row as any).eq("id", internalId);
+    if (error) throw error;
+  } else {
+    const { data, error } = await db.from("orders").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
+    if (error) throw error;
+    internalId = (data as any)?.id ?? null;
+  }
+  return { internalId, table: "orders" };
 }
 
 async function applyLeadCard(ctx: AdapterContext, ext: any) {
@@ -421,10 +498,23 @@ async function applyReference(ctx: AdapterContext, entity: string, ext: any) {
 export async function applyExternal(ctx: AdapterContext, entity: string, ext: any, mode: SyncMode) {
   const externalId = String(ext?.id ?? "");
   if (!externalId) return { skipped: true, reason: "no_external_id" };
-  const extHash = await hashOf(ext);
   const link = await getLink(ctx.integration.id, entity, externalId);
+  const externalUpdatedAt = ext?.updated_at ?? ext?.modified_at ?? ext?.created_at ?? null;
 
-  if (link?.external_hash === extHash) return { skipped: true, reason: "unchanged" };
+  if (link?.external_updated_at && externalUpdatedAt) {
+    const storedTime = new Date(link.external_updated_at).getTime();
+    const incomingTime = new Date(externalUpdatedAt).getTime();
+    if (Number.isFinite(storedTime) && Number.isFinite(incomingTime) && incomingTime <= storedTime) {
+      return { skipped: true, reason: "not_newer" };
+    }
+  }
+
+  const extHash = await hashOf(ext);
+
+  const materializedEntities = new Set(["pipelines", "pipeline_statuses", "buyers", "lead_cards", "orders", "comments"]);
+  if (link?.external_hash === extHash && (!materializedEntities.has(entity) || link.internal_id)) {
+    return { skipped: true, reason: "unchanged" };
+  }
 
   if (mode === "bidirectional" && link?.internal_id && link.internal_table) {
     const db = await admin();
@@ -452,6 +542,7 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
     case "pipeline_statuses": result = await applyStage(ctx, ext); break;
     case "buyers": result = await applyBuyer(ctx, ext); break;
     case "lead_cards": result = await applyLeadCard(ctx, ext); break;
+    case "orders": result = await applyOrder(ctx, ext); break;
     default: result = await applyReference(ctx, entity, ext); break;
   }
 
@@ -471,7 +562,7 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
     externalHash: extHash,
     internalHash,
     direction: "inbound",
-    externalUpdatedAt: ext.updated_at ?? null,
+    externalUpdatedAt,
     payload: entity === "orders" || entity === "payments" ? ext : {},
   });
 
@@ -598,8 +689,8 @@ export async function pollEntity(
       const res = await applyExternal(ctx, entity, item, opts.mode);
       if (res.skipped) skipped += 1;
       else applied += 1;
-      if (entity === "orders") await extractOrderChildren(ctx, item);
-      if (entity === "lead_cards") await extractLeadComments(ctx, item);
+      if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
+      if (!res.skipped && entity === "lead_cards") await extractLeadComments(ctx, item);
     } catch (e: any) {
       failed += 1;
       await logAttempt({
@@ -633,7 +724,37 @@ async function extractOrderChildren(ctx: AdapterContext, order: any) {
 
 async function extractLeadComments(ctx: AdapterContext, card: any) {
   const comments = Array.isArray(card?.comments) ? card.comments : [];
-  for (const c of comments) await applyReference(ctx, "comments", { ...c, card_id: card.id, id: c.id ?? `${card.id}-c` });
+  const leadLink = await getLink(ctx.integration.id, "lead_cards", String(card.id));
+  if (!leadLink?.internal_id) return;
+  const db = await admin();
+  for (const c of comments) {
+    const externalId = String(c.id ?? `${card.id}-${await hashOf(c)}`);
+    const existing = await getLink(ctx.integration.id, "comments", externalId);
+    const externalHash = await hashOf(c);
+    if (existing?.external_hash === externalHash) continue;
+    const { data, error } = await db
+      .from("crm_lead_activities")
+      .insert({
+        lead_id: leadLink.internal_id,
+        actor_name: c.author?.name ?? c.user?.name ?? "keyCRM",
+        kind: "comment",
+        body: String(c.comment ?? c.text ?? c.body ?? "Коментар keyCRM"),
+        meta: { external_source: "keycrm", external_id: externalId, created_at: c.created_at ?? null },
+      } as any)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    await upsertLink({
+      integrationId: ctx.integration.id,
+      entity: "comments",
+      externalId,
+      internalId: (data as any)?.id ?? null,
+      internalTable: "crm_lead_activities",
+      externalHash,
+      direction: "inbound",
+      externalUpdatedAt: c.updated_at ?? c.created_at ?? null,
+    });
+  }
 }
 
 /** Повний прогін увімкнених сутностей у правильному порядку. */

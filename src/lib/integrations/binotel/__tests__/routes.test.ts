@@ -4,6 +4,7 @@ const handleCallSettings = vi.fn();
 const handleCallCompleted = vi.fn();
 const enqueueEvent = vi.fn(async () => ({ id: "evt-1" }));
 const logAttempt = vi.fn(async () => {});
+const completeEvent = vi.fn(async () => {});
 let tokenOk = true;
 
 vi.mock("@/lib/integrations/binotel/webhook.server", () => ({
@@ -12,7 +13,7 @@ vi.mock("@/lib/integrations/binotel/webhook.server", () => ({
 }));
 vi.mock("@/lib/integrations/binotel/calls.server", () => ({ handleCallSettings, handleCallCompleted }));
 vi.mock("@/lib/integrations/binotel/ops.server", () => ({ getBinotelIntegration: async () => ({ id: "int-1" }) }));
-vi.mock("@/lib/integrations/core.server", () => ({ enqueueEvent, logAttempt }));
+vi.mock("@/lib/integrations/core.server", () => ({ enqueueEvent, logAttempt, completeEvent }));
 
 const settingsRoute = (await import("@/routes/api/public/integrations/binotel/call-settings")).Route as any;
 const completedRoute = (await import("@/routes/api/public/integrations/binotel/call-completed")).Route as any;
@@ -78,6 +79,7 @@ describe("call-completed route", () => {
     expect(enqueueEvent).toHaveBeenCalledWith(
       expect.objectContaining({ idempotencyKey: "binotel:call_completed:GC-77", entityId: "GC-77", eventType: "binotel.call_completed" }),
     );
+    expect(completeEvent).toHaveBeenCalledWith("evt-1", expect.objectContaining({ call_id: "c1" }));
   });
 
   it("повторний виклик використовує той самий ключ ідемпотентності", async () => {

@@ -132,81 +132,12 @@ export const binotelAdapter: IntegrationAdapter = {
 
   /** Зберігає дзвінок, знаходить клієнта, за потреби створює лід і задачу. */
   async handleInbound(ctx, payload, eventType) {
-    const m = binotelManifest(ctx);
-    const db = await admin();
-    const call = mapCall(m, payload as Record<string, any>);
-    const phone = normPhone(call.from) ?? normPhone(call.to);
-    const found = await findByPhone(phone);
-    const owner = await ownerFor(ctx.integration.id);
-
-    const dirRaw = String(call.direction ?? "").toLowerCase();
-    const direction = dirRaw.includes("out") || dirRaw === "1" ? "outbound" : "inbound";
-    const durationSec = Number(call.duration ?? 0) || 0;
-    const status = String(call.status ?? "").toLowerCase();
-    const missed = durationSec === 0 || status.includes("miss") || status.includes("no answer");
-
-    // Внутрішня лінія → співробітник
-    let assignee: string | null = null;
-    if (call.extension) {
-      const { data: line } = await db
-        .from("integration_line_map")
-        .select("user_id")
-        .eq("integration_id", ctx.integration.id)
-        .eq("extension", String(call.extension))
-        .maybeSingle();
-      assignee = (line as any)?.user_id ?? null;
-    }
-
-    const externalId = call.externalId ? String(call.externalId) : null;
-    let callId: string | null = null;
-    if (externalId) {
-      const { data: existing } = await db.from("crm_calls").select("id").eq("external_id", externalId).maybeSingle();
-      callId = (existing as any)?.id ?? null;
-    }
-    const row: Record<string, unknown> = {
-      direction,
-      from_number: call.from ? String(call.from) : null,
-      to_number: call.to ? String(call.to) : null,
-      phone_norm: phone,
-      started_at: call.startedAt ? new Date(call.startedAt).toISOString() : new Date().toISOString(),
-      duration_sec: durationSec,
-      status: missed ? "missed" : "answered",
-      recording_url: call.recording ? String(call.recording) : null,
-      contact_id: found.contact?.id ?? null,
-      lead_id: found.lead?.id ?? null,
-      external_id: externalId,
-      payload: payload as any,
-    };
-    if (callId) await db.from("crm_calls").update(row as any).eq("id", callId);
-    else if (owner) {
-      const { data } = await db.from("crm_calls").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
-      callId = (data as any)?.id ?? null;
-    }
-
-    // Пропущений дзвінок → задача
-    let taskId: string | null = null;
-    if (missed && owner && (ctx.config as any)?.create_task_on_missed !== false) {
-      const { data: task } = await db
-        .from("crm_tasks")
-        .insert({
-          owner_id: owner,
-          assigned_to: assignee ?? owner,
-          kind: "call",
-          title: `Передзвонити: ${call.from ?? phone ?? "невідомий номер"}`,
-          description: `Пропущений дзвінок Binotel (${eventType})`,
-          due_at: new Date(Date.now() + 30 * 60_000).toISOString(),
-          lead_id: found.lead?.id ?? null,
-          contact_id: found.contact?.id ?? null,
-        } as any)
-        .select("id")
-        .maybeSingle();
-      taskId = (task as any)?.id ?? null;
-    }
-
+    const { handleCallCompleted } = await import("./calls.server");
+    const result = await handleCallCompleted(ctx.integration.id, payload as Record<string, any>);
     return {
       ok: true,
-      message: `Дзвінок збережено${found.contact ? ` · клієнт: ${found.contact.full_name}` : " · клієнта не знайдено"}${taskId ? " · створено задачу" : ""}`,
-      data: { call_id: callId, task_id: taskId, matched: Boolean(found.contact), missed },
+      message: `Дзвінок Binotel оброблено (${eventType})`,
+      data: result,
     };
   },
 

@@ -269,8 +269,13 @@ export async function handleCallSettings(integrationId: string | null, raw: Bino
  * Фіксація завершеного дзвінка: запис у crm_calls (ідемпотентно за generalCallID),
  * автостворення контакту й ліда для нових номерів, задача по пропущеному дзвінку.
  */
-export async function handleCallCompleted(integrationId: string | null, raw: BinotelPayload) {
+export async function handleCallCompleted(
+  integrationId: string | null,
+  raw: BinotelPayload,
+  options: { runAutomations?: boolean } = {},
+) {
   const db = await admin();
+  const runAutomations = options.runAutomations !== false;
   const call = parseBinotelCall(raw);
   const cfg = await settings(integrationId);
   const owner = await ownerFor(integrationId);
@@ -297,7 +302,7 @@ export async function handleCallCompleted(integrationId: string | null, raw: Bin
   let createdLead = false;
 
   // Новий номер → контакт (за налаштуванням).
-  if (!contactId && call.phoneNorm && owner && cfg.auto_create_contact !== false) {
+  if (runAutomations && !contactId && call.phoneNorm && owner && cfg.auto_create_contact !== false) {
     const { data } = await db
       .from("crm_contacts")
       .insert({
@@ -316,7 +321,7 @@ export async function handleCallCompleted(integrationId: string | null, raw: Bin
   }
 
   // Вхідний дзвінок без активного ліда → лід у воронку правила АТС.
-  if (!leadId && contactId && owner && call.direction === "inbound" && cfg.auto_create_lead !== false) {
+  if (runAutomations && !leadId && contactId && owner && call.direction === "inbound" && cfg.auto_create_lead !== false) {
     const pipelineId = rule?.pipeline_id ?? cfg.default_pipeline_id ?? null;
     const stageId = rule?.stage_id ?? cfg.default_stage_id ?? null;
     const { data } = await db
@@ -395,7 +400,7 @@ export async function handleCallCompleted(integrationId: string | null, raw: Bin
 
   // Пропущений вхідний → задача передзвонити (ідемпотентно за external_key).
   let taskId: string | null = null;
-  if (call.isMissed && call.direction === "inbound" && owner && cfg.auto_create_missed_task !== false) {
+  if (runAutomations && call.isMissed && call.direction === "inbound" && owner && cfg.auto_create_missed_task !== false) {
     const externalKey = `binotel:missed:${call.generalCallId ?? sessionKey}`;
     const { data: existingTask } = await db.from("crm_tasks").select("id").eq("external_key", externalKey).maybeSingle();
     if (existingTask) {

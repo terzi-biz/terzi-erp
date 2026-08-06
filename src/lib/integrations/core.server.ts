@@ -218,6 +218,22 @@ export async function processEvent(eventId: string): Promise<{ status: string; m
   return { status, message };
 }
 
+/** Завершує подію, яку маршрут уже успішно обробив синхронно. */
+export async function completeEvent(eventId: string | null, result: unknown): Promise<void> {
+  if (!eventId) return;
+  const db = await admin();
+  await db
+    .from("integration_events")
+    .update({
+      status: "done",
+      locked_at: null,
+      last_error: null,
+      result: (maskDeep(result) ?? null) as any,
+      updated_at: new Date().toISOString(),
+    } as any)
+    .eq("id", eventId);
+}
+
 /** Тік черги: невелика пачка, щоб уміщатися в ліміти serverless-воркера. */
 export async function runQueue(limit = 10): Promise<{ processed: number; done: number; failed: number }> {
   const db = await admin();

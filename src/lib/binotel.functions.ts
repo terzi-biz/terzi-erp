@@ -93,6 +93,14 @@ export const syncBinotelPbx = createServerFn({ method: "POST" })
     return binotelSyncPbxOp(context.userId);
   });
 
+export const syncBinotelCallHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ days: z.number().int().min(1).max(31).default(7) }).parse(d ?? {}))
+  .handler(async ({ context, data }) => {
+    const { binotelSyncCallHistoryOp } = await import("./integrations/binotel/ops.server");
+    return binotelSyncCallHistoryOp(context.userId, data.days);
+  });
+
 export const getBinotelSettings = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {

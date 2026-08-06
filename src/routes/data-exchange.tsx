@@ -53,6 +53,7 @@ function DataExchangePage() {
   const [fileRows, setFileRows] = useState<FileRow[]>([]);
   const [mapping, setMapping] = useState<Record<string, string>>({});
   const [updateExisting, setUpdateExisting] = useState(true);
+  const [changedOnly, setChangedOnly] = useState(true);
   const [result, setResult] = useState<ImportResult | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
@@ -135,7 +136,7 @@ function DataExchangePage() {
         return rec;
       });
       return (await importFn({
-        data: { entityKey, rowsJson: JSON.stringify(payload), dryRun, updateExisting },
+        data: { entityKey, rowsJson: JSON.stringify(payload), dryRun, updateExisting, changedOnly },
       })) as ImportResult;
     },
     onSuccess: (res) => {
@@ -260,6 +261,15 @@ function DataExchangePage() {
             <label className="mt-4 flex items-center gap-2 text-sm">
               <input type="checkbox" checked={updateExisting} onChange={(e) => setUpdateExisting(e.target.checked)} />
               Оновлювати існуючі записи (інакше — пропускати дублікати)
+            </label>
+            <label className="mt-2 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={changedOnly}
+                disabled={!updateExisting}
+                onChange={(e) => setChangedOnly(e.target.checked)}
+              />
+              Інкрементальний імпорт — за зовнішнім ID оновлювати лише записи зі зміненими полями
             </label>
 
             {unmappedRequired.length > 0 && (
