@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
-import { listRecommendations, generateRecommendations, resolveRecommendation } from "@/lib/marketing.functions";
+import { listRecommendations, generateRecommendations, setRecommendationStatus } from "@/lib/marketing.functions";
 
 export const Route = createFileRoute("/marketing/recommendations")({
   ssr: false,
