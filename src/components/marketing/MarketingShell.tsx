@@ -1,25 +1,9 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
+import { MARKETING_NAV } from "./nav";
 
-export const MARKETING_NAV: { to: string; label: string }[] = [
-  { to: "/marketing", label: "Огляд" },
-  { to: "/marketing/leads", label: "Ліди та атрибуція" },
-  { to: "/marketing/inbox", label: "Чати" },
-  { to: "/marketing/telephony", label: "Телефонія" },
-  { to: "/marketing/channels", label: "Канали" },
-  { to: "/marketing/campaigns", label: "Кампанії" },
-  { to: "/marketing/creatives", label: "Креативи" },
-  { to: "/marketing/funnels", label: "Воронки" },
-  { to: "/marketing/landing", label: "Лендінги та форми" },
-  { to: "/marketing/budgets", label: "Бюджети" },
-  { to: "/marketing/analytics", label: "Аналітика" },
-  { to: "/marketing/recommendations", label: "Рекомендації AI" },
-  { to: "/marketing/tasks", label: "Задачі маркетингу" },
-  { to: "/marketing/integrations", label: "Інтеграції" },
-  { to: "/marketing/log", label: "Журнал змін" },
-  { to: "/marketing/settings", label: "Налаштування" },
-];
+export { MARKETING_NAV };
 
 export function MarketingShell({ title, subtitle, actions, children }: { title: string; subtitle?: string; actions?: ReactNode; children: ReactNode }) {
   const loc = useLocation();
