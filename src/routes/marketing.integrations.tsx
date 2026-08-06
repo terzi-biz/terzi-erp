@@ -23,17 +23,19 @@ export const Route = createFileRoute("/marketing/integrations")({
   component: IntegrationsPage,
 });
 
-type Row = { key: string; name: string; note: string };
-const CATALOG: Row[] = [
-  { key: "google_ads", name: "Google Ads", note: "Витрати, кампанії, кліки, покази" },
-  { key: "meta_ads", name: "Meta Ads", note: "Витрати, кампанії, креативи, ліди з форм" },
-  { key: "ga4", name: "Google Analytics 4", note: "Поведінка на сайті та джерела трафіку" },
-  { key: "search_console", name: "Google Search Console", note: "Органічний пошук, запити, позиції" },
-  { key: "gmb", name: "Google Business Profile", note: "Дзвінки та маршрути з картки компанії" },
-  { key: "binotel", name: "Binotel", note: "Дзвінки, записи, пропущені — вже працює в ERP" },
-  { key: "keycrm", name: "keyCRM", note: "Ліди й угоди — вже працює в ERP" },
-  { key: "site_forms", name: "Форми сайту", note: "Заявки з лендінгів через вебхук" },
-];
+const NOTES: Record<string, string> = {
+  google_ads: "Витрати, кампанії, кліки, покази",
+  meta_ads: "Витрати, кампанії, креативи, ліди з форм",
+  ga4: "Поведінка на сайті та джерела трафіку",
+  search_console: "Органічний пошук, запити, позиції",
+  google_business: "Дзвінки та маршрути з картки компанії",
+  binotel: "Дзвінки, записи, пропущені — вже працює в ERP",
+  keycrm: "Ліди й угоди — вже працює в ERP",
+  site_forms: "Заявки з лендінгів через вебхук",
+};
+
+const statusLabel = (s: string) =>
+  s === "connected" ? "підключено" : s === "error" ? "помилка" : s === "connecting" ? "підключення…" : s === "disabled" ? "вимкнено" : "не підключено";
 
 function IntegrationsPage() {
   const qc = useQueryClient();
@@ -43,26 +45,24 @@ function IntegrationsPage() {
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["mkt", "integrations"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("marketing_integrations").select("*");
+      const { data, error } = await supabase.from("marketing_integrations").select("*").order("priority");
       if (error) throw error;
       return data;
     },
   });
 
-  const stateOf = (key: string) => rows.find((r) => r.provider_key === key);
-
-  const toggle = async (key: string, name: string, enabled: boolean) => {
+  const setStatus = async (provider: string, status: "not_connected" | "disabled") => {
     try {
-      await saveFn({ data: { providerKey: key, name, enabled } });
-      toast.success(enabled ? "Увімкнено" : "Вимкнено");
+      await saveFn({ data: { provider, connection_status: status } });
+      toast.success(status === "disabled" ? "Інтеграцію вимкнено" : "Інтеграцію увімкнено");
       qc.invalidateQueries({ queryKey: ["mkt", "integrations"] });
     } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка"); }
   };
 
-  const test = async (key: string) => {
+  const test = async (provider: string) => {
     try {
-      const res = await testFn({ data: { providerKey: key } });
-      res.ok ? toast.success(res.message) : toast.error(res.message);
+      const res = await testFn({ data: { provider } });
+      if (res.ok) toast.success(res.message); else toast.error(res.message);
       qc.invalidateQueries({ queryKey: ["mkt", "integrations"] });
     } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка"); }
   };
@@ -70,35 +70,32 @@ function IntegrationsPage() {
   return (
     <MarketingShell title="Інтеграції" subtitle="Джерела даних маркетингу. Статус «підключено» з'являється лише після успішної перевірки">
       <Panel title="Доступні підключення">
-        {isLoading ? <EmptyState text="Завантаження…" /> : (
+        {isLoading ? <EmptyState text="Завантаження…" /> : rows.length ? (
           <div className="grid gap-2 sm:grid-cols-2">
-            {CATALOG.map((c) => {
-              const st = stateOf(c.key);
-              const status = st?.connection_status ?? "not_connected";
-              return (
-                <div key={c.key} className="rounded-lg border border-border p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <div className="text-sm font-bold">{c.name}</div>
-                      <div className="text-[11px] text-muted-foreground">{c.note}</div>
-                    </div>
-                    <span className={`text-[10px] uppercase font-semibold ${status === "connected" ? "text-success" : status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
-                      {status === "connected" ? "підключено" : status === "error" ? "помилка" : "не підключено"}
-                    </span>
+            {rows.map((r) => (
+              <div key={r.id} className="rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="text-sm font-bold">{r.title}</div>
+                    <div className="text-[11px] text-muted-foreground">{NOTES[r.provider] ?? r.provider}</div>
                   </div>
-                  <div className="mt-2 flex gap-2">
-                    <button onClick={() => toggle(c.key, c.name, !st?.enabled)}
-                      className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold">
-                      {st?.enabled ? "Вимкнути" : "Увімкнути"}
-                    </button>
-                    <button onClick={() => test(c.key)} className="rounded-md border border-border px-2 py-1 text-[11px]">Перевірити</button>
-                  </div>
-                  {st?.last_error ? <div className="mt-1 text-[11px] text-destructive">{st.last_error}</div> : null}
+                  <span className={`text-[10px] uppercase font-semibold ${r.connection_status === "connected" ? "text-success" : r.connection_status === "error" ? "text-destructive" : "text-muted-foreground"}`}>
+                    {statusLabel(r.connection_status)}
+                  </span>
                 </div>
-              );
-            })}
+                <div className="mt-2 flex gap-2">
+                  <button onClick={() => setStatus(r.provider, r.connection_status === "disabled" ? "not_connected" : "disabled")}
+                    className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold">
+                    {r.connection_status === "disabled" ? "Увімкнути" : "Вимкнути"}
+                  </button>
+                  <button onClick={() => test(r.provider)} className="rounded-md border border-border px-2 py-1 text-[11px]">Перевірити</button>
+                </div>
+                {r.last_error ? <div className="mt-1 text-[11px] text-destructive">{r.last_error}</div> : null}
+                {r.is_read_only ? <div className="mt-1 text-[10px] text-muted-foreground">Режим «тільки читання»</div> : null}
+              </div>
+            ))}
           </div>
-        )}
+        ) : <EmptyState text="Список інтеграцій порожній" />}
       </Panel>
     </MarketingShell>
   );
