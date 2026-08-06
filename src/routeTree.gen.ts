@@ -50,6 +50,7 @@ import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campa
 import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
 import { Route as MarketingCreativesRouteImport } from './routes/marketing.creatives'
 import { Route as MarketingFunnelsRouteImport } from './routes/marketing.funnels'
+import { Route as MarketingIntegrationsRouteImport } from './routes/marketing.integrations'
 import { Route as MarketingLandingRouteImport } from './routes/marketing.landing'
 import { Route as MarketingLeadsRouteImport } from './routes/marketing.leads'
 import { Route as MarketingRecommendationsRouteImport } from './routes/marketing.recommendations'
@@ -276,6 +277,11 @@ const MarketingFunnelsRoute = MarketingFunnelsRouteImport.update({
   path: '/marketing/funnels',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingIntegrationsRoute = MarketingIntegrationsRouteImport.update({
+  id: '/marketing/integrations',
+  path: '/marketing/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingLandingRoute = MarketingLandingRouteImport.update({
   id: '/marketing/landing',
   path: '/marketing/landing',
@@ -414,6 +420,7 @@ export interface FileRoutesByFullPath {
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
   '/marketing/funnels': typeof MarketingFunnelsRoute
+  '/marketing/integrations': typeof MarketingIntegrationsRoute
   '/marketing/landing': typeof MarketingLandingRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/marketing/recommendations': typeof MarketingRecommendationsRoute
@@ -475,6 +482,7 @@ export interface FileRoutesByTo {
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
   '/marketing/funnels': typeof MarketingFunnelsRoute
+  '/marketing/integrations': typeof MarketingIntegrationsRoute
   '/marketing/landing': typeof MarketingLandingRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/marketing/recommendations': typeof MarketingRecommendationsRoute
@@ -537,6 +545,7 @@ export interface FileRoutesById {
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
   '/marketing/funnels': typeof MarketingFunnelsRoute
+  '/marketing/integrations': typeof MarketingIntegrationsRoute
   '/marketing/landing': typeof MarketingLandingRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/marketing/recommendations': typeof MarketingRecommendationsRoute
@@ -600,6 +609,7 @@ export interface FileRouteTypes {
     | '/marketing/channels'
     | '/marketing/creatives'
     | '/marketing/funnels'
+    | '/marketing/integrations'
     | '/marketing/landing'
     | '/marketing/leads'
     | '/marketing/recommendations'
@@ -661,6 +671,7 @@ export interface FileRouteTypes {
     | '/marketing/channels'
     | '/marketing/creatives'
     | '/marketing/funnels'
+    | '/marketing/integrations'
     | '/marketing/landing'
     | '/marketing/leads'
     | '/marketing/recommendations'
@@ -722,6 +733,7 @@ export interface FileRouteTypes {
     | '/marketing/channels'
     | '/marketing/creatives'
     | '/marketing/funnels'
+    | '/marketing/integrations'
     | '/marketing/landing'
     | '/marketing/leads'
     | '/marketing/recommendations'
@@ -784,6 +796,7 @@ export interface RootRouteChildren {
   MarketingChannelsRoute: typeof MarketingChannelsRoute
   MarketingCreativesRoute: typeof MarketingCreativesRoute
   MarketingFunnelsRoute: typeof MarketingFunnelsRoute
+  MarketingIntegrationsRoute: typeof MarketingIntegrationsRoute
   MarketingLandingRoute: typeof MarketingLandingRoute
   MarketingLeadsRoute: typeof MarketingLeadsRoute
   MarketingRecommendationsRoute: typeof MarketingRecommendationsRoute
@@ -1095,6 +1108,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingFunnelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/integrations': {
+      id: '/marketing/integrations'
+      path: '/marketing/integrations'
+      fullPath: '/marketing/integrations'
+      preLoaderRoute: typeof MarketingIntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/marketing/landing': {
       id: '/marketing/landing'
       path: '/marketing/landing'
@@ -1265,6 +1285,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketingChannelsRoute: MarketingChannelsRoute,
   MarketingCreativesRoute: MarketingCreativesRoute,
   MarketingFunnelsRoute: MarketingFunnelsRoute,
+  MarketingIntegrationsRoute: MarketingIntegrationsRoute,
   MarketingLandingRoute: MarketingLandingRoute,
   MarketingLeadsRoute: MarketingLeadsRoute,
   MarketingRecommendationsRoute: MarketingRecommendationsRoute,
