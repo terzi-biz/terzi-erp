@@ -350,10 +350,19 @@ export function calculateScreed(
       pricePerUnit: works.insulationLay, costPerUnit: 15, sum: area * works.insulationLay, cost: area * 15, showToClient: true });
   }
 
-  const screedExtra = Math.max(0, thickness - 7) * works.screedExtraPerCm;
-  const screedRate = works.screedBase + screedExtra;
+  // Базова стяжка 4–7 см — окрема позиція.
   lines.push({ key: "w_screed", block: "works", name: "w_screed", unit: "м²", qty: area,
-    pricePerUnit: screedRate, costPerUnit: 0, sum: area * screedRate, cost: 0, showToClient: true });
+    pricePerUnit: works.screedBase, costPerUnit: 0, sum: area * works.screedBase, cost: 0, showToClient: true });
+
+  // Понад 7 см — окрема позиція: 15 грн/м² за кожен см (собівартість 5 грн/м² за см).
+  const extraCm = Math.max(0, thickness - 7);
+  if (extraCm > 0) {
+    const extraSell = extraCm * works.screedExtraPerCm;
+    const extraCost = extraCm * (s.screedExtraCostPerCm ?? 5);
+    lines.push({ key: "w_screed_extra", block: "works", name: "w_screed_extra", unit: "м²", qty: area,
+      pricePerUnit: extraSell, costPerUnit: extraCost,
+      sum: area * extraSell, cost: area * extraCost, showToClient: true });
+  }
 
   // Складна підготовка основи — опціональна (грунтування, вирівнювання ям тощо).
   if (input.withComplexPrep) {
