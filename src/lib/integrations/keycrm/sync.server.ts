@@ -511,7 +511,10 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
 
   const extHash = await hashOf(ext);
 
-  if (link?.external_hash === extHash) return { skipped: true, reason: "unchanged" };
+  const materializedEntities = new Set(["pipelines", "pipeline_statuses", "buyers", "lead_cards", "orders", "comments"]);
+  if (link?.external_hash === extHash && (!materializedEntities.has(entity) || link.internal_id)) {
+    return { skipped: true, reason: "unchanged" };
+  }
 
   if (mode === "bidirectional" && link?.internal_id && link.internal_table) {
     const db = await admin();
