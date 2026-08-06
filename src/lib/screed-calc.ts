@@ -100,7 +100,7 @@ export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
 
 export const DEFAULT_WORK_PRICES = {
   screedBase: 180,         // 4–7 cm: 180 грн/м² (клієнт, укладання н/с машинної стяжки)
-  screedExtraPerCm: 20,    // +20 грн/м² за кожен см понад 7 (8см=200, 9см=220, …)
+  screedExtraPerCm: 15,    // окрема позиція «понад 7 см»: 15 грн/м² за кожен см понад 7
   prep: 10,                // підготовка основи
   film: 10,                // укладання плівки
   damper: 10,              // укладання демпфера
@@ -132,6 +132,7 @@ export const DEFAULT_SETTINGS = {
   foremanMin: 0,           // бригадир оплачується строго за м² (див. foremanPerM2)
   foremanPerM2: 10,        // оплата бригадиру 10 грн/м²
   brigadePrepCost: 5,      // підготовка складних замовлень
+  screedExtraCostPerCm: 5, // собівартість «понад 7 см»: 5 грн/м² за кожен см
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
   brigadeUnloadCost: 10,   // вивантаження цементу — 10 грн/мішок бригаді (опція)
@@ -240,7 +241,7 @@ export function calculateScreed(
   // Thickness gating
   let thickness = input.thicknessCm;
   if (thickness < 4) { warnings.push("warnMinThickness"); thickness = 4; }
-  if (thickness > 15 && !input.manualThickness) { warnings.push("warnMaxThickness"); thickness = 15; }
+  if (thickness > 25) { warnings.push("warnMaxThickness"); thickness = 25; }
 
   const area = Math.max(0, input.area);
   const volumeM3 = +(area * thickness / 100).toFixed(3);
