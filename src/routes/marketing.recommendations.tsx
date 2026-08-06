@@ -27,7 +27,7 @@ function RecommendationsPage() {
   const qc = useQueryClient();
   const listFn = useServerFn(listRecommendations);
   const genFn = useServerFn(generateRecommendations);
-  const resolveFn = useServerFn(resolveRecommendation);
+  const resolveFn = useServerFn(setRecommendationStatus);
   const { data = [], isLoading } = useQuery({ queryKey: ["mkt", "recommendations"], queryFn: () => listFn() });
 
   const run = async () => {
