@@ -47,6 +47,7 @@ import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campaigns'
 import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
 import { Route as MarketingCreativesRouteImport } from './routes/marketing.creatives'
+import { Route as MarketingFunnelsRouteImport } from './routes/marketing.funnels'
 import { Route as MarketingLeadsRouteImport } from './routes/marketing.leads'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
@@ -256,6 +257,11 @@ const MarketingCreativesRoute = MarketingCreativesRouteImport.update({
   path: '/marketing/creatives',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingFunnelsRoute = MarketingFunnelsRouteImport.update({
+  id: '/marketing/funnels',
+  path: '/marketing/funnels',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingLeadsRoute = MarketingLeadsRouteImport.update({
   id: '/marketing/leads',
   path: '/marketing/leads',
@@ -380,6 +386,7 @@ export interface FileRoutesByFullPath {
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
+  '/marketing/funnels': typeof MarketingFunnelsRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -436,6 +443,7 @@ export interface FileRoutesByTo {
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
+  '/marketing/funnels': typeof MarketingFunnelsRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -493,6 +501,7 @@ export interface FileRoutesById {
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
+  '/marketing/funnels': typeof MarketingFunnelsRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -551,6 +560,7 @@ export interface FileRouteTypes {
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
+    | '/marketing/funnels'
     | '/marketing/leads'
     | '/objects/$id'
     | '/objects/new'
@@ -607,6 +617,7 @@ export interface FileRouteTypes {
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
+    | '/marketing/funnels'
     | '/marketing/leads'
     | '/objects/$id'
     | '/objects/new'
@@ -663,6 +674,7 @@ export interface FileRouteTypes {
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
+    | '/marketing/funnels'
     | '/marketing/leads'
     | '/objects/$id'
     | '/objects/new'
@@ -720,6 +732,7 @@ export interface RootRouteChildren {
   MarketingCampaignsRoute: typeof MarketingCampaignsRoute
   MarketingChannelsRoute: typeof MarketingChannelsRoute
   MarketingCreativesRoute: typeof MarketingCreativesRoute
+  MarketingFunnelsRoute: typeof MarketingFunnelsRoute
   MarketingLeadsRoute: typeof MarketingLeadsRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
@@ -1008,6 +1021,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingCreativesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/funnels': {
+      id: '/marketing/funnels'
+      path: '/marketing/funnels'
+      fullPath: '/marketing/funnels'
+      preLoaderRoute: typeof MarketingFunnelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/marketing/leads': {
       id: '/marketing/leads'
       path: '/marketing/leads'
@@ -1161,6 +1181,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketingCampaignsRoute: MarketingCampaignsRoute,
   MarketingChannelsRoute: MarketingChannelsRoute,
   MarketingCreativesRoute: MarketingCreativesRoute,
+  MarketingFunnelsRoute: MarketingFunnelsRoute,
   MarketingLeadsRoute: MarketingLeadsRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
