@@ -14,6 +14,25 @@ export type ImportReport = {
   preview: Record<string, unknown>[];
 };
 
+function comparable(value: unknown): unknown {
+  if (value === undefined || value === "") return null;
+  if (Array.isArray(value)) return value.map(comparable);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([key, nested]) => [key, comparable(nested)]),
+    );
+  }
+  return value;
+}
+
+function payloadChanged(existing: Record<string, unknown>, payload: Record<string, unknown>): boolean {
+  return Object.entries(payload).some(([key, value]) =>
+    JSON.stringify(comparable(existing[key])) !== JSON.stringify(comparable(value)),
+  );
+}
+
 async function ensure(userId: string, entity: ExchangeEntity, action: "export" | "create"): Promise<Actor> {
   const actor = await loadActor(userId);
   if (actor.canManage) return actor;
@@ -143,7 +162,7 @@ export async function exportEntityOp(userId: string, input: { entityKey: string;
 
 export async function importEntityOp(
   userId: string,
-  input: { entityKey: string; rows: Record<string, unknown>[]; dryRun: boolean; updateExisting: boolean },
+  input: { entityKey: string; rows: Record<string, unknown>[]; dryRun: boolean; updateExisting: boolean; changedOnly: boolean },
 ): Promise<ImportReport> {
   const entity = getEntity(input.entityKey);
   if (!entity) throw new Error("Невідомий розділ для імпорту");
@@ -216,18 +235,26 @@ export async function importEntityOp(
   for (const item of prepared) {
     // Пошук існуючого запису за ключем співставлення.
     let existingId: string | null = null;
+    let existingRow: Record<string, unknown> | null = null;
     for (const col of entity.matchColumns) {
       const val = item.payload[col];
       if (val === null || val === undefined || String(val).trim() === "") continue;
-      const { data } = await db.from(entity.table).select("id").ilike(col, String(val)).limit(1);
-      const found = (data ?? [])[0]?.id as string | undefined;
-      if (found) {
-        existingId = found;
+      const compareColumns = Array.from(new Set(["id", ...Object.keys(item.payload)])).join(",");
+      const { data } = await db.from(entity.table).select(compareColumns).ilike(col, String(val)).limit(1);
+      const found = (data ?? [])[0] as Record<string, unknown> | undefined;
+      if (found?.id) {
+        existingId = String(found.id);
+        existingRow = found;
         break;
       }
     }
 
     if (existingId && !input.updateExisting) {
+      skipped++;
+      continue;
+    }
+
+    if (existingId && input.changedOnly && existingRow && !payloadChanged(existingRow, item.payload)) {
       skipped++;
       continue;
     }
