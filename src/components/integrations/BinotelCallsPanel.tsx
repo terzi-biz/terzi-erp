@@ -13,10 +13,15 @@ const btn = "rounded-md border border-border px-3 py-2 text-sm font-semibold inl
 const DISPOSITIONS = [
   { v: "all", l: "Усі диспозиції" },
   { v: "answered", l: "Відповіли" },
+  { v: "transferred", l: "Переведені" },
   { v: "missed", l: "Пропущені" },
   { v: "busy", l: "Зайнято" },
   { v: "failed", l: "Помилка" },
   { v: "cancelled", l: "Скасовані" },
+  { v: "voicemail", l: "Голосова пошта" },
+  { v: "voicemail_with_message", l: "З повідомленням" },
+  { v: "online", l: "Онлайн" },
+  { v: "unknown", l: "Невідомі" },
 ];
 
 const SLA = [

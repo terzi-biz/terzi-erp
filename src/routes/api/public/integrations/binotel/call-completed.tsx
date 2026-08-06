@@ -14,7 +14,7 @@ export const Route = createFileRoute("/api/public/integrations/binotel/call-comp
         const { verifyBinotelToken, parseBinotelBody } = await import("@/lib/integrations/binotel/webhook.server");
         const { handleCallCompleted } = await import("@/lib/integrations/binotel/calls.server");
         const { getBinotelIntegration } = await import("@/lib/integrations/binotel/ops.server");
-        const { logAttempt, enqueueEvent } = await import("@/lib/integrations/core.server");
+        const { logAttempt, enqueueEvent, completeEvent } = await import("@/lib/integrations/core.server");
 
         const integration = await getBinotelIntegration();
         const ok = await verifyBinotelToken(request, integration?.id ?? null);
@@ -46,6 +46,7 @@ export const Route = createFileRoute("/api/public/integrations/binotel/call-comp
 
         try {
           const res = await handleCallCompleted(integration?.id ?? null, payload);
+          await completeEvent(queued?.id ?? null, res);
           await logAttempt({
             eventId: queued?.id ?? null,
             integrationId: integration?.id ?? null,
