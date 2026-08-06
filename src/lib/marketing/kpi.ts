@@ -78,6 +78,20 @@ export function derived(sum: ReturnType<typeof sumMetrics>, requests: number, qu
   };
 }
 
+/** Похідні KPI для довільного зрізу (канал, кампанія, креатив). Детерміновано. */
+export function computeKpi(v: {
+  spend: number; clicks: number; impressions: number; leads: number; qualified: number; revenue: number;
+}) {
+  return {
+    ctr: pct(v.clicks, v.impressions),
+    cpc: ratio(v.spend, v.clicks),
+    cpm: ratio(v.spend * 1000, v.impressions),
+    cpl: ratio(v.spend, v.leads),
+    cpql: ratio(v.spend, v.qualified),
+    romi: romi(v.revenue, v.spend),
+  };
+}
+
 export type KpiStatus = "good" | "warn" | "bad";
 /** Статус KPI: зростання добре (higherIsBetter) чи погано. */
 export function kpiStatus(current: number, previous: number, higherIsBetter = true): KpiStatus {
