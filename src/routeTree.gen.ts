@@ -43,6 +43,17 @@ import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
+import { Route as MarketingAnalyticsRouteImport } from './routes/marketing.analytics'
+import { Route as MarketingBudgetsRouteImport } from './routes/marketing.budgets'
+import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campaigns'
+import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
+import { Route as MarketingCreativesRouteImport } from './routes/marketing.creatives'
+import { Route as MarketingFunnelsRouteImport } from './routes/marketing.funnels'
+import { Route as MarketingIntegrationsRouteImport } from './routes/marketing.integrations'
+import { Route as MarketingLandingRouteImport } from './routes/marketing.landing'
+import { Route as MarketingLeadsRouteImport } from './routes/marketing.leads'
+import { Route as MarketingRecommendationsRouteImport } from './routes/marketing.recommendations'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
@@ -231,6 +242,62 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingIndexRoute = MarketingIndexRouteImport.update({
+  id: '/marketing/',
+  path: '/marketing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingAnalyticsRoute = MarketingAnalyticsRouteImport.update({
+  id: '/marketing/analytics',
+  path: '/marketing/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingBudgetsRoute = MarketingBudgetsRouteImport.update({
+  id: '/marketing/budgets',
+  path: '/marketing/budgets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingCampaignsRoute = MarketingCampaignsRouteImport.update({
+  id: '/marketing/campaigns',
+  path: '/marketing/campaigns',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingChannelsRoute = MarketingChannelsRouteImport.update({
+  id: '/marketing/channels',
+  path: '/marketing/channels',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingCreativesRoute = MarketingCreativesRouteImport.update({
+  id: '/marketing/creatives',
+  path: '/marketing/creatives',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingFunnelsRoute = MarketingFunnelsRouteImport.update({
+  id: '/marketing/funnels',
+  path: '/marketing/funnels',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingIntegrationsRoute = MarketingIntegrationsRouteImport.update({
+  id: '/marketing/integrations',
+  path: '/marketing/integrations',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingLandingRoute = MarketingLandingRouteImport.update({
+  id: '/marketing/landing',
+  path: '/marketing/landing',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingLeadsRoute = MarketingLeadsRouteImport.update({
+  id: '/marketing/leads',
+  path: '/marketing/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingRecommendationsRoute =
+  MarketingRecommendationsRouteImport.update({
+    id: '/marketing/recommendations',
+    path: '/marketing/recommendations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
   id: '/objects/',
   path: '/objects/',
@@ -347,12 +414,23 @@ export interface FileRoutesByFullPath {
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/marketing/analytics': typeof MarketingAnalyticsRoute
+  '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/campaigns': typeof MarketingCampaignsRoute
+  '/marketing/channels': typeof MarketingChannelsRoute
+  '/marketing/creatives': typeof MarketingCreativesRoute
+  '/marketing/funnels': typeof MarketingFunnelsRoute
+  '/marketing/integrations': typeof MarketingIntegrationsRoute
+  '/marketing/landing': typeof MarketingLandingRoute
+  '/marketing/leads': typeof MarketingLeadsRoute
+  '/marketing/recommendations': typeof MarketingRecommendationsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
+  '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
@@ -398,12 +476,23 @@ export interface FileRoutesByTo {
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/marketing/analytics': typeof MarketingAnalyticsRoute
+  '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/campaigns': typeof MarketingCampaignsRoute
+  '/marketing/channels': typeof MarketingChannelsRoute
+  '/marketing/creatives': typeof MarketingCreativesRoute
+  '/marketing/funnels': typeof MarketingFunnelsRoute
+  '/marketing/integrations': typeof MarketingIntegrationsRoute
+  '/marketing/landing': typeof MarketingLandingRoute
+  '/marketing/leads': typeof MarketingLeadsRoute
+  '/marketing/recommendations': typeof MarketingRecommendationsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm': typeof CrmIndexRoute
+  '/marketing': typeof MarketingIndexRoute
   '/objects': typeof ObjectsIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
@@ -450,12 +539,23 @@ export interface FileRoutesById {
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/marketing/analytics': typeof MarketingAnalyticsRoute
+  '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/campaigns': typeof MarketingCampaignsRoute
+  '/marketing/channels': typeof MarketingChannelsRoute
+  '/marketing/creatives': typeof MarketingCreativesRoute
+  '/marketing/funnels': typeof MarketingFunnelsRoute
+  '/marketing/integrations': typeof MarketingIntegrationsRoute
+  '/marketing/landing': typeof MarketingLandingRoute
+  '/marketing/leads': typeof MarketingLeadsRoute
+  '/marketing/recommendations': typeof MarketingRecommendationsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
+  '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
@@ -503,12 +603,23 @@ export interface FileRouteTypes {
     | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
+    | '/marketing/analytics'
+    | '/marketing/budgets'
+    | '/marketing/campaigns'
+    | '/marketing/channels'
+    | '/marketing/creatives'
+    | '/marketing/funnels'
+    | '/marketing/integrations'
+    | '/marketing/landing'
+    | '/marketing/leads'
+    | '/marketing/recommendations'
     | '/objects/$id'
     | '/objects/new'
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
     | '/crm/'
+    | '/marketing/'
     | '/objects/'
     | '/orders/'
     | '/production/'
@@ -554,12 +665,23 @@ export interface FileRouteTypes {
     | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
+    | '/marketing/analytics'
+    | '/marketing/budgets'
+    | '/marketing/campaigns'
+    | '/marketing/channels'
+    | '/marketing/creatives'
+    | '/marketing/funnels'
+    | '/marketing/integrations'
+    | '/marketing/landing'
+    | '/marketing/leads'
+    | '/marketing/recommendations'
     | '/objects/$id'
     | '/objects/new'
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
     | '/crm'
+    | '/marketing'
     | '/objects'
     | '/orders'
     | '/production'
@@ -605,12 +727,23 @@ export interface FileRouteTypes {
     | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
+    | '/marketing/analytics'
+    | '/marketing/budgets'
+    | '/marketing/campaigns'
+    | '/marketing/channels'
+    | '/marketing/creatives'
+    | '/marketing/funnels'
+    | '/marketing/integrations'
+    | '/marketing/landing'
+    | '/marketing/leads'
+    | '/marketing/recommendations'
     | '/objects/$id'
     | '/objects/new'
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
     | '/crm/'
+    | '/marketing/'
     | '/objects/'
     | '/orders/'
     | '/production/'
@@ -657,12 +790,23 @@ export interface RootRouteChildren {
   CrmRequestsRoute: typeof CrmRequestsRoute
   CrmTasksRoute: typeof CrmTasksRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  MarketingAnalyticsRoute: typeof MarketingAnalyticsRoute
+  MarketingBudgetsRoute: typeof MarketingBudgetsRoute
+  MarketingCampaignsRoute: typeof MarketingCampaignsRoute
+  MarketingChannelsRoute: typeof MarketingChannelsRoute
+  MarketingCreativesRoute: typeof MarketingCreativesRoute
+  MarketingFunnelsRoute: typeof MarketingFunnelsRoute
+  MarketingIntegrationsRoute: typeof MarketingIntegrationsRoute
+  MarketingLandingRoute: typeof MarketingLandingRoute
+  MarketingLeadsRoute: typeof MarketingLeadsRoute
+  MarketingRecommendationsRoute: typeof MarketingRecommendationsRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
   OrdersIdRoute: typeof OrdersIdRoute
   OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
   CrmIndexRoute: typeof CrmIndexRoute
+  MarketingIndexRoute: typeof MarketingIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
@@ -915,6 +1059,83 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/': {
+      id: '/marketing/'
+      path: '/marketing'
+      fullPath: '/marketing/'
+      preLoaderRoute: typeof MarketingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/analytics': {
+      id: '/marketing/analytics'
+      path: '/marketing/analytics'
+      fullPath: '/marketing/analytics'
+      preLoaderRoute: typeof MarketingAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/budgets': {
+      id: '/marketing/budgets'
+      path: '/marketing/budgets'
+      fullPath: '/marketing/budgets'
+      preLoaderRoute: typeof MarketingBudgetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/campaigns': {
+      id: '/marketing/campaigns'
+      path: '/marketing/campaigns'
+      fullPath: '/marketing/campaigns'
+      preLoaderRoute: typeof MarketingCampaignsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/channels': {
+      id: '/marketing/channels'
+      path: '/marketing/channels'
+      fullPath: '/marketing/channels'
+      preLoaderRoute: typeof MarketingChannelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/creatives': {
+      id: '/marketing/creatives'
+      path: '/marketing/creatives'
+      fullPath: '/marketing/creatives'
+      preLoaderRoute: typeof MarketingCreativesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/funnels': {
+      id: '/marketing/funnels'
+      path: '/marketing/funnels'
+      fullPath: '/marketing/funnels'
+      preLoaderRoute: typeof MarketingFunnelsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/integrations': {
+      id: '/marketing/integrations'
+      path: '/marketing/integrations'
+      fullPath: '/marketing/integrations'
+      preLoaderRoute: typeof MarketingIntegrationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/landing': {
+      id: '/marketing/landing'
+      path: '/marketing/landing'
+      fullPath: '/marketing/landing'
+      preLoaderRoute: typeof MarketingLandingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/leads': {
+      id: '/marketing/leads'
+      path: '/marketing/leads'
+      fullPath: '/marketing/leads'
+      preLoaderRoute: typeof MarketingLeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/recommendations': {
+      id: '/marketing/recommendations'
+      path: '/marketing/recommendations'
+      fullPath: '/marketing/recommendations'
+      preLoaderRoute: typeof MarketingRecommendationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/objects/': {
       id: '/objects/'
       path: '/objects'
@@ -1058,12 +1279,23 @@ const rootRouteChildren: RootRouteChildren = {
   CrmRequestsRoute: CrmRequestsRoute,
   CrmTasksRoute: CrmTasksRoute,
   InviteTokenRoute: InviteTokenRoute,
+  MarketingAnalyticsRoute: MarketingAnalyticsRoute,
+  MarketingBudgetsRoute: MarketingBudgetsRoute,
+  MarketingCampaignsRoute: MarketingCampaignsRoute,
+  MarketingChannelsRoute: MarketingChannelsRoute,
+  MarketingCreativesRoute: MarketingCreativesRoute,
+  MarketingFunnelsRoute: MarketingFunnelsRoute,
+  MarketingIntegrationsRoute: MarketingIntegrationsRoute,
+  MarketingLandingRoute: MarketingLandingRoute,
+  MarketingLeadsRoute: MarketingLeadsRoute,
+  MarketingRecommendationsRoute: MarketingRecommendationsRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
   OrdersIdRoute: OrdersIdRoute,
   OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
   CrmIndexRoute: CrmIndexRoute,
+  MarketingIndexRoute: MarketingIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
