@@ -1264,11 +1264,19 @@ export type Database = {
           contact_id: string | null
           created_at: string
           direction: string | null
+          disqualify_reason_id: string | null
           district: string | null
           external_id: string | null
           external_source: string | null
+          first_touch_at: string | null
           id: string
+          landing_page_id: string | null
+          last_touch_at: string | null
+          lead_quality: string | null
           lost_reason: string | null
+          marketing_campaign_id: string | null
+          marketing_channel_id: string | null
+          marketing_creative_id: string | null
           next_action_at: string | null
           notes: string | null
           order_id: string | null
@@ -1294,11 +1302,19 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           direction?: string | null
+          disqualify_reason_id?: string | null
           district?: string | null
           external_id?: string | null
           external_source?: string | null
+          first_touch_at?: string | null
           id?: string
+          landing_page_id?: string | null
+          last_touch_at?: string | null
+          lead_quality?: string | null
           lost_reason?: string | null
+          marketing_campaign_id?: string | null
+          marketing_channel_id?: string | null
+          marketing_creative_id?: string | null
           next_action_at?: string | null
           notes?: string | null
           order_id?: string | null
@@ -1324,11 +1340,19 @@ export type Database = {
           contact_id?: string | null
           created_at?: string
           direction?: string | null
+          disqualify_reason_id?: string | null
           district?: string | null
           external_id?: string | null
           external_source?: string | null
+          first_touch_at?: string | null
           id?: string
+          landing_page_id?: string | null
+          last_touch_at?: string | null
+          lead_quality?: string | null
           lost_reason?: string | null
+          marketing_campaign_id?: string | null
+          marketing_channel_id?: string | null
+          marketing_creative_id?: string | null
           next_action_at?: string | null
           notes?: string | null
           order_id?: string | null
@@ -1356,6 +1380,41 @@ export type Database = {
             columns: ["contact_id"]
             isOneToOne: false
             referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_disqualify_reason_id_fkey"
+            columns: ["disqualify_reason_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_lead_reasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_marketing_campaign_id_fkey"
+            columns: ["marketing_campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_marketing_channel_id_fkey"
+            columns: ["marketing_channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_leads_marketing_creative_id_fkey"
+            columns: ["marketing_creative_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_creatives"
             referencedColumns: ["id"]
           },
           {
@@ -3110,6 +3169,57 @@ export type Database = {
           },
         ]
       }
+      landing_pages: {
+        Row: {
+          created_at: string
+          domain: string | null
+          form_id: string | null
+          ga4_property_id: string | null
+          gtm_container_id: string | null
+          id: string
+          language: string
+          name: string
+          pixel_ids: Json
+          responsible_user_id: string | null
+          service: string | null
+          status: string
+          updated_at: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          domain?: string | null
+          form_id?: string | null
+          ga4_property_id?: string | null
+          gtm_container_id?: string | null
+          id?: string
+          language?: string
+          name: string
+          pixel_ids?: Json
+          responsible_user_id?: string | null
+          service?: string | null
+          status?: string
+          updated_at?: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string | null
+          form_id?: string | null
+          ga4_property_id?: string | null
+          gtm_container_id?: string | null
+          id?: string
+          language?: string
+          name?: string
+          pixel_ids?: Json
+          responsible_user_id?: string | null
+          service?: string | null
+          status?: string
+          updated_at?: string
+          url?: string
+        }
+        Relationships: []
+      }
       logistics_items: {
         Row: {
           code: string | null
@@ -3159,6 +3269,999 @@ export type Database = {
             columns: ["direction_id"]
             isOneToOne: false
             referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_accounts: {
+        Row: {
+          channel_id: string | null
+          connection_status: string
+          created_at: string
+          currency: string
+          external_account_id: string | null
+          id: string
+          last_sync_at: string | null
+          name: string
+          responsible_user_id: string | null
+          sync_error: string | null
+          timezone: string
+          updated_at: string
+        }
+        Insert: {
+          channel_id?: string | null
+          connection_status?: string
+          created_at?: string
+          currency?: string
+          external_account_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name: string
+          responsible_user_id?: string | null
+          sync_error?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_id?: string | null
+          connection_status?: string
+          created_at?: string
+          currency?: string
+          external_account_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name?: string
+          responsible_user_id?: string | null
+          sync_error?: string | null
+          timezone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_accounts_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_ad_groups: {
+        Row: {
+          audience_type: string | null
+          budget: number | null
+          campaign_id: string
+          created_at: string
+          external_id: string | null
+          id: string
+          last_sync_at: string | null
+          name: string
+          optimization_goal: string | null
+          status: string
+          targeting_summary: string | null
+          updated_at: string
+        }
+        Insert: {
+          audience_type?: string | null
+          budget?: number | null
+          campaign_id: string
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name: string
+          optimization_goal?: string | null
+          status?: string
+          targeting_summary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          audience_type?: string | null
+          budget?: number | null
+          campaign_id?: string
+          created_at?: string
+          external_id?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name?: string
+          optimization_goal?: string | null
+          status?: string
+          targeting_summary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_ad_groups_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_ads: {
+        Row: {
+          ad_group_id: string | null
+          campaign_id: string | null
+          created_at: string
+          creative_id: string | null
+          destination_url: string | null
+          external_id: string | null
+          external_updated_at: string | null
+          id: string
+          last_sync_at: string | null
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ad_group_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          creative_id?: string | null
+          destination_url?: string | null
+          external_id?: string | null
+          external_updated_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ad_group_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          creative_id?: string | null
+          destination_url?: string | null
+          external_id?: string | null
+          external_updated_at?: string | null
+          id?: string
+          last_sync_at?: string | null
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_ads_ad_group_id_fkey"
+            columns: ["ad_group_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_ad_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_ads_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_ads_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_alerts: {
+        Row: {
+          alert_type: string
+          assigned_user_id: string | null
+          created_at: string
+          current_value: number | null
+          dedup_key: string | null
+          description: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          linked_task_id: string | null
+          metric_name: string | null
+          resolved_at: string | null
+          severity: string
+          status: string
+          threshold_value: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          alert_type: string
+          assigned_user_id?: string | null
+          created_at?: string
+          current_value?: number | null
+          dedup_key?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          linked_task_id?: string | null
+          metric_name?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          threshold_value?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          alert_type?: string
+          assigned_user_id?: string | null
+          created_at?: string
+          current_value?: number | null
+          dedup_key?: string | null
+          description?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          linked_task_id?: string | null
+          metric_name?: string | null
+          resolved_at?: string | null
+          severity?: string
+          status?: string
+          threshold_value?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_alerts_linked_task_id_fkey"
+            columns: ["linked_task_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_budgets: {
+        Row: {
+          account_id: string | null
+          actual_amount: number
+          campaign_id: string | null
+          channel_id: string | null
+          created_at: string
+          currency: string
+          daily_limit: number | null
+          hard_limit_percent: number
+          id: string
+          next_payment_date: string | null
+          payment_status: string
+          period_month: string
+          planned_amount: number
+          responsible_user_id: string | null
+          updated_at: string
+          warning_threshold_percent: number
+        }
+        Insert: {
+          account_id?: string | null
+          actual_amount?: number
+          campaign_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          currency?: string
+          daily_limit?: number | null
+          hard_limit_percent?: number
+          id?: string
+          next_payment_date?: string | null
+          payment_status?: string
+          period_month: string
+          planned_amount?: number
+          responsible_user_id?: string | null
+          updated_at?: string
+          warning_threshold_percent?: number
+        }
+        Update: {
+          account_id?: string | null
+          actual_amount?: number
+          campaign_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          currency?: string
+          daily_limit?: number | null
+          hard_limit_percent?: number
+          id?: string
+          next_payment_date?: string | null
+          payment_status?: string
+          period_month?: string
+          planned_amount?: number
+          responsible_user_id?: string | null
+          updated_at?: string
+          warning_threshold_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_budgets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_budgets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_budgets_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_channels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaign_creatives: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          creative_id: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          creative_id: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          creative_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaign_creatives_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaign_creatives_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_campaigns: {
+        Row: {
+          account_id: string | null
+          campaign_type: string
+          channel_id: string | null
+          client_type: string
+          created_at: string
+          currency: string
+          daily_budget: number | null
+          end_date: string | null
+          external_id: string | null
+          external_updated_at: string | null
+          id: string
+          landing_page_id: string | null
+          last_sync_at: string | null
+          monthly_budget: number | null
+          name: string
+          objective: string | null
+          responsible_user_id: string | null
+          service: string | null
+          start_date: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          campaign_type?: string
+          channel_id?: string | null
+          client_type?: string
+          created_at?: string
+          currency?: string
+          daily_budget?: number | null
+          end_date?: string | null
+          external_id?: string | null
+          external_updated_at?: string | null
+          id?: string
+          landing_page_id?: string | null
+          last_sync_at?: string | null
+          monthly_budget?: number | null
+          name: string
+          objective?: string | null
+          responsible_user_id?: string | null
+          service?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          campaign_type?: string
+          channel_id?: string | null
+          client_type?: string
+          created_at?: string
+          currency?: string
+          daily_budget?: number | null
+          end_date?: string | null
+          external_id?: string | null
+          external_updated_at?: string | null
+          id?: string
+          landing_page_id?: string | null
+          last_sync_at?: string | null
+          monthly_budget?: number | null
+          name?: string
+          objective?: string | null
+          responsible_user_id?: string | null
+          service?: string | null
+          start_date?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_campaigns_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_campaigns_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_channels: {
+        Row: {
+          channel_type: string
+          created_at: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          key: string | null
+          name: string
+          platform: string | null
+          sort_order: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          channel_type?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string | null
+          name: string
+          platform?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          channel_type?: string
+          created_at?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          key?: string | null
+          name?: string
+          platform?: string | null
+          sort_order?: number
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_creatives: {
+        Row: {
+          advertising_angle: string | null
+          author_id: string | null
+          created_at: string
+          cta: string | null
+          description: string | null
+          file_url: string | null
+          format: string | null
+          headline: string | null
+          id: string
+          language: string
+          media_type: string
+          name: string
+          pain_point: string | null
+          preview_url: string | null
+          primary_text: string | null
+          service: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          advertising_angle?: string | null
+          author_id?: string | null
+          created_at?: string
+          cta?: string | null
+          description?: string | null
+          file_url?: string | null
+          format?: string | null
+          headline?: string | null
+          id?: string
+          language?: string
+          media_type?: string
+          name: string
+          pain_point?: string | null
+          preview_url?: string | null
+          primary_text?: string | null
+          service?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          advertising_angle?: string | null
+          author_id?: string | null
+          created_at?: string
+          cta?: string | null
+          description?: string | null
+          file_url?: string | null
+          format?: string | null
+          headline?: string | null
+          id?: string
+          language?: string
+          media_type?: string
+          name?: string
+          pain_point?: string | null
+          preview_url?: string | null
+          primary_text?: string | null
+          service?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_daily_metrics: {
+        Row: {
+          account_id: string | null
+          ad_group_id: string | null
+          ad_id: string | null
+          calls: number
+          campaign_id: string | null
+          channel_id: string | null
+          clicks: number
+          conversion_value: number
+          conversions: number
+          created_at: string
+          creative_id: string | null
+          currency: string
+          date: string
+          id: string
+          impressions: number
+          link_clicks: number
+          platform_leads: number
+          raw_payload_hash: string | null
+          reach: number
+          sessions: number
+          spend: number
+          synced_at: string | null
+          updated_at: string
+          website_leads: number
+        }
+        Insert: {
+          account_id?: string | null
+          ad_group_id?: string | null
+          ad_id?: string | null
+          calls?: number
+          campaign_id?: string | null
+          channel_id?: string | null
+          clicks?: number
+          conversion_value?: number
+          conversions?: number
+          created_at?: string
+          creative_id?: string | null
+          currency?: string
+          date: string
+          id?: string
+          impressions?: number
+          link_clicks?: number
+          platform_leads?: number
+          raw_payload_hash?: string | null
+          reach?: number
+          sessions?: number
+          spend?: number
+          synced_at?: string | null
+          updated_at?: string
+          website_leads?: number
+        }
+        Update: {
+          account_id?: string | null
+          ad_group_id?: string | null
+          ad_id?: string | null
+          calls?: number
+          campaign_id?: string | null
+          channel_id?: string | null
+          clicks?: number
+          conversion_value?: number
+          conversions?: number
+          created_at?: string
+          creative_id?: string | null
+          currency?: string
+          date?: string
+          id?: string
+          impressions?: number
+          link_clicks?: number
+          platform_leads?: number
+          raw_payload_hash?: string | null
+          reach?: number
+          sessions?: number
+          spend?: number
+          synced_at?: string | null
+          updated_at?: string
+          website_leads?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_daily_metrics_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_daily_metrics_ad_group_id_fkey"
+            columns: ["ad_group_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_ad_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_daily_metrics_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_daily_metrics_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_daily_metrics_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_daily_metrics_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_creatives"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_integrations: {
+        Row: {
+          account_name: string | null
+          configuration_json: Json
+          connection_status: string
+          created_at: string
+          external_account_id: string | null
+          id: string
+          is_read_only: boolean
+          last_attempt_at: string | null
+          last_error: string | null
+          last_success_at: string | null
+          priority: number
+          provider: string
+          scopes: Json
+          title: string
+          token_expiry: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string | null
+          configuration_json?: Json
+          connection_status?: string
+          created_at?: string
+          external_account_id?: string | null
+          id?: string
+          is_read_only?: boolean
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          priority?: number
+          provider: string
+          scopes?: Json
+          title: string
+          token_expiry?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string | null
+          configuration_json?: Json
+          connection_status?: string
+          created_at?: string
+          external_account_id?: string | null
+          id?: string
+          is_read_only?: boolean
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_success_at?: string | null
+          priority?: number
+          provider?: string
+          scopes?: Json
+          title?: string
+          token_expiry?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_lead_reasons: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketing_recommendations: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          assigned_user_id: string | null
+          created_at: string
+          current_metric: string | null
+          entity_id: string | null
+          entity_type: string | null
+          evidence: string | null
+          expected_effect: string | null
+          id: string
+          linked_task_id: string | null
+          priority: string
+          problem: string | null
+          recommendation_type: string
+          recommended_action: string | null
+          result_after_action: string | null
+          risk: string | null
+          status: string
+          target_metric: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_user_id?: string | null
+          created_at?: string
+          current_metric?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: string | null
+          expected_effect?: string | null
+          id?: string
+          linked_task_id?: string | null
+          priority?: string
+          problem?: string | null
+          recommendation_type?: string
+          recommended_action?: string | null
+          result_after_action?: string | null
+          risk?: string | null
+          status?: string
+          target_metric?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          assigned_user_id?: string | null
+          created_at?: string
+          current_metric?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          evidence?: string | null
+          expected_effect?: string | null
+          id?: string
+          linked_task_id?: string | null
+          priority?: string
+          problem?: string | null
+          recommendation_type?: string
+          recommended_action?: string | null
+          result_after_action?: string | null
+          risk?: string | null
+          status?: string
+          target_metric?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_recommendations_linked_task_id_fkey"
+            columns: ["linked_task_id"]
+            isOneToOne: false
+            referencedRelation: "crm_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_touchpoints: {
+        Row: {
+          ad_group_id: string | null
+          ad_id: string | null
+          call_id: string | null
+          campaign: string | null
+          campaign_id: string | null
+          channel_id: string | null
+          contact_id: string | null
+          content: string | null
+          created_at: string
+          creative_id: string | null
+          crm_lead_id: string | null
+          device: string | null
+          external_message_id: string | null
+          fbclid: string | null
+          gbraid: string | null
+          gclid: string | null
+          id: string
+          is_first_touch: boolean
+          is_last_touch: boolean
+          landing_page_id: string | null
+          medium: string | null
+          occurred_at: string
+          referrer: string | null
+          session_id: string | null
+          source: string | null
+          term: string | null
+          touchpoint_type: string
+          ttclid: string | null
+          wbraid: string | null
+        }
+        Insert: {
+          ad_group_id?: string | null
+          ad_id?: string | null
+          call_id?: string | null
+          campaign?: string | null
+          campaign_id?: string | null
+          channel_id?: string | null
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string
+          creative_id?: string | null
+          crm_lead_id?: string | null
+          device?: string | null
+          external_message_id?: string | null
+          fbclid?: string | null
+          gbraid?: string | null
+          gclid?: string | null
+          id?: string
+          is_first_touch?: boolean
+          is_last_touch?: boolean
+          landing_page_id?: string | null
+          medium?: string | null
+          occurred_at?: string
+          referrer?: string | null
+          session_id?: string | null
+          source?: string | null
+          term?: string | null
+          touchpoint_type?: string
+          ttclid?: string | null
+          wbraid?: string | null
+        }
+        Update: {
+          ad_group_id?: string | null
+          ad_id?: string | null
+          call_id?: string | null
+          campaign?: string | null
+          campaign_id?: string | null
+          channel_id?: string | null
+          contact_id?: string | null
+          content?: string | null
+          created_at?: string
+          creative_id?: string | null
+          crm_lead_id?: string | null
+          device?: string | null
+          external_message_id?: string | null
+          fbclid?: string | null
+          gbraid?: string | null
+          gclid?: string | null
+          id?: string
+          is_first_touch?: boolean
+          is_last_touch?: boolean
+          landing_page_id?: string | null
+          medium?: string | null
+          occurred_at?: string
+          referrer?: string | null
+          session_id?: string | null
+          source?: string | null
+          term?: string | null
+          touchpoint_type?: string
+          ttclid?: string | null
+          wbraid?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_touchpoints_ad_group_id_fkey"
+            columns: ["ad_group_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_ad_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_ad_id_fkey"
+            columns: ["ad_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_ads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_creative_id_fkey"
+            columns: ["creative_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_creatives"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_crm_lead_id_fkey"
+            columns: ["crm_lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketing_touchpoints_landing_page_id_fkey"
+            columns: ["landing_page_id"]
+            isOneToOne: false
+            referencedRelation: "landing_pages"
             referencedColumns: ["id"]
           },
         ]
