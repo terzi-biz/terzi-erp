@@ -44,6 +44,7 @@ import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
+import { Route as MarketingAnalyticsRouteImport } from './routes/marketing.analytics'
 import { Route as MarketingBudgetsRouteImport } from './routes/marketing.budgets'
 import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campaigns'
 import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
@@ -243,6 +244,11 @@ const MarketingIndexRoute = MarketingIndexRouteImport.update({
   path: '/marketing/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingAnalyticsRoute = MarketingAnalyticsRouteImport.update({
+  id: '/marketing/analytics',
+  path: '/marketing/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingBudgetsRoute = MarketingBudgetsRouteImport.update({
   id: '/marketing/budgets',
   path: '/marketing/budgets',
@@ -389,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
@@ -447,6 +454,7 @@ export interface FileRoutesByTo {
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
@@ -506,6 +514,7 @@ export interface FileRoutesById {
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
+  '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
@@ -566,6 +575,7 @@ export interface FileRouteTypes {
     | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
+    | '/marketing/analytics'
     | '/marketing/budgets'
     | '/marketing/campaigns'
     | '/marketing/channels'
@@ -624,6 +634,7 @@ export interface FileRouteTypes {
     | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
+    | '/marketing/analytics'
     | '/marketing/budgets'
     | '/marketing/campaigns'
     | '/marketing/channels'
@@ -682,6 +693,7 @@ export interface FileRouteTypes {
     | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
+    | '/marketing/analytics'
     | '/marketing/budgets'
     | '/marketing/campaigns'
     | '/marketing/channels'
@@ -741,6 +753,7 @@ export interface RootRouteChildren {
   CrmRequestsRoute: typeof CrmRequestsRoute
   CrmTasksRoute: typeof CrmTasksRoute
   InviteTokenRoute: typeof InviteTokenRoute
+  MarketingAnalyticsRoute: typeof MarketingAnalyticsRoute
   MarketingBudgetsRoute: typeof MarketingBudgetsRoute
   MarketingCampaignsRoute: typeof MarketingCampaignsRoute
   MarketingChannelsRoute: typeof MarketingChannelsRoute
@@ -1013,6 +1026,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/analytics': {
+      id: '/marketing/analytics'
+      path: '/marketing/analytics'
+      fullPath: '/marketing/analytics'
+      preLoaderRoute: typeof MarketingAnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/marketing/budgets': {
       id: '/marketing/budgets'
       path: '/marketing/budgets'
@@ -1198,6 +1218,7 @@ const rootRouteChildren: RootRouteChildren = {
   CrmRequestsRoute: CrmRequestsRoute,
   CrmTasksRoute: CrmTasksRoute,
   InviteTokenRoute: InviteTokenRoute,
+  MarketingAnalyticsRoute: MarketingAnalyticsRoute,
   MarketingBudgetsRoute: MarketingBudgetsRoute,
   MarketingCampaignsRoute: MarketingCampaignsRoute,
   MarketingChannelsRoute: MarketingChannelsRoute,
