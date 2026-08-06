@@ -498,8 +498,18 @@ async function applyReference(ctx: AdapterContext, entity: string, ext: any) {
 export async function applyExternal(ctx: AdapterContext, entity: string, ext: any, mode: SyncMode) {
   const externalId = String(ext?.id ?? "");
   if (!externalId) return { skipped: true, reason: "no_external_id" };
-  const extHash = await hashOf(ext);
   const link = await getLink(ctx.integration.id, entity, externalId);
+  const externalUpdatedAt = ext?.updated_at ?? ext?.modified_at ?? ext?.created_at ?? null;
+
+  if (link?.external_updated_at && externalUpdatedAt) {
+    const storedTime = new Date(link.external_updated_at).getTime();
+    const incomingTime = new Date(externalUpdatedAt).getTime();
+    if (Number.isFinite(storedTime) && Number.isFinite(incomingTime) && incomingTime <= storedTime) {
+      return { skipped: true, reason: "not_newer" };
+    }
+  }
+
+  const extHash = await hashOf(ext);
 
   if (link?.external_hash === extHash) return { skipped: true, reason: "unchanged" };
 
@@ -549,7 +559,7 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
     externalHash: extHash,
     internalHash,
     direction: "inbound",
-    externalUpdatedAt: ext.updated_at ?? null,
+    externalUpdatedAt,
     payload: entity === "orders" || entity === "payments" ? ext : {},
   });
 
