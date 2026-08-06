@@ -100,7 +100,7 @@ export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
 
 export const DEFAULT_WORK_PRICES = {
   screedBase: 180,         // 4–7 cm: 180 грн/м² (клієнт, укладання н/с машинної стяжки)
-  screedExtraPerCm: 20,    // +20 грн/м² за кожен см понад 7 (8см=200, 9см=220, …)
+  screedExtraPerCm: 15,    // окрема позиція «понад 7 см»: 15 грн/м² за кожен см понад 7
   prep: 10,                // підготовка основи
   film: 10,                // укладання плівки
   damper: 10,              // укладання демпфера
@@ -132,6 +132,7 @@ export const DEFAULT_SETTINGS = {
   foremanMin: 0,           // бригадир оплачується строго за м² (див. foremanPerM2)
   foremanPerM2: 10,        // оплата бригадиру 10 грн/м²
   brigadePrepCost: 5,      // підготовка складних замовлень
+  screedExtraCostPerCm: 5, // собівартість «понад 7 см»: 5 грн/м² за кожен см
   brigadeMeshCost: 10,
   brigadeSlopeCost: 10,
   brigadeUnloadCost: 10,   // вивантаження цементу — 10 грн/мішок бригаді (опція)
@@ -240,7 +241,7 @@ export function calculateScreed(
   // Thickness gating
   let thickness = input.thicknessCm;
   if (thickness < 4) { warnings.push("warnMinThickness"); thickness = 4; }
-  if (thickness > 15 && !input.manualThickness) { warnings.push("warnMaxThickness"); thickness = 15; }
+  if (thickness > 25) { warnings.push("warnMaxThickness"); thickness = 25; }
 
   const area = Math.max(0, input.area);
   const volumeM3 = +(area * thickness / 100).toFixed(3);
@@ -349,10 +350,19 @@ export function calculateScreed(
       pricePerUnit: works.insulationLay, costPerUnit: 15, sum: area * works.insulationLay, cost: area * 15, showToClient: true });
   }
 
-  const screedExtra = Math.max(0, thickness - 7) * works.screedExtraPerCm;
-  const screedRate = works.screedBase + screedExtra;
+  // Базова стяжка 4–7 см — окрема позиція.
   lines.push({ key: "w_screed", block: "works", name: "w_screed", unit: "м²", qty: area,
-    pricePerUnit: screedRate, costPerUnit: 0, sum: area * screedRate, cost: 0, showToClient: true });
+    pricePerUnit: works.screedBase, costPerUnit: 0, sum: area * works.screedBase, cost: 0, showToClient: true });
+
+  // Понад 7 см — окрема позиція: 15 грн/м² за кожен см (собівартість 5 грн/м² за см).
+  const extraCm = Math.max(0, thickness - 7);
+  if (extraCm > 0) {
+    const extraSell = extraCm * works.screedExtraPerCm;
+    const extraCost = extraCm * (s.screedExtraCostPerCm ?? 5);
+    lines.push({ key: "w_screed_extra", block: "works", name: "w_screed_extra", unit: "м²", qty: area,
+      pricePerUnit: extraSell, costPerUnit: extraCost,
+      sum: area * extraSell, cost: area * extraCost, showToClient: true });
+  }
 
   // Складна підготовка основи — опціональна (грунтування, вирівнювання ям тощо).
   if (input.withComplexPrep) {

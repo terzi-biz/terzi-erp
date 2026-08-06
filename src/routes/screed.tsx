@@ -87,8 +87,9 @@ const defaultInput: ScreedInput = {
 function ScreedPage() {
   const t = useT();
   const lang = useI18n((s) => s.lang);
-  const { roles, profile } = useAuth();
-  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  const { profile } = useAuth();
+  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
+  const isInternal = true;
   const { settings, branding } = useAppStore();
   const search = Route.useSearch();
   const [input, setInput] = usePersistedState<ScreedInput>("terzi:draft:screed:input", defaultInput);
@@ -251,7 +252,7 @@ function ScreedPage() {
               <Field label="Ліфт" hint="Наявність ліфта на замовленні — впливає на швидкість подачі матеріалу.">
                 <ToggleSwitch checked={input.withLift} onChange={(v) => upd("withLift", v)} />
               </Field>
-              <Field label="Товщина, см" hint="Робочий діапазон 4–15 см. Понад 15 см — лише з адмін-дозволом.">
+              <Field label="Товщина, см" hint="Робочий діапазон 4–25 см. Понад 7 см додається окрема позиція «Влаштування стяжки понад 7 см» — 15 грн/м² за кожен см.">
                 <NumberInput step="0.5" className={inp} value={input.thicknessCm} onChange={(v) => upd("thicknessCm", v)} />
               </Field>
               <Field label="Цемент" hint="М500 (рекомендовано) — стандарт TERZI. Auto бере цемент з профілю суміші.">

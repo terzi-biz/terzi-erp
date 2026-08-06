@@ -50,8 +50,9 @@ const defaultInput: InsulationInput = {
 };
 
 function InsulationPage() {
-  const { roles, profile } = useAuth();
-  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  const { profile } = useAuth();
+  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
+  const isInternal = true;
   const { insulationCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
   const [input, setInput] = usePersistedState<InsulationInput>("terzi:draft:insulation:input", defaultInput);

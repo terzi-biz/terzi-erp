@@ -207,7 +207,7 @@ const DEFAULT_SEEDS: Record<string, SeedItem[]> = {
   ],
   "screed.work": [
     { code: "screedBase", name: "Стяжка 4–7 см", unit: "м²", buy_price: 80, sell_price: 180 },
-    { code: "screedExtraPerCm", name: "+ за кожен см понад 7", unit: "м²/см", buy_price: 4, sell_price: 10 },
+    { code: "screedExtraPerCm", name: "Влаштування стяжки понад 7 см (за 1 см)", unit: "м²/см", buy_price: 5, sell_price: 15 },
     { code: "prep", name: "Підготовка основи", unit: "м²", buy_price: 4, sell_price: 10 },
     { code: "film", name: "Укладка плівки", unit: "м²", buy_price: 6, sell_price: 15 },
     { code: "damper", name: "Укладка демпферу", unit: "п.м", buy_price: 6, sell_price: 15 },
