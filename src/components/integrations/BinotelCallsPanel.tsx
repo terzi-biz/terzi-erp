@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
 import { AlertTriangle, Clock, PhoneIncoming, PhoneMissed, RefreshCw, Search } from "lucide-react";
-import { listBinotelCalls } from "@/lib/binotel.functions";
+import { listBinotelCalls, syncBinotelCallHistory } from "@/lib/binotel.functions";
 import { BinotelCallDialog } from "@/components/integrations/BinotelCallDialog";
 
 const card = "rounded-xl border border-border bg-card p-4";
@@ -43,7 +44,9 @@ const fmtSec = (n: number | null) => {
 const isoDay = (d: Date) => d.toISOString().slice(0, 10);
 
 export function BinotelCallsPanel() {
+  const queryClient = useQueryClient();
   const fn = useServerFn(listBinotelCalls);
+  const syncHistoryFn = useServerFn(syncBinotelCallHistory);
   const today = new Date();
   const weekAgo = new Date(Date.now() - 7 * 86_400_000);
 
@@ -54,6 +57,7 @@ export function BinotelCallsPanel() {
   const [direction, setDirection] = useState("all");
   const [sla, setSla] = useState<"all" | "no_task" | "in_sla" | "overdue" | "done">("all");
   const [openCallId, setOpenCallId] = useState<string | null>(null);
+  const [syncDays, setSyncDays] = useState(7);
 
   const filters = useMemo(
     () => ({
@@ -71,6 +75,14 @@ export function BinotelCallsPanel() {
   const q = useQuery({
     queryKey: ["binotel", "calls", filters],
     queryFn: () => fn({ data: filters }),
+  });
+  const syncHistory = useMutation({
+    mutationFn: () => syncHistoryFn({ data: { days: syncDays } }),
+    onSuccess: (result) => {
+      toast.success(`Binotel: отримано ${result.received}, оброблено ${result.applied}${result.failed ? `, помилок ${result.failed}` : ""}`);
+      queryClient.invalidateQueries({ queryKey: ["binotel"] });
+    },
+    onError: (error) => toast.error(error instanceof Error ? error.message : "Не вдалося синхронізувати Binotel"),
   });
 
   const stats = (q.data as any)?.stats ?? { total: 0, inbound: 0, outbound: 0, missed: 0, answered: 0, overdue: 0, noTask: 0, avgDuration: 0, avgWait: 0 };
@@ -128,13 +140,24 @@ export function BinotelCallsPanel() {
         </label>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <p className="text-sm text-muted-foreground inline-flex items-center gap-2">
           <Search className="h-4 w-4" /> Знайдено: {items.length}
         </p>
-        <button className={btn} onClick={() => q.refetch()} disabled={q.isFetching}>
-          <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} /> Оновити
-        </button>
+        <div className="flex items-center gap-2">
+          <select className={`${inp} w-auto`} value={syncDays} onChange={(event) => setSyncDays(Number(event.target.value))} aria-label="Період синхронізації Binotel">
+            <option value={1}>1 день</option>
+            <option value={7}>7 днів</option>
+            <option value={14}>14 днів</option>
+            <option value={31}>31 день</option>
+          </select>
+          <button className={btn} onClick={() => syncHistory.mutate()} disabled={syncHistory.isPending}>
+            <RefreshCw className={`h-4 w-4 ${syncHistory.isPending ? "animate-spin" : ""}`} /> Синхронізувати Binotel
+          </button>
+          <button className={btn} onClick={() => q.refetch()} disabled={q.isFetching}>
+            <RefreshCw className={`h-4 w-4 ${q.isFetching ? "animate-spin" : ""}`} /> Оновити
+          </button>
+        </div>
       </div>
 
       <div className={`${card} overflow-x-auto p-0`}>

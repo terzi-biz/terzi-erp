@@ -391,6 +391,74 @@ export async function binotelSyncPbxOp(userId: string, days = 7) {
   return { total: found.size, created };
 }
 
+/**
+ * Підтягує історію дзвінків REST API у CRM. Старі дзвінки не запускають
+ * автоматичне створення лідів/контактів/задач, але зіставляються з наявними
+ * сутностями за телефоном. Повторний запуск безпечний: external_id оновлюється.
+ */
+export async function binotelSyncCallHistoryOp(userId: string, days = 7) {
+  const actor = await requireAccessManager(userId);
+  const db = await admin();
+  const integration = await getBinotelIntegration();
+  if (!integration) throw new Error("Спочатку створіть підключення Binotel");
+  const auth = requireCreds(await binotelCreds(integration.id));
+  const safeDays = Math.min(Math.max(Math.round(days), 1), 31);
+  const { handleCallCompleted } = await import("./calls.server");
+
+  let received = 0;
+  let applied = 0;
+  let failed = 0;
+  const errors: string[] = [];
+  const stop = Math.floor(Date.now() / 1000);
+
+  for (let day = 0; day < safeDays; day++) {
+    const windowStop = stop - day * 86_400;
+    const windowStart = windowStop - 86_400;
+    const response = await binotelRequest(
+      auth,
+      "callsForPeriod",
+      { startTime: windowStart, stopTime: windowStop },
+      { integrationId: integration.id, quiet: true },
+    );
+    const calls = extractCollection(response, ["callDetails", "calls", "data"]);
+    received += calls.length;
+
+    for (const call of calls) {
+      try {
+        const result = await handleCallCompleted(integration.id, call, { runAutomations: false });
+        if (result.call_id) applied++;
+        else failed++;
+      } catch (error) {
+        failed++;
+        if (errors.length < 5) errors.push(error instanceof Error ? error.message : "Невідома помилка");
+      }
+    }
+  }
+
+  const syncedAt = new Date().toISOString();
+  await db
+    .from("integrations")
+    .update({
+      status: failed > 0 && applied === 0 ? "error" : "active",
+      last_sync_at: syncedAt,
+      last_success_at: applied > 0 ? syncedAt : integration.last_success_at,
+      last_error: errors[0] ?? null,
+      last_error_at: errors.length ? syncedAt : null,
+    })
+    .eq("id", integration.id);
+
+  await writeAudit(actor, {
+    module: "integrations",
+    action: "sync",
+    entityType: "binotel_calls",
+    entityLabel: `Історія Binotel за ${safeDays} дн.: отримано ${received}, оброблено ${applied}`,
+    isCritical: true,
+    newValue: { days: safeDays, received, applied, failed },
+  });
+
+  return { days: safeDays, received, applied, failed, errors };
+}
+
 export async function binotelGetSettingsOp(userId: string) {
   await canView(userId);
   const db = await admin();
