@@ -149,6 +149,24 @@ function AppShellLayout({ children }: { children: ReactNode }) {
           </div>
         )}
 
+        <button onClick={() => setMktOpen(!mktOpen)}
+          className={`w-full ${linkCls(loc.pathname.startsWith("/marketing"))} justify-between`}>
+          <span className="flex items-center gap-3"><Megaphone className="w-4 h-4" />Маркетинг</span>
+          <ChevronDown className={`w-3 h-3 transition-transform ${mktOpen ? "rotate-180" : ""}`} />
+        </button>
+        {mktOpen && (
+          <div className="bg-sidebar-accent/40">
+            {MARKETING_NAV.map((n) => (
+              <Link key={n.to} to={n.to}
+                className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === n.to ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
+                {n.label}
+              </Link>
+            ))}
+          </div>
+        )}
+
+
+
 
 
         <div className="mt-2 mb-1 px-5 text-[10px] uppercase tracking-widest text-muted-foreground">Модулі</div>
