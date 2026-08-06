@@ -43,6 +43,7 @@ import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
@@ -231,6 +232,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingIndexRoute = MarketingIndexRouteImport.update({
+  id: '/marketing/',
+  path: '/marketing/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
   id: '/objects/',
   path: '/objects/',
@@ -353,6 +359,7 @@ export interface FileRoutesByFullPath {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
+  '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
@@ -404,6 +411,7 @@ export interface FileRoutesByTo {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm': typeof CrmIndexRoute
+  '/marketing': typeof MarketingIndexRoute
   '/objects': typeof ObjectsIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
@@ -456,6 +464,7 @@ export interface FileRoutesById {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/crm/': typeof CrmIndexRoute
+  '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
@@ -509,6 +518,7 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/crm/'
+    | '/marketing/'
     | '/objects/'
     | '/orders/'
     | '/production/'
@@ -560,6 +570,7 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/crm'
+    | '/marketing'
     | '/objects'
     | '/orders'
     | '/production'
@@ -611,6 +622,7 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/crm/'
+    | '/marketing/'
     | '/objects/'
     | '/orders/'
     | '/production/'
@@ -663,6 +675,7 @@ export interface RootRouteChildren {
   OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
   CrmIndexRoute: typeof CrmIndexRoute
+  MarketingIndexRoute: typeof MarketingIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
   OrdersIndexRoute: typeof OrdersIndexRoute
   ProductionIndexRoute: typeof ProductionIndexRoute
@@ -915,6 +928,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/': {
+      id: '/marketing/'
+      path: '/marketing'
+      fullPath: '/marketing/'
+      preLoaderRoute: typeof MarketingIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/objects/': {
       id: '/objects/'
       path: '/objects'
@@ -1064,6 +1084,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
   CrmIndexRoute: CrmIndexRoute,
+  MarketingIndexRoute: MarketingIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
   OrdersIndexRoute: OrdersIndexRoute,
   ProductionIndexRoute: ProductionIndexRoute,
