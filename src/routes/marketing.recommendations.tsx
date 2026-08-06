@@ -53,7 +53,13 @@ function RecommendationsPage() {
             {data.map((r) => (
               <div key={r.id} className="rounded-lg border border-border p-3">
                 <div className="text-sm font-semibold">{r.title}</div>
-                <div className="text-xs text-muted-foreground mt-1">{r.body}</div>
+                <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                  {r.problem ? <div><span className="font-semibold">Проблема:</span> {r.problem}</div> : null}
+                  {r.evidence ? <div><span className="font-semibold">Дані:</span> {r.evidence}</div> : null}
+                  {r.recommended_action ? <div><span className="font-semibold">Дія:</span> {r.recommended_action}</div> : null}
+                  {r.expected_effect ? <div><span className="font-semibold">Ефект:</span> {r.expected_effect}</div> : null}
+                  {r.risk ? <div><span className="font-semibold">Ризик:</span> {r.risk}</div> : null}
+                </div>
                 <div className="mt-2 flex gap-2">
                   <button onClick={() => setStatus(r.id, "accepted")} className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold">Прийняти</button>
                   <button onClick={() => setStatus(r.id, "dismissed")} className="rounded-md border border-border px-2 py-1 text-[11px] text-muted-foreground">Відхилити</button>
