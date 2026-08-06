@@ -52,6 +52,7 @@ import { Route as MarketingCreativesRouteImport } from './routes/marketing.creat
 import { Route as MarketingFunnelsRouteImport } from './routes/marketing.funnels'
 import { Route as MarketingLandingRouteImport } from './routes/marketing.landing'
 import { Route as MarketingLeadsRouteImport } from './routes/marketing.leads'
+import { Route as MarketingRecommendationsRouteImport } from './routes/marketing.recommendations'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
 import { Route as ObjectsNewRouteImport } from './routes/objects.new'
@@ -285,6 +286,12 @@ const MarketingLeadsRoute = MarketingLeadsRouteImport.update({
   path: '/marketing/leads',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingRecommendationsRoute =
+  MarketingRecommendationsRouteImport.update({
+    id: '/marketing/recommendations',
+    path: '/marketing/recommendations',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ObjectsIndexRoute = ObjectsIndexRouteImport.update({
   id: '/objects/',
   path: '/objects/',
@@ -409,6 +416,7 @@ export interface FileRoutesByFullPath {
   '/marketing/funnels': typeof MarketingFunnelsRoute
   '/marketing/landing': typeof MarketingLandingRoute
   '/marketing/leads': typeof MarketingLeadsRoute
+  '/marketing/recommendations': typeof MarketingRecommendationsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -469,6 +477,7 @@ export interface FileRoutesByTo {
   '/marketing/funnels': typeof MarketingFunnelsRoute
   '/marketing/landing': typeof MarketingLandingRoute
   '/marketing/leads': typeof MarketingLeadsRoute
+  '/marketing/recommendations': typeof MarketingRecommendationsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -530,6 +539,7 @@ export interface FileRoutesById {
   '/marketing/funnels': typeof MarketingFunnelsRoute
   '/marketing/landing': typeof MarketingLandingRoute
   '/marketing/leads': typeof MarketingLeadsRoute
+  '/marketing/recommendations': typeof MarketingRecommendationsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
   '/orders/$id': typeof OrdersIdRoute
@@ -592,6 +602,7 @@ export interface FileRouteTypes {
     | '/marketing/funnels'
     | '/marketing/landing'
     | '/marketing/leads'
+    | '/marketing/recommendations'
     | '/objects/$id'
     | '/objects/new'
     | '/orders/$id'
@@ -652,6 +663,7 @@ export interface FileRouteTypes {
     | '/marketing/funnels'
     | '/marketing/landing'
     | '/marketing/leads'
+    | '/marketing/recommendations'
     | '/objects/$id'
     | '/objects/new'
     | '/orders/$id'
@@ -712,6 +724,7 @@ export interface FileRouteTypes {
     | '/marketing/funnels'
     | '/marketing/landing'
     | '/marketing/leads'
+    | '/marketing/recommendations'
     | '/objects/$id'
     | '/objects/new'
     | '/orders/$id'
@@ -773,6 +786,7 @@ export interface RootRouteChildren {
   MarketingFunnelsRoute: typeof MarketingFunnelsRoute
   MarketingLandingRoute: typeof MarketingLandingRoute
   MarketingLeadsRoute: typeof MarketingLeadsRoute
+  MarketingRecommendationsRoute: typeof MarketingRecommendationsRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
   OrdersIdRoute: typeof OrdersIdRoute
@@ -1095,6 +1109,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingLeadsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/recommendations': {
+      id: '/marketing/recommendations'
+      path: '/marketing/recommendations'
+      fullPath: '/marketing/recommendations'
+      preLoaderRoute: typeof MarketingRecommendationsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/objects/': {
       id: '/objects/'
       path: '/objects'
@@ -1246,6 +1267,7 @@ const rootRouteChildren: RootRouteChildren = {
   MarketingFunnelsRoute: MarketingFunnelsRoute,
   MarketingLandingRoute: MarketingLandingRoute,
   MarketingLeadsRoute: MarketingLeadsRoute,
+  MarketingRecommendationsRoute: MarketingRecommendationsRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
   OrdersIdRoute: OrdersIdRoute,
