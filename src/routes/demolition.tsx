@@ -42,7 +42,8 @@ const defaultInput: DemolitionInput = {
 
 function DemolitionPage() {
   const { roles, profile } = useAuth();
-  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
+  const isInternal = true;
   const { demolitionCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
   const [input, setInput] = usePersistedState<DemolitionInput>("terzi:draft:demolition:input", defaultInput);

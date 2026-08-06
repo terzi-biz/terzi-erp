@@ -79,7 +79,8 @@ const defaultInput: RoofingInput = {
 
 function RubPage() {
   const { roles, profile } = useAuth();
-  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
+  const isInternal = true;
   const { roofingCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
   const [input, setInput] = usePersistedState<RoofingInput>("terzi:draft:roofing_rub:input", defaultInput);

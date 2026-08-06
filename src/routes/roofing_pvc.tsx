@@ -78,7 +78,8 @@ const defaultInput: PvcInput = {
 
 function PvcPage() {
   const { roles, profile } = useAuth();
-  const isInternal = roles.some((r) => r === "admin" || r === "director" || r === "finance");
+  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
+  const isInternal = true;
   const { branding } = useAppStore();
   const search = Route.useSearch();
   const [input, setInput] = usePersistedState<PvcInput>("terzi:draft:roofing_pvc:input", defaultInput);
