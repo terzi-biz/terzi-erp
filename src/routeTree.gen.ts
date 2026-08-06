@@ -46,6 +46,7 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campaigns'
 import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
+import { Route as MarketingCreativesRouteImport } from './routes/marketing.creatives'
 import { Route as MarketingLeadsRouteImport } from './routes/marketing.leads'
 import { Route as ObjectsIndexRouteImport } from './routes/objects.index'
 import { Route as ObjectsIdRouteImport } from './routes/objects.$id'
@@ -250,6 +251,11 @@ const MarketingChannelsRoute = MarketingChannelsRouteImport.update({
   path: '/marketing/channels',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MarketingCreativesRoute = MarketingCreativesRouteImport.update({
+  id: '/marketing/creatives',
+  path: '/marketing/creatives',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MarketingLeadsRoute = MarketingLeadsRouteImport.update({
   id: '/marketing/leads',
   path: '/marketing/leads',
@@ -373,6 +379,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
+  '/marketing/creatives': typeof MarketingCreativesRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -428,6 +435,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
+  '/marketing/creatives': typeof MarketingCreativesRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -484,6 +492,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
+  '/marketing/creatives': typeof MarketingCreativesRoute
   '/marketing/leads': typeof MarketingLeadsRoute
   '/objects/$id': typeof ObjectsIdRoute
   '/objects/new': typeof ObjectsNewRoute
@@ -541,6 +550,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/marketing/campaigns'
     | '/marketing/channels'
+    | '/marketing/creatives'
     | '/marketing/leads'
     | '/objects/$id'
     | '/objects/new'
@@ -596,6 +606,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/marketing/campaigns'
     | '/marketing/channels'
+    | '/marketing/creatives'
     | '/marketing/leads'
     | '/objects/$id'
     | '/objects/new'
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/marketing/campaigns'
     | '/marketing/channels'
+    | '/marketing/creatives'
     | '/marketing/leads'
     | '/objects/$id'
     | '/objects/new'
@@ -707,6 +719,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   MarketingCampaignsRoute: typeof MarketingCampaignsRoute
   MarketingChannelsRoute: typeof MarketingChannelsRoute
+  MarketingCreativesRoute: typeof MarketingCreativesRoute
   MarketingLeadsRoute: typeof MarketingLeadsRoute
   ObjectsIdRoute: typeof ObjectsIdRoute
   ObjectsNewRoute: typeof ObjectsNewRoute
@@ -988,6 +1001,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MarketingChannelsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/marketing/creatives': {
+      id: '/marketing/creatives'
+      path: '/marketing/creatives'
+      fullPath: '/marketing/creatives'
+      preLoaderRoute: typeof MarketingCreativesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/marketing/leads': {
       id: '/marketing/leads'
       path: '/marketing/leads'
@@ -1140,6 +1160,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   MarketingCampaignsRoute: MarketingCampaignsRoute,
   MarketingChannelsRoute: MarketingChannelsRoute,
+  MarketingCreativesRoute: MarketingCreativesRoute,
   MarketingLeadsRoute: MarketingLeadsRoute,
   ObjectsIdRoute: ObjectsIdRoute,
   ObjectsNewRoute: ObjectsNewRoute,
