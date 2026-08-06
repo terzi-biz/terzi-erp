@@ -88,6 +88,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     { to: "/clients", icon: Users, label: "Клієнти" },
   ];
   const [crmOpen, setCrmOpen] = useState(loc.pathname.startsWith("/crm") || loc.pathname === "/clients");
+  const [mktOpen, setMktOpen] = useState(loc.pathname.startsWith("/marketing"));
 
   const bottomLinks = [
     { to: "/history", icon: History, label: t("history") },
