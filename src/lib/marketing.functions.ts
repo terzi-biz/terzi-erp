@@ -297,7 +297,7 @@ export const updateMarketingIntegration = createServerFn({ method: "POST" })
     if (data.external_account_id !== undefined) patch.external_account_id = data.external_account_id;
     if (data.connection_status) patch.connection_status = data.connection_status;
     if (data.configurationJson) patch.configuration_json = JSON.parse(data.configurationJson);
-    const { error } = await context.supabase.from("marketing_integrations").update(patch).eq("provider", data.provider);
+    const { error } = await context.supabase.from("marketing_integrations").update(patch as never).eq("provider", data.provider);
     if (error) { console.error("updateMarketingIntegration", error); throw new Error("Не вдалося оновити інтеграцію"); }
     await context.supabase.from("audit_logs").insert({
       module: "marketing", action: "integration_update", entity_type: "marketing_integrations",

@@ -37,13 +37,7 @@ export async function testProvider(provider: string): Promise<ProviderTest> {
     return { ok: false, configured: false, message: `Не задано: ${missing.join(", ")}` };
   }
   if (provider === "binotel") {
-    try {
-      const { binotelRequest } = await import("../integrations/binotel/client.server");
-      await binotelRequest("stats/call-details", {});
-      return { ok: true, configured: true, message: "Binotel відповідає" };
-    } catch (e) {
-      return { ok: false, configured: true, message: e instanceof Error ? e.message : "Помилка Binotel" };
-    }
+    return { ok: true, configured: true, message: "Ключі Binotel знайдено — перевірка з'єднання у розділі «Інтеграції та API»" };
   }
   return { ok: true, configured: true, message: "Ключі знайдено, синхронізація буде увімкнена на наступному етапі" };
 }
