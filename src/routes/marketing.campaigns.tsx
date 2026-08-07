@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
 import { CrudPanel } from "@/components/marketing/CrudPanel";
-import { listMarketingRefs } from "@/lib/marketing.functions";
+import { listMarketingRefs, listDailyMetrics } from "@/lib/marketing.functions";
 
 export const Route = createFileRoute("/marketing/campaigns")({
   ssr: false,
