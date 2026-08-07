@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
-import { listAttributedLeads, listMarketingRefs, updateLeadMarketing, getLeadTouchpoints } from "@/lib/marketing.functions";
+import { listAttributedLeads, listMarketingRefs, updateLeadMarketing, getLeadTouchpoints, syncMarketingFromCrm } from "@/lib/marketing.functions";
 import { LEAD_QUALITIES } from "@/lib/marketing/kpi";
 
 export const Route = createFileRoute("/marketing/leads")({
@@ -31,6 +31,7 @@ function LeadsPage() {
   const refsFn = useServerFn(listMarketingRefs);
   const saveFn = useServerFn(updateLeadMarketing);
   const touchFn = useServerFn(getLeadTouchpoints);
+  const syncFn = useServerFn(syncMarketingFromCrm);
 
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["mkt", "leads"], queryFn: () => leadsFn() });
   const { data: refs } = useQuery({ queryKey: ["mkt", "refs"], queryFn: () => refsFn() });
