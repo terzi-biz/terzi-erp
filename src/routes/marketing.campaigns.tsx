@@ -25,9 +25,12 @@ export const Route = createFileRoute("/marketing/campaigns")({
 
 function CampaignsPage() {
   const refsFn = useServerFn(listMarketingRefs);
+  const metricsFn = useServerFn(listDailyMetrics);
   const { data: refs, isLoading } = useQuery({ queryKey: ["mkt", "refs"], queryFn: () => refsFn() });
+  const { data: metrics } = useQuery({ queryKey: ["mkt", "daily-metrics"], queryFn: () => metricsFn() });
 
   const campaignOpts = (refs?.campaigns ?? []).map((c) => ({ value: c.id, label: c.name }));
+
 
   return (
     <MarketingShell title="Кампанії" subtitle="Бюджети, тип кампанії, послуга, посадкова сторінка та щоденні витрати">
