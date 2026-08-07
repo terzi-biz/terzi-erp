@@ -84,11 +84,9 @@ export async function syncLeadAttribution(sb: Db) {
     const utm = (lead.utm ?? {}) as Record<string, unknown>;
     const rawSource = normalize(lead.source) || normalize(utm.source) || normalize(utm.medium);
     const key = matchChannelKey(rawSource);
-    const channelId = lead.marketing_channel_id
-      ?? (key ? byKey.get(key) ?? null : null)
-      ?? byName.get(rawSource)
-      ?? byKey.get(rawSource)
-      ?? null;
+    const resolved = (key ? byKey.get(key) : undefined) ?? byName.get(rawSource) ?? byKey.get(rawSource) ?? null;
+    const channelId: string | null = lead.marketing_channel_id ?? resolved;
+
 
     const campaignName = String(lead.campaign ?? utm.campaign ?? "").trim();
     let campaignId = lead.marketing_campaign_id ?? null;
