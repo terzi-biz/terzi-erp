@@ -62,8 +62,10 @@ function CampaignsPage() {
       <Panel title="Щоденні показники (ручне внесення / імпорт)">
         <CrudPanel
           table="marketing_daily_metrics"
-          rows={[]}
+          rows={(metrics ?? []) as unknown as Record<string, unknown>[]}
+          queryKey={["mkt"]}
           emptyText="Показники додаються тут вручну або автоматично інтеграціями. Перегляд агрегатів — у розділах «Огляд» та «Аналітика»."
+
           fields={[
             { key: "date", label: "Дата", type: "date", required: true },
             { key: "campaign_id", label: "Кампанія", type: "select", options: campaignOpts },
