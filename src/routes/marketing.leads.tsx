@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
-import { listAttributedLeads, listMarketingRefs, updateLeadMarketing, getLeadTouchpoints } from "@/lib/marketing.functions";
+import { listAttributedLeads, listMarketingRefs, updateLeadMarketing, getLeadTouchpoints, syncMarketingFromCrm } from "@/lib/marketing.functions";
 import { LEAD_QUALITIES } from "@/lib/marketing/kpi";
 
 export const Route = createFileRoute("/marketing/leads")({
@@ -31,6 +31,7 @@ function LeadsPage() {
   const refsFn = useServerFn(listMarketingRefs);
   const saveFn = useServerFn(updateLeadMarketing);
   const touchFn = useServerFn(getLeadTouchpoints);
+  const syncFn = useServerFn(syncMarketingFromCrm);
 
   const { data: leads = [], isLoading } = useQuery({ queryKey: ["mkt", "leads"], queryFn: () => leadsFn() });
   const { data: refs } = useQuery({ queryKey: ["mkt", "refs"], queryFn: () => refsFn() });
@@ -60,10 +61,28 @@ function LeadsPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка"); }
   };
 
+  const [syncing, setSyncing] = useState(false);
+  const runSync = async () => {
+    setSyncing(true);
+    try {
+      const res = await syncFn();
+      toast.success(`Оброблено ${res.leads} лідів · прив'язано ${res.attributed} · нових кампаній ${res.campaignsCreated}`);
+      qc.invalidateQueries({ queryKey: ["mkt"] });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка синхронізації"); }
+    finally { setSyncing(false); }
+  };
+
   return (
     <MarketingShell title="Ліди та атрибуція" subtitle="Перше і останнє торкання, канал, кампанія, креатив, якість ліда">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук ліда…"
-        className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук ліда…"
+          className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+        <button onClick={runSync} disabled={syncing}
+          className="shrink-0 rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60">
+          {syncing ? "Синхронізація…" : "Синхронізувати з CRM"}
+        </button>
+      </div>
+
 
       <div className="grid gap-3 lg:grid-cols-[1.4fr_1fr]">
         <Panel title={`Ліди (${rows.length})`}>

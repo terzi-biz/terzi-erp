@@ -445,18 +445,30 @@ async function applyLeadCard(ctx: AdapterContext, ext: any) {
       }
     : {};
 
+  // Джерело: назва з довідника keyCRM (імпортується раніше як reference).
+  let sourceName: string | null = ext.source?.name ?? ext.source_name ?? (typeof ext.source === "string" ? ext.source : null);
+  if (!sourceName && ext.source_id != null) {
+    const sl = await getLink(ctx.integration.id, "sources", String(ext.source_id));
+    const p = (sl?.payload ?? {}) as Record<string, unknown>;
+    sourceName = (p.name as string) ?? (p.title as string) ?? null;
+  }
+
+  const createdAt = ext.created_at ?? ext.createdAt ?? null;
+
   const row: Record<string, unknown> = {
     title: String(ext.title ?? ext.name ?? `Лід keyCRM #${externalId}`),
     pipeline_id: pipelineId,
     stage_id: stageId,
     contact_id: contactId,
-    source: ext.source?.name ?? ext.source_name ?? ext.source ?? null,
+    source: sourceName,
     budget: ext.total_price ?? ext.amount ?? null,
     notes: ext.comment ?? ext.manager_comment ?? null,
     utm: utm as any,
     external_source: "keycrm",
     external_id: externalId,
+    ...(createdAt ? { created_at: new Date(String(createdAt).replace(" ", "T") + (String(createdAt).includes("Z") || String(createdAt).includes("+") ? "" : "Z")).toISOString() } : {}),
   };
+
 
   const link = await getLink(ctx.integration.id, "lead_cards", externalId);
   let leadId: string | null = link?.internal_id ?? null;
@@ -563,7 +575,7 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
     internalHash,
     direction: "inbound",
     externalUpdatedAt,
-    payload: entity === "orders" || entity === "payments" ? ext : {},
+    payload: entity === "orders" || entity === "payments" || entity === "sources" || entity === "managers" || entity === "order_statuses" ? ext : {},
   });
 
   await auditSync(ctx, { action: "sync_inbound_apply", entity, externalId, internalId: result.internalId, table: result.table, payload: ext });

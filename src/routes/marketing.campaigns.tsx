@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
 import { CrudPanel } from "@/components/marketing/CrudPanel";
-import { listMarketingRefs } from "@/lib/marketing.functions";
+import { listMarketingRefs, listDailyMetrics } from "@/lib/marketing.functions";
 
 export const Route = createFileRoute("/marketing/campaigns")({
   ssr: false,
@@ -25,9 +25,12 @@ export const Route = createFileRoute("/marketing/campaigns")({
 
 function CampaignsPage() {
   const refsFn = useServerFn(listMarketingRefs);
+  const metricsFn = useServerFn(listDailyMetrics);
   const { data: refs, isLoading } = useQuery({ queryKey: ["mkt", "refs"], queryFn: () => refsFn() });
+  const { data: metrics } = useQuery({ queryKey: ["mkt", "daily-metrics"], queryFn: () => metricsFn() });
 
   const campaignOpts = (refs?.campaigns ?? []).map((c) => ({ value: c.id, label: c.name }));
+
 
   return (
     <MarketingShell title="Кампанії" subtitle="Бюджети, тип кампанії, послуга, посадкова сторінка та щоденні витрати">
@@ -59,8 +62,10 @@ function CampaignsPage() {
       <Panel title="Щоденні показники (ручне внесення / імпорт)">
         <CrudPanel
           table="marketing_daily_metrics"
-          rows={[]}
+          rows={(metrics ?? []) as unknown as Record<string, unknown>[]}
+          queryKey={["mkt"]}
           emptyText="Показники додаються тут вручну або автоматично інтеграціями. Перегляд агрегатів — у розділах «Огляд» та «Аналітика»."
+
           fields={[
             { key: "date", label: "Дата", type: "date", required: true },
             { key: "campaign_id", label: "Кампанія", type: "select", options: campaignOpts },

@@ -44,18 +44,40 @@ function BudgetsPage() {
     for (const m of data.metrics) if (m.channel_id) spendByChannel.set(m.channel_id, (spendByChannel.get(m.channel_id) ?? 0) + num(m.spend));
     const dayOfMonth = now.getDate();
     const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-    return data.budgets.map((b) => {
-      const planned = num(b.planned_amount);
-      const actual = b.channel_id ? (spendByChannel.get(b.channel_id) ?? num(b.actual_amount)) : num(b.actual_amount);
+
+    // Якщо бюджети ще не заведені — план береться з місячних бюджетів кампаній.
+    type Base = { id: string; channel_id: string | null; planned_amount: number; actual_amount: number; payment_status: string | null; derived?: boolean };
+    let base: Base[] = (data.budgets ?? []).map((b) => ({
+      id: b.id, channel_id: b.channel_id, planned_amount: num(b.planned_amount),
+      actual_amount: num(b.actual_amount), payment_status: b.payment_status,
+    }));
+    if (!base.length) {
+      const planByChannel = new Map<string, number>();
+      for (const c of refs?.campaigns ?? []) {
+        const plan = num(c.monthly_budget);
+        if (!plan) continue;
+        const key = c.channel_id ?? "none";
+        planByChannel.set(key, (planByChannel.get(key) ?? 0) + plan);
+      }
+      base = [...planByChannel.entries()].map(([key, plan]) => ({
+        id: `derived-${key}`, channel_id: key === "none" ? null : key,
+        planned_amount: plan, actual_amount: 0, payment_status: null, derived: true,
+      }));
+    }
+
+    return base.map((b) => {
+      const planned = b.planned_amount;
+      const actual = b.channel_id ? (spendByChannel.get(b.channel_id) ?? b.actual_amount) : b.actual_amount;
       const forecast = (actual / dayOfMonth) * daysInMonth;
       return {
         ...b, planned, actual, forecast,
         rest: planned - actual,
         pace: planned > 0 ? (actual / planned) / (dayOfMonth / daysInMonth) * 100 : 0,
-        channelName: refs?.channels.find((c) => c.id === b.channel_id)?.name ?? "Загальний",
+        channelName: (refs?.channels.find((c) => c.id === b.channel_id)?.name ?? "Загальний") + (b.derived ? " (з кампаній)" : ""),
       };
     });
   }, [data, refs, now]);
+
 
   return (
     <MarketingShell title="Бюджети та ліміти" subtitle="План, факт, залишок, темп витрат, прогноз і статус платежів">

@@ -329,3 +329,29 @@ export const listMarketingAudit = createServerFn({ method: "GET" })
       .eq("module", "marketing").order("created_at", { ascending: false }).limit(200);
     return data ?? [];
   });
+
+/* ============ Звʼязка CRM → маркетинг ============ */
+
+/** Проставляє лідам канал і кампанію за джерелом/UTM, створює відсутні кампанії. */
+export const syncMarketingFromCrm = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { syncLeadAttribution } = await import("./marketing/attribution.server");
+    const res = await syncLeadAttribution(context.supabase as never);
+    await context.supabase.from("audit_logs").insert({
+      module: "marketing", action: "attribution_sync", entity_type: "crm_leads",
+      new_value: res as never, actor_id: context.userId, is_critical: false,
+    });
+    return res;
+  });
+
+/** Щоденні показники реклами за період (для таблиці «Кампанії»). */
+export const listDailyMetrics = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("marketing_daily_metrics").select("*")
+      .order("date", { ascending: false }).limit(500);
+    return data ?? [];
+  });
+
