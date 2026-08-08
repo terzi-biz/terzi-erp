@@ -65,6 +65,7 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
+import { Route as ApiPublicMarketingSyncRouteImport } from './routes/api/public/marketing/sync'
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
@@ -355,6 +356,11 @@ const ApiPublicIntegrationsWorkerRoute =
     path: '/api/public/integrations/worker',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicMarketingSyncRoute = ApiPublicMarketingSyncRouteImport.update({
+  id: '/api/public/marketing/sync',
+  path: '/api/public/marketing/sync',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicIntegrationsBinotelCallCompletedRoute =
   ApiPublicIntegrationsBinotelCallCompletedRouteImport.update({
     id: '/api/public/integrations/binotel/call-completed',
@@ -437,6 +443,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
@@ -499,6 +506,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
@@ -562,6 +570,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
@@ -626,6 +635,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
+    | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/oauth/callback'
@@ -688,6 +698,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
+    | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/oauth/callback'
@@ -750,6 +761,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
+    | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/oauth/callback'
@@ -813,6 +825,7 @@ export interface RootRouteChildren {
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
+  ApiPublicMarketingSyncRoute: typeof ApiPublicMarketingSyncRoute
   ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
@@ -1213,6 +1226,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/marketing/sync': {
+      id: '/api/public/marketing/sync'
+      path: '/api/public/marketing/sync'
+      fullPath: '/api/public/marketing/sync'
+      preLoaderRoute: typeof ApiPublicMarketingSyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/binotel/call-completed': {
       id: '/api/public/integrations/binotel/call-completed'
       path: '/api/public/integrations/binotel/call-completed'
@@ -1302,6 +1322,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
+  ApiPublicMarketingSyncRoute: ApiPublicMarketingSyncRoute,
   ApiPublicIntegrationsBinotelCallCompletedRoute:
     ApiPublicIntegrationsBinotelCallCompletedRoute,
   ApiPublicIntegrationsBinotelCallSettingsRoute:
