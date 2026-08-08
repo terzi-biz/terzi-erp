@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [approvalStatus, setApprovalStatus] = useState<RegistrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const loadedUidRef = useRef<string | null>(null);
+
 
   useEffect(() => {
     let active = true;
@@ -46,6 +48,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!active) return;
       setSession(s);
       if (s?.user) {
+        // Повторний вхід того самого користувача (оновлення токена, повернення
+        // на вкладку) не має перезавантажувати профіль і показувати «Завантаження…»,
+        // інакше сторінка перемонтовується і введені дані губляться.
+        if (loadedUidRef.current === s.user.id) return;
+        loadedUidRef.current = s.user.id;
         setLoading(true);
         setTimeout(() => {
           if (!active) return;
@@ -54,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }, 0);
       } else {
+        loadedUidRef.current = null;
         clearUserData();
         setLoading(false);
       }
@@ -61,11 +69,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     supabase.auth.getSession().then(async ({ data }) => {
       if (!active) return;
       setSession(data.session);
-      if (data.session?.user) await loadUserData(data.session.user.id);
-      else clearUserData();
+      if (data.session?.user) {
+        loadedUidRef.current = data.session.user.id;
+        await loadUserData(data.session.user.id);
+      } else clearUserData();
     }).finally(() => {
       if (active) setLoading(false);
     });
+
     return () => { active = false; sub.subscription.unsubscribe(); };
   }, []);
 
