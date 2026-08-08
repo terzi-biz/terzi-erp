@@ -34,6 +34,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [approvalStatus, setApprovalStatus] = useState<RegistrationStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const loadedUidRef = useRef<string | null>(null);
+
 
   useEffect(() => {
     let active = true;
