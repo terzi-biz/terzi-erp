@@ -16,11 +16,14 @@ export const Route = createFileRoute("/api/public/marketing/sync")({
           for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
           return diff === 0;
         };
-        const anonKey = process.env.SUPABASE_ANON_KEY ?? "";
+        const apikey = request.headers.get("apikey") ?? "";
         const workerSecret = process.env.INTEGRATIONS_WORKER_SECRET ?? "";
         const authorized =
-          eq(request.headers.get("apikey") ?? "", anonKey) ||
+          eq(apikey, process.env.SUPABASE_ANON_KEY ?? "") ||
+          eq(apikey, process.env.SUPABASE_PUBLISHABLE_KEY ?? "") ||
+          eq(apikey, process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "") ||
           eq(request.headers.get("x-terzi-worker-secret") ?? "", workerSecret);
+
         if (!authorized) return new Response("Unauthorized", { status: 401 });
 
 
