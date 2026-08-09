@@ -3,7 +3,11 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Wallet, Plus, Receipt, ArrowDownCircle, PieChart, Landmark, X } from "lucide-react";
+import {
+  Wallet, Plus, Receipt, ArrowDownCircle, PieChart, Landmark, X,
+  Layers, TrendingUp, TrendingDown, CircleDollarSign, Search, ArrowRight,
+} from "lucide-react";
+
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUah } from "@/lib/screed-calc";
@@ -14,9 +18,11 @@ import {
 import {
   listAccounts, saveAccount, listInvoices, saveInvoice,
   listPayments, savePayment, deletePayment,
-  listExpenses, saveExpense, deleteExpense, getOrderPnl,
+  listExpenses, saveExpense, deleteExpense, getOrderPnl, listOrderCashflow,
 } from "@/lib/finance.functions";
+import { Link } from "@tanstack/react-router";
 import { listOrders } from "@/lib/orders.functions";
+
 import { listClients } from "@/lib/clients.functions";
 
 export const Route = createFileRoute("/finance")({
@@ -37,6 +43,7 @@ export const Route = createFileRoute("/finance")({
 });
 
 const TABS = [
+  { key: "projects", label: "Каса по проєктах", icon: Layers },
   { key: "invoices", label: "Рахунки", icon: Receipt },
   { key: "payments", label: "Платежі", icon: Wallet },
   { key: "expenses", label: "Витрати", icon: ArrowDownCircle },
@@ -45,13 +52,14 @@ const TABS = [
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 
-const input = "w-full rounded-md border border-input bg-background px-3 py-2 text-sm";
+const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 const label = "text-[11px] uppercase tracking-wider text-muted-foreground";
-const btn = "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold";
+const btn = "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors";
 const today = () => new Date().toISOString().slice(0, 10);
 
 function FinancePage() {
-  const [tab, setTab] = useState<TabKey>("invoices");
+  const [tab, setTab] = useState<TabKey>("projects");
+
   const qc = useQueryClient();
 
   const accFn = useServerFn(listAccounts);
@@ -98,34 +106,35 @@ function FinancePage() {
           <p className="text-sm text-muted-foreground mt-1">Рахунки, оплати, витрати та прибутковість замовлень</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            ["Виставлено", formatUah(kpi.invoiced)],
-            ["Отримано", formatUah(kpi.paid)],
-            ["Дебіторка", formatUah(kpi.debt)],
-            ["Грошовий результат", formatUah(kpi.profit)],
-          ].map(([l, v]) => (
-            <div key={l} className="bg-card border border-border rounded-lg p-4">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{l}</div>
-              <div className="text-xl font-black mt-1 text-primary">{v}</div>
-            </div>
-          ))}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard label="Виставлено" value={formatUah(kpi.invoiced)} icon={Receipt} tone="neutral" />
+          <KpiCard label="Отримано" value={formatUah(kpi.paid)} icon={TrendingUp} tone="good" />
+          <KpiCard label="Дебіторка" value={formatUah(kpi.debt)} icon={TrendingDown} tone="warn" />
+          <KpiCard label="Грошовий результат" value={formatUah(kpi.profit)} icon={CircleDollarSign} tone={kpi.profit >= 0 ? "good" : "bad"} />
         </div>
 
-        <div className="flex gap-1 flex-wrap border-b border-border">
-          {TABS.map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={`inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold border-b-2 -mb-px ${tab === t.key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>
-              <t.icon className="w-4 h-4" />{t.label}
-            </button>
-          ))}
+        <div className="scroll-x -mx-4 px-4 md:mx-0 md:px-0">
+          <div className="flex gap-2 w-max md:w-full">
+            {TABS.map((t) => (
+              <button key={t.key} onClick={() => setTab(t.key)}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold border whitespace-nowrap transition-colors ${
+                  tab === t.key
+                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                    : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60"
+                }`}>
+                <t.icon className="w-4 h-4" />{t.label}
+              </button>
+            ))}
+          </div>
         </div>
 
+        {tab === "projects" && <ProjectsTab />}
         {tab === "invoices" && <InvoicesTab invoices={invoices as any[]} orders={orders as any[]} clients={clients as any[]} onChange={invalidate} />}
         {tab === "payments" && <PaymentsTab rows={payments as any[]} invoices={invoices as any[]} orders={orders as any[]} accounts={accounts as any[]} onChange={invalidate} />}
         {tab === "expenses" && <ExpensesTab rows={expenses as any[]} orders={orders as any[]} accounts={accounts as any[]} onChange={invalidate} />}
         {tab === "pnl" && <PnlTab orders={orders as any[]} />}
         {tab === "accounts" && <AccountsTab accounts={accounts as any[]} onChange={invalidate} />}
+
       </div>
     </AppShell>
   );
@@ -519,3 +528,145 @@ function AccountsTab({ accounts, onChange }: { accounts: any[]; onChange: () => 
     </div>
   );
 }
+
+/* ---------------- Каса по проєктах ---------------- */
+
+function KpiCard({ label: l, value, icon: Icon, tone = "neutral" }: {
+  label: string; value: string; icon: any; tone?: "neutral" | "good" | "warn" | "bad";
+}) {
+  const toneCls =
+    tone === "good" ? "text-success bg-success/10"
+    : tone === "warn" ? "text-primary bg-primary/10"
+    : tone === "bad" ? "text-destructive bg-destructive/10"
+    : "text-muted-foreground bg-secondary";
+  return (
+    <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+      <div className="flex items-center gap-2">
+        <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${toneCls}`}>
+          <Icon className="w-4 h-4" />
+        </span>
+        <span className="min-w-0 truncate text-[11px] uppercase tracking-wider text-muted-foreground">{l}</span>
+      </div>
+      <div className="mt-2 text-xl md:text-2xl font-black tabular-nums">{value}</div>
+    </div>
+  );
+}
+
+function Bar({ value, max, tone }: { value: number; max: number; tone: string }) {
+  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  return (
+    <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+      <div className={`h-full rounded-full ${tone}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function ProjectsTab() {
+  const cashFn = useServerFn(listOrderCashflow);
+  const { data: rows = [], isLoading } = useQuery({ queryKey: ["fin-order-cashflow"], queryFn: () => cashFn() });
+  const [q, setQ] = useState("");
+  const [onlyActive, setOnlyActive] = useState(false);
+
+  const list = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    return (rows as any[]).filter((r) => {
+      if (onlyActive && !(r.revenuePlan || r.income || r.costFact || r.invoiced)) return false;
+      if (!term) return true;
+      return [r.number, r.name, r.clientName, r.address].some((v: string | null) => (v ?? "").toLowerCase().includes(term));
+    });
+  }, [rows, q, onlyActive]);
+
+  const totals = useMemo(() => list.reduce(
+    (a, r: any) => ({
+      plan: a.plan + r.revenuePlan, income: a.income + r.income,
+      cost: a.cost + r.costFact, debt: a.debt + r.debt, profit: a.profit + r.profitFact,
+    }),
+    { plan: 0, income: 0, cost: 0, debt: 0, profit: 0 },
+  ), [list]);
+
+  const max = Math.max(1, ...list.map((r: any) => Math.max(r.revenuePlan, r.income, r.costFact)));
+
+  return (
+    <div className="space-y-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 sm:flex sm:items-center">
+        <div className="relative min-w-0">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук по номеру, назві, клієнту…"
+            className={`${input} pl-9`} />
+        </div>
+        <button onClick={() => setOnlyActive((v) => !v)}
+          className={`${btn} shrink-0 border ${onlyActive ? "border-primary bg-primary/10 text-primary" : "border-border"}`}>
+          З рухом коштів
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        <KpiCard label="План виручки" value={formatUah(totals.plan)} icon={PieChart} />
+        <KpiCard label="Надійшло" value={formatUah(totals.income)} icon={TrendingUp} tone="good" />
+        <KpiCard label="Витрачено" value={formatUah(totals.cost)} icon={ArrowDownCircle} tone="bad" />
+        <KpiCard label="Очікується" value={formatUah(totals.debt)} icon={Wallet} tone="warn" />
+        <KpiCard label="Прибуток (факт)" value={formatUah(totals.profit)} icon={CircleDollarSign} tone={totals.profit >= 0 ? "good" : "bad"} />
+      </div>
+
+      {isLoading && <div className="p-8 text-center text-sm text-muted-foreground">Завантаження каси по проєктах…</div>}
+      {!isLoading && !list.length && (
+        <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+          Замовлень із фінансовими даними не знайдено.
+        </div>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        {list.map((r: any) => (
+          <div key={r.id} className="rounded-2xl border border-border bg-card p-4 shadow-sm space-y-3">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+              <div className="min-w-0">
+                <div className="font-mono text-[11px] text-muted-foreground">{r.number}</div>
+                <div className="truncate font-bold">{r.name || "Без назви"}</div>
+                <div className="truncate text-xs text-muted-foreground">{r.clientName ?? r.address ?? "—"}</div>
+              </div>
+              <Link to="/orders/$id" params={{ id: r.id }}
+                className="shrink-0 rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground">
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+
+            <div className="space-y-1.5">
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">План</span><span className="tabular-nums font-semibold">{formatUah(r.revenuePlan)}</span></div>
+              <Bar value={r.revenuePlan} max={max} tone="bg-primary/50" />
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">Надійшло</span><span className="tabular-nums font-semibold text-success">{formatUah(r.income)}</span></div>
+              <Bar value={r.income} max={max} tone="bg-success" />
+              <div className="flex justify-between text-xs"><span className="text-muted-foreground">Витрати</span><span className="tabular-nums font-semibold text-destructive">{formatUah(r.costFact)}</span></div>
+              <Bar value={r.costFact} max={max} tone="bg-destructive" />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 border-t border-border pt-3 text-center">
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Борг</div>
+                <div className="text-sm font-black tabular-nums">{formatUah(r.debt)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Прибуток</div>
+                <div className={`text-sm font-black tabular-nums ${r.profitFact >= 0 ? "text-success" : "text-destructive"}`}>{formatUah(r.profitFact)}</div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Маржа</div>
+                <div className="text-sm font-black tabular-nums">{r.marginFact.toFixed(1)}%</div>
+              </div>
+            </div>
+
+            {Object.keys(r.byCategory).length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(r.byCategory).map(([k, v]) => (
+                  <span key={k} className="rounded-full bg-secondary px-2 py-0.5 text-[11px] text-muted-foreground">
+                    {EXPENSE_CATEGORIES.find((c) => c.key === k)?.label ?? k}: {formatUah(Number(v))}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
