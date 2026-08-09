@@ -206,3 +206,71 @@ export const getOrderPnl = createServerFn({ method: "POST" })
     const invoiced = ((invoices ?? []) as any[]).reduce((s, i) => s + (Number(i.total) || 0), 0);
     return { ...pnl, invoiced: Math.round(invoiced * 100) / 100, invoiceCount: (invoices ?? []).length };
   });
+
+/**
+ * Каса по проєктах: один зріз по всіх замовленнях (план з кошторисів,
+ * виставлено, отримано, витрати по категоріях, борг, маржа).
+ */
+export const listOrderCashflow = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const [{ data: orders, error }, { data: estimates }, { data: invoices }, { data: payments }, { data: expenses }] =
+      await Promise.all([
+        context.supabase
+          .from("orders")
+          .select("id,number,name,address,commercial_status,financial_status,client:client_id(name)")
+          .order("created_at", { ascending: false })
+          .limit(500),
+        context.supabase.from("estimates").select("order_id,total_client,total_cost"),
+        context.supabase.from("invoices").select("order_id,total,paid,status"),
+        context.supabase.from("payments").select("order_id,amount,direction"),
+        context.supabase.from("expenses").select("order_id,amount,category"),
+      ]);
+    if (error) { console.error("listOrderCashflow", error); throw new Error("Не вдалося завантажити касу по проєктах"); }
+
+    const num = (v: unknown) => Number(v) || 0;
+    const r2 = (v: number) => Math.round(v * 100) / 100;
+
+    return ((orders ?? []) as any[]).map((o) => {
+      const est = ((estimates ?? []) as any[]).filter((e) => e.order_id === o.id);
+      const inv = ((invoices ?? []) as any[]).filter((i) => i.order_id === o.id && i.status !== "cancelled");
+      const pay = ((payments ?? []) as any[]).filter((p) => p.order_id === o.id);
+      const exp = ((expenses ?? []) as any[]).filter((e) => e.order_id === o.id);
+
+      const revenuePlan = r2(est.reduce((s, e) => s + num(e.total_client), 0));
+      const costPlan = r2(est.reduce((s, e) => s + num(e.total_cost), 0));
+      const invoiced = r2(inv.reduce((s, i) => s + num(i.total), 0));
+      const income = r2(pay.filter((p) => p.direction === "in").reduce((s, p) => s + num(p.amount), 0));
+      const outflow = r2(pay.filter((p) => p.direction === "out").reduce((s, p) => s + num(p.amount), 0));
+      const costFact = r2(exp.reduce((s, e) => s + num(e.amount), 0) + outflow);
+
+      const byCategory: Record<string, number> = {};
+      for (const e of exp) byCategory[e.category ?? "other"] = r2((byCategory[e.category ?? "other"] ?? 0) + num(e.amount));
+
+      const profitPlan = r2(revenuePlan - costPlan);
+      const profitFact = r2(income - costFact);
+
+      return {
+        id: o.id,
+        number: o.number,
+        name: o.name,
+        address: o.address,
+        clientName: o.client?.name ?? null,
+        commercialStatus: o.commercial_status,
+        financialStatus: o.financial_status,
+        revenuePlan,
+        costPlan,
+        invoiced,
+        income,
+        costFact,
+        byCategory,
+        debt: r2(Math.max(0, (invoiced || revenuePlan) - income)),
+        profitPlan,
+        profitFact,
+        marginPlan: revenuePlan > 0 ? r2((profitPlan / revenuePlan) * 100) : 0,
+        marginFact: income > 0 ? r2((profitFact / income) * 100) : 0,
+        deviation: r2(profitFact - profitPlan),
+      };
+    });
+  });
+
