@@ -220,10 +220,20 @@ export const listCalls = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { data, error } = await context.supabase
-      .from("crm_calls").select("*").order("started_at", { ascending: false }).limit(300);
+      .from("crm_calls").select("*").order("started_at", { ascending: false }).limit(500);
     if (error) { console.error("listCalls", error); throw new Error("Не вдалося завантажити дзвінки"); }
     return data ?? [];
   });
+
+/** Посилання на аудіозапис розмови (Binotel). Запитується на вимогу і кешується. */
+export const getCallRecording = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ call_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data }) => {
+    const { fetchCallRecordingUrl } = await import("./integrations/binotel/record.server");
+    return await fetchCallRecordingUrl(data.call_id);
+  });
+
 
 const requestInput = z.object({
   id: z.string().uuid().optional(),
