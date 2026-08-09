@@ -2,11 +2,12 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Plus, Search, X, PhoneIncoming, PhoneOutgoing, PhoneCall } from "lucide-react";
+import { Plus, Search, X, PhoneIncoming, PhoneOutgoing, PhoneCall, PlayCircle, Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { listCalls, upsertCall } from "@/lib/crm.functions";
+import { listCalls, upsertCall, getCallRecording } from "@/lib/crm.functions";
+
 
 export const Route = createFileRoute("/crm/calls")({
   ssr: false,
@@ -166,3 +167,61 @@ function Kpi({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
+
+/** Рядок журналу з відтворенням аудіозапису розмови. */
+function CallRow({ call }: { call: any }) {
+  const recFn = useServerFn(getCallRecording);
+  const [url, setUrl] = useState<string | null>(call.recording_url ?? null);
+  const [open, setOpen] = useState(false);
+  const load = useMutation({
+    mutationFn: () => recFn({ data: { call_id: call.id } }),
+    onSuccess: (res: any) => {
+      if (res?.url) { setUrl(res.url); setOpen(true); }
+      else toast.info(res?.reason ?? "Запис недоступний");
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося отримати запис"),
+  });
+
+  const canHaveRecord = call.recording_url || call.recording_available || call.external_source === "binotel";
+
+  return (
+    <div className="px-3 py-2.5 text-sm">
+      <div className="flex items-center gap-3">
+        {call.direction === "inbound"
+          ? <PhoneIncoming className="w-4 h-4 text-primary shrink-0" />
+          : <PhoneOutgoing className="w-4 h-4 text-muted-foreground shrink-0" />}
+        <div className="min-w-0 flex-1">
+          <div className="font-medium truncate">{call.direction === "inbound" ? call.from_number : call.to_number}</div>
+          <div className="text-xs text-muted-foreground truncate">
+            {new Date(call.started_at).toLocaleString("uk-UA")} · {call.status || "—"}
+          </div>
+        </div>
+        <div className="text-xs font-semibold whitespace-nowrap tabular-nums">
+          {Math.floor((call.duration_sec || 0) / 60)}:{String((call.duration_sec || 0) % 60).padStart(2, "0")}
+        </div>
+        {canHaveRecord ? (
+          <button
+            onClick={() => (url ? setOpen((v) => !v) : load.mutate())}
+            disabled={load.isPending}
+            title="Прослухати запис розмови"
+            className={`shrink-0 grid h-8 w-8 place-items-center rounded-lg border transition-colors ${
+              open ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
+            }`}>
+            {load.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
+          </button>
+        ) : <span className="w-8 shrink-0" />}
+      </div>
+
+      {open && url ? (
+        <div className="mt-2 flex items-center gap-2">
+          <audio controls preload="none" src={url} className="h-9 w-full" />
+          <a href={url} target="_blank" rel="noreferrer"
+            className="shrink-0 rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground" title="Відкрити запис">
+            <ExternalLink className="w-4 h-4" />
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
