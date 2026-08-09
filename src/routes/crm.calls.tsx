@@ -100,24 +100,10 @@ function CallsPage() {
         </div>
 
         <div className="rounded-xl border border-border bg-card divide-y divide-border/60">
-          {rows.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 text-sm">
-              {c.direction === "inbound"
-                ? <PhoneIncoming className="w-4 h-4 text-primary shrink-0" />
-                : <PhoneOutgoing className="w-4 h-4 text-muted-foreground shrink-0" />}
-              <div className="min-w-0 flex-1">
-                <div className="font-medium truncate">{c.direction === "inbound" ? c.from_number : c.to_number}</div>
-                <div className="text-xs text-muted-foreground">
-                  {new Date(c.started_at).toLocaleString("uk-UA")} · {c.status || "—"}
-                </div>
-              </div>
-              <div className="text-xs font-semibold whitespace-nowrap">
-                {Math.floor((c.duration_sec || 0) / 60)}:{String((c.duration_sec || 0) % 60).padStart(2, "0")}
-              </div>
-            </div>
-          ))}
+          {rows.map((c) => <CallRow key={c.id} call={c} />)}
           {!rows.length ? <div className="px-3 py-6 text-center text-sm text-muted-foreground">Дзвінків немає</div> : null}
         </div>
+
       </div>
 
       {open ? (
