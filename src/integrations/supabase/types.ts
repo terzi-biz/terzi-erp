@@ -584,6 +584,48 @@ export type Database = {
           },
         ]
       }
+      brigade_rates: {
+        Row: {
+          active: boolean
+          bonus_max: number
+          category: string
+          created_at: string
+          crew_rate: number
+          id: string
+          sell_from: number | null
+          sell_to: number | null
+          sort_order: number
+          unit: string
+          work_name: string
+        }
+        Insert: {
+          active?: boolean
+          bonus_max?: number
+          category: string
+          created_at?: string
+          crew_rate?: number
+          id?: string
+          sell_from?: number | null
+          sell_to?: number | null
+          sort_order?: number
+          unit?: string
+          work_name: string
+        }
+        Update: {
+          active?: boolean
+          bonus_max?: number
+          category?: string
+          created_at?: string
+          crew_rate?: number
+          id?: string
+          sell_from?: number | null
+          sell_to?: number | null
+          sort_order?: number
+          unit?: string
+          work_name?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           address: string | null
@@ -4726,10 +4768,12 @@ export type Database = {
         Row: {
           access_notes: string | null
           address: string | null
+          amount_total: number
           client_id: string | null
           commercial_status: Database["public"]["Enums"]["object_commercial_status"]
           created_at: string
           crm_link: string | null
+          crm_status: string | null
           distance_km: number | null
           district: string | null
           financial_status: Database["public"]["Enums"]["object_financial_status"]
@@ -4738,12 +4782,16 @@ export type Database = {
           id: string
           latitude: number | null
           longitude: number | null
+          manager_comment: string | null
           manager_id: string | null
           name: string
           notes: string | null
           number: string
           order_type: string | null
+          ordered_at: string | null
           owner_id: string
+          paid_total: number
+          payment_status: string | null
           planned_end: string | null
           planned_start: string | null
           production_status: Database["public"]["Enums"]["object_production_status"]
@@ -4754,10 +4802,12 @@ export type Database = {
         Insert: {
           access_notes?: string | null
           address?: string | null
+          amount_total?: number
           client_id?: string | null
           commercial_status?: Database["public"]["Enums"]["object_commercial_status"]
           created_at?: string
           crm_link?: string | null
+          crm_status?: string | null
           distance_km?: number | null
           district?: string | null
           financial_status?: Database["public"]["Enums"]["object_financial_status"]
@@ -4766,12 +4816,16 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          manager_comment?: string | null
           manager_id?: string | null
           name: string
           notes?: string | null
           number: string
           order_type?: string | null
+          ordered_at?: string | null
           owner_id?: string
+          paid_total?: number
+          payment_status?: string | null
           planned_end?: string | null
           planned_start?: string | null
           production_status?: Database["public"]["Enums"]["object_production_status"]
@@ -4782,10 +4836,12 @@ export type Database = {
         Update: {
           access_notes?: string | null
           address?: string | null
+          amount_total?: number
           client_id?: string | null
           commercial_status?: Database["public"]["Enums"]["object_commercial_status"]
           created_at?: string
           crm_link?: string | null
+          crm_status?: string | null
           distance_km?: number | null
           district?: string | null
           financial_status?: Database["public"]["Enums"]["object_financial_status"]
@@ -4794,12 +4850,16 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          manager_comment?: string | null
           manager_id?: string | null
           name?: string
           notes?: string | null
           number?: string
           order_type?: string | null
+          ordered_at?: string | null
           owner_id?: string
+          paid_total?: number
+          payment_status?: string | null
           planned_end?: string | null
           planned_start?: string | null
           production_status?: Database["public"]["Enums"]["object_production_status"]
@@ -4883,6 +4943,244 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payroll_employees: {
+        Row: {
+          active: boolean
+          base_salary: number | null
+          created_at: string
+          full_name: string
+          hired_at: string | null
+          id: string
+          notes: string | null
+          position_id: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          active?: boolean
+          base_salary?: number | null
+          created_at?: string
+          full_name: string
+          hired_at?: string | null
+          id?: string
+          notes?: string | null
+          position_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          active?: boolean
+          base_salary?: number | null
+          created_at?: string
+          full_name?: string
+          hired_at?: string | null
+          id?: string
+          notes?: string | null
+          position_id?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_employees_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_entries: {
+        Row: {
+          advance: number
+          base_salary: number
+          bonus_total: number
+          comment: string | null
+          created_at: string
+          deductions: number
+          employee_id: string
+          id: string
+          kpi_results: Json
+          period_id: string
+          status: string
+          total_payout: number
+          updated_at: string
+        }
+        Insert: {
+          advance?: number
+          base_salary?: number
+          bonus_total?: number
+          comment?: string | null
+          created_at?: string
+          deductions?: number
+          employee_id: string
+          id?: string
+          kpi_results?: Json
+          period_id: string
+          status?: string
+          total_payout?: number
+          updated_at?: string
+        }
+        Update: {
+          advance?: number
+          base_salary?: number
+          bonus_total?: number
+          comment?: string | null
+          created_at?: string
+          deductions?: number
+          employee_id?: string
+          id?: string
+          kpi_results?: Json
+          period_id?: string
+          status?: string
+          total_payout?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_entries_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_kpi_templates: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          max_bonus: number
+          metric: string | null
+          position_id: string | null
+          scale: Json
+          sort_order: number
+          title: string
+          weight_percent: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_bonus?: number
+          metric?: string | null
+          position_id?: string | null
+          scale?: Json
+          sort_order?: number
+          title: string
+          weight_percent?: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          max_bonus?: number
+          metric?: string | null
+          position_id?: string | null
+          scale?: Json
+          sort_order?: number
+          title?: string
+          weight_percent?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_kpi_templates_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_periods: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          period: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      payroll_positions: {
+        Row: {
+          active: boolean
+          advance_percent: number
+          base_salary: number
+          bonus_percent: number | null
+          code: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          target_bonus: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          advance_percent?: number
+          base_salary?: number
+          bonus_percent?: number | null
+          code?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          target_bonus?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          advance_percent?: number
+          base_salary?: number
+          bonus_percent?: number | null
+          code?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          target_bonus?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       price_history: {
         Row: {
