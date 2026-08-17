@@ -95,6 +95,20 @@ export function ImportPanel({ integrationId }: { integrationId: string }) {
           </button>
           <button
             disabled={busy}
+            onClick={() => importAll({ restart: true, force: true, entities: ["orders"] })}
+            className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent disabled:opacity-50"
+          >
+            Повторний імпорт замовлень
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => importAll({ restart: true, force: true })}
+            className="px-3 py-1.5 rounded border border-border text-sm font-semibold hover:bg-accent disabled:opacity-50"
+          >
+            Повний повторний імпорт
+          </button>
+          <button
+            disabled={busy}
             onClick={() => importAll({ restart: false, dryRun: true })}
             className="px-3 py-1.5 rounded border border-primary/40 text-primary text-sm font-semibold hover:bg-primary/10 disabled:opacity-50"
           >
