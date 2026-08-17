@@ -530,7 +530,7 @@ export async function applyExternal(
   const extHash = await hashOf(ext);
 
   const materializedEntities = new Set(["pipelines", "pipeline_statuses", "buyers", "lead_cards", "orders", "comments"]);
-  if (link?.external_hash === extHash && (!materializedEntities.has(entity) || link.internal_id)) {
+  if (!opts.force && link?.external_hash === extHash && (!materializedEntities.has(entity) || link.internal_id)) {
     return { skipped: true, reason: "unchanged" };
   }
 
