@@ -421,12 +421,12 @@ export async function startImportOp(userId: string, input: { integrationId: stri
 
 export async function importChunkOp(
   userId: string,
-  input: { integrationId: string; entity: string; pageSize?: number; dryRun?: boolean },
+  input: { integrationId: string; entity: string; pageSize?: number; dryRun?: boolean; force?: boolean },
 ) {
   await requireAccessManager(userId);
   const integration = await loadIntegration(input.integrationId);
   if (!integration) throw new Error("Підключення не знайдено");
   const ctx = await buildContext(integration);
   const { importChunk } = await import("./keycrm/import.server");
-  return importChunk(ctx, input.entity, { pageSize: input.pageSize, dryRun: input.dryRun });
+  return importChunk(ctx, input.entity, { pageSize: input.pageSize, dryRun: input.dryRun, force: input.force });
 }

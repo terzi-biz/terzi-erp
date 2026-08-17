@@ -155,7 +155,7 @@ export async function importChunk(
   let failed = 0;
   for (const item of items) {
     try {
-      const res = await applyExternal(ctx, entity, item, mode as any);
+      const res = await applyExternal(ctx, entity, item, mode as any, { force: opts.force });
       if (res.skipped) skipped += 1;
       else applied += 1;
     } catch (e: any) {

@@ -372,6 +372,8 @@ export const runKeyCrmImportChunk = createServerFn({ method: "POST" })
         entity: z.string().min(1).max(40),
         pageSize: z.number().int().min(10).max(50).optional(),
         dryRun: z.boolean().optional(),
+        /** Ігнорувати перевірки «не новіше»/«без змін» — повний повторний імпорт. */
+        force: z.boolean().optional(),
       })
       .parse(d),
   )
