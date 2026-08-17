@@ -94,7 +94,7 @@ async function fetchStatuses(ctx: AdapterContext) {
 export async function importChunk(
   ctx: AdapterContext,
   entity: string,
-  opts: { pageSize?: number; dryRun?: boolean } = {},
+  opts: { pageSize?: number; dryRun?: boolean; force?: boolean } = {},
 ) {
   if (!(IMPORT_ORDER as readonly string[]).includes(entity)) {
     throw new Error(`Сутність «${entity}» не входить у початковий імпорт`);
@@ -155,7 +155,7 @@ export async function importChunk(
   let failed = 0;
   for (const item of items) {
     try {
-      const res = await applyExternal(ctx, entity, item, mode as any);
+      const res = await applyExternal(ctx, entity, item, mode as any, { force: opts.force });
       if (res.skipped) skipped += 1;
       else applied += 1;
     } catch (e: any) {

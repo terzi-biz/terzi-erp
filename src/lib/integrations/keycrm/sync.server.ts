@@ -507,13 +507,19 @@ async function applyReference(ctx: AdapterContext, entity: string, ext: any) {
 }
 
 /** Запис однієї зовнішньої сутності в ERP із захистом від дублів і циклів. */
-export async function applyExternal(ctx: AdapterContext, entity: string, ext: any, mode: SyncMode) {
+export async function applyExternal(
+  ctx: AdapterContext,
+  entity: string,
+  ext: any,
+  mode: SyncMode,
+  opts: { force?: boolean } = {},
+) {
   const externalId = String(ext?.id ?? "");
   if (!externalId) return { skipped: true, reason: "no_external_id" };
   const link = await getLink(ctx.integration.id, entity, externalId);
   const externalUpdatedAt = ext?.updated_at ?? ext?.modified_at ?? ext?.created_at ?? null;
 
-  if (link?.external_updated_at && externalUpdatedAt) {
+  if (!opts.force && link?.external_updated_at && externalUpdatedAt) {
     const storedTime = new Date(link.external_updated_at).getTime();
     const incomingTime = new Date(externalUpdatedAt).getTime();
     if (Number.isFinite(storedTime) && Number.isFinite(incomingTime) && incomingTime <= storedTime) {
@@ -524,7 +530,7 @@ export async function applyExternal(ctx: AdapterContext, entity: string, ext: an
   const extHash = await hashOf(ext);
 
   const materializedEntities = new Set(["pipelines", "pipeline_statuses", "buyers", "lead_cards", "orders", "comments"]);
-  if (link?.external_hash === extHash && (!materializedEntities.has(entity) || link.internal_id)) {
+  if (!opts.force && link?.external_hash === extHash && (!materializedEntities.has(entity) || link.internal_id)) {
     return { skipped: true, reason: "unchanged" };
   }
 

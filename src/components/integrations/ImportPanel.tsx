@@ -33,20 +33,21 @@ export function ImportPanel({ integrationId }: { integrationId: string }) {
   const rows = (runs.data ?? []) as any[];
   const refresh = () => qc.invalidateQueries({ queryKey: ["keycrm-import", integrationId] });
 
-  async function importAll(opts: { restart: boolean; dryRun?: boolean }) {
+  async function importAll(opts: { restart: boolean; dryRun?: boolean; force?: boolean; entities?: string[] }) {
     if (busy) return;
     setBusy(true);
     stopRef.current = false;
     try {
-      if (opts.restart && !opts.dryRun) await fnStart({ data: { integrationId } });
+      if (opts.restart && !opts.dryRun) await fnStart({ data: { integrationId, entities: opts.entities } });
       let totalApplied = 0;
-      for (const row of rows) {
+      const target = opts.entities?.length ? rows.filter((r) => opts.entities!.includes(r.entity)) : rows;
+      for (const row of target) {
         if (stopRef.current) break;
         setCurrent(row.label);
         for (let guard = 0; guard < 200; guard++) {
           if (stopRef.current) break;
           const res: any = await fnChunk({
-            data: { integrationId, entity: row.entity, pageSize: 50, dryRun: opts.dryRun },
+            data: { integrationId, entity: row.entity, pageSize: 50, dryRun: opts.dryRun, force: opts.force },
           });
           totalApplied += Number(res?.pageApplied ?? 0);
           refresh();
@@ -91,6 +92,20 @@ export function ImportPanel({ integrationId }: { integrationId: string }) {
             className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent disabled:opacity-50"
           >
             Почати з нуля
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => importAll({ restart: true, force: true, entities: ["orders"] })}
+            className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent disabled:opacity-50"
+          >
+            Повторний імпорт замовлень
+          </button>
+          <button
+            disabled={busy}
+            onClick={() => importAll({ restart: true, force: true })}
+            className="px-3 py-1.5 rounded border border-border text-sm font-semibold hover:bg-accent disabled:opacity-50"
+          >
+            Повний повторний імпорт
           </button>
           <button
             disabled={busy}
