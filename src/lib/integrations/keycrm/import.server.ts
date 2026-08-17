@@ -94,7 +94,7 @@ async function fetchStatuses(ctx: AdapterContext) {
 export async function importChunk(
   ctx: AdapterContext,
   entity: string,
-  opts: { pageSize?: number; dryRun?: boolean } = {},
+  opts: { pageSize?: number; dryRun?: boolean; force?: boolean } = {},
 ) {
   if (!(IMPORT_ORDER as readonly string[]).includes(entity)) {
     throw new Error(`Сутність «${entity}» не входить у початковий імпорт`);
