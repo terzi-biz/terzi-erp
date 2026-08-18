@@ -285,7 +285,7 @@ function MeasurementsTab({ o }: { o: any }) {
   const qc = useQueryClient();
   const saveFn = useServerFn(saveOrderMeasurement);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState<any>({ type: "primary", measured_at: "", area: "", perimeter: "", notes: "" });
+  const [form, setForm] = useState<any>({ type: "primary", measured_at: "", area: "", perimeter: "", weight_kg: "", notes: "" });
 
   const save = async () => {
     await saveFn({ data: {
@@ -293,9 +293,10 @@ function MeasurementsTab({ o }: { o: any }) {
       measured_at: form.measured_at || null,
       area: form.area ? Number(form.area) : null,
       perimeter: form.perimeter ? Number(form.perimeter) : null,
+      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
       notes: form.notes || null, status: "done",
     } });
-    setAdding(false); setForm({ type: "primary", measured_at: "", area: "", perimeter: "", notes: "" });
+    setAdding(false); setForm({ type: "primary", measured_at: "", area: "", perimeter: "", weight_kg: "", notes: "" });
     qc.invalidateQueries({ queryKey: ["object", o.id] });
   };
 
