@@ -214,17 +214,18 @@ export const getOrderPnl = createServerFn({ method: "POST" })
 export const listOrderCashflow = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [{ data: orders, error }, { data: estimates }, { data: invoices }, { data: payments }, { data: expenses }] =
+    const [{ data: orders, error }, { data: estimates }, { data: invoices }, { data: payments }, { data: expenses }, { data: measurements }] =
       await Promise.all([
         context.supabase
           .from("orders")
-          .select("id,number,name,address,commercial_status,financial_status,client:client_id(name)")
+          .select("id,number,name,address,commercial_status,financial_status,amount_total,paid_total,payment_status,crm_status,ordered_at,client:client_id(name)")
           .order("created_at", { ascending: false })
           .limit(500),
         context.supabase.from("estimates").select("order_id,total_client,total_cost"),
         context.supabase.from("invoices").select("order_id,total,paid,status"),
         context.supabase.from("payments").select("order_id,amount,direction"),
         context.supabase.from("expenses").select("order_id,amount,category"),
+        context.supabase.from("order_measurements").select("order_id,weight_kg,status"),
       ]);
     if (error) { console.error("listOrderCashflow", error); throw new Error("Не вдалося завантажити касу по проєктах"); }
 
