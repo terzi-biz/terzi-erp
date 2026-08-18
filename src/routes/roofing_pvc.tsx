@@ -150,7 +150,7 @@ function PvcPage() {
           <img src={logoAsset.url} alt="TERZI" className="w-12 h-12 rounded-md object-cover ring-1 ring-border" />
           <div>
             <div className="hatch-accent h-1 w-16 mb-2 rounded" />
-            <h1 className="text-xl md:text-2xl font-black">Покрівля · ПВХ мембрана</h1>
+            <h1 className="text-xl md:text-2xl font-black">ПВХ мембрана</h1>
             <p className="text-xs text-muted-foreground mt-1">Sika 1.5 / 1.8 мм · нахльост ×{DEFAULT_PVC_COEFFS.overlapCoef} · горизонталь + вертикаль парапету</p>
           </div>
         </div>

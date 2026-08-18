@@ -16,8 +16,8 @@ type Mod = "screed" | "roofing_pvc" | "roofing_rub" | "insulation" | "demolition
 
 const MOD_LABEL: Record<Mod, string> = {
   screed: "Стяжка",
-  roofing_pvc: "Покрівля · ПВХ мембрана",
-  roofing_rub: "Покрівля · Руберойд",
+  roofing_pvc: "ПВХ мембрана",
+  roofing_rub: "Руберойд",
   insulation: "Утеплення",
   demolition: "Демонтаж",
 };
