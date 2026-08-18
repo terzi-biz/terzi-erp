@@ -24,6 +24,9 @@ function stable(value: unknown): string {
 
 export const hashOf = (v: unknown) => sha256Hex(stable(v));
 
+/** Воронки keyCRM, які не переносимо в ERP (HR та партнери/підрядники). */
+export const EXCLUDED_PIPELINE_RE = /(^|\W)(HR|ПАРТНЕР|ПОДРЯД|ПІДРЯД)/i;
+
 export function normPhone(raw: unknown): string | null {
   const digits = String(raw ?? "").replace(/\D/g, "");
   if (digits.length < 9) return null;
