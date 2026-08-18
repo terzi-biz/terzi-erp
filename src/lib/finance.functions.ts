@@ -237,6 +237,7 @@ export const listOrderCashflow = createServerFn({ method: "GET" })
       const inv = ((invoices ?? []) as any[]).filter((i) => i.order_id === o.id && i.status !== "cancelled");
       const pay = ((payments ?? []) as any[]).filter((p) => p.order_id === o.id);
       const exp = ((expenses ?? []) as any[]).filter((e) => e.order_id === o.id);
+      const meas = ((measurements ?? []) as any[]).filter((m) => m.order_id === o.id);
 
       const revenuePlan = r2(est.reduce((s, e) => s + num(e.total_client), 0));
       const costPlan = r2(est.reduce((s, e) => s + num(e.total_cost), 0));
