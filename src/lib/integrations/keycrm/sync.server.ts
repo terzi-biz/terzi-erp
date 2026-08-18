@@ -581,6 +581,18 @@ export async function applyExternal(
     }
   }
 
+  // Виключені воронки (HR, партнери/підрядники) — не імпортуємо ні воронку, ні її етапи та картки.
+  if (entity === "pipelines" && EXCLUDED_PIPELINE_RE.test(String(ext.title ?? ext.name ?? ""))) {
+    return { skipped: true, reason: "excluded_pipeline" };
+  }
+  if (entity === "pipeline_statuses" || entity === "lead_cards") {
+    const pipeExt = ext.pipeline_id ?? ext.funnel_id ?? null;
+    if (pipeExt != null) {
+      const pl = await getLink(ctx.integration.id, "pipelines", String(pipeExt));
+      if (!pl?.internal_id) return { skipped: true, reason: "excluded_pipeline" };
+    }
+  }
+
   let result: { internalId: string | null; table: string | null };
   switch (entity) {
     case "pipelines": result = await applyPipeline(ctx, ext); break;
