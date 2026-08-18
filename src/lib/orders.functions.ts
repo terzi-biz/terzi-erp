@@ -328,6 +328,7 @@ const measurementInput = z.object({
   contact_on_site: z.string().max(200).optional().nullable(),
   area: z.number().optional().nullable(),
   perimeter: z.number().optional().nullable(),
+  weight_kg: z.number().optional().nullable(),
   thicknesses: z.any().optional(),
   slopes: z.any().optional(),
   base: z.any().optional(),
