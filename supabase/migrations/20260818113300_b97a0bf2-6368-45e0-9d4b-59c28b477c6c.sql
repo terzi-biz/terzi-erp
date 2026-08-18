@@ -1,0 +1,1 @@
+ALTER TABLE public.order_measurements ADD COLUMN IF NOT EXISTS weight_kg numeric;

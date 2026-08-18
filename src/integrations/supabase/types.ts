@@ -4566,6 +4566,7 @@ export type Database = {
           thicknesses: Json | null
           type: Database["public"]["Enums"]["object_measurement_type"]
           updated_at: string
+          weight_kg: number | null
         }
         Insert: {
           area?: number | null
@@ -4586,6 +4587,7 @@ export type Database = {
           thicknesses?: Json | null
           type?: Database["public"]["Enums"]["object_measurement_type"]
           updated_at?: string
+          weight_kg?: number | null
         }
         Update: {
           area?: number | null
@@ -4606,6 +4608,7 @@ export type Database = {
           thicknesses?: Json | null
           type?: Database["public"]["Enums"]["object_measurement_type"]
           updated_at?: string
+          weight_kg?: number | null
         }
         Relationships: [
           {

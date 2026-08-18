@@ -285,7 +285,7 @@ function MeasurementsTab({ o }: { o: any }) {
   const qc = useQueryClient();
   const saveFn = useServerFn(saveOrderMeasurement);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState<any>({ type: "primary", measured_at: "", area: "", perimeter: "", notes: "" });
+  const [form, setForm] = useState<any>({ type: "primary", measured_at: "", area: "", perimeter: "", weight_kg: "", notes: "" });
 
   const save = async () => {
     await saveFn({ data: {
@@ -293,9 +293,10 @@ function MeasurementsTab({ o }: { o: any }) {
       measured_at: form.measured_at || null,
       area: form.area ? Number(form.area) : null,
       perimeter: form.perimeter ? Number(form.perimeter) : null,
+      weight_kg: form.weight_kg ? Number(form.weight_kg) : null,
       notes: form.notes || null, status: "done",
     } });
-    setAdding(false); setForm({ type: "primary", measured_at: "", area: "", perimeter: "", notes: "" });
+    setAdding(false); setForm({ type: "primary", measured_at: "", area: "", perimeter: "", weight_kg: "", notes: "" });
     qc.invalidateQueries({ queryKey: ["object", o.id] });
   };
 
@@ -304,7 +305,10 @@ function MeasurementsTab({ o }: { o: any }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">Замери ({o.measurements?.length ?? 0})</div>
+        <div className="text-sm text-muted-foreground">
+          Замовлення {o.number} · Замерів: {o.measurements?.length ?? 0} ·{" "}
+          {(o.measurements ?? []).reduce((s: number, m: any) => s + (Number(m.weight_kg) || 0), 0).toLocaleString("uk-UA")} кг
+        </div>
         <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-semibold">
           <Plus className="w-3.5 h-3.5" /> Додати замер
         </button>
@@ -321,6 +325,8 @@ function MeasurementsTab({ o }: { o: any }) {
             <input placeholder="Площа м²" type="number" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })}
               className="rounded border border-input bg-background px-2 py-1.5 text-xs" />
             <input placeholder="Периметр м" type="number" value={form.perimeter} onChange={(e) => setForm({ ...form, perimeter: e.target.value })}
+              className="rounded border border-input bg-background px-2 py-1.5 text-xs" />
+            <input placeholder="Вага, кг" type="number" step="0.01" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
               className="rounded border border-input bg-background px-2 py-1.5 text-xs" />
           </div>
           <textarea placeholder="Нотатки, основа, ...*" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3}
@@ -341,7 +347,7 @@ function MeasurementsTab({ o }: { o: any }) {
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Площа: {m.area ?? "—"} м² · Периметр: {m.perimeter ?? "—"} м
+              Площа: {m.area ?? "—"} м² · Периметр: {m.perimeter ?? "—"} м · Вага: {m.weight_kg ?? "—"} кг
             </div>
             {m.notes && <div className="text-xs mt-1">{m.notes}</div>}
           </div>

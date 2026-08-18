@@ -156,7 +156,7 @@ function RubPage() {
           <img src={logoAsset.url} alt="TERZI" className="w-12 h-12 rounded-md object-cover ring-1 ring-border" />
           <div>
             <div className="hatch-accent h-1 w-16 mb-2 rounded" />
-            <h1 className="text-xl md:text-2xl font-black">Покрівля · Руберойд</h1>
+            <h1 className="text-xl md:text-2xl font-black">Руберойд</h1>
             <p className="text-xs text-muted-foreground mt-1">Наплавні бітумні системи Акваізол / Руберіт — 1, 2 або 3 шари</p>
           </div>
         </div>

@@ -24,6 +24,9 @@ function stable(value: unknown): string {
 
 export const hashOf = (v: unknown) => sha256Hex(stable(v));
 
+/** Воронки keyCRM, які не переносимо в ERP (HR та партнери/підрядники). */
+export const EXCLUDED_PIPELINE_RE = /(^|\W)(HR|ПАРТНЕР|ПОДРЯД|ПІДРЯД)/i;
+
 export function normPhone(raw: unknown): string | null {
   const digits = String(raw ?? "").replace(/\D/g, "");
   if (digits.length < 9) return null;
@@ -357,6 +360,25 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
       clientId = (contact as any)?.client_id ?? null;
     }
   }
+  const numOrNull = (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : null;
+  };
+  const isoOrNull = (v: unknown) => {
+    if (!v) return null;
+    const s = String(v).replace(" ", "T");
+    const d = new Date(/Z|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`);
+    return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+  };
+  const amountTotal = numOrNull(ext.grand_total ?? ext.total_price ?? ext.amount ?? ext.total);
+  const paidTotal =
+    numOrNull(ext.payments_total ?? ext.paid_total ?? ext.paid_amount) ??
+    (Array.isArray(ext.payments)
+      ? ext.payments
+          .filter((p: any) => String(p?.status ?? "paid").toLowerCase() === "paid")
+          .reduce((s: number, p: any) => s + (Number(p?.amount) || 0), 0)
+      : null);
+
   const row = {
     number: `KCRM-${externalId}`,
     name: String(ext.title ?? ext.name ?? `Замовлення keyCRM #${externalId}`),
@@ -365,6 +387,14 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
     address: ext.shipping?.address ?? ext.delivery_address ?? ext.address ?? null,
     crm_link: `keycrm:order:${externalId}`,
     notes: ext.manager_comment ?? ext.comment ?? null,
+    amount_total: amountTotal,
+    paid_total: paidTotal,
+    payment_status: ext.payment_status ?? (paidTotal != null && amountTotal != null
+      ? (paidTotal <= 0 ? "unpaid" : paidTotal + 0.01 >= amountTotal ? "paid" : "partial")
+      : null),
+    crm_status: ext.status?.name ?? ext.status_name ?? (typeof ext.status === "string" ? ext.status : null),
+    ordered_at: isoOrNull(ext.ordered_at ?? ext.created_at ?? ext.createdAt),
+    manager_comment: ext.manager_comment ?? null,
   };
   if (!internalId) {
     const { data: byNumber } = await db.from("orders").select("id").eq("number", row.number).maybeSingle();
@@ -551,6 +581,18 @@ export async function applyExternal(
         });
         return { skipped: true, reason: "conflict" };
       }
+    }
+  }
+
+  // Виключені воронки (HR, партнери/підрядники) — не імпортуємо ні воронку, ні її етапи та картки.
+  if (entity === "pipelines" && EXCLUDED_PIPELINE_RE.test(String(ext.title ?? ext.name ?? ""))) {
+    return { skipped: true, reason: "excluded_pipeline" };
+  }
+  if (entity === "pipeline_statuses" || entity === "lead_cards") {
+    const pipeExt = ext.pipeline_id ?? ext.funnel_id ?? null;
+    if (pipeExt != null) {
+      const pl = await getLink(ctx.integration.id, "pipelines", String(pipeExt));
+      if (!pl?.internal_id) return { skipped: true, reason: "excluded_pipeline" };
     }
   }
 

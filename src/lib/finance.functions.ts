@@ -214,17 +214,18 @@ export const getOrderPnl = createServerFn({ method: "POST" })
 export const listOrderCashflow = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [{ data: orders, error }, { data: estimates }, { data: invoices }, { data: payments }, { data: expenses }] =
+    const [{ data: orders, error }, { data: estimates }, { data: invoices }, { data: payments }, { data: expenses }, { data: measurements }] =
       await Promise.all([
         context.supabase
           .from("orders")
-          .select("id,number,name,address,commercial_status,financial_status,client:client_id(name)")
+          .select("id,number,name,address,commercial_status,financial_status,amount_total,paid_total,payment_status,crm_status,ordered_at,client:client_id(name)")
           .order("created_at", { ascending: false })
           .limit(500),
         context.supabase.from("estimates").select("order_id,total_client,total_cost"),
         context.supabase.from("invoices").select("order_id,total,paid,status"),
         context.supabase.from("payments").select("order_id,amount,direction"),
         context.supabase.from("expenses").select("order_id,amount,category"),
+        context.supabase.from("order_measurements").select("order_id,weight_kg,status"),
       ]);
     if (error) { console.error("listOrderCashflow", error); throw new Error("Не вдалося завантажити касу по проєктах"); }
 
@@ -236,6 +237,7 @@ export const listOrderCashflow = createServerFn({ method: "GET" })
       const inv = ((invoices ?? []) as any[]).filter((i) => i.order_id === o.id && i.status !== "cancelled");
       const pay = ((payments ?? []) as any[]).filter((p) => p.order_id === o.id);
       const exp = ((expenses ?? []) as any[]).filter((e) => e.order_id === o.id);
+      const meas = ((measurements ?? []) as any[]).filter((m) => m.order_id === o.id);
 
       const revenuePlan = r2(est.reduce((s, e) => s + num(e.total_client), 0));
       const costPlan = r2(est.reduce((s, e) => s + num(e.total_cost), 0));
@@ -258,6 +260,15 @@ export const listOrderCashflow = createServerFn({ method: "GET" })
         clientName: o.client?.name ?? null,
         commercialStatus: o.commercial_status,
         financialStatus: o.financial_status,
+        // Поля keyCRM: сума замовлення, сплачено, статус оплати, статус CRM, дата замовлення
+        crmAmount: r2(num(o.amount_total)),
+        crmPaid: r2(num(o.paid_total)),
+        crmPaymentStatus: o.payment_status ?? null,
+        crmStatus: o.crm_status ?? null,
+        orderedAt: o.ordered_at ?? null,
+        crmDebt: r2(Math.max(0, num(o.amount_total) - num(o.paid_total))),
+        measurementsCount: meas.length,
+        measurementsKg: r2(meas.reduce((s, m) => s + num(m.weight_kg), 0)),
         revenuePlan,
         costPlan,
         invoiced,

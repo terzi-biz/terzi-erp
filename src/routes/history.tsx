@@ -45,7 +45,7 @@ interface EstimateRow {
 }
 
 const MODULE_LABEL: Record<string, string> = {
-  screed: "Стяжка", roofing: "Покрівля", roofing_pvc: "Покрівля · ПВХ", roofing_rub: "Покрівля · Руберойд", insulation: "Утеплення", demolition: "Демонтаж",
+  screed: "Стяжка", roofing: "Покрівля", roofing_pvc: "ПВХ мембрана", roofing_rub: "Руберойд", insulation: "Утеплення", demolition: "Демонтаж",
 };
 
 const STATUS_CLS: Record<string, string> = {
