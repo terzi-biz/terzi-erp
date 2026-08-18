@@ -305,7 +305,10 @@ function MeasurementsTab({ o }: { o: any }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <div className="text-sm text-muted-foreground">Замери ({o.measurements?.length ?? 0})</div>
+        <div className="text-sm text-muted-foreground">
+          Замовлення {o.number} · Замерів: {o.measurements?.length ?? 0} ·{" "}
+          {(o.measurements ?? []).reduce((s: number, m: any) => s + (Number(m.weight_kg) || 0), 0).toLocaleString("uk-UA")} кг
+        </div>
         <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-semibold">
           <Plus className="w-3.5 h-3.5" /> Додати замер
         </button>
