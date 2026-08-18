@@ -654,6 +654,15 @@ function ProjectsTab() {
               </div>
             </div>
 
+            <div className="grid grid-cols-2 gap-2 border-t border-border pt-3 text-xs">
+              <div className="flex justify-between"><span className="text-muted-foreground">Сума (CRM)</span><span className="tabular-nums font-semibold">{formatUah(r.crmAmount)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Сплачено</span><span className="tabular-nums font-semibold text-success">{formatUah(r.crmPaid)}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Статус оплати</span><span className="font-semibold">{r.crmPaymentStatus ?? "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Дата замовлення</span><span className="tabular-nums">{r.orderedAt ? new Date(r.orderedAt).toLocaleDateString("uk-UA") : "—"}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Замірів</span><span className="tabular-nums font-semibold">{r.measurementsCount}</span></div>
+              <div className="flex justify-between"><span className="text-muted-foreground">Вага замірів</span><span className="tabular-nums font-semibold">{r.measurementsKg.toLocaleString("uk-UA")} кг</span></div>
+            </div>
+
             {Object.keys(r.byCategory).length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {Object.entries(r.byCategory).map(([k, v]) => (
