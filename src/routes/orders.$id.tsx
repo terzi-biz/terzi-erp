@@ -347,7 +347,7 @@ function MeasurementsTab({ o }: { o: any }) {
               </div>
             </div>
             <div className="text-xs text-muted-foreground mt-1">
-              Площа: {m.area ?? "—"} м² · Периметр: {m.perimeter ?? "—"} м
+              Площа: {m.area ?? "—"} м² · Периметр: {m.perimeter ?? "—"} м · Вага: {m.weight_kg ?? "—"} кг
             </div>
             {m.notes && <div className="text-xs mt-1">{m.notes}</div>}
           </div>
