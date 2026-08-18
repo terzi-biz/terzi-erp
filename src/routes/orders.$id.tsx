@@ -326,6 +326,8 @@ function MeasurementsTab({ o }: { o: any }) {
               className="rounded border border-input bg-background px-2 py-1.5 text-xs" />
             <input placeholder="Периметр м" type="number" value={form.perimeter} onChange={(e) => setForm({ ...form, perimeter: e.target.value })}
               className="rounded border border-input bg-background px-2 py-1.5 text-xs" />
+            <input placeholder="Вага, кг" type="number" step="0.01" value={form.weight_kg} onChange={(e) => setForm({ ...form, weight_kg: e.target.value })}
+              className="rounded border border-input bg-background px-2 py-1.5 text-xs" />
           </div>
           <textarea placeholder="Нотатки, основа, ...*" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3}
             className="w-full rounded border border-input bg-background px-2 py-1.5 text-xs" />
