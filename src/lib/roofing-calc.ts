@@ -299,23 +299,70 @@ export function calculateRoofing(
 
   if (input.system === "rubemast") {
     const layers = input.layers;
+    // 1 шар = тільки верхній (з посипкою); 2 шари = нижній + верхній; 3 шари = 2 нижніх + верхній.
+    const topLayers = 1;
+    const bottomLayers = Math.max(0, layers - 1);
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
-    const totalM2 = perLayerM2 * layers;
-    rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
-    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_eko_30" : "ruberit_eko_35";
-    const brandLabel = input.rubemastBrand === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт";
-    lines.push({
-      key: "m_rubemast", block: "materials",
-      name: `${brandLabel} (${layers} ${layers === 1 ? "шар" : "шари"})`,
-      unit: "рул.", qty: rollsCount,
-      pricePerUnit: px(brandKey).sell, costPerUnit: px(brandKey).buy,
-      sum: rollsCount * px(brandKey).sell, cost: rollsCount * px(brandKey).buy,
-    });
 
+    if (input.withPrepBase) {
+      lines.push({
+        key: "w_prep", block: "works", name: "Підготовка основи", unit: "м²",
+        qty: area, pricePerUnit: works.prep, costPerUnit: wcost("prep"),
+        sum: area * works.prep, cost: area * wcost("prep"),
+      });
+    }
+
+    const bottomRoll = findRoll(input.bottomRollCode, "bottom");
+    const topRoll = findRoll(input.topRollCode, "top");
+    const bottomRollArea = Math.max(1, Number(input.bottomRollAreaM2) || bottomRoll?.rollM2 || c.rubemastRollAreaM2);
+    const topRollArea = Math.max(1, Number(input.topRollAreaM2) || topRoll?.rollM2 || c.rubemastRollAreaM2);
+
+    let bottomRolls = 0;
+    let topRolls = 0;
+
+    if (bottomLayers > 0 && bottomRoll) {
+      bottomRolls = ceil((perLayerM2 * bottomLayers) / bottomRollArea);
+      const sell = +(bottomRoll.sellPerM2 * bottomRollArea).toFixed(2);
+      const buy = +(bottomRoll.buyPerM2 * bottomRollArea).toFixed(2);
+      lines.push({
+        key: "m_roll_bottom", block: "materials",
+        name: `Нижній шар: ${bottomRoll.name} (рулон ${bottomRollArea} м²)`,
+        unit: "рул.", qty: bottomRolls, pricePerUnit: sell, costPerUnit: buy,
+        sum: bottomRolls * sell, cost: bottomRolls * buy,
+      });
+      const qty = area * bottomLayers;
+      lines.push({
+        key: "w_lay_bottom", block: "works",
+        name: `Укладка нижнього шару${bottomLayers > 1 ? ` (${bottomLayers} шари)` : ""}`,
+        unit: "м²", qty, pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
+        sum: qty * works.rubemast_lay, cost: qty * wcost("rubemast_lay"),
+      });
+    }
+
+    if (topRoll) {
+      topRolls = ceil((perLayerM2 * topLayers) / topRollArea);
+      const sell = +(topRoll.sellPerM2 * topRollArea).toFixed(2);
+      const buy = +(topRoll.buyPerM2 * topRollArea).toFixed(2);
+      lines.push({
+        key: "m_roll_top", block: "materials",
+        name: `Верхній шар з посипкою: ${topRoll.name} (рулон ${topRollArea} м²)`,
+        unit: "рул.", qty: topRolls, pricePerUnit: sell, costPerUnit: buy,
+        sum: topRolls * sell, cost: topRolls * buy,
+      });
+      lines.push({
+        key: "w_lay_top", block: "works", name: "Укладка верхнього шару", unit: "м²",
+        qty: area, pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
+        sum: area * works.rubemast_lay, cost: area * wcost("rubemast_lay"),
+      });
+    }
+
+    rollsCount = bottomRolls + topRolls;
+
+    const totalM2 = perLayerM2 * layers;
     const gasKg = totalM2 * c.rubemastGasKgPerLayerM2;
     gasCylinders = ceil(gasKg / c.rubemastGasCylinderKg);
     lines.push({
-      key: "m_gas", block: "materials", name: "Газ пропан", unit: "бал.",
+      key: "m_gas", block: "materials", name: `Газ пропан (балон ${c.rubemastGasCylinderKg} кг)`, unit: "бал.",
       qty: gasCylinders, pricePerUnit: px("gas").sell, costPerUnit: px("gas").buy,
       sum: gasCylinders * px("gas").sell, cost: gasCylinders * px("gas").buy,
     });
