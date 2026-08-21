@@ -411,13 +411,6 @@ export function calculateRoofing(
       });
     }
 
-    lines.push({
-      key: "w_rubemast", block: "works",
-      name: `Наплавлення рубемасту (${layers} ${layers === 1 ? "шар" : "шари"})`,
-      unit: "м²", qty: area * layers,
-      pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
-      sum: area * layers * works.rubemast_lay, cost: area * layers  * wcost("rubemast_lay"),
-    });
   } else {
     // PVC Sika
     const pvcKey = input.pvcThickness === "1.8" ? "pvc_18_sika" : "pvc_15_sika";
