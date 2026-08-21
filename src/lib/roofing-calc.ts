@@ -20,6 +20,7 @@ import {
   ROOFING_KB_WORK_OVERRIDES,
   ROOFING_KB_COEFF_OVERRIDES,
 } from "./roofing-knowledge.generated";
+import { findRoll } from "./roofing-rolls";
 
 export type RoofSystem = "rubemast" | "pvc";
 export type PvcThickness = "1.5" | "1.8";
@@ -171,6 +172,7 @@ export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
 
 // Продаж клієнту (грн).
 const RAW_ROOFING_WORKS = {
+  prep: 40,             // Підготовка основи, м²
   rubemast_lay: 160,   // за шар, м² (Монтаж Рубероида)
   primer_apply: 20,
   pvc_lay: 160,        // Монтаж ПВХ мембрани, м²
@@ -572,7 +574,7 @@ export function calculateRoofing(
   }
   if (input.withParapetWork && perimeter > 0) {
     lines.push({
-      key: "w_parapet", block: "works", name: "Обробка парапету/примикань", unit: "п.м",
+      key: "w_parapet", block: "works", name: "Укладка на парапет / примикання", unit: "п.м",
       qty: perimeter, pricePerUnit: works.parapet, costPerUnit: wcost("parapet"),
       sum: perimeter * works.parapet, cost: perimeter  * wcost("parapet"),
     });
@@ -608,6 +610,26 @@ export function calculateRoofing(
   // Бригадна оплата тепер закладена у costPerUnit кожної роботи (ПМЗ Майстерів).
   // Залишаємо мін. оплату як floor для дуже малих замовлень.
   void c.brigadePerM2Rubemast; void c.brigadePerM2Pvc;
+
+  // Порядок позицій у кошторисі (за методикою TERZI).
+  const LINE_ORDER = [
+    "w_prep", "w_demount", "w_slope", "m_xps",
+    "m_primer", "w_primer",
+    "m_galtel_mix", "w_galtel",
+    "m_roll_bottom", "w_lay_bottom",
+    "m_roll_top", "w_lay_top",
+    "m_gas",
+    "w_parapet",
+    "m_opaika", "w_opaika",
+    "m_aerator", "w_aerator",
+    "m_funnel", "w_funnel",
+    "m_drip", "w_drip",
+  ];
+  const orderIdx = (k: string) => {
+    const i = LINE_ORDER.indexOf(k);
+    return i === -1 ? LINE_ORDER.length : i;
+  };
+  lines.sort((a, b) => orderIdx(a.key) - orderIdx(b.key));
 
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
   const worksSell = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.sum, 0);
