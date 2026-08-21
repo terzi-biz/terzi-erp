@@ -405,7 +405,7 @@ export function calculateRoofing(
         sum: masticKg * px("opaika_mastic").sell, cost: masticKg * px("opaika_mastic").buy,
       });
       lines.push({
-        key: "w_opaika", block: "works", name: "Точки опайки/локальний ремонт", unit: "шт",
+        key: "w_opaika", block: "works", name: "Точка обпайки", unit: "шт",
         qty: input.opaikaPoints, pricePerUnit: works.opaika, costPerUnit: wcost("opaika"),
         sum: input.opaikaPoints * works.opaika, cost: input.opaikaPoints  * wcost("opaika"),
       });
