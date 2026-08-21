@@ -45,6 +45,13 @@ export interface RoofingInput {
   withGaltel: boolean;          // rubemast: цементно-піщана галтель по периметру
   galtelMetersOverride: number; // якщо >0 — використати замість периметру
 
+  // Rubemast: вибір рулонів по шарах
+  withPrepBase?: boolean;       // підготовка основи
+  bottomRollCode?: string;      // нижній (підкладковий) шар
+  topRollCode?: string;         // верхній шар з посипкою
+  bottomRollAreaM2?: number;    // площа рулона нижнього шару: 10 / 15 м²
+  topRollAreaM2?: number;       // площа рулона верхнього шару: 10 / 15 м²
+
   // Accessories
   funnelsCount: number;
   aeratorsCount: number;
