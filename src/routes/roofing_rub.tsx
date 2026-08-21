@@ -18,6 +18,7 @@ import {
   type RoofingInput, type PaymentForm, type PvcThickness, type RubemastBrand,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
+import { BOTTOM_ROLLS, TOP_ROLLS, DEFAULT_BOTTOM_ROLL, DEFAULT_TOP_ROLL, ROLL_AREA_OPTIONS } from "@/lib/roofing-rolls";
 import { AlertTriangle, Save, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
@@ -70,6 +71,9 @@ const defaultInput: RoofingInput = {
   withPrimer: true, withSlope: false, slopeAvgThicknessMm: 50,
   withDemount: false, withGeotextile: true, withParapetWork: true,
   withGaltel: false, galtelMetersOverride: 0,
+  withPrepBase: true,
+  bottomRollCode: DEFAULT_BOTTOM_ROLL, topRollCode: DEFAULT_TOP_ROLL,
+  bottomRollAreaM2: 15, topRollAreaM2: 10,
   funnelsCount: 0, aeratorsCount: 0, dripEdgeMeters: 0,
   innerCornersCount: 0, outerCornersCount: 0, opaikaPoints: 0,
   pvcAngleMeters: 0, pvcClampStripMeters: 0,
@@ -217,6 +221,42 @@ function RubPage() {
                     ))}
                   </div>
                 </Field>
+                <Field label="Нижній шар (підкладковий, без посипки)" hint="Матеріал нижніх шарів. Використовується, коли шарів 2 або 3.">
+                  <select className={inp} value={input.bottomRollCode ?? DEFAULT_BOTTOM_ROLL}
+                    onChange={(e) => upd("bottomRollCode", e.target.value)} disabled={input.layers < 2}>
+                    {BOTTOM_ROLLS.map((r) => (
+                      <option key={r.code} value={r.code}>{r.name} · {r.rollM2} м²/рул.</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Площа рулона нижнього шару">
+                  <div className="flex gap-2">
+                    {ROLL_AREA_OPTIONS.map((a) => (
+                      <button key={a} onClick={() => upd("bottomRollAreaM2", a)} disabled={input.layers < 2}
+                        className={`flex-1 py-2 rounded font-bold text-xs disabled:opacity-40 ${input.bottomRollAreaM2 === a ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {a} м²
+                      </button>
+                    ))}
+                  </div>
+                </Field>
+                <Field label="Верхній шар (з посипкою)" hint="Фінішний рулон з кам'яною посипкою — завжди 1 шар зверху.">
+                  <select className={inp} value={input.topRollCode ?? DEFAULT_TOP_ROLL}
+                    onChange={(e) => upd("topRollCode", e.target.value)}>
+                    {TOP_ROLLS.map((r) => (
+                      <option key={r.code} value={r.code}>{r.name} · {r.rollM2} м²/рул.</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Площа рулона верхнього шару">
+                  <div className="flex gap-2">
+                    {ROLL_AREA_OPTIONS.map((a) => (
+                      <button key={a} onClick={() => upd("topRollAreaM2", a)}
+                        className={`flex-1 py-2 rounded font-bold text-xs ${input.topRollAreaM2 === a ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
+                        {a} м²
+                      </button>
+                    ))}
+                  </div>
+                </Field>
                 <Field label="Кількість шарів">
                   <div className="flex gap-2">
                     {([1, 2, 3] as const).map((n) => (
@@ -280,6 +320,7 @@ function RubPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {input.system === "rubemast" && (
                 <>
+                  <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withPrepBase ?? false} onChange={(e) => upd("withPrepBase", e.target.checked)} />Підготовка основи</label>
                   <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withPrimer} onChange={(e) => upd("withPrimer", e.target.checked)} />Бітумний праймер</label>
                   <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={input.withGaltel} onChange={(e) => upd("withGaltel", e.target.checked)} />Галтель по периметру (ц/п)</label>
                 </>

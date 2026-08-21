@@ -20,6 +20,7 @@ import {
   ROOFING_KB_WORK_OVERRIDES,
   ROOFING_KB_COEFF_OVERRIDES,
 } from "./roofing-knowledge.generated";
+import { findRoll } from "./roofing-rolls";
 
 export type RoofSystem = "rubemast" | "pvc";
 export type PvcThickness = "1.5" | "1.8";
@@ -44,6 +45,13 @@ export interface RoofingInput {
   withParapetWork: boolean;
   withGaltel: boolean;          // rubemast: цементно-піщана галтель по периметру
   galtelMetersOverride: number; // якщо >0 — використати замість периметру
+
+  // Rubemast: вибір рулонів по шарах
+  withPrepBase?: boolean;       // підготовка основи
+  bottomRollCode?: string;      // нижній (підкладковий) шар
+  topRollCode?: string;         // верхній шар з посипкою
+  bottomRollAreaM2?: number;    // площа рулона нижнього шару: 10 / 15 м²
+  topRollAreaM2?: number;       // площа рулона верхнього шару: 10 / 15 м²
 
   // Accessories
   funnelsCount: number;
@@ -164,6 +172,7 @@ export const DEFAULT_ROOFING_PRICES: Record<string, MaterialPrice> = {
 
 // Продаж клієнту (грн).
 const RAW_ROOFING_WORKS = {
+  prep: 40,             // Підготовка основи, м²
   rubemast_lay: 160,   // за шар, м² (Монтаж Рубероида)
   primer_apply: 20,
   pvc_lay: 160,        // Монтаж ПВХ мембрани, м²
@@ -292,23 +301,70 @@ export function calculateRoofing(
 
   if (input.system === "rubemast") {
     const layers = input.layers;
+    // 1 шар = тільки верхній (з посипкою); 2 шари = нижній + верхній; 3 шари = 2 нижніх + верхній.
+    const topLayers = 1;
+    const bottomLayers = Math.max(0, layers - 1);
     const perLayerM2 = effectiveAreaM2 * c.rubemastOverlapCoef;
-    const totalM2 = perLayerM2 * layers;
-    rollsCount = ceil(totalM2 / c.rubemastRollAreaM2);
-    const brandKey = input.rubemastBrand === "aquaizol" ? "aquaizol_eko_30" : "ruberit_eko_35";
-    const brandLabel = input.rubemastBrand === "aquaizol" ? "Акваізол ЕКО-ПЕ" : "Руберіт";
-    lines.push({
-      key: "m_rubemast", block: "materials",
-      name: `${brandLabel} (${layers} ${layers === 1 ? "шар" : "шари"})`,
-      unit: "рул.", qty: rollsCount,
-      pricePerUnit: px(brandKey).sell, costPerUnit: px(brandKey).buy,
-      sum: rollsCount * px(brandKey).sell, cost: rollsCount * px(brandKey).buy,
-    });
 
+    if (input.withPrepBase) {
+      lines.push({
+        key: "w_prep", block: "works", name: "Підготовка основи", unit: "м²",
+        qty: area, pricePerUnit: works.prep, costPerUnit: wcost("prep"),
+        sum: area * works.prep, cost: area * wcost("prep"),
+      });
+    }
+
+    const bottomRoll = findRoll(input.bottomRollCode, "bottom");
+    const topRoll = findRoll(input.topRollCode, "top");
+    const bottomRollArea = Math.max(1, Number(input.bottomRollAreaM2) || bottomRoll?.rollM2 || c.rubemastRollAreaM2);
+    const topRollArea = Math.max(1, Number(input.topRollAreaM2) || topRoll?.rollM2 || c.rubemastRollAreaM2);
+
+    let bottomRolls = 0;
+    let topRolls = 0;
+
+    if (bottomLayers > 0 && bottomRoll) {
+      bottomRolls = ceil((perLayerM2 * bottomLayers) / bottomRollArea);
+      const sell = +(bottomRoll.sellPerM2 * bottomRollArea).toFixed(2);
+      const buy = +(bottomRoll.buyPerM2 * bottomRollArea).toFixed(2);
+      lines.push({
+        key: "m_roll_bottom", block: "materials",
+        name: `Нижній шар: ${bottomRoll.name} (рулон ${bottomRollArea} м²)`,
+        unit: "рул.", qty: bottomRolls, pricePerUnit: sell, costPerUnit: buy,
+        sum: bottomRolls * sell, cost: bottomRolls * buy,
+      });
+      const qty = area * bottomLayers;
+      lines.push({
+        key: "w_lay_bottom", block: "works",
+        name: `Укладка нижнього шару${bottomLayers > 1 ? ` (${bottomLayers} шари)` : ""}`,
+        unit: "м²", qty, pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
+        sum: qty * works.rubemast_lay, cost: qty * wcost("rubemast_lay"),
+      });
+    }
+
+    if (topRoll) {
+      topRolls = ceil((perLayerM2 * topLayers) / topRollArea);
+      const sell = +(topRoll.sellPerM2 * topRollArea).toFixed(2);
+      const buy = +(topRoll.buyPerM2 * topRollArea).toFixed(2);
+      lines.push({
+        key: "m_roll_top", block: "materials",
+        name: `Верхній шар з посипкою: ${topRoll.name} (рулон ${topRollArea} м²)`,
+        unit: "рул.", qty: topRolls, pricePerUnit: sell, costPerUnit: buy,
+        sum: topRolls * sell, cost: topRolls * buy,
+      });
+      lines.push({
+        key: "w_lay_top", block: "works", name: "Укладка верхнього шару", unit: "м²",
+        qty: area, pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
+        sum: area * works.rubemast_lay, cost: area * wcost("rubemast_lay"),
+      });
+    }
+
+    rollsCount = bottomRolls + topRolls;
+
+    const totalM2 = perLayerM2 * layers;
     const gasKg = totalM2 * c.rubemastGasKgPerLayerM2;
     gasCylinders = ceil(gasKg / c.rubemastGasCylinderKg);
     lines.push({
-      key: "m_gas", block: "materials", name: "Газ пропан", unit: "бал.",
+      key: "m_gas", block: "materials", name: `Газ пропан (балон ${c.rubemastGasCylinderKg} кг)`, unit: "бал.",
       qty: gasCylinders, pricePerUnit: px("gas").sell, costPerUnit: px("gas").buy,
       sum: gasCylinders * px("gas").sell, cost: gasCylinders * px("gas").buy,
     });
@@ -351,19 +407,12 @@ export function calculateRoofing(
         sum: masticKg * px("opaika_mastic").sell, cost: masticKg * px("opaika_mastic").buy,
       });
       lines.push({
-        key: "w_opaika", block: "works", name: "Точки опайки/локальний ремонт", unit: "шт",
+        key: "w_opaika", block: "works", name: "Точка обпайки", unit: "шт",
         qty: input.opaikaPoints, pricePerUnit: works.opaika, costPerUnit: wcost("opaika"),
         sum: input.opaikaPoints * works.opaika, cost: input.opaikaPoints  * wcost("opaika"),
       });
     }
 
-    lines.push({
-      key: "w_rubemast", block: "works",
-      name: `Наплавлення рубемасту (${layers} ${layers === 1 ? "шар" : "шари"})`,
-      unit: "м²", qty: area * layers,
-      pricePerUnit: works.rubemast_lay, costPerUnit: wcost("rubemast_lay"),
-      sum: area * layers * works.rubemast_lay, cost: area * layers  * wcost("rubemast_lay"),
-    });
   } else {
     // PVC Sika
     const pvcKey = input.pvcThickness === "1.8" ? "pvc_18_sika" : "pvc_15_sika";
@@ -525,7 +574,7 @@ export function calculateRoofing(
   }
   if (input.withParapetWork && perimeter > 0) {
     lines.push({
-      key: "w_parapet", block: "works", name: "Обробка парапету/примикань", unit: "п.м",
+      key: "w_parapet", block: "works", name: "Укладка на парапет / примикання", unit: "п.м",
       qty: perimeter, pricePerUnit: works.parapet, costPerUnit: wcost("parapet"),
       sum: perimeter * works.parapet, cost: perimeter  * wcost("parapet"),
     });
@@ -561,6 +610,26 @@ export function calculateRoofing(
   // Бригадна оплата тепер закладена у costPerUnit кожної роботи (ПМЗ Майстерів).
   // Залишаємо мін. оплату як floor для дуже малих замовлень.
   void c.brigadePerM2Rubemast; void c.brigadePerM2Pvc;
+
+  // Порядок позицій у кошторисі (за методикою TERZI).
+  const LINE_ORDER = [
+    "w_prep", "w_demount", "w_slope", "m_xps",
+    "m_primer", "w_primer",
+    "m_galtel_mix", "w_galtel",
+    "m_roll_bottom", "w_lay_bottom",
+    "m_roll_top", "w_lay_top",
+    "m_gas",
+    "w_parapet",
+    "m_opaika", "w_opaika",
+    "m_aerator", "w_aerator",
+    "m_funnel", "w_funnel",
+    "m_drip", "w_drip",
+  ];
+  const orderIdx = (k: string) => {
+    const i = LINE_ORDER.indexOf(k);
+    return i === -1 ? LINE_ORDER.length : i;
+  };
+  lines.sort((a, b) => orderIdx(a.key) - orderIdx(b.key));
 
   const materialsSell = lines.filter((l) => l.block === "materials").reduce((a, l) => a + l.sum, 0);
   const worksSell = lines.filter((l) => l.block === "works").reduce((a, l) => a + l.sum, 0);
