@@ -167,14 +167,15 @@ const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
   estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange, techInfo,
+  editsKey, onEditsChange,
 }: Props) {
   const t = useT();
   const internalRef = useRef<HTMLDivElement | null>(null);
   const clientRef = useRef<HTMLDivElement | null>(null);
 
-  // Стабільний ключ (не залежить від згенерованого номера), щоб правки не губилися
-  // при поверненні на сторінку чи перезавантаженні вкладки.
-  const editKey = `terzi:estimate-edits:${estimateId ?? module}`;
+  // Ключ правок задає чернетка калькулятора (щоб «Скинути» очищав і правки).
+  // Фолбек — стабільний ключ по кошторису/модулю.
+  const editKey = editsKey ?? `terzi:estimate-edits:${estimateId ?? module}`;
   const [mode, setMode] = usePersistedState<"client" | "internal">(
     `${editKey}:mode`, isInternal ? "internal" : "client",
   );
