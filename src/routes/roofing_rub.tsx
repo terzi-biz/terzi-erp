@@ -1,26 +1,27 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useAppStore, generateEstimateNumber } from "@/lib/store";
+import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { usePersistedState } from "@/lib/usePersistedState";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
-import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
+import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   calculateRoofing, DEFAULT_ROOFING_LOGISTICS, DEFAULT_ROOFING_WORKS,
   type RoofingInput, type PaymentForm, type PvcThickness, type RubemastBrand,
 } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { BOTTOM_ROLLS, TOP_ROLLS, DEFAULT_BOTTOM_ROLL, DEFAULT_TOP_ROLL, ROLL_AREA_OPTIONS } from "@/lib/roofing-rolls";
-import { AlertTriangle, Save, RotateCcw, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, Image as ImageIcon, Calculator, FileText, Info, Lightbulb } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import { EstimateDraftControls } from "@/components/EstimateDraftControls";
+import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing_rub")({
@@ -178,7 +179,8 @@ function RubPage() {
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding}
             module={`Покрівля руберойд ×${input.layers}`}
-            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId} />
+            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId}
+            editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
         </div>
       )}
 
