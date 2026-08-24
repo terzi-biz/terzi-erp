@@ -6,6 +6,8 @@
  * 11 packs fiber, 22 L diesel (floors 1–5).
  */
 
+import { SCREED_GRADES, type ScreedGrade } from "./screed-grades";
+
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
 export type MeshType = "none" | "comp25" | "comp35" | "met25" | "met35";
 export type CementDelivery = "own" | "smallManip" | "bigManip" | "manual" | "none";
@@ -27,6 +29,8 @@ export interface ScreedInput {
   roomsCount: number;      // кількість кімнат/зон — впливає на деформаційні шви
   floor: number;           // floor of supply
   profile: Profile;
+  /** Марка стяжки М100–М300. Якщо задана — має пріоритет над профілем суміші. */
+  screedGrade?: ScreedGrade;
   cementType: CementType;  // auto = за профілем, або ручний вибір М500/М400
 
   // Optional add-ons
@@ -260,6 +264,21 @@ export function calculateScreed(
     cementType = p.cementType;
   }
   if (input.cementType === "m500" || input.cementType === "m400") cementType = input.cementType;
+
+  // Марка стяжки (М100–М300) — технологічна матриця TERZI на 7 м³ суміші.
+  // Має пріоритет над профілем: саме вона визначає пісок/цемент/фібру/пластифікатор.
+  if (input.screedGrade && SCREED_GRADES[input.screedGrade]) {
+    const g = SCREED_GRADES[input.screedGrade];
+    if (input.cementType === "auto") cementType = "m500";
+    const bagsPer7 = cementType === "m400" ? g.cementM400BagsPer7m3 : g.cementM500BagsPer7m3;
+    norms = {
+      cementBagsPerM3: bagsPer7 / 7,
+      sandTonsPerM3: g.sandTonsPer7m3 / 7,
+      plasticizerLPerM3: g.plasticizerLitersPer7m3 / 7,
+      fiberPacksPerM3: g.fiberPacksPer7m3 / 7,
+      dieselLPerM3: norms.dieselLPerM3,
+    };
+  }
 
   const lines: CalcLine[] = [];
 

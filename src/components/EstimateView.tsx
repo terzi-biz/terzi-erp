@@ -112,6 +112,8 @@ interface Props {
   estimateNumber: string;
   isInternal: boolean;
   estimateId?: string;
+  /** Технічний блок кошторису (марка стяжки, об'єм суміші тощо). */
+  techInfo?: { label: string; value: string }[];
   layers?: number;
   initialClientViewMode?: ClientViewMode;
   onClientViewModeChange?: (m: ClientViewMode) => void;
@@ -160,7 +162,7 @@ const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
 
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
-  estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange,
+  estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange, techInfo,
 }: Props) {
   const t = useT();
   const internalRef = useRef<HTMLDivElement | null>(null);
@@ -334,7 +336,7 @@ export function EstimateView({
           <EstimateWatermark />
           <div className="relative z-10">
             <InternalSheet result={result} client={client} branding={branding} module={module}
-              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+              area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} techInfo={techInfo}
               overrides={overrides} setOverrides={setOverrides}
               extras={extras} setExtras={setExtras}
               effective={effInternal} totals={internalTotals} />
@@ -369,7 +371,7 @@ export function EstimateView({
             <div className="relative z-10">
               <ClientSheet
                 result={result} client={client} branding={branding} module={module}
-                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped}
+                area={area} thicknessCm={thicknessCm} estimateNumber={estimateNumber} grouped={grouped} techInfo={techInfo}
                 overrides={overrides} setOverrides={setOverrides}
                 extras={extras} setExtras={setExtras}
                 clientViewMode={clientViewMode}
@@ -421,9 +423,10 @@ interface SheetProps {
   thicknessCm?: number;
   estimateNumber: string;
   grouped: { block: string; label: string; rows: EstimateLine[] }[];
+  techInfo?: { label: string; value: string }[];
 }
 
-function Header({ branding, estimateNumber, module, client, area, thicknessCm, title }:
+function Header({ branding, estimateNumber, module, client, area, thicknessCm, title, techInfo }:
   SheetProps & { title: string }) {
   return (
     <header className="border-b-2 border-slate-900 pb-3 mb-4">
@@ -449,6 +452,13 @@ function Header({ branding, estimateNumber, module, client, area, thicknessCm, t
         <div>Адреса: <b>{client.address || "—"}</b></div>
         <div>Менеджер: <b>{client.manager || "—"}</b></div>
       </div>
+      {techInfo && techInfo.length > 0 && (
+        <div className="mt-2 rounded border border-slate-300 bg-slate-50 p-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-slate-700">
+          {techInfo.map((r) => (
+            <div key={r.label}>{r.label}: <b>{r.value}</b></div>
+          ))}
+        </div>
+      )}
     </header>
   );
 }
