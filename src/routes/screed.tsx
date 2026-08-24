@@ -421,6 +421,98 @@ function ScreedPage() {
               <Field label={t("complexity")}><NumberInput className={inp} value={input.complexityPercent} onChange={(v) => upd("complexityPercent", v)} /></Field>
             </div>
           </section>
+        {/* Виробнича собівартість за маркою */}
+          <section className="panel p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="font-bold text-sm uppercase tracking-wider text-primary">
+                Виробнича собівартість · {GRADE_LABEL[prod.screedGrade]}
+              </h2>
+              <button type="button" onClick={() => setShowCompare((v) => !v)}
+                className={`${btnBase} ${showCompare ? "bg-primary/15 text-primary border border-primary/40" : "bg-secondary hover:bg-secondary/80"}`}>
+                <Calculator className="w-3.5 h-3.5" /> Порівняти марки
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm mb-5">
+              <Stat label="Об'єм суміші" value={`${formatNum(prod.screedVolumeM3, 2)} м³`} highlight />
+              <Stat label="Марка" value={`${GRADE_LABEL[prod.screedGrade]} · ≈${prod.strengthMPa} МПа`} />
+              <Stat label="Середній шар" value={`${formatNum(prod.thicknessCm, 1)} см`} />
+              <Stat label="Периметр" value={`${formatNum(prod.perimeterM, 1)} м.п.`} warn={prod.perimeterM <= 0} />
+            </div>
+
+            {prod.warnings.map((w) => (
+              <div key={w} className="mb-4 flex items-start gap-2 p-2.5 rounded bg-warning/10 text-warning text-xs">
+                <AlertTriangle className="w-3.5 h-3.5 mt-0.5 shrink-0" />{w}
+              </div>
+            ))}
+
+            <ProdTable title="Матеріали (закупка)" rows={prod.materialRows} total={prod.materialsTotal} />
+            <ProdTable title="Робота бригади" rows={prod.laborRows} total={prod.laborTotal} />
+            <ProdTable title="Логістика" rows={prod.logisticsRows} total={prod.logisticsTotal} />
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-5">
+              <Stat label="Матеріали" value={formatUah(prod.materialsTotal)} />
+              <Stat label="Робота" value={formatUah(prod.laborTotal)} />
+              <Stat label="Логістика" value={formatUah(prod.logisticsTotal)} />
+              <Stat label="Повна собівартість" value={formatUah(prod.productionCost)} highlight />
+              <Stat label="Собівартість 1 м²" value={`${formatNum(prod.productionCostPerM2, 0)} грн/м²`} highlight />
+            </div>
+
+            <div className="mt-5 border-t border-border pt-5">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3 items-end">
+                <Field label="Цільова маржа, %" hint="Маржа рахується від виручки: Ціна = Собівартість / (1 − маржа/100).">
+                  <NumberInput className={inp} value={targetMargin} onChange={setTargetMargin} />
+                </Field>
+                <Stat label="Ціна клієнту" value={formatUah(prod.sellingPrice)} highlight />
+                <Stat label="Ціна клієнту / м²" value={`${formatNum(prod.sellingPricePerM2, 0)} грн/м²`} />
+                <Stat label="Валовий прибуток" value={formatUah(prod.grossProfit)} />
+                <Stat label="Маржа" value={`${formatNum(prod.marginPercent, 1)} %`} />
+              </div>
+              <div className="mt-3 flex gap-2">
+                {[25, 30, 35, 40].map((m) => (
+                  <button key={m} type="button" onClick={() => setTargetMargin(m)}
+                    className={`${btnBase} ${targetMargin === m ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-secondary/80"}`}>{m}%</button>
+                ))}
+              </div>
+            </div>
+
+            {showCompare && (
+              <div className="mt-6 overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-muted-foreground border-b border-border">
+                    <tr>
+                      <th className="text-left py-1.5">Марка</th>
+                      <th className="text-right py-1.5">Об'єм</th>
+                      <th className="text-right py-1.5">Пісок</th>
+                      <th className="text-right py-1.5">Цемент</th>
+                      <th className="text-right py-1.5">Фібра</th>
+                      <th className="text-right py-1.5">Пласт.</th>
+                      <th className="text-right py-1.5">Собівартість</th>
+                      <th className="text-right py-1.5">грн/м²</th>
+                      <th className="text-right py-1.5">Δ до попередньої</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {comparison.map((c) => (
+                      <tr key={c.grade} className={`border-b border-border/40 ${c.grade === prod.screedGrade ? "bg-primary/10" : ""}`}>
+                        <td className="py-1.5 font-semibold">{GRADE_LABEL[c.grade]}</td>
+                        <td className="text-right tabular-nums">{formatNum(c.volumeM3, 2)} м³</td>
+                        <td className="text-right tabular-nums">{formatNum(c.sandTons, 2)} т</td>
+                        <td className="text-right tabular-nums">{c.cementBags} міш.</td>
+                        <td className="text-right tabular-nums">{c.fiberPacks} уп.</td>
+                        <td className="text-right tabular-nums">{formatNum(c.plasticizerLiters, 2)} л</td>
+                        <td className="text-right tabular-nums">{formatUah(c.productionCost)}</td>
+                        <td className="text-right tabular-nums font-semibold">{formatNum(c.costPerM2, 0)}</td>
+                        <td className="text-right tabular-nums">{c.deltaPerM2 ? `+${formatNum(c.deltaPerM2, 0)} грн/м²` : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <p className="mt-4 text-[11px] leading-relaxed text-muted-foreground">{SCREED_GRADE_DISCLAIMER}</p>
+          </section>
         </div>
 
         {/* Right: results sticky */}
@@ -545,6 +637,38 @@ function ScreedPage() {
   );
 }
 
+
+function ProdTable({ title, rows, total }: { title: string; rows: { key: string; name: string; unit: string; qty: number; price: number; sum: number }[]; total: number }) {
+  return (
+    <div className="mb-5">
+      <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1.5">{title}</div>
+      <table className="w-full text-xs">
+        <thead className="text-muted-foreground border-b border-border">
+          <tr>
+            <th className="text-left py-1 font-medium">Найменування</th>
+            <th className="text-right py-1 font-medium">К-сть</th>
+            <th className="text-right py-1 font-medium">Ціна</th>
+            <th className="text-right py-1 font-medium">Сума</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.key} className="border-b border-border/40">
+              <td className="py-1.5 pr-2">{r.name}</td>
+              <td className="text-right tabular-nums whitespace-nowrap">{formatNum(r.qty, 2)} {r.unit}</td>
+              <td className="text-right tabular-nums">{formatNum(r.price, 2)}</td>
+              <td className="text-right tabular-nums font-medium">{formatUah(r.sum)}</td>
+            </tr>
+          ))}
+          <tr>
+            <td colSpan={3} className="pt-2 text-right font-bold uppercase text-[10px] tracking-wider">Разом</td>
+            <td className="pt-2 text-right font-bold tabular-nums">{formatUah(total)}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
 function Stat({ label, value, highlight, warn }: { label: string; value: string; highlight?: boolean; warn?: boolean }) {
   return (
