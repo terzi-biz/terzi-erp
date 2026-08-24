@@ -161,8 +161,7 @@ function RubPage() {
               {showInternal ? "Управлінський" : "Клієнтський"}
             </button>
           )}
-          <button onClick={() => setInput(defaultInput)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><RotateCcw className="w-3 h-3" />Скинути</button>
-          <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50"><Save className="w-3 h-3" />{saveMut.isPending ? "…" : "Зберегти"}</button>
+          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} />
         </div>
       </header>
 
