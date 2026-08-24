@@ -24,6 +24,11 @@ import {
   Calculator, FileText, HelpCircle, User, MapPin, Phone, Search,
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import {
+  DEFAULT_SCREED_PRODUCTION_CONFIG, SCREED_GRADES, SCREED_GRADE_LIST, GRADE_LABEL,
+  SCREED_GRADE_DISCLAIMER, calculateScreedProduction, compareGrades, screedPositionName,
+  type ScreedGrade, type ScreedProductionConfig,
+} from "@/lib/screed-grades";
 
 export const Route = createFileRoute("/screed")({
   validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
@@ -77,7 +82,8 @@ function OptionToggle({ label, checked, onChange }: { label: string; checked: bo
 }
 
 const defaultInput: ScreedInput = {
-  area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
+  area: 100, thicknessCm: 7, perimeter: 0, roomsCount: 1, floor: 3, profile: "standard",
+  screedGrade: "M200", cementType: "m500",
   withFilm: true, withDamper: true, meshType: "none", withSlope: false, withGrind: true, withCuts: true, sandType: "standard",
   withComplexPrep: false, withCementUnload: false, withDemolition: false, insulationType: "none",
   cityDelivery: true, outOfCityKm: 0, withLift: false, cementDelivery: "own", sandDelivery: "city",
@@ -111,8 +117,60 @@ function ScreedPage() {
       address: r.address ?? "", manager: r.manager ?? "",
     });
     setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
-    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as ScreedInput) });
+    if (r.payload && typeof r.payload === "object") {
+      const pl = r.payload as ScreedInput & { targetMargin?: number };
+      setInput({ ...defaultInput, ...pl });
+      if (typeof pl.targetMargin === "number") setTargetMargin(pl.targetMargin);
+    }
   });
+
+  const [targetMargin, setTargetMargin] = usePersistedState<number>("terzi:draft:screed:margin", 30);
+  const [showCompare, setShowCompare] = useState(false);
+
+  // Централізована конфігурація: закупівельні ціни — з каталогу (Налаштування →
+  // Матеріали / Логістика), тарифи бригади — з налаштувань ERP, решта — дефолти рушія.
+  const prodCfg: ScreedProductionConfig = useMemo(() => ({
+    ...DEFAULT_SCREED_PRODUCTION_CONFIG,
+    sandPricePerTon: materialPrices.sand?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandPricePerTon,
+    cementM400BagPrice: materialPrices.cement400?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.cementM400BagPrice,
+    cementM500BagPrice: materialPrices.cement500?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.cementM500BagPrice,
+    fiberPackPrice: materialPrices.fiber?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.fiberPackPrice,
+    plasticizerPricePerL: materialPrices.plast?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.plasticizerPricePerL,
+    filmPricePerM2: materialPrices.film?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.filmPricePerM2,
+    damperPricePerM: materialPrices.damper?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.damperPricePerM,
+    brigadeMinCost: settings.brigadeMin ?? DEFAULT_SCREED_PRODUCTION_CONFIG.brigadeMinCost,
+    brigadePerM2Over100: settings.brigadePerM2 ?? DEFAULT_SCREED_PRODUCTION_CONFIG.brigadePerM2Over100,
+    sandTruckCapacityTons: settings.sandTripCapacity ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandTruckCapacityTons,
+    sandTruckCost: logisticsPrices.sand_city?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandTruckCost,
+    stationDeliveryCost: logisticsPrices.station_city?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.stationDeliveryCost,
+  }), [materialPrices, logisticsPrices, settings]);
+
+  const prodInput = useMemo(() => ({
+    areaM2: input.area,
+    thicknessCm: input.thicknessCm,
+    perimeterM: input.perimeter ?? 0,
+    screedGrade: (input.screedGrade ?? "M200") as ScreedGrade,
+    cementGrade: (input.cementType === "m400" ? "m400" : "m500") as "m400" | "m500",
+    hasMesh: input.meshType !== "none",
+    hasSlope: input.withSlope,
+    marginPercent: targetMargin,
+  }), [input, targetMargin]);
+
+  const prod = useMemo(() => calculateScreedProduction(prodInput, prodCfg), [prodInput, prodCfg]);
+  const comparison = useMemo(() => (showCompare ? compareGrades(prodInput, prodCfg) : []), [showCompare, prodInput, prodCfg]);
+  const techInfo = useMemo(() => ([
+    { label: "Марка стяжки", value: GRADE_LABEL[prod.screedGrade] },
+    { label: "Орієнтир міцності", value: `≈${prod.strengthMPa} МПа` },
+    { label: "Площа", value: `${formatNum(prod.areaM2, 2)} м²` },
+    { label: "Середній шар", value: `${Math.round(prod.thicknessCm * 10)} мм` },
+    { label: "Об'єм суміші", value: `${formatNum(prod.screedVolumeM3, 2)} м³` },
+    { label: "Марка цементу", value: prod.cementGrade === "m400" ? "М400" : "М500" },
+    { label: "Цемент", value: `${prod.cementBags} міш. (${prod.cementKg} кг)` },
+    { label: "Пісок", value: `${formatNum(prod.sandTons, 2)} т` },
+    { label: "Фібра", value: `${prod.fiberPacks} уп. (${formatNum(prod.fiberKg, 2)} кг)` },
+    { label: "Пластифікатор", value: `${formatNum(prod.plasticizerLiters, 2)} л` },
+    { label: "Позиція", value: screedPositionName(prod) },
+  ]), [prod]);
 
   const result = useMemo(() => calculateScreed(input, materialPrices, workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES, settings, logisticsPrices), [input, materialPrices, workPrices, logisticsPrices, settings]);
   const selfTest = useMemo(() => selfTestControlScenario(), []);
@@ -139,8 +197,8 @@ function ScreedPage() {
       total_cost: result.totalCost,
       gross_profit: result.grossProfit,
       margin_percent: result.marginPercent,
-      payload: input as unknown as Record<string, unknown>,
-      calculation_json: result as unknown as Record<string, unknown>,
+      payload: { ...input, targetMargin } as unknown as Record<string, unknown>,
+      calculation_json: { ...result, production: prod, productionConfig: prodCfg } as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.screed,
     } }),
     onSuccess: (row: { id?: string }) => {
@@ -187,7 +245,7 @@ function ScreedPage() {
       {view === "estimate" && (
         <EstimateView result={result} client={client} branding={branding} module="Стяжка"
           area={input.area} thicknessCm={result.thicknessUsed} estimateNumber={estimateNumber}
-          isInternal={isInternal} estimateId={estimateId} />
+          isInternal={isInternal} estimateId={estimateId} techInfo={techInfo} />
       )}
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-7" style={{ display: view === "calc" ? undefined : "none" }}>
@@ -254,6 +312,13 @@ function ScreedPage() {
               </Field>
               <Field label="Товщина, см" hint="Робочий діапазон 4–25 см. Понад 7 см додається окрема позиція «Влаштування стяжки понад 7 см» — 15 грн/м² за кожен см.">
                 <NumberInput step="0.5" className={inp} value={input.thicknessCm} onChange={(v) => upd("thicknessCm", v)} />
+              </Field>
+              <Field label="Марка стяжки" hint={SCREED_GRADE_DISCLAIMER}>
+                <select className={sel} value={input.screedGrade ?? "M200"} onChange={(e) => upd("screedGrade", e.target.value as ScreedGrade)}>
+                  {SCREED_GRADE_LIST.map((g) => (
+                    <option key={g} value={g}>{GRADE_LABEL[g]} · ≈{SCREED_GRADES[g].strengthMPa} МПа</option>
+                  ))}
+                </select>
               </Field>
               <Field label="Цемент" hint="М500 (рекомендовано) — стандарт TERZI. Auto бере цемент з профілю суміші.">
                 <select className={sel} value={input.cementType} onChange={(e) => upd("cementType", e.target.value as CementType)}>
