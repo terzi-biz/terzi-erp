@@ -286,7 +286,7 @@ function RubPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Площа, м²" hint="Чиста площа даху за проєктом (без парапету). Береться з обмірного плану.">
                 <NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} />
               </Field>
@@ -330,7 +330,7 @@ function RubPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Аксесуари / комплектація</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Воронки, шт"><NumberInput min={0} className={inp} value={input.funnelsCount} onChange={(v) => upd("funnelsCount", v)} /></Field>
               {input.system === "rubemast" && (
                 <Field label="Аератори, шт"><NumberInput min={0} className={inp} value={input.aeratorsCount} onChange={(v) => upd("aeratorsCount", v)} /></Field>
@@ -378,7 +378,7 @@ function RubPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Комерційні умови</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Оплата">
                 <select className={inp} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
                   <option value="cash">Готівка</option>

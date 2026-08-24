@@ -75,9 +75,9 @@ function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: b
 
 function OptionToggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2.5">
-      <span className="text-sm">{label}</span>
-      <ToggleSwitch checked={checked} onChange={onChange} />
+    <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-md border border-border/60 bg-background/50 px-3 py-2.5">
+      <span className="min-w-0 flex-1 text-sm leading-snug">{label}</span>
+      <span className="shrink-0"><ToggleSwitch checked={checked} onChange={onChange} /></span>
     </div>
   );
 }
@@ -282,7 +282,7 @@ function ScreedPage() {
           {/* Parameters */}
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">{t("parameters")}</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Field label="Площа, м²"><NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} /></Field>
               <Field label="Периметр, пог.м"><NumberInput className={inp} value={input.perimeter ?? 0} onChange={(v) => upd("perimeter", v)} /></Field>
               <Field label="Кімнат" hint="Якщо більше 1 — додаються деформаційні шви / нарізка.">
@@ -331,7 +331,7 @@ function ScreedPage() {
           {/* Options */}
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">Опції</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Field label="Армувальна сітка" hint="Композит — легка скло/базальт-пластикова сітка (+10% площі). Метал — зварна сталева (+15% площі).">
                 <select className={sel} value={input.meshType} onChange={(e) => upd("meshType", e.target.value as MeshType)}>
                   <option value="none">Без сітки</option>
@@ -391,7 +391,7 @@ function ScreedPage() {
           {/* Commercial */}
           <section className="panel p-6">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-5 text-primary">Комерційні умови</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               <Field label={t("payment")}>
                 <select className={sel} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
                   <option value="cash">{t("cash")}</option>

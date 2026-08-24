@@ -206,7 +206,7 @@ function PvcPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Горизонтальна площа, м²" hint="Чиста площа даху по контуру парапету.">
                 <NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} />
               </Field>
@@ -293,7 +293,7 @@ function PvcPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Комерційні умови</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Оплата">
                 <select className={inp} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
                   <option value="cash">Готівка</option>

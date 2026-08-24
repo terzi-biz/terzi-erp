@@ -202,7 +202,7 @@ function InsulationPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Площа, м²"><NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} /></Field>
               <Field label="Периметр, п.м"><NumberInput className={inp} value={input.perimeter} onChange={(v) => upd("perimeter", v)} /></Field>
               <Field label="Товщина шару, см"><NumberInput className={inp} value={input.thicknessCm} onChange={(v) => upd("thicknessCm", v)} /></Field>
@@ -233,7 +233,7 @@ function InsulationPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Комерційні умови</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Оплата">
                 <select className={inp} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
                   <option value="cash">Готівка</option>
