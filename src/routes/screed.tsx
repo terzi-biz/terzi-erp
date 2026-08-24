@@ -1,18 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
-import { useAppStore, generateEstimateNumber } from "@/lib/store";
+import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { usePersistedState } from "@/lib/usePersistedState";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
-import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
+import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   calculateScreed, formatUah, formatNum, selfTestControlScenario,
   type ScreedInput, type Profile, type MeshType, type CementType, type CementDelivery, type SandDelivery, type SandType, type PaymentForm, type InsulationType,
@@ -20,10 +19,12 @@ import {
 
 import { useI18n } from "@/lib/i18n";
 import {
-  AlertTriangle, CheckCircle2, Download, Save, RotateCcw, Eye, EyeOff,
+  AlertTriangle, CheckCircle2, Download, Eye, EyeOff,
   Calculator, FileText, HelpCircle, User, MapPin, Phone, Search,
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import { EstimateDraftControls } from "@/components/EstimateDraftControls";
+import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import {
   DEFAULT_SCREED_PRODUCTION_CONFIG, SCREED_GRADES, SCREED_GRADE_LIST, GRADE_LABEL,
   SCREED_GRADE_DISCLAIMER, calculateScreedProduction, compareGrades, screedPositionName,
@@ -98,33 +99,20 @@ function ScreedPage() {
   const isInternal = true;
   const { settings, branding } = useAppStore();
   const search = Route.useSearch();
-  const [input, setInput] = usePersistedState<ScreedInput>("terzi:draft:screed:input", defaultInput);
+  const draft = useEstimateDraft<ScreedInput, { targetMargin: number }>({
+    module: "screed", defaultInput, defaultExtra: { targetMargin: 30 },
+    defaultManager: profile?.display_name ?? "",
+  });
+  const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
+  const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
   const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed", input.area);
-  const [client, setClient] = usePersistedState("terzi:draft:screed:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
-  const [link, setLink] = useState<EstimateLink>({ clientId: null, orderId: null });
 
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
-  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
-  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
-  useEstimatePrefill(search.estimate, (r) => {
-    setEstimateId(r.id);
-    setEstimateNumber(r.number);
-    setSavedStatus(r.status || "preliminary");
-    setClient({
-      name: r.client_name ?? "", phone: r.client_phone ?? "",
-      address: r.address ?? "", manager: r.manager ?? "",
-    });
-    setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
-    if (r.payload && typeof r.payload === "object") {
-      const pl = r.payload as ScreedInput & { targetMargin?: number };
-      setInput({ ...defaultInput, ...pl });
-      if (typeof pl.targetMargin === "number") setTargetMargin(pl.targetMargin);
-    }
-  });
+  useEstimatePrefill(search.estimate, draft.loadRecord);
 
-  const [targetMargin, setTargetMargin] = usePersistedState<number>("terzi:draft:screed:margin", 30);
   const [showCompare, setShowCompare] = useState(false);
 
   // Централізована конфігурація: закупівельні ціни — з каталогу (Налаштування →
@@ -179,8 +167,8 @@ function ScreedPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
-  const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: {
+  const onSaveDraft = useCallback(async () => {
+    const row = await saveFn({ data: {
       id: estimateId,
       number: estimateNumber,
       module: "screed",
@@ -200,15 +188,10 @@ function ScreedPage() {
       payload: { ...input, targetMargin } as unknown as Record<string, unknown>,
       calculation_json: { ...result, production: prod, productionConfig: prodCfg } as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.screed,
-    } }),
-    onSuccess: (row: { id?: string }) => {
-      if (row?.id) setEstimateId(row.id);
-      qc.invalidateQueries({ queryKey: ["estimates"] });
-      toast.success("Кошторис збережено на сервері");
-    },
-    onError: (e: Error) => toast.error("Помилка збереження: " + e.message),
-  });
-  const onSave = () => saveMut.mutate();
+    } });
+    qc.invalidateQueries({ queryKey: ["estimates"] });
+    return row as { id?: string };
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result, targetMargin, prod, prodCfg]);
 
   // PDF формується тільки з аркуша «Кошторис / КП», щоб у файл потрапили ручні правки.
   const onPdf = () => {
@@ -245,7 +228,8 @@ function ScreedPage() {
       {view === "estimate" && (
         <EstimateView result={result} client={client} branding={branding} module="Стяжка"
           area={input.area} thicknessCm={result.thicknessUsed} estimateNumber={estimateNumber}
-          isInternal={isInternal} estimateId={estimateId} techInfo={techInfo} />
+          isInternal={isInternal} estimateId={estimateId} techInfo={techInfo}
+          editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
       )}
 
       <div className="grid lg:grid-cols-[1fr_420px] gap-7" style={{ display: view === "calc" ? undefined : "none" }}>
@@ -628,8 +612,7 @@ function ScreedPage() {
           </button>
         )}
         <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
-        <button onClick={() => setInput(defaultInput)} className={`${btnBase} bg-secondary hover:bg-secondary/80`}><RotateCcw className="w-3.5 h-3.5" />{t("reset")}</button>
-        <button onClick={onSave} disabled={saveMut.isPending} className={`${btnBase} bg-secondary hover:bg-secondary/80 disabled:opacity-50`}><Save className="w-3.5 h-3.5" />{saveMut.isPending ? "…" : t("save")}</button>
+        <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} buttonClass={`${btnBase} bg-secondary hover:bg-secondary/80`} />
         <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
 
       </div>

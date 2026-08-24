@@ -1,25 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useAppStore, generateEstimateNumber } from "@/lib/store";
+import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { usePersistedState } from "@/lib/usePersistedState";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
-import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
+import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   calculateInsulation, DEFAULT_INSULATION_LOGISTICS, DEFAULT_INSULATION_WORKS,
   type InsulationInput, type InsZone, type InsMaterial, type PaymentForm,
 } from "@/lib/insulation-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng } from "@/lib/pngExport";
-import { AlertTriangle, Save, Image as ImageIcon, RotateCcw, Eye, EyeOff, Calculator, FileText } from "lucide-react";
+import { AlertTriangle, Image as ImageIcon, Eye, EyeOff, Calculator, FileText } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import { EstimateDraftControls } from "@/components/EstimateDraftControls";
+import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/insulation")({
@@ -55,22 +56,16 @@ function InsulationPage() {
   const isInternal = true;
   const { insulationCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const [input, setInput] = usePersistedState<InsulationInput>("terzi:draft:insulation:input", defaultInput);
+  const draft = useEstimateDraft<InsulationInput>({
+    module: "insulation", defaultInput, defaultManager: profile?.display_name ?? "",
+  });
+  const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
+  const savedStatus = draft.status;
   const { materialPrices, workPrices } = useModulePricing("insulation", input.area);
-  const [client, setClient] = usePersistedState("terzi:draft:insulation:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
-  const [link, setLink] = useState<EstimateLink>({ clientId: null, orderId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
-  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
-  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
-  useEstimatePrefill(search.estimate, (r) => {
-    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
-    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
-    setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
-    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as InsulationInput) });
-  });
+  useEstimatePrefill(search.estimate, draft.loadRecord);
 
   const worksMapped = useMemo(() => {
     const w = { ...DEFAULT_INSULATION_WORKS };
@@ -88,8 +83,8 @@ function InsulationPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
-  const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: {
+  const onSaveDraft = useCallback(async () => {
+    const row = await saveFn({ data: {
       id: estimateId,
       number: estimateNumber, module: "insulation", status: savedStatus as any,
       client_id: link.clientId,
@@ -102,14 +97,10 @@ function InsulationPage() {
       payload: input as unknown as Record<string, unknown>,
       calculation_json: result as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.insulation,
-    } }),
-    onSuccess: (row: { id?: string }) => {
-      if (row?.id) setEstimateId(row.id);
-      qc.invalidateQueries({ queryKey: ["estimates"] });
-      toast.success("Кошторис утеплення збережено");
-    },
-    onError: (e: Error) => toast.error("Помилка: " + e.message),
-  });
+    } });
+    qc.invalidateQueries({ queryKey: ["estimates"] });
+    return row as { id?: string };
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result]);
 
   const onPng = async () => {
     if (!printRef.current) return;
@@ -139,8 +130,7 @@ function InsulationPage() {
               {showInternal ? "Управлінський" : "Клієнтський"}
             </button>
           )}
-          <button onClick={() => setInput(defaultInput)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><RotateCcw className="w-3 h-3" />Скинути</button>
-          <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50"><Save className="w-3 h-3" />{saveMut.isPending ? "…" : "Зберегти"}</button>
+          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} />
           <button onClick={onPng} className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2"><ImageIcon className="w-3 h-3" />PNG</button>
         </div>
       </header>
@@ -157,7 +147,8 @@ function InsulationPage() {
       {view === "estimate" && (
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding} module="Утеплення"
-            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId} />
+            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId}
+            editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
         </div>
       )}
 

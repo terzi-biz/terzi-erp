@@ -1,25 +1,26 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useAppStore, generateEstimateNumber } from "@/lib/store";
+import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
-import { usePersistedState } from "@/lib/usePersistedState";
 import { useModulePricing } from "@/lib/usePricing";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
-import { EstimateLinkPicker, type EstimateLink } from "@/components/EstimateLinkPicker";
+import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   calculatePvc, DEFAULT_PVC_LOGISTICS, DEFAULT_PVC_WORKS, DEFAULT_PVC_COEFFS,
   type PvcInput, type PvcThickness,
 } from "@/lib/pvc-calc";
 import type { PaymentForm } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
-import { AlertTriangle, Save, RotateCcw, Eye, EyeOff, Calculator, FileText, Info, Lightbulb } from "lucide-react";
+import { AlertTriangle, Eye, EyeOff, Calculator, FileText, Info, Lightbulb } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import { EstimateDraftControls } from "@/components/EstimateDraftControls";
+import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing_pvc")({
@@ -82,22 +83,16 @@ function PvcPage() {
   const isInternal = true;
   const { branding } = useAppStore();
   const search = Route.useSearch();
-  const [input, setInput] = usePersistedState<PvcInput>("terzi:draft:roofing_pvc:input", defaultInput);
+  const draft = useEstimateDraft<PvcInput>({
+    module: "roofing_pvc", defaultInput, defaultManager: profile?.display_name ?? "",
+  });
+  const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
+  const savedStatus = draft.status;
   const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing_pvc", input.area);
-  const [client, setClient] = usePersistedState("terzi:draft:roofing_pvc:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
-  const [link, setLink] = useState<EstimateLink>({ clientId: null, orderId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
-  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
-  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
 
-  useEstimatePrefill(search.estimate, (r) => {
-    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
-    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
-    setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
-    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as PvcInput) });
-  });
+  useEstimatePrefill(search.estimate, draft.loadRecord);
 
   const worksMapped = useMemo(() => {
     const w: Record<string, number> = { ...DEFAULT_PVC_WORKS };
@@ -115,8 +110,8 @@ function PvcPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
-  const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: {
+  const onSaveDraft = useCallback(async () => {
+    const row = await saveFn({ data: {
       id: estimateId,
       number: estimateNumber, module: "roofing_pvc", status: savedStatus as any,
       client_id: link.clientId,
@@ -129,14 +124,10 @@ function PvcPage() {
       payload: input as unknown as Record<string, unknown>,
       calculation_json: result as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.roofing,
-    } }),
-    onSuccess: (row: { id?: string }) => {
-      if (row?.id) setEstimateId(row.id);
-      qc.invalidateQueries({ queryKey: ["estimates"] });
-      toast.success("Кошторис ПВХ-мембрани збережено");
-    },
-    onError: (e: Error) => toast.error("Помилка: " + e.message),
-  });
+    } });
+    qc.invalidateQueries({ queryKey: ["estimates"] });
+    return row as { id?: string };
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result]);
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
@@ -161,8 +152,7 @@ function PvcPage() {
               {showInternal ? "Управлінський" : "Клієнтський"}
             </button>
           )}
-          <button onClick={() => setInput(defaultInput)} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2"><RotateCcw className="w-3 h-3" />Скинути</button>
-          <button onClick={() => saveMut.mutate()} disabled={saveMut.isPending} className="px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50"><Save className="w-3 h-3" />{saveMut.isPending ? "…" : "Зберегти"}</button>
+          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} />
         </div>
       </header>
 
@@ -179,7 +169,8 @@ function PvcPage() {
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding}
             module={`Покрівля ПВХ мембрана ${input.thickness} мм`}
-            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId} />
+            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId}
+            editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
         </div>
       )}
 
