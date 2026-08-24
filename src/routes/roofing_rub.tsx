@@ -118,8 +118,8 @@ function RubPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
-  const saveMut = useMutation({
-    mutationFn: () => saveFn({ data: {
+  const onSaveDraft = useCallback(async () => {
+    const row = await saveFn({ data: {
       id: estimateId,
       number: estimateNumber, module: "roofing_rub", status: savedStatus as any,
       client_id: link.clientId,
@@ -132,14 +132,10 @@ function RubPage() {
       payload: input as unknown as Record<string, unknown>,
       calculation_json: result as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.roofing,
-    } }),
-    onSuccess: (row: { id?: string }) => {
-      if (row?.id) setEstimateId(row.id);
-      qc.invalidateQueries({ queryKey: ["estimates"] });
-      toast.success("Кошторис покрівлі збережено");
-    },
-    onError: (e: Error) => toast.error("Помилка: " + e.message),
-  });
+    } });
+    qc.invalidateQueries({ queryKey: ["estimates"] });
+    return row as { id?: string };
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result]);
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
