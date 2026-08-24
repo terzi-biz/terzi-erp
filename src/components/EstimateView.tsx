@@ -573,7 +573,8 @@ function InternalSheet(p: EditableSheetProps) {
   return (
     <div>
       <Header {...p} title="Внутрішній кошторис" />
-      <table className="w-full text-[11px] border-collapse">
+      <div className="overflow-x-auto print:overflow-visible">
+      <table className="w-full min-w-[720px] md:min-w-0 text-[11px] border-collapse">
         <thead>
           <tr className="bg-slate-900 text-white">
             <th className="text-left p-1.5">Найменування</th>
@@ -674,6 +675,7 @@ function InternalSheet(p: EditableSheetProps) {
           </tr>
         </tfoot>
       </table>
+      </div>
       <div className="mt-4 text-[10px] text-slate-500">
         Документ для внутрішнього використання TERZI. Не передавати клієнту.
       </div>
@@ -707,7 +709,8 @@ function ClientSheet(p: EditableSheetProps) {
   return (
     <div>
       <Header {...p} title="Комерційна пропозиція" />
-      <table className="w-full text-[11px] border-collapse">
+      <div className="overflow-x-auto print:overflow-visible">
+      <table className="w-full min-w-[560px] md:min-w-0 text-[11px] border-collapse">
         <thead>
           <tr className="bg-slate-900 text-white">
             <th className="text-left p-1.5">Найменування</th>
@@ -820,6 +823,7 @@ function ClientSheet(p: EditableSheetProps) {
           </tr>
         </tfoot>
       </table>
+      </div>
 
       <div className="mt-5 space-y-1 text-[10px] text-slate-700">
         <div><b>Гарантія:</b> {p.branding.warrantyText}</div>

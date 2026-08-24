@@ -176,7 +176,7 @@ function DemolitionPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Геометрія / поверх</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Площа, м²"><NumberInput className={inp} value={input.area} onChange={(v) => upd("area", v)} /></Field>
               <Field label="Товщина, см"><NumberInput className={inp} value={input.thicknessCm} onChange={(v) => upd("thicknessCm", v)} /></Field>
               <Field label="Поверх"><NumberInput className={inp} value={input.floor} onChange={(v) => upd("floor", v)} /></Field>
@@ -203,7 +203,7 @@ function DemolitionPage() {
 
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-4 text-primary">Комерційні умови</h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
               <Field label="Оплата">
                 <select className={inp} value={input.payment} onChange={(e) => upd("payment", e.target.value as PaymentForm)}>
                   <option value="cash">Готівка</option>
