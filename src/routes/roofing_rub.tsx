@@ -87,21 +87,15 @@ function RubPage() {
   const isInternal = true;
   const { roofingCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const [input, setInput] = usePersistedState<RoofingInput>("terzi:draft:roofing_rub:input", defaultInput);
+  const draft = useEstimateDraft<RoofingInput>({
+    module: "roofing_rub", defaultInput, defaultManager: profile?.display_name ?? "",
+  });
+  const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
+  const savedStatus = draft.status;
   const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing_rub", input.area);
-  const [client, setClient] = usePersistedState("terzi:draft:roofing_rub:client", { name: "", phone: "", address: "", manager: profile?.display_name ?? "" });
-  const [link, setLink] = useState<EstimateLink>({ clientId: null, orderId: null });
   const [showInternal, setShowInternal] = useState(isInternal);
   const [view, setView] = useState<"calc" | "estimate">("calc");
-  const [estimateNumber, setEstimateNumber] = useState(() => generateEstimateNumber());
-  const [estimateId, setEstimateId] = useState<string | undefined>(undefined);
-  const [savedStatus, setSavedStatus] = useState<string>("preliminary");
-  useEstimatePrefill(search.estimate, (r) => {
-    setEstimateId(r.id); setEstimateNumber(r.number); setSavedStatus(r.status || "preliminary");
-    setClient({ name: r.client_name ?? "", phone: r.client_phone ?? "", address: r.address ?? "", manager: r.manager ?? "" });
-    setLink({ clientId: r.client_id ?? null, orderId: r.order_id ?? null });
-    if (r.payload && typeof r.payload === "object") setInput({ ...defaultInput, ...(r.payload as RoofingInput) });
-  });
+  useEstimatePrefill(search.estimate, draft.loadRecord);
 
 
 
