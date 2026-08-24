@@ -188,6 +188,10 @@ export function EstimateView({
   const [overrides, setOverrides] = usePersistedState<Record<string, Override>>(`${editKey}:ov`, {});
   const [extras, setExtras] = usePersistedState<ExtraLine[]>(`${editKey}:ex`, []);
 
+  // Повідомляємо калькулятор про ручні правки — вони враховуються як незбережені зміни.
+  const editsSig = JSON.stringify({ overrides, extras });
+  useEffect(() => { onEditsChange?.(editsSig); }, [editsSig, onEditsChange]);
+
   const blockOrderTop = ["materials", "works", "logistics"];
   const groupedTop = blockOrderTop.map((b) => ({
     block: b,
