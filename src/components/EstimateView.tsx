@@ -112,6 +112,10 @@ interface Props {
   estimateNumber: string;
   isInternal: boolean;
   estimateId?: string;
+  /** Ключ сховища ручних правок; задається чернеткою, щоб правки скидались разом із формою. */
+  editsKey?: string;
+  /** Підпись ручних правок — для відстеження незбережених змін. */
+  onEditsChange?: (signature: string) => void;
   /** Технічний блок кошторису (марка стяжки, об'єм суміші тощо). */
   techInfo?: { label: string; value: string }[];
   layers?: number;
