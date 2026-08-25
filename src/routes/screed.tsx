@@ -304,7 +304,7 @@ function ScreedPage() {
               <Field label="Марка стяжки" hint={SCREED_GRADE_DISCLAIMER}>
                 <select className={sel} value={input.screedGrade ?? "M200"} onChange={(e) => upd("screedGrade", e.target.value as ScreedGrade)}>
                   {SCREED_GRADE_LIST.map((g) => (
-                    <option key={g} value={g}>{GRADE_LABEL[g]} · ≈{SCREED_GRADES[g].strengthMPa} МПа</option>
+                    <option key={g} value={g}>{GRADE_LABEL[g]} · ≈{grades[g].strengthMPa} МПа</option>
                   ))}
                 </select>
               </Field>
