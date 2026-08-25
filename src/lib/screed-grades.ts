@@ -296,10 +296,11 @@ export interface GradeComparisonRow {
 export function compareGrades(
   input: Omit<ProductionInput, "screedGrade">,
   cfg: ScreedProductionConfig = DEFAULT_SCREED_PRODUCTION_CONFIG,
+  grades: Record<ScreedGrade, GradeRecipe> = SCREED_GRADES,
 ): GradeComparisonRow[] {
   let prev: number | null = null;
   return SCREED_GRADE_LIST.map((grade) => {
-    const r = calculateScreedProduction({ ...input, screedGrade: grade }, cfg);
+    const r = calculateScreedProduction({ ...input, screedGrade: grade }, cfg, grades);
     const costPerM2 = r.productionCostPerM2;
     const row: GradeComparisonRow = {
       grade, volumeM3: r.screedVolumeM3, sandTons: r.sandTons, cementBags: r.cementBags,
