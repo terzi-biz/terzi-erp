@@ -186,6 +186,7 @@ function SettingsPage() {
 
   const tabs: { id: Tab; label: string; icon: typeof Layers }[] = [
     { id: "screed", label: "Стяжка", icon: Layers },
+    { id: "grades", label: "Марки стяжки", icon: Grid3x3 },
     { id: "roofing", label: "Покрівля", icon: RoofIcon },
     { id: "insulation", label: "Утеплення", icon: Snowflake },
     { id: "demolition", label: "Демонтаж", icon: Hammer },
