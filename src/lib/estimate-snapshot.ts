@@ -45,19 +45,28 @@ export interface EstimateSnapshot extends Record<string, unknown> {
  * (сумісність з наявними читачами `calculation_json.lines/totalClient/...`),
  * а знімок цін і норм додається окремими полями.
  */
+/** Глибока копія — знімок не повинен посилатися на живі об'єкти довідника. */
+function deepClone<T>(v: T): T {
+  if (v === undefined || v === null) return v;
+  if (typeof structuredClone === "function") {
+    try { return structuredClone(v); } catch { /* fallthrough */ }
+  }
+  return JSON.parse(JSON.stringify(v)) as T;
+}
+
 export function buildEstimateSnapshot<TInput, TResult extends object>(
   src: EstimateSnapshotSource<TInput, TResult>,
 ): EstimateSnapshot {
   return {
-    ...src.result,
+    ...deepClone(src.result),
     snapshotVersion: ESTIMATE_SNAPSHOT_VERSION,
     module: src.module,
     engineVersion: src.engineVersion,
     priceBookVersion: src.priceBookVersion ?? null,
     capturedAt: new Date().toISOString(),
-    inputs: src.inputs as unknown,
-    prices: { ...src.prices },
-    norms: { ...(src.norms ?? {}) },
+    inputs: deepClone(src.inputs) as unknown,
+    prices: deepClone(src.prices),
+    norms: deepClone(src.norms ?? {}),
     priceSources: { ...(src.priceSources ?? {}) },
   };
 }
