@@ -26,10 +26,11 @@ import { EstimateView } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import {
-  DEFAULT_SCREED_PRODUCTION_CONFIG, SCREED_GRADES, SCREED_GRADE_LIST, GRADE_LABEL,
+  SCREED_GRADE_LIST, GRADE_LABEL,
   SCREED_GRADE_DISCLAIMER, calculateScreedProduction, compareGrades, screedPositionName,
   type ScreedGrade, type ScreedProductionConfig,
 } from "@/lib/screed-grades";
+import { useScreedConfig } from "@/lib/useScreedConfig";
 
 export const Route = createFileRoute("/screed")({
   validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
@@ -115,23 +116,25 @@ function ScreedPage() {
 
   const [showCompare, setShowCompare] = useState(false);
 
-  // Централізована конфігурація: закупівельні ціни — з каталогу (Налаштування →
-  // Матеріали / Логістика), тарифи бригади — з налаштувань ERP, решта — дефолти рушія.
+  // Централізована конфігурація: база — адмін-налаштування (Налаштування → Марки стяжки),
+  // закупівельні ціни — з каталогу, тарифи бригади — з налаштувань ERP.
+  const { payload: screedConfig } = useScreedConfig();
+  const baseCfg = screedConfig.config;
   const prodCfg: ScreedProductionConfig = useMemo(() => ({
-    ...DEFAULT_SCREED_PRODUCTION_CONFIG,
-    sandPricePerTon: materialPrices.sand?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandPricePerTon,
-    cementM400BagPrice: materialPrices.cement400?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.cementM400BagPrice,
-    cementM500BagPrice: materialPrices.cement500?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.cementM500BagPrice,
-    fiberPackPrice: materialPrices.fiber?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.fiberPackPrice,
-    plasticizerPricePerL: materialPrices.plast?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.plasticizerPricePerL,
-    filmPricePerM2: materialPrices.film?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.filmPricePerM2,
-    damperPricePerM: materialPrices.damper?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.damperPricePerM,
-    brigadeMinCost: settings.brigadeMin ?? DEFAULT_SCREED_PRODUCTION_CONFIG.brigadeMinCost,
-    brigadePerM2Over100: settings.brigadePerM2 ?? DEFAULT_SCREED_PRODUCTION_CONFIG.brigadePerM2Over100,
-    sandTruckCapacityTons: settings.sandTripCapacity ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandTruckCapacityTons,
-    sandTruckCost: logisticsPrices.sand_city?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandTruckCost,
-    stationDeliveryCost: logisticsPrices.station_city?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.stationDeliveryCost,
-  }), [materialPrices, logisticsPrices, settings]);
+    ...baseCfg,
+    sandPricePerTon: materialPrices.sand?.buy ?? baseCfg.sandPricePerTon,
+    cementM400BagPrice: materialPrices.cement400?.buy ?? baseCfg.cementM400BagPrice,
+    cementM500BagPrice: materialPrices.cement500?.buy ?? baseCfg.cementM500BagPrice,
+    fiberPackPrice: materialPrices.fiber?.buy ?? baseCfg.fiberPackPrice,
+    plasticizerPricePerL: materialPrices.plast?.buy ?? baseCfg.plasticizerPricePerL,
+    filmPricePerM2: materialPrices.film?.buy ?? baseCfg.filmPricePerM2,
+    damperPricePerM: materialPrices.damper?.buy ?? baseCfg.damperPricePerM,
+    brigadeMinCost: settings.brigadeMin ?? baseCfg.brigadeMinCost,
+    brigadePerM2Over100: settings.brigadePerM2 ?? baseCfg.brigadePerM2Over100,
+    sandTruckCapacityTons: settings.sandTripCapacity ?? baseCfg.sandTruckCapacityTons,
+    sandTruckCost: logisticsPrices.sand_city?.buy ?? baseCfg.sandTruckCost,
+    stationDeliveryCost: logisticsPrices.station_city?.buy ?? baseCfg.stationDeliveryCost,
+  }), [materialPrices, logisticsPrices, settings, baseCfg]);
 
   const prodInput = useMemo(() => ({
     areaM2: input.area,
@@ -144,8 +147,9 @@ function ScreedPage() {
     marginPercent: targetMargin,
   }), [input, targetMargin]);
 
-  const prod = useMemo(() => calculateScreedProduction(prodInput, prodCfg), [prodInput, prodCfg]);
-  const comparison = useMemo(() => (showCompare ? compareGrades(prodInput, prodCfg) : []), [showCompare, prodInput, prodCfg]);
+  const grades = screedConfig.grades;
+  const prod = useMemo(() => calculateScreedProduction(prodInput, prodCfg, grades), [prodInput, prodCfg, grades]);
+  const comparison = useMemo(() => (showCompare ? compareGrades(prodInput, prodCfg, grades) : []), [showCompare, prodInput, prodCfg, grades]);
   const techInfo = useMemo(() => ([
     { label: "Марка стяжки", value: GRADE_LABEL[prod.screedGrade] },
     { label: "Орієнтир міцності", value: `≈${prod.strengthMPa} МПа` },
@@ -300,7 +304,7 @@ function ScreedPage() {
               <Field label="Марка стяжки" hint={SCREED_GRADE_DISCLAIMER}>
                 <select className={sel} value={input.screedGrade ?? "M200"} onChange={(e) => upd("screedGrade", e.target.value as ScreedGrade)}>
                   {SCREED_GRADE_LIST.map((g) => (
-                    <option key={g} value={g}>{GRADE_LABEL[g]} · ≈{SCREED_GRADES[g].strengthMPa} МПа</option>
+                    <option key={g} value={g}>{GRADE_LABEL[g]} · ≈{grades[g].strengthMPa} МПа</option>
                   ))}
                 </select>
               </Field>
@@ -615,6 +619,20 @@ function ScreedPage() {
         <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} buttonClass={`${btnBase} bg-secondary hover:bg-secondary/80`} />
         <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
 
+      </div>
+
+      {/* Мобільний sticky-підсумок */}
+      <div className="lg:hidden sticky bottom-0 -mx-4 md:-mx-6 mt-4 border-t border-border bg-background/95 px-4 py-2.5 backdrop-blur print:hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("totalClient")}</div>
+            <div className="truncate text-base font-black text-primary">{formatUah(result.totalClient)}</div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("pricePerM2")}</div>
+            <div className="text-sm font-bold tabular-nums">{formatNum(result.pricePerM2, 0)} грн/м²</div>
+          </div>
+        </div>
       </div>
     </div>
   );

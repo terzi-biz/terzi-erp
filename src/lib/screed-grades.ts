@@ -95,6 +95,17 @@ export const DEFAULT_SCREED_PRODUCTION_CONFIG: ScreedProductionConfig = {
   cementDeliveryCost: 1200,
 };
 
+/** Повний набір адміністрованих налаштувань стяжки (зберігається у БД). */
+export interface ScreedConfigPayload {
+  grades: Record<ScreedGrade, GradeRecipe>;
+  config: ScreedProductionConfig;
+}
+
+export const DEFAULT_SCREED_CONFIG_PAYLOAD: ScreedConfigPayload = {
+  grades: SCREED_GRADES,
+  config: DEFAULT_SCREED_PRODUCTION_CONFIG,
+};
+
 export interface ProductionInput {
   areaM2: number;
   thicknessCm: number;
@@ -179,6 +190,7 @@ const r2 = (v: number) => +v.toFixed(2);
 export function calculateScreedProduction(
   input: ProductionInput,
   cfg: ScreedProductionConfig = DEFAULT_SCREED_PRODUCTION_CONFIG,
+  grades: Record<ScreedGrade, GradeRecipe> = SCREED_GRADES,
 ): ProductionResult {
   const warnings: string[] = [];
   const areaM2 = Math.max(0, input.areaM2);
@@ -186,7 +198,7 @@ export function calculateScreedProduction(
   const perimeterM = Math.max(0, input.perimeterM);
   if (perimeterM <= 0) warnings.push("Периметр не вказано — демпферна стрічка не порахована.");
 
-  const recipe = SCREED_GRADES[input.screedGrade] ?? SCREED_GRADES.M200;
+  const recipe = grades[input.screedGrade] ?? grades.M200 ?? SCREED_GRADES.M200;
   const screedVolumeM3 = r2(areaM2 * thicknessCm / 100);
   const scaleFactor = screedVolumeM3 / 7;
 
@@ -295,10 +307,11 @@ export interface GradeComparisonRow {
 export function compareGrades(
   input: Omit<ProductionInput, "screedGrade">,
   cfg: ScreedProductionConfig = DEFAULT_SCREED_PRODUCTION_CONFIG,
+  grades: Record<ScreedGrade, GradeRecipe> = SCREED_GRADES,
 ): GradeComparisonRow[] {
   let prev: number | null = null;
   return SCREED_GRADE_LIST.map((grade) => {
-    const r = calculateScreedProduction({ ...input, screedGrade: grade }, cfg);
+    const r = calculateScreedProduction({ ...input, screedGrade: grade }, cfg, grades);
     const costPerM2 = r.productionCostPerM2;
     const row: GradeComparisonRow = {
       grade, volumeM3: r.screedVolumeM3, sandTons: r.sandTons, cementBags: r.cementBags,
