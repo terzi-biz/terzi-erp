@@ -56,6 +56,7 @@ const CFG_GROUPS: { title: string; fields: { key: CfgKey; label: string; step?: 
     { key: "stationDeliveryCost", label: "Доставка станції, грн", step: "50" },
     { key: "sandTruckCost", label: "Рейс піску (КамАЗ), грн", step: "50" },
     { key: "sandTruckCapacityTons", label: "Місткість КамАЗ, т", step: "1" },
+    { key: "sandPurchaseStepTons", label: "Кратність закупівлі піску, т", step: "0.5" },
     { key: "cementDeliveryCost", label: "Доставка цементу, грн", step: "50" },
   ]},
 ];
