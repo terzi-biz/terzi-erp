@@ -36,6 +36,7 @@ export const productionConfigSchema = z.object({
   sandTruckCost: num,
   sandTruckCapacityTons: z.number().finite().positive(),
   cementDeliveryCost: num,
+  sandPurchaseStepTons: num.default(1),
 });
 
 export const screedConfigPayloadSchema = z.object({

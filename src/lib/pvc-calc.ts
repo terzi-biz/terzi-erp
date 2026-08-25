@@ -41,6 +41,12 @@ export interface PvcInput {
 
   opaikaPoints: number;        // точки обпайки (виходи труб тощо)
 
+  /**
+   * Неармована мембрана Sikaplan D-15 — ТІЛЬКИ вузли, проходки, примикання.
+   * 0 = порахувати автоматично від периметру та кількості точок.
+   */
+  detailMembraneM2: number;
+
   // Профілі: 0 = рахувати автоматично від периметру
   pvcAngleMeters: number;      // ПВХ-уголок
   pvcClampMeters: number;      // прижимна планка
@@ -62,6 +68,16 @@ export interface PvcInput {
 
 export interface PvcCoefficients {
   overlapCoef: number;        // нахльост мембрани, 1.15
+  /** Довжина одного ПВХ-профілю/планки при закупівлі, м. */
+  profileBarLengthM: number;
+  /** Площа рулона армованої мембрани (2.0 × 20 м), м². */
+  fieldRollM2: number;
+  /** Площа рулона неармованої D-15 (1 × 20 м), м². */
+  detailRollM2: number;
+  /** Автонорма D-15: м² на 1 п.м примикання. */
+  detailPerMeterM2: number;
+  /** Автонорма D-15: м² на одну точку (воронка / аератор / обпайка). */
+  detailPerPointM2: number;
   geoCoef: number;            // запас геотекстилю
   fastenersPerM2: number;     // телескопічні кріплення на м² поля
   angleReserve: number;       // запас ПВХ-уголка від периметру
@@ -83,6 +99,11 @@ export interface PvcCoefficients {
 
 export const DEFAULT_PVC_COEFFS: PvcCoefficients = {
   overlapCoef: 1.15,
+  profileBarLengthM: 2,
+  fieldRollM2: 40,
+  detailRollM2: 20,
+  detailPerMeterM2: 0.25,
+  detailPerPointM2: 0.5,
   geoCoef: 1.10,
   fastenersPerM2: 4,
   angleReserve: 1.05,
@@ -103,8 +124,12 @@ export const DEFAULT_PVC_COEFFS: PvcCoefficients = {
 };
 
 export const DEFAULT_PVC_PRICES: Record<string, MaterialPrice> = {
+  // Армоване польове полотно. 1,5 мм підтверджено прайсом (Sikaplan 15 G, 2.0×20 м).
   pvc_15_sika: { buy: 360, sell: 468 },
-  pvc_18_sika: { buy: 655, sell: 852 },
+  // 1,8 мм — ціна НЕ підтверджена в каталозі. Заборонено підставляти ціну D-15 (655 грн/м²).
+  pvc_18_sika: { buy: 0, sell: 0 },
+  // Неармована деталювальна мембрана Sikaplan D-15, 1×20 м — лише вузли/проходки.
+  pvc_d15_detail: { buy: 655, sell: 851.5 },
   geo_300: { buy: 54, sell: 70 },
   fastener: { buy: 8, sell: 18 },
   funnel_scupper_75: { buy: 2000, sell: 2600 },
@@ -188,6 +213,17 @@ export function calculatePvc(
   const push = (l: Omit<RoofLine, "sum" | "cost">) =>
     lines.push({ ...l, sum: +(l.qty * l.pricePerUnit).toFixed(2), cost: +(l.qty * l.costPerUnit).toFixed(2) });
 
+  /** ПВХ-планки/профілі — 2-метрові елементи: розрахунок у м.п., закупівля у штуках. */
+  const barPurchase = (meters: number) => {
+    const bar = c.profileBarLengthM > 0 ? c.profileBarLengthM : 2;
+    const pcs = ceil(meters / bar);
+    return {
+      purchaseQty: pcs,
+      purchaseUnit: `шт × ${bar} м`,
+      note: `Розрахунок ${meters} м.п.; закупівля ${pcs} шт по ${bar} м.`,
+    };
+  };
+
   const area = Math.max(0, input.area);
   const perimeter = Math.max(0, input.perimeter);
   const verticalHeightM = +(
@@ -198,11 +234,42 @@ export function calculatePvc(
   const membraneM2 = ceil(totalGeomM2 * c.overlapCoef);
 
   // ---- Матеріали ----
+  // Польове полотно — ЗАВЖДИ армована мембрана. Неармована D-15 сюди не підставляється.
   const pvcKey = input.thickness === "1.8" ? "pvc_18_sika" : "pvc_15_sika";
+  const fieldPrice = px(pvcKey);
+  if (!(fieldPrice.buy > 0) || !(fieldPrice.sell > 0)) {
+    warnings.push(
+      `Ціна армованої ПВХ-мембрани ${input.thickness} мм не підтверджена в каталозі (код ${pvcKey}). ` +
+      "Внесіть підтверджену ціну в довідник. Підставляти ціну неармованої Sikaplan D-15 (655 грн/м²) заборонено.",
+    );
+  }
   push({
-    key: "m_pvc", block: "materials", name: `ПВХ-мембрана Sika ${input.thickness} мм (з нахльостом ×${c.overlapCoef})`,
-    unit: "м²", qty: membraneM2, pricePerUnit: px(pvcKey).sell, costPerUnit: px(pvcKey).buy,
+    key: "m_pvc", block: "materials",
+    name: `ПВХ-мембрана армована Sikaplan ${input.thickness} мм, польове полотно (з нахльостом ×${c.overlapCoef})`,
+    unit: "м²", qty: membraneM2, pricePerUnit: fieldPrice.sell, costPerUnit: fieldPrice.buy,
+    purchaseQty: c.fieldRollM2 > 0 ? ceil(membraneM2 / c.fieldRollM2) : undefined,
+    purchaseUnit: `рул. × ${c.fieldRollM2} м²`,
+    note: `Розрахункова площа ${membraneM2} м²; закупівля рулонами по ${c.fieldRollM2} м².`,
   });
+
+  // Неармована D-15 — окремий код, окрема одиниця, лише вузли/проходки/примикання.
+  const detailPointsQty = Math.max(0, input.opaikaPoints) +
+    Math.max(0, input.funnels75) + Math.max(0, input.funnels110) + Math.max(0, input.funnels160) +
+    Math.max(0, input.aerators75) + Math.max(0, input.aerators110) + Math.max(0, input.aerators160);
+  const detailM2 = input.detailMembraneM2 > 0
+    ? +input.detailMembraneM2.toFixed(2)
+    : +(perimeter * c.detailPerMeterM2 + detailPointsQty * c.detailPerPointM2).toFixed(2);
+  if (detailM2 > 0) {
+    push({
+      key: "m_pvc_d15", block: "materials",
+      name: "ПВХ-мембрана неармована Sikaplan D-15 (вузли, проходки, примикання)",
+      unit: "м²", qty: detailM2,
+      pricePerUnit: px("pvc_d15_detail").sell, costPerUnit: px("pvc_d15_detail").buy,
+      purchaseQty: c.detailRollM2 > 0 ? ceil(detailM2 / c.detailRollM2) : undefined,
+      purchaseUnit: `рул. × ${c.detailRollM2} м²`,
+      note: "Деталювальна неармована мембрана. Не є заміною армованого польового полотна.",
+    });
+  }
 
   if (input.withGeotextile) {
     const geoM2 = ceil(totalGeomM2 * c.geoCoef);
@@ -223,19 +290,22 @@ export function calculatePvc(
 
   if (angleM > 0) {
     push({ key: "m_angle", block: "materials", name: "ПВХ-уголок (внутрішнє примикання)", unit: "п.м", qty: angleM,
-      pricePerUnit: px("pvc_angle").sell, costPerUnit: px("pvc_angle").buy });
+      pricePerUnit: px("pvc_angle").sell, costPerUnit: px("pvc_angle").buy,
+      ...barPurchase(angleM) });
     push({ key: "w_angle", block: "works", name: "Монтаж ПВХ-уголка", unit: "п.м", qty: angleM,
       pricePerUnit: wp("pvc_angle_lay"), costPerUnit: wc("pvc_angle_lay") });
   }
   if (clampM > 0) {
     push({ key: "m_clamp", block: "materials", name: "ПВХ-планка прижимна", unit: "п.м", qty: clampM,
-      pricePerUnit: px("pvc_clamp").sell, costPerUnit: px("pvc_clamp").buy });
+      pricePerUnit: px("pvc_clamp").sell, costPerUnit: px("pvc_clamp").buy,
+      ...barPurchase(clampM) });
     push({ key: "w_clamp", block: "works", name: "Монтаж прижимної планки з герметиком", unit: "п.м", qty: clampM,
       pricePerUnit: wp("pvc_clamp_lay"), costPerUnit: wc("pvc_clamp_lay") });
   }
   if (dripM > 0) {
     push({ key: "m_drip", block: "materials", name: "Капельник", unit: "п.м", qty: dripM,
-      pricePerUnit: px("drip_edge").sell, costPerUnit: px("drip_edge").buy });
+      pricePerUnit: px("drip_edge").sell, costPerUnit: px("drip_edge").buy,
+      ...barPurchase(dripM) });
     push({ key: "w_drip", block: "works", name: "Монтаж капельника", unit: "п.м", qty: dripM,
       pricePerUnit: wp("drip_edge"), costPerUnit: wc("drip_edge") });
   }

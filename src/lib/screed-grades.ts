@@ -64,6 +64,8 @@ export interface ScreedProductionConfig {
   sandTruckCost: number;
   sandTruckCapacityTons: number;
   cementDeliveryCost: number;
+  /** Кратність закупівлі піску, т (для рекомендованого закупівельного обсягу). Розрахунок і вартість — по нормі. */
+  sandPurchaseStepTons: number;
 }
 
 export const DEFAULT_SCREED_PRODUCTION_CONFIG: ScreedProductionConfig = {
@@ -93,6 +95,7 @@ export const DEFAULT_SCREED_PRODUCTION_CONFIG: ScreedProductionConfig = {
   sandTruckCost: 1700,
   sandTruckCapacityTons: 15,
   cementDeliveryCost: 1200,
+  sandPurchaseStepTons: 1,
 };
 
 /** Повний набір адміністрованих налаштувань стяжки (зберігається у БД). */
@@ -124,6 +127,10 @@ export interface ProductionRow {
   qty: number;
   price: number;
   sum: number;
+  /** Рекомендована кількість до закупівлі (кратність упаковки/машини). Не впливає на суму. */
+  purchaseQty?: number;
+  purchaseUnit?: string;
+  note?: string;
 }
 
 export interface ProductionResult {
@@ -141,6 +148,8 @@ export interface ProductionResult {
 
   // Матеріали (кількості)
   sandTons: number;
+  /** Рекомендована закупівля піску з урахуванням кратності. Не впливає на вартість. */
+  sandTonsPurchase: number;
   cementBagsRaw: number;
   cementBags: number;
   cementKg: number;
@@ -204,6 +213,9 @@ export function calculateScreedProduction(
 
   // Матеріали
   const sandTons = r2(recipe.sandTonsPer7m3 * scaleFactor);
+  // Закупівельна кратність показується окремо і НЕ підвищує розрахункову норму та вартість.
+  const sandStep = cfg.sandPurchaseStepTons > 0 ? cfg.sandPurchaseStepTons : 1;
+  const sandTonsPurchase = r2(Math.ceil(sandTons / sandStep) * sandStep);
   const bagsPer7 = input.cementGrade === "m400" ? recipe.cementM400BagsPer7m3 : recipe.cementM500BagsPer7m3;
   const cementBagsRaw = r2(bagsPer7 * scaleFactor);
   const cementBags = Math.ceil(cementBagsRaw);
@@ -230,7 +242,9 @@ export function calculateScreedProduction(
   const dieselCost = dieselLiters * cfg.dieselPricePerL;
 
   const materialRows: ProductionRow[] = [
-    { key: "sand", name: "Вознесенський пісок", unit: "т", qty: sandTons, price: cfg.sandPricePerTon, sum: sandCost },
+    { key: "sand", name: "Вознесенський пісок", unit: "т", qty: sandTons, price: cfg.sandPricePerTon, sum: sandCost,
+      purchaseQty: sandTonsPurchase, purchaseUnit: "т",
+      note: sandTonsPurchase > sandTons ? `Розрахункова норма ${sandTons} т; рекомендована закупівля ${sandTonsPurchase} т (кратність ${sandStep} т). Вартість рахується по нормі.` : undefined },
     { key: "cement", name: `Цемент ${input.cementGrade === "m400" ? "М400" : "М500"}`, unit: `міш. ${cfg.cementBagKg} кг`, qty: cementBags, price: cementBagPrice, sum: cementCost },
     { key: "fiber", name: "Sika Fiber 600 г", unit: "уп.", qty: fiberPacks, price: cfg.fiberPackPrice, sum: fiberCost },
     { key: "plast", name: "Пластифікатор Sika", unit: "л", qty: plasticizerLiters, price: cfg.plasticizerPricePerL, sum: plasticizerCost },
@@ -279,7 +293,7 @@ export function calculateScreedProduction(
     areaM2, thicknessCm, perimeterM, screedVolumeM3, scaleFactor,
     screedGrade: input.screedGrade, cementGrade: input.cementGrade,
     strengthMPa: recipe.strengthMPa, hasMesh: input.hasMesh, hasSlope: input.hasSlope,
-    sandTons, cementBagsRaw, cementBags, cementKg, fiberPacksRaw, fiberPacks, fiberKg,
+    sandTons, sandTonsPurchase, cementBagsRaw, cementBags, cementKg, fiberPacksRaw, fiberPacks, fiberKg,
     plasticizerLiters, plasticizerLitersPurchase, filmM2, damperM, dieselLiters,
     materialRows, materialsTotal,
     baseLaborCost, cementUnloadingCost, meshLaborCost, slopeLaborCost,

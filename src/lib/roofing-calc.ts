@@ -231,6 +231,10 @@ export interface RoofLine {
   costPerUnit: number;
   sum: number;
   cost: number;
+  /** Рекомендована кількість до закупівлі (фасовка/довжина елемента). Не впливає на суму. */
+  purchaseQty?: number;
+  purchaseUnit?: string;
+  note?: string;
 }
 
 export interface RoofingResult {

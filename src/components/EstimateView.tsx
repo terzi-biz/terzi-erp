@@ -513,6 +513,8 @@ function isRowVisibleToClient(r: EstimateLine, cvm: ClientViewMode): boolean {
 export interface EffectiveRow {
   id: string; name: string; unit: string; qty: number;
   pricePerUnit: number; costPerUnit: number; sum: number; cost: number; isExtra: boolean;
+  /** Рекомендована закупівля (кратність упаковки/довжини) — довідково, у суму не входить. */
+  purchaseQty?: number; purchaseUnit?: string; note?: string;
 }
 export interface EffectiveBlock { block: string; label: string; rows: EffectiveRow[] }
 
@@ -538,9 +540,11 @@ function useEffectiveBlocks(
           const qty = ov.qty ?? r.qty;
           const pricePerUnit = ov.pricePerUnit ?? r.pricePerUnit;
           const costPerUnit = ov.costPerUnit ?? r.costPerUnit;
+          const src = r as typeof r & { purchaseQty?: number; purchaseUnit?: string; note?: string };
           return {
             id, name, unit, qty, pricePerUnit, costPerUnit,
             sum: qty * pricePerUnit, cost: qty * costPerUnit, isExtra: false as const,
+            purchaseQty: src.purchaseQty, purchaseUnit: src.purchaseUnit, note: src.note,
           };
         })
         .filter((x): x is NonNullable<typeof x> => x !== null);
@@ -632,6 +636,12 @@ function InternalSheet(p: EditableSheetProps) {
                     <td className="p-1.5">
                       <input className={inputCls} value={r.name}
                         onChange={(e) => update({ name: e.target.value })} />
+                      {(r.note || r.purchaseQty) && (
+                        <div className="text-[10px] leading-snug text-slate-500 mt-0.5">
+                          {r.purchaseQty ? `Закупівля: ${formatNum(r.purchaseQty, 2)} ${r.purchaseUnit ?? ""}. ` : ""}
+                          {r.note ?? ""}
+                        </div>
+                      )}
                     </td>
                     <td className="text-center p-1.5">
                       <input className={`${inputCls} text-center`} value={r.unit}
