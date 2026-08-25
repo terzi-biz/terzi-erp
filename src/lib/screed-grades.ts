@@ -179,6 +179,7 @@ const r2 = (v: number) => +v.toFixed(2);
 export function calculateScreedProduction(
   input: ProductionInput,
   cfg: ScreedProductionConfig = DEFAULT_SCREED_PRODUCTION_CONFIG,
+  grades: Record<ScreedGrade, GradeRecipe> = SCREED_GRADES,
 ): ProductionResult {
   const warnings: string[] = [];
   const areaM2 = Math.max(0, input.areaM2);
@@ -186,7 +187,7 @@ export function calculateScreedProduction(
   const perimeterM = Math.max(0, input.perimeterM);
   if (perimeterM <= 0) warnings.push("Периметр не вказано — демпферна стрічка не порахована.");
 
-  const recipe = SCREED_GRADES[input.screedGrade] ?? SCREED_GRADES.M200;
+  const recipe = grades[input.screedGrade] ?? grades.M200 ?? SCREED_GRADES.M200;
   const screedVolumeM3 = r2(areaM2 * thicknessCm / 100);
   const scaleFactor = screedVolumeM3 / 7;
 
