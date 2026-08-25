@@ -8,6 +8,8 @@ import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
+import { useInternalAccess } from "@/lib/useInternalAccess";
+import { findPriceIssues, priceBlockReason } from "@/lib/price-integrity";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
@@ -96,8 +98,8 @@ function ScreedPage() {
   const t = useT();
   const lang = useI18n((s) => s.lang);
   const { profile } = useAuth();
-  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
-  const isInternal = true;
+  // Внутрішні ціни (собівартість/маржа) — лише за наявності права на сервері.
+  const { isInternal } = useInternalAccess();
   const { settings, branding } = useAppStore();
   const search = Route.useSearch();
   const draft = useEstimateDraft<ScreedInput, { targetMargin: number }>({
@@ -108,9 +110,10 @@ function ScreedPage() {
   const savedStatus = draft.status;
   const targetMargin = draft.extra.targetMargin;
   const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
-  const { materialPrices, workPrices, logisticsPrices } = useModulePricing("screed", input.area);
+  const { materialPrices, workPrices, logisticsPrices, priceSources, priceBookVersion } = useModulePricing("screed", input.area);
 
-  const [showInternal, setShowInternal] = useState(isInternal);
+  const [showInternalPref, setShowInternal] = useState(true);
+  const showInternal = isInternal && showInternalPref;
   const [view, setView] = useState<"calc" | "estimate">("calc");
   useEstimatePrefill(search.estimate, draft.loadRecord);
 
@@ -171,6 +174,10 @@ function ScreedPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
+  /** Позиції з нульовою ціною / відсутні в прайсі — блокують збереження й експорт. */
+  const priceIssues = useMemo(() => findPriceIssues(result.lines, priceSources), [result.lines, priceSources]);
+  const priceBlock = priceBlockReason(priceIssues);
+
   const onSaveDraft = useCallback(async () => {
     const row = await saveFn({ data: {
       id: estimateId,
@@ -190,12 +197,13 @@ function ScreedPage() {
       gross_profit: result.grossProfit,
       margin_percent: result.marginPercent,
       payload: { ...input, targetMargin } as unknown as Record<string, unknown>,
-      calculation_json: { ...result, production: prod, productionConfig: prodCfg } as unknown as Record<string, unknown>,
+      calculation_json: { ...result, production: prod, productionConfig: prodCfg, priceSources } as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.screed,
+      price_book_version: priceBookVersion || null,
     } });
     qc.invalidateQueries({ queryKey: ["estimates"] });
     return row as { id?: string };
-  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result, targetMargin, prod, prodCfg]);
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result, targetMargin, prod, prodCfg, priceBookVersion, priceSources]);
 
   // PDF формується тільки з аркуша «Кошторис / КП», щоб у файл потрапили ручні правки.
   const onPdf = () => {
@@ -232,7 +240,7 @@ function ScreedPage() {
       {view === "estimate" && (
         <EstimateView result={result} client={client} branding={branding} module="Стяжка"
           area={input.area} thicknessCm={result.thicknessUsed} estimateNumber={estimateNumber}
-          isInternal={isInternal} estimateId={estimateId} techInfo={techInfo}
+          isInternal={isInternal} exportBlockReason={priceBlock} estimateId={estimateId} techInfo={techInfo}
           editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
       )}
 
@@ -616,7 +624,7 @@ function ScreedPage() {
           </button>
         )}
         <div className="h-6 w-px bg-border mx-1 hidden sm:block" />
-        <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} buttonClass={`${btnBase} bg-secondary hover:bg-secondary/80`} />
+        <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} blockReason={priceBlock} buttonClass={`${btnBase} bg-secondary hover:bg-secondary/80`} />
         <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
 
       </div>

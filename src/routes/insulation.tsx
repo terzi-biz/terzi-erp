@@ -7,6 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
+import { useInternalAccess } from "@/lib/useInternalAccess";
+import { findPriceIssues, priceBlockReason } from "@/lib/price-integrity";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
@@ -52,8 +54,8 @@ const defaultInput: InsulationInput = {
 
 function InsulationPage() {
   const { profile } = useAuth();
-  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
-  const isInternal = true;
+  // Внутрішні ціни (собівартість/маржа) — лише за наявності права на сервері.
+  const { isInternal } = useInternalAccess();
   const { insulationCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
   const draft = useEstimateDraft<InsulationInput>({
@@ -61,8 +63,9 @@ function InsulationPage() {
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
-  const { materialPrices, workPrices } = useModulePricing("insulation", input.area);
-  const [showInternal, setShowInternal] = useState(isInternal);
+  const { materialPrices, workPrices, priceSources, priceBookVersion } = useModulePricing("insulation", input.area);
+  const [showInternalPref, setShowInternal] = useState(true);
+  const showInternal = isInternal && showInternalPref;
   const printRef = useRef<HTMLDivElement>(null);
   const [view, setView] = useState<"calc" | "estimate">("calc");
   useEstimatePrefill(search.estimate, draft.loadRecord);
@@ -83,6 +86,10 @@ function InsulationPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
+  /** Позиції з нульовою ціною / відсутні в прайсі — блокують збереження й експорт. */
+  const priceIssues = useMemo(() => findPriceIssues(result.lines, priceSources), [result.lines, priceSources]);
+  const priceBlock = priceBlockReason(priceIssues);
+
   const onSaveDraft = useCallback(async () => {
     const row = await saveFn({ data: {
       id: estimateId,
@@ -95,12 +102,13 @@ function InsulationPage() {
       total_client: result.totalClient, total_cost: result.totalCost,
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
-      calculation_json: result as unknown as Record<string, unknown>,
+      calculation_json: { ...result, priceSources } as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.insulation,
+      price_book_version: priceBookVersion || null,
     } });
     qc.invalidateQueries({ queryKey: ["estimates"] });
     return row as { id?: string };
-  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result]);
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result, priceBookVersion, priceSources]);
 
   const onPng = async () => {
     if (!printRef.current) return;
@@ -130,7 +138,7 @@ function InsulationPage() {
               {showInternal ? "Управлінський" : "Клієнтський"}
             </button>
           )}
-          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} />
+          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} blockReason={priceBlock} />
           <button onClick={onPng} className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2"><ImageIcon className="w-3 h-3" />PNG</button>
         </div>
       </header>
@@ -147,7 +155,7 @@ function InsulationPage() {
       {view === "estimate" && (
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding} module="Утеплення"
-            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId}
+            area={input.area} thicknessCm={input.thicknessCm} estimateNumber={estimateNumber} isInternal={isInternal} exportBlockReason={priceBlock} estimateId={estimateId}
             editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
         </div>
       )}

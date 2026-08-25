@@ -13,6 +13,8 @@ import { DEFAULT_PVC_PRICES, DEFAULT_PVC_WORKS, DEFAULT_PVC_WORK_COSTS } from "@
 import { DEFAULT_INSULATION_PRICES, DEFAULT_INSULATION_WORKS } from "@/lib/insulation-calc";
 import { DEFAULT_DEMOLITION_PRICES, DEFAULT_DEMOLITION_WORKS } from "@/lib/demolition-calc";
 import { TIER_PRICE_COL, tierForArea } from "@/lib/catalog-tiers";
+import { buildPriceSources } from "@/lib/price-integrity";
+
 
 const MODULE_DEFAULT_MATERIALS: Record<string, Record<string, MaterialPrice>> = {
   screed: DEFAULT_MATERIAL_PRICES,
@@ -129,5 +131,35 @@ export function useModulePricing(module: Module, area?: number) {
     return out;
   }, [works.data, module]);
 
-  return { materialPrices, workPrices, workCostPrices, logisticsPrices, loading: mats.isLoading || works.isLoading };
+  /** Джерело ціни по кожному коду — для попередження про відсутні позиції прайсу. */
+  const priceSources = useMemo(() => {
+    const defaults: string[] = [];
+    for (const [k, v] of Object.entries(MODULE_DEFAULT_MATERIALS[module] ?? {})) if (v.sell > 0) defaults.push(k);
+    for (const [k, v] of Object.entries(MODULE_DEFAULT_WORKS[module] ?? {})) if (Number(v) > 0) defaults.push(k);
+    if (module === "screed") for (const [k, v] of Object.entries(DEFAULT_LOGISTICS_PRICES)) if (v.sell > 0) defaults.push(k);
+    const catalog: string[] = [];
+    for (const q of [mats.data, works.data, logistics.data]) {
+      for (const r of (q ?? []) as TierRow[]) if (r.code) catalog.push(r.code);
+    }
+    return buildPriceSources(catalog, defaults);
+  }, [mats.data, works.data, logistics.data, module]);
+
+  /** Версія прайсу = найсвіжіший updated_at позицій каталогу (сек. епохи), 0 якщо каталог порожній. */
+  const priceBookVersion = useMemo(() => {
+    let max = 0;
+    for (const q of [mats.data, works.data, logistics.data]) {
+      for (const r of (q ?? []) as Array<{ updated_at?: string | null }>) {
+        const t = r.updated_at ? Date.parse(r.updated_at) : NaN;
+        if (Number.isFinite(t) && t > max) max = t;
+      }
+    }
+    return max ? Math.floor(max / 1000) : 0;
+  }, [mats.data, works.data, logistics.data]);
+
+  return {
+    materialPrices, workPrices, workCostPrices, logisticsPrices,
+    priceSources, priceBookVersion,
+    loading: mats.isLoading || works.isLoading,
+  };
 }
+

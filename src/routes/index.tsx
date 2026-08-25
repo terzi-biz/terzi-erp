@@ -34,7 +34,8 @@ function Dashboard() {
 
   const modules = [
     { to: "/screed", icon: Layers, label: t("screed"), active: true, desc: "Напівсуха машинна стяжка" },
-    { to: "/roofing", icon: Home, label: t("roofing"), active: true, desc: "Рубемаст / ПВХ-мембрана Sika" },
+    { to: "/roofing_pvc", icon: Home, label: "ПВХ мембрана", active: true, desc: "Sikaplan / геотекстиль" },
+    { to: "/roofing_rub", icon: Home, label: "Руберойд", active: true, desc: "Акваізол / Руберіт, 1–3 шари" },
     { to: "/insulation", icon: Snowflake, label: t("insulation"), active: true, desc: "EPS, XPS, мінвата, полістиролбетон" },
     { to: "/demolition", icon: Hammer, label: t("demolition"), active: true, desc: "Стяжка, плитка, покрівля, перегородки" },
   ];

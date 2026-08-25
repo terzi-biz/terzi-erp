@@ -22,6 +22,8 @@ interface Props {
   onSave: () => Promise<{ id?: string } | unknown>;
   /** Чи можна автозберігати (наприклад, площа > 0). */
   canAutosave?: boolean;
+  /** Якщо задано — збереження заблоковано (напр. позиція з нульовою ціною). */
+  blockReason?: string | null;
   className?: string;
   buttonClass?: string;
 }
@@ -37,7 +39,7 @@ const fmtDateTime = (ts: number) =>
  * Автозбереження кошториса + індикатор стану + повне скидання + захист від
  * втрати незбережених змін при переході в інший розділ / закритті вкладки.
  */
-export function EstimateDraftControls({ draft, onSave, canAutosave = true, className, buttonClass }: Props) {
+export function EstimateDraftControls({ draft, onSave, canAutosave = true, blockReason, className, buttonClass }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [askReset, setAskReset] = useState(false);
@@ -47,6 +49,11 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, class
     ?? "px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50";
 
   const doSave = useCallback(async (silent: boolean) => {
+    if (blockReason) {
+      setError(blockReason);
+      if (!silent) toast.error(blockReason);
+      return false;
+    }
     if (savingRef.current) return false;
     savingRef.current = true;
     setSaving(true);
@@ -65,14 +72,14 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, class
       savingRef.current = false;
       setSaving(false);
     }
-  }, [draft, onSave]);
+  }, [draft, onSave, blockReason]);
 
   // Автозбереження з дебаунсом
   useEffect(() => {
-    if (!draft.hydrated || !draft.dirty || !canAutosave || !draft.autosaveAllowed) return;
+    if (!draft.hydrated || !draft.dirty || !canAutosave || !draft.autosaveAllowed || blockReason) return;
     const timer = setTimeout(() => { void doSave(true); }, AUTOSAVE_DELAY);
     return () => clearTimeout(timer);
-  }, [draft.hydrated, draft.dirty, draft.autosaveAllowed, canAutosave, doSave]);
+  }, [draft.hydrated, draft.dirty, draft.autosaveAllowed, canAutosave, blockReason, doSave]);
 
   const blocker = useBlocker({
     shouldBlockFn: () => draft.dirty,
@@ -101,7 +108,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, class
         <button type="button" onClick={() => setAskReset(true)} className={btn}>
           <RotateCcw className="w-3.5 h-3.5" />Скинути
         </button>
-        <button type="button" onClick={() => void doSave(false)} disabled={saving} className={btn}>
+        <button type="button" onClick={() => void doSave(false)} disabled={saving || !!blockReason} className={btn}>
           <Save className="w-3.5 h-3.5" />{saving ? "…" : "Зберегти"}
         </button>
       </div>

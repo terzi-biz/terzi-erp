@@ -7,6 +7,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
+import { useInternalAccess } from "@/lib/useInternalAccess";
+import { findPriceIssues, priceBlockReason } from "@/lib/price-integrity";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
@@ -79,8 +81,8 @@ const defaultInput: PvcInput = {
 
 function PvcPage() {
   const { profile } = useAuth();
-  // Внутрішній кошторис (собівартість, маржа, прибуток) доступний усім користувачам ERP.
-  const isInternal = true;
+  // Внутрішні ціни (собівартість/маржа) — лише за наявності права на сервері.
+  const { isInternal } = useInternalAccess();
   const { branding } = useAppStore();
   const search = Route.useSearch();
   const draft = useEstimateDraft<PvcInput>({
@@ -88,8 +90,9 @@ function PvcPage() {
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
-  const { materialPrices, workPrices, workCostPrices } = useModulePricing("roofing_pvc", input.area);
-  const [showInternal, setShowInternal] = useState(isInternal);
+  const { materialPrices, workPrices, workCostPrices, priceSources, priceBookVersion } = useModulePricing("roofing_pvc", input.area);
+  const [showInternalPref, setShowInternal] = useState(true);
+  const showInternal = isInternal && showInternalPref;
   const [view, setView] = useState<"calc" | "estimate">("calc");
 
   useEstimatePrefill(search.estimate, draft.loadRecord);
@@ -110,6 +113,10 @@ function PvcPage() {
 
   const qc = useQueryClient();
   const saveFn = useServerFn(saveEstimate);
+  /** Позиції з нульовою ціною / відсутні в прайсі — блокують збереження й експорт. */
+  const priceIssues = useMemo(() => findPriceIssues(result.lines, priceSources), [result.lines, priceSources]);
+  const priceBlock = priceBlockReason(priceIssues);
+
   const onSaveDraft = useCallback(async () => {
     const row = await saveFn({ data: {
       id: estimateId,
@@ -122,12 +129,13 @@ function PvcPage() {
       total_client: result.totalClient, total_cost: result.totalCost,
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
-      calculation_json: result as unknown as Record<string, unknown>,
+      calculation_json: { ...result, priceSources } as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.roofing,
+      price_book_version: priceBookVersion || null,
     } });
     qc.invalidateQueries({ queryKey: ["estimates"] });
     return row as { id?: string };
-  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result]);
+  }, [saveFn, qc, estimateId, estimateNumber, savedStatus, link, client, input, result, priceBookVersion, priceSources]);
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
@@ -152,7 +160,7 @@ function PvcPage() {
               {showInternal ? "Управлінський" : "Клієнтський"}
             </button>
           )}
-          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} />
+          <EstimateDraftControls draft={draft} onSave={onSaveDraft} canAutosave={input.area > 0} blockReason={priceBlock} />
         </div>
       </header>
 
@@ -169,7 +177,7 @@ function PvcPage() {
         <div className="relative z-10">
           <EstimateView result={result} client={client} branding={branding}
             module={`Покрівля ПВХ мембрана ${input.thickness} мм`}
-            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} estimateId={estimateId}
+            area={input.area} estimateNumber={estimateNumber} isInternal={isInternal} exportBlockReason={priceBlock} estimateId={estimateId}
             editsKey={draft.editsKey} onEditsChange={draft.setEditsSig} />
         </div>
       )}

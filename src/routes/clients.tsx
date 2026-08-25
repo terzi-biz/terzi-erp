@@ -41,8 +41,9 @@ const EST_STATUS_LABEL: Record<string, string> = {
   draft: "Чернетка", sent: "Надіслано", approved: "Затверджено", archived: "Архів",
 };
 
-const MODULE_ROUTES: Record<string, "/screed" | "/roofing" | "/insulation" | "/demolition"> = {
-  screed: "/screed", roofing: "/roofing", insulation: "/insulation", demolition: "/demolition",
+const MODULE_ROUTES: Record<string, "/screed" | "/roofing_pvc" | "/roofing_rub" | "/insulation" | "/demolition"> = {
+  screed: "/screed", roofing: "/roofing_pvc", roofing_pvc: "/roofing_pvc", roofing_rub: "/roofing_rub",
+  insulation: "/insulation", demolition: "/demolition",
 };
 
 function ClientEstimates({ clientId }: { clientId: string }) {
