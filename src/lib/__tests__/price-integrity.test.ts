@@ -12,7 +12,7 @@ describe("price-integrity", () => {
 
   it("не блокує коректні позиції", () => {
     const issues = findPriceIssues(
-      [{ code: "sand", name: "Пісок", qty: 2, pricePerUnit: 100, sum: 200 }],
+      [{ key: "sand", block: "materials", name: "Пісок", qty: 2, pricePerUnit: 100, sum: 200 }],
       sources,
     );
     expect(issues).toHaveLength(0);
@@ -21,7 +21,7 @@ describe("price-integrity", () => {
 
   it("знаходить нульову ціну при ненульовій кількості", () => {
     const issues = findPriceIssues(
-      [{ code: "sand", name: "Пісок", qty: 2, pricePerUnit: 0, sum: 0 }],
+      [{ key: "sand", block: "materials", name: "Пісок", qty: 2, pricePerUnit: 0, sum: 0 }],
       sources,
     );
     expect(issues).toHaveLength(1);
@@ -30,7 +30,7 @@ describe("price-integrity", () => {
 
   it("ігнорує позиції з нульовою кількістю", () => {
     const issues = findPriceIssues(
-      [{ code: "sand", name: "Пісок", qty: 0, pricePerUnit: 0, sum: 0 }],
+      [{ key: "sand", block: "materials", name: "Пісок", qty: 0, pricePerUnit: 0, sum: 0 }],
       sources,
     );
     expect(issues).toHaveLength(0);
@@ -38,7 +38,7 @@ describe("price-integrity", () => {
 
   it("позначає позиції, яких немає в прайсі", () => {
     const issues = findPriceIssues(
-      [{ code: "ghost", name: "Невідома", qty: 1, pricePerUnit: 0, sum: 0 }],
+      [{ key: "ghost", block: "materials", name: "Невідома", qty: 1, pricePerUnit: 0, sum: 0 }],
       sources,
     );
     expect(issues[0]?.source).toBe("missing");
