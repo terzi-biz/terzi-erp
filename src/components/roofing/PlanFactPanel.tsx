@@ -50,8 +50,7 @@ export function PlanFactPanel({
   }, [rows]);
 
   const mut = useMutation({
-    mutationFn: (p: Parameters<typeof saveRoofingActual>[0] extends never ? never : any) =>
-      save({ data: p }),
+    mutationFn: (p: Record<string, unknown>) => save({ data: p as never }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["roofing-actuals", estimateId] }),
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося зберегти факт"),
   });
