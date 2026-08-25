@@ -13,13 +13,17 @@ import {
 import type { DirectionDefinition } from "@/lib/engines/direction-engine";
 import { evaluateDirectionRuntime, type RuntimeDefinition } from "@/lib/directions/runtime";
 import { evalFormula, tryEvalFormula } from "@/lib/engines/formula-eval";
+import {
+  listVersions, publishVersion, restoreVersion, diffConfigs,
+  type DirectionVersionRow,
+} from "@/lib/directions/versions";
 import { formatUah } from "@/lib/screed-calc";
 
 export const Route = createFileRoute("/directions-editor")({
   component: DirectionsAdmin,
 });
 
-type Tab = "general" | "fields" | "materials" | "works" | "logistics" | "coeffs" | "preview";
+type Tab = "general" | "fields" | "materials" | "works" | "logistics" | "services" | "formulas" | "coeffs" | "versions" | "preview";
 
 const CATEGORIES = ["screed", "roofing", "insulation", "demolition", "finish", "other"] as const;
 
@@ -74,7 +78,8 @@ function DirectionsAdmin() {
               <div className="flex gap-1 flex-wrap">
                 {([
                   ["general", "Загальне"], ["fields", "Поля вводу"], ["materials", "Матеріали"],
-                  ["works", "Роботи"], ["logistics", "Логістика"], ["coeffs", "Коефіцієнти"], ["preview", "Прев'ю"],
+                  ["works", "Роботи"], ["logistics", "Логістика"], ["services", "Дод. послуги"],
+                  ["formulas", "Формули"], ["coeffs", "Коефіцієнти"], ["versions", "Версії"], ["preview", "Прев'ю"],
                 ] as [Tab, string][]).map(([id, label]) => (
                   <button key={id} onClick={() => setTab(id)}
                     className={`px-3 py-1.5 rounded text-sm font-semibold ${tab === id ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-accent"}`}>
@@ -90,7 +95,10 @@ function DirectionsAdmin() {
               {def && tab === "materials" && <ItemsTab def={def} kind="materials" onChange={reload} />}
               {def && tab === "works" && <ItemsTab def={def} kind="works" onChange={reload} />}
               {def && tab === "logistics" && <ItemsTab def={def} kind="logistics" onChange={reload} />}
+              {def && tab === "services" && <ItemsTab def={def} kind="services" onChange={reload} />}
+              {def && tab === "formulas" && <FormulasTab def={def} onChange={reload} />}
               {def && tab === "coeffs" && <CoeffsTab def={def} onChange={reload} />}
+              {def && tab === "versions" && <VersionsTab def={def} onChange={async () => { await reload(); await refreshList(); }} />}
               {def && tab === "preview" && <PreviewTab def={def} />}
             </div>
           )}
