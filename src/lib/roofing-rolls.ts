@@ -66,10 +66,17 @@ export const ROOFING_ROLLS: RollMaterial[] = ROOFING_KB_MATERIALS
     brand: m.category,
     kind: m.purpose === "Верхній" ? ("top" as const) : ("bottom" as const),
     rollM2: Number(m.rollM2),
+    widthM: DEFAULT_ROLL_WIDTH_M,
+    lengthM: +(Number(m.rollM2) / DEFAULT_ROLL_WIDTH_M).toFixed(2),
     buyPerM2: Number(m.price) || 0,
     sellPerM2: +((Number(m.price) || 0) * MARKUP).toFixed(2),
     weightKgPerM2: Number(m.weightKgPerM2) || 0,
+    modifier: modifierOf(m.name),
+    base: baseOf(m.name),
+    supplier: m.category,
+    packMultiple: 1,
   }));
+
 
 export const BOTTOM_ROLLS = ROOFING_ROLLS.filter((r) => r.kind === "bottom");
 export const TOP_ROLLS = ROOFING_ROLLS.filter((r) => r.kind === "top");
