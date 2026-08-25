@@ -74,6 +74,7 @@ const defaultInput: PvcInput = {
   funnels75: 0, funnels110: 0, funnels160: 0,
   aerators75: 0, aerators110: 0, aerators160: 0,
   opaikaPoints: 0,
+  detailMembraneM2: 0,
   pvcAngleMeters: 0, pvcClampMeters: 0, dripEdgeMeters: 0,
   cityDelivery: true, outOfCityKm: 0, withLift: true, haulContainers: 0,
   payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
@@ -207,8 +208,16 @@ function PvcPage() {
                 ))}
               </div>
             </Field>
+            <div className="mt-3">
+              <Field label="Неармована D-15 (вузли), м²"
+                hint="Sikaplan D-15 — окрема неармована мембрана ТІЛЬКИ для проходок, примикань і вузлів. Не замінює армоване польове полотно. 0 = автонорма від периметру та кількості точок.">
+                <NumberInput step="0.1" className={inp} value={input.detailMembraneM2}
+                  onChange={(v) => upd("detailMembraneM2", v)} />
+              </Field>
+            </div>
             <Tip>
               Площа мембрани = (горизонтальна + вертикальна) × <b>{DEFAULT_PVC_COEFFS.overlapCoef}</b> (нахльост). Кріплення телескопами ≈{DEFAULT_PVC_COEFFS.fastenersPerM2} шт/м².
+              Планки та профілі закуповуються 2-метровими елементами: розрахунок — у м.п., закупівля — у штуках.
             </Tip>
           </section>
 
