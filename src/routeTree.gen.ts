@@ -40,6 +40,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
+import { Route as CrmIntakeRouteImport } from './routes/crm.intake'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
@@ -66,6 +67,7 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
+import { Route as ApiPublicLeadsIntakeRouteImport } from './routes/api/public/leads/intake'
 import { Route as ApiPublicMarketingSyncRouteImport } from './routes/api/public/marketing/sync'
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
@@ -229,6 +231,11 @@ const CrmContactsRoute = CrmContactsRouteImport.update({
   path: '/crm/contacts',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CrmIntakeRoute = CrmIntakeRouteImport.update({
+  id: '/crm/intake',
+  path: '/crm/intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrmLeadsRoute = CrmLeadsRouteImport.update({
   id: '/crm/leads',
   path: '/crm/leads',
@@ -362,6 +369,11 @@ const ApiPublicIntegrationsWorkerRoute =
     path: '/api/public/integrations/worker',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicLeadsIntakeRoute = ApiPublicLeadsIntakeRouteImport.update({
+  id: '/api/public/leads/intake',
+  path: '/api/public/leads/intake',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMarketingSyncRoute = ApiPublicMarketingSyncRouteImport.update({
   id: '/api/public/marketing/sync',
   path: '/api/public/marketing/sync',
@@ -423,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
+  '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
@@ -450,6 +463,7 @@ export interface FileRoutesByFullPath {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/leads/intake': typeof ApiPublicLeadsIntakeRoute
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -487,6 +501,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
+  '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
@@ -514,6 +529,7 @@ export interface FileRoutesByTo {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/leads/intake': typeof ApiPublicLeadsIntakeRoute
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -552,6 +568,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
+  '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
@@ -579,6 +596,7 @@ export interface FileRoutesById {
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
+  '/api/public/leads/intake': typeof ApiPublicLeadsIntakeRoute
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -618,6 +636,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/crm/calls'
     | '/crm/contacts'
+    | '/crm/intake'
     | '/crm/leads'
     | '/crm/requests'
     | '/crm/tasks'
@@ -645,6 +664,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
+    | '/api/public/leads/intake'
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
@@ -682,6 +702,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/crm/calls'
     | '/crm/contacts'
+    | '/crm/intake'
     | '/crm/leads'
     | '/crm/requests'
     | '/crm/tasks'
@@ -709,6 +730,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
+    | '/api/public/leads/intake'
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
@@ -746,6 +768,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/crm/calls'
     | '/crm/contacts'
+    | '/crm/intake'
     | '/crm/leads'
     | '/crm/requests'
     | '/crm/tasks'
@@ -773,6 +796,7 @@ export interface FileRouteTypes {
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
+    | '/api/public/leads/intake'
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
@@ -811,6 +835,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   CrmCallsRoute: typeof CrmCallsRoute
   CrmContactsRoute: typeof CrmContactsRoute
+  CrmIntakeRoute: typeof CrmIntakeRoute
   CrmLeadsRoute: typeof CrmLeadsRoute
   CrmRequestsRoute: typeof CrmRequestsRoute
   CrmTasksRoute: typeof CrmTasksRoute
@@ -838,6 +863,7 @@ export interface RootRouteChildren {
   DotlovableOauthConsentRoute: typeof DotlovableOauthConsentRoute
   Char91DotmcpChar93InvokeToolToolRoute: typeof Char91DotmcpChar93InvokeToolToolRoute
   ApiPublicIntegrationsWorkerRoute: typeof ApiPublicIntegrationsWorkerRoute
+  ApiPublicLeadsIntakeRoute: typeof ApiPublicLeadsIntakeRoute
   ApiPublicMarketingSyncRoute: typeof ApiPublicMarketingSyncRoute
   ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
@@ -1064,6 +1090,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmContactsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/crm/intake': {
+      id: '/crm/intake'
+      path: '/crm/intake'
+      fullPath: '/crm/intake'
+      preLoaderRoute: typeof CrmIntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/crm/leads': {
       id: '/crm/leads'
       path: '/crm/leads'
@@ -1246,6 +1279,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsWorkerRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/leads/intake': {
+      id: '/api/public/leads/intake'
+      path: '/api/public/leads/intake'
+      fullPath: '/api/public/leads/intake'
+      preLoaderRoute: typeof ApiPublicLeadsIntakeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/marketing/sync': {
       id: '/api/public/marketing/sync'
       path: '/api/public/marketing/sync'
@@ -1316,6 +1356,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   CrmCallsRoute: CrmCallsRoute,
   CrmContactsRoute: CrmContactsRoute,
+  CrmIntakeRoute: CrmIntakeRoute,
   CrmLeadsRoute: CrmLeadsRoute,
   CrmRequestsRoute: CrmRequestsRoute,
   CrmTasksRoute: CrmTasksRoute,
@@ -1343,6 +1384,7 @@ const rootRouteChildren: RootRouteChildren = {
   DotlovableOauthConsentRoute: DotlovableOauthConsentRoute,
   Char91DotmcpChar93InvokeToolToolRoute: Char91DotmcpChar93InvokeToolToolRoute,
   ApiPublicIntegrationsWorkerRoute: ApiPublicIntegrationsWorkerRoute,
+  ApiPublicLeadsIntakeRoute: ApiPublicLeadsIntakeRoute,
   ApiPublicMarketingSyncRoute: ApiPublicMarketingSyncRoute,
   ApiPublicIntegrationsBinotelCallCompletedRoute:
     ApiPublicIntegrationsBinotelCallCompletedRoute,

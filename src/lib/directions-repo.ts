@@ -12,16 +12,26 @@ export interface DirectionRow {
   category: string;
   description: string | null;
   active: boolean;
+  icon?: string | null;
+  sort_order?: number;
+  service_type?: string | null;
+  is_addon?: boolean;
+  allowed_roles?: string[];
+  status?: string;
+  current_version?: number;
 }
 
+const DIRECTION_COLS =
+  "id,name,category,description,active,icon,sort_order,service_type,is_addon,allowed_roles,status,current_version";
+
 export async function listDirections(): Promise<DirectionRow[]> {
-  const { data, error } = await supabase.from("directions").select("id,name,category,description,active").order("name");
+  const { data, error } = await supabase.from("directions").select(DIRECTION_COLS).order("name");
   if (error) throw error;
   return (data ?? []) as DirectionRow[];
 }
 
 export async function upsertDirection(row: DirectionRow): Promise<void> {
-  const { error } = await supabase.from("directions").upsert(row);
+  const { error } = await supabase.from("directions").upsert(row as never);
   if (error) throw error;
 }
 

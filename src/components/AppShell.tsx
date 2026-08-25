@@ -84,6 +84,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     { to: "/crm/leads", icon: Target, label: "Воронка лідів" },
     { to: "/crm/contacts", icon: Contact, label: "Контакти" },
     { to: "/crm/requests", icon: Inbox, label: "Звернення" },
+    { to: "/crm/intake", icon: Inbox, label: "Вхідні ліди" },
     { to: "/crm/calls", icon: PhoneCall, label: "Дзвінки" },
     { to: "/crm/tasks", icon: ListTodo, label: "Задачі" },
     { to: "/clients", icon: Users, label: "Клієнти" },

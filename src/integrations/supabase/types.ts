@@ -1783,32 +1783,97 @@ export type Database = {
         }
         Relationships: []
       }
+      direction_versions: {
+        Row: {
+          config: Json
+          created_at: string
+          direction_id: string
+          engine_version: string
+          id: string
+          note: string | null
+          published_at: string
+          published_by: string | null
+          version: number
+        }
+        Insert: {
+          config: Json
+          created_at?: string
+          direction_id: string
+          engine_version: string
+          id?: string
+          note?: string | null
+          published_at?: string
+          published_by?: string | null
+          version: number
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          direction_id?: string
+          engine_version?: string
+          id?: string
+          note?: string | null
+          published_at?: string
+          published_by?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direction_versions_direction_id_fkey"
+            columns: ["direction_id"]
+            isOneToOne: false
+            referencedRelation: "directions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       directions: {
         Row: {
           active: boolean
+          allowed_roles: Json
           category: string
           created_at: string
+          current_version: number
           description: string | null
+          icon: string | null
           id: string
+          is_addon: boolean
           name: string
+          service_type: string | null
+          sort_order: number
+          status: string
           updated_at: string
         }
         Insert: {
           active?: boolean
+          allowed_roles?: Json
           category: string
           created_at?: string
+          current_version?: number
           description?: string | null
+          icon?: string | null
           id: string
+          is_addon?: boolean
           name: string
+          service_type?: string | null
+          sort_order?: number
+          status?: string
           updated_at?: string
         }
         Update: {
           active?: boolean
+          allowed_roles?: Json
           category?: string
           created_at?: string
+          current_version?: number
           description?: string | null
+          icon?: string | null
           id?: string
+          is_addon?: boolean
           name?: string
+          service_type?: string | null
+          sort_order?: number
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -2229,15 +2294,20 @@ export type Database = {
           direction_id: string
           enum_values: Json | null
           field_key: string
+          group_label: string | null
           help_text: string | null
           id: string
           label: string
+          max_value: number | null
+          min_value: number | null
+          placeholder: string | null
           required: boolean
           sort_order: number
           type: string
           unit: string | null
           updated_at: string
           validation_rules: Json | null
+          visible_if: string | null
         }
         Insert: {
           affects_formula?: boolean
@@ -2246,15 +2316,20 @@ export type Database = {
           direction_id: string
           enum_values?: Json | null
           field_key: string
+          group_label?: string | null
           help_text?: string | null
           id?: string
           label: string
+          max_value?: number | null
+          min_value?: number | null
+          placeholder?: string | null
           required?: boolean
           sort_order?: number
           type?: string
           unit?: string | null
           updated_at?: string
           validation_rules?: Json | null
+          visible_if?: string | null
         }
         Update: {
           affects_formula?: boolean
@@ -2263,15 +2338,20 @@ export type Database = {
           direction_id?: string
           enum_values?: Json | null
           field_key?: string
+          group_label?: string | null
           help_text?: string | null
           id?: string
           label?: string
+          max_value?: number | null
+          min_value?: number | null
+          placeholder?: string | null
           required?: boolean
           sort_order?: number
           type?: string
           unit?: string | null
           updated_at?: string
           validation_rules?: Json | null
+          visible_if?: string | null
         }
         Relationships: [
           {
@@ -3306,6 +3386,100 @@ export type Database = {
           url?: string
         }
         Relationships: []
+      }
+      lead_intake_events: {
+        Row: {
+          campaign: string | null
+          contact_id: string | null
+          contact_name: string | null
+          created_at: string
+          dedupe_hash: string
+          email: string | null
+          error: string | null
+          fbclid: string | null
+          gclid: string | null
+          id: string
+          ip_hash: string | null
+          lead_id: string | null
+          payload: Json
+          phone_norm: string | null
+          provider: string
+          request_id: string | null
+          signature_ok: boolean
+          source: string | null
+          status: string
+          updated_at: string
+          utm: Json
+        }
+        Insert: {
+          campaign?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          dedupe_hash: string
+          email?: string | null
+          error?: string | null
+          fbclid?: string | null
+          gclid?: string | null
+          id?: string
+          ip_hash?: string | null
+          lead_id?: string | null
+          payload?: Json
+          phone_norm?: string | null
+          provider: string
+          request_id?: string | null
+          signature_ok?: boolean
+          source?: string | null
+          status?: string
+          updated_at?: string
+          utm?: Json
+        }
+        Update: {
+          campaign?: string | null
+          contact_id?: string | null
+          contact_name?: string | null
+          created_at?: string
+          dedupe_hash?: string
+          email?: string | null
+          error?: string | null
+          fbclid?: string | null
+          gclid?: string | null
+          id?: string
+          ip_hash?: string | null
+          lead_id?: string | null
+          payload?: Json
+          phone_norm?: string | null
+          provider?: string
+          request_id?: string | null
+          signature_ok?: boolean
+          source?: string | null
+          status?: string
+          updated_at?: string
+          utm?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_intake_events_contact_id_fkey"
+            columns: ["contact_id"]
+            isOneToOne: false
+            referencedRelation: "crm_contacts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intake_events_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_intake_events_request_id_fkey"
+            columns: ["request_id"]
+            isOneToOne: false
+            referencedRelation: "crm_requests"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       logistics_items: {
         Row: {
