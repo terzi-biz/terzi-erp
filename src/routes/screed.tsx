@@ -115,23 +115,25 @@ function ScreedPage() {
 
   const [showCompare, setShowCompare] = useState(false);
 
-  // Централізована конфігурація: закупівельні ціни — з каталогу (Налаштування →
-  // Матеріали / Логістика), тарифи бригади — з налаштувань ERP, решта — дефолти рушія.
+  // Централізована конфігурація: база — адмін-налаштування (Налаштування → Марки стяжки),
+  // закупівельні ціни — з каталогу, тарифи бригади — з налаштувань ERP.
+  const { payload: screedConfig } = useScreedConfig();
+  const baseCfg = screedConfig.config;
   const prodCfg: ScreedProductionConfig = useMemo(() => ({
-    ...DEFAULT_SCREED_PRODUCTION_CONFIG,
-    sandPricePerTon: materialPrices.sand?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandPricePerTon,
-    cementM400BagPrice: materialPrices.cement400?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.cementM400BagPrice,
-    cementM500BagPrice: materialPrices.cement500?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.cementM500BagPrice,
-    fiberPackPrice: materialPrices.fiber?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.fiberPackPrice,
-    plasticizerPricePerL: materialPrices.plast?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.plasticizerPricePerL,
-    filmPricePerM2: materialPrices.film?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.filmPricePerM2,
-    damperPricePerM: materialPrices.damper?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.damperPricePerM,
-    brigadeMinCost: settings.brigadeMin ?? DEFAULT_SCREED_PRODUCTION_CONFIG.brigadeMinCost,
-    brigadePerM2Over100: settings.brigadePerM2 ?? DEFAULT_SCREED_PRODUCTION_CONFIG.brigadePerM2Over100,
-    sandTruckCapacityTons: settings.sandTripCapacity ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandTruckCapacityTons,
-    sandTruckCost: logisticsPrices.sand_city?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.sandTruckCost,
-    stationDeliveryCost: logisticsPrices.station_city?.buy ?? DEFAULT_SCREED_PRODUCTION_CONFIG.stationDeliveryCost,
-  }), [materialPrices, logisticsPrices, settings]);
+    ...baseCfg,
+    sandPricePerTon: materialPrices.sand?.buy ?? baseCfg.sandPricePerTon,
+    cementM400BagPrice: materialPrices.cement400?.buy ?? baseCfg.cementM400BagPrice,
+    cementM500BagPrice: materialPrices.cement500?.buy ?? baseCfg.cementM500BagPrice,
+    fiberPackPrice: materialPrices.fiber?.buy ?? baseCfg.fiberPackPrice,
+    plasticizerPricePerL: materialPrices.plast?.buy ?? baseCfg.plasticizerPricePerL,
+    filmPricePerM2: materialPrices.film?.buy ?? baseCfg.filmPricePerM2,
+    damperPricePerM: materialPrices.damper?.buy ?? baseCfg.damperPricePerM,
+    brigadeMinCost: settings.brigadeMin ?? baseCfg.brigadeMinCost,
+    brigadePerM2Over100: settings.brigadePerM2 ?? baseCfg.brigadePerM2Over100,
+    sandTruckCapacityTons: settings.sandTripCapacity ?? baseCfg.sandTruckCapacityTons,
+    sandTruckCost: logisticsPrices.sand_city?.buy ?? baseCfg.sandTruckCost,
+    stationDeliveryCost: logisticsPrices.station_city?.buy ?? baseCfg.stationDeliveryCost,
+  }), [materialPrices, logisticsPrices, settings, baseCfg]);
 
   const prodInput = useMemo(() => ({
     areaM2: input.area,
