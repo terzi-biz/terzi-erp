@@ -38,7 +38,10 @@ export interface DerivedFormula {
   output_unit?: string | null;
 }
 
-export interface RuntimeDefinition extends DirectionDefinition {
+export interface RuntimeDefinition extends Omit<DirectionDefinition, "materials" | "works" | "logistics"> {
+  materials: RuntimeItem[];
+  works: RuntimeItem[];
+  logistics: RuntimeItem[];
   /** Додаткові послуги (той самий формат, що і роботи). */
   services?: RuntimeItem[];
   /** Проміжні формули: доступні у виразах як derived.<key> та як <key>. */
@@ -216,9 +219,9 @@ export function evaluateDirectionRuntime(
     });
   };
 
-  for (const m of (def.materials ?? []) as RuntimeItem[]) pushItem("materials", m, m.consumption_formula);
-  for (const w of (def.works ?? []) as RuntimeItem[]) pushItem("works", w, w.quantity_formula);
-  for (const l of (def.logistics ?? []) as RuntimeItem[]) pushItem("logistics", l, l.quantity_formula);
+  for (const m of def.materials ?? []) pushItem("materials", m, m.consumption_formula);
+  for (const w of def.works ?? []) pushItem("works", w, w.quantity_formula);
+  for (const l of def.logistics ?? []) pushItem("logistics", l, l.quantity_formula);
   for (const s of def.services ?? []) pushItem("services", s, s.quantity_formula);
 
   const sumBy = (b: RuntimeBlock, k: "sum" | "cost") =>
