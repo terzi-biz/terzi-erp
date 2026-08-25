@@ -12,6 +12,7 @@ import { listRegistrationApprovals, reviewRegistrationApproval, type Registratio
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
+import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -25,7 +26,7 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-type Tab = "screed" | "grades" | "roofing" | "insulation" | "demolition" | "common" | "access";
+type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "access";
 
 const SCREED_GROUPS = [
   { title: "Норми витрат бригади", fields: [
@@ -189,6 +190,7 @@ function SettingsPage() {
     { id: "screed", label: "Стяжка", icon: Layers },
     { id: "grades", label: "Марки стяжки", icon: Grid3x3 },
     { id: "roofing", label: "Покрівля", icon: RoofIcon },
+    { id: "roofing_norms", label: "Нормативи руберойду", icon: Grid3x3 },
     { id: "insulation", label: "Утеплення", icon: Snowflake },
     { id: "demolition", label: "Демонтаж", icon: Hammer },
     { id: "common", label: "Спільні", icon: Sliders },
@@ -372,9 +374,9 @@ function SettingsPage() {
       </div>
 
 
-      {tab !== "access" && tab !== "grades" && ActionsBar}
+      {tab !== "access" && tab !== "grades" && tab !== "roofing_norms" && ActionsBar}
 
-      {tab !== "common" && tab !== "grades" && tab !== "access" && (
+      {tab !== "common" && tab !== "grades" && tab !== "roofing_norms" && tab !== "access" && (
         <div className="panel p-3 mb-4 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-2">
             <Upload className="w-3 h-3 inline mr-1" /> Імпорт прайсу постачальника:
@@ -405,6 +407,7 @@ function SettingsPage() {
       <div className="space-y-4">
         {tab === "access" && <AccessPanel />}
         {tab === "grades" && <ScreedGradesAdmin canEdit={canManageAccess} />}
+        {tab === "roofing_norms" && <RoofingNormsAdmin canEdit={canManageAccess} />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}

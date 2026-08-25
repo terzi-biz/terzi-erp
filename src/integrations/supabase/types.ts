@@ -5349,6 +5349,147 @@ export type Database = {
           },
         ]
       }
+      roofing_actuals: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          deviation_reason: string | null
+          estimate_id: string | null
+          fact_qty: number
+          id: string
+          item_key: string
+          item_name: string
+          labor_hours: number
+          offcut_qty: number
+          order_id: string | null
+          plan_qty: number
+          unit: string
+          updated_at: string
+          writeoff_qty: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          deviation_reason?: string | null
+          estimate_id?: string | null
+          fact_qty?: number
+          id?: string
+          item_key: string
+          item_name: string
+          labor_hours?: number
+          offcut_qty?: number
+          order_id?: string | null
+          plan_qty?: number
+          unit?: string
+          updated_at?: string
+          writeoff_qty?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          deviation_reason?: string | null
+          estimate_id?: string | null
+          fact_qty?: number
+          id?: string
+          item_key?: string
+          item_name?: string
+          labor_hours?: number
+          offcut_qty?: number
+          order_id?: string | null
+          plan_qty?: number
+          unit?: string
+          updated_at?: string
+          writeoff_qty?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roofing_actuals_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roofing_actuals_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      roofing_config: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      roofing_cut_plans: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estimate_id: string | null
+          id: string
+          mode: string
+          order_id: string | null
+          payload: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string | null
+          id?: string
+          mode?: string
+          order_id?: string | null
+          payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string | null
+          id?: string
+          mode?: string
+          order_id?: string | null
+          payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "roofing_cut_plans_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "roofing_cut_plans_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       screed_config: {
         Row: {
           created_at: string
