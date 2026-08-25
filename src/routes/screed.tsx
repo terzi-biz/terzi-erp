@@ -12,6 +12,7 @@ import { useInternalAccess } from "@/lib/useInternalAccess";
 import { findPriceIssues, priceBlockReason } from "@/lib/price-integrity";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
+import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
@@ -197,7 +198,14 @@ function ScreedPage() {
       gross_profit: result.grossProfit,
       margin_percent: result.marginPercent,
       payload: { ...input, targetMargin } as unknown as Record<string, unknown>,
-      calculation_json: { ...result, production: prod, productionConfig: prodCfg, priceSources } as unknown as Record<string, unknown>,
+      calculation_json: buildEstimateSnapshot({
+        module: "screed", engineVersion: ENGINE_VERSIONS.screed, priceBookVersion,
+        inputs: { ...input, targetMargin },
+        result: { ...result, production: prod },
+        prices: { materials: materialPrices, works: workPrices, logistics: logisticsPrices },
+        norms: { productionConfig: prodCfg, grades, settings },
+        priceSources,
+      }) as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.screed,
       price_book_version: priceBookVersion || null,
     } });

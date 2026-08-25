@@ -11,6 +11,7 @@ import { useInternalAccess } from "@/lib/useInternalAccess";
 import { findPriceIssues, priceBlockReason } from "@/lib/price-integrity";
 import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
+import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
@@ -102,7 +103,13 @@ function InsulationPage() {
       total_client: result.totalClient, total_cost: result.totalCost,
       gross_profit: result.grossProfit, margin_percent: result.marginPercent,
       payload: input as unknown as Record<string, unknown>,
-      calculation_json: { ...result, priceSources } as unknown as Record<string, unknown>,
+      calculation_json: buildEstimateSnapshot({
+        module: "insulation", engineVersion: ENGINE_VERSIONS.insulation, priceBookVersion,
+        inputs: input, result,
+        prices: { materials: materialPrices, works: worksMapped, logistics: DEFAULT_INSULATION_LOGISTICS },
+        norms: { coefficients: insulationCoeffs },
+        priceSources,
+      }) as unknown as Record<string, unknown>,
       engine_version: ENGINE_VERSIONS.insulation,
       price_book_version: priceBookVersion || null,
     } });
