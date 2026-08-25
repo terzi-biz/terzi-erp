@@ -146,8 +146,9 @@ function ScreedPage() {
     marginPercent: targetMargin,
   }), [input, targetMargin]);
 
-  const prod = useMemo(() => calculateScreedProduction(prodInput, prodCfg), [prodInput, prodCfg]);
-  const comparison = useMemo(() => (showCompare ? compareGrades(prodInput, prodCfg) : []), [showCompare, prodInput, prodCfg]);
+  const grades = screedConfig.grades;
+  const prod = useMemo(() => calculateScreedProduction(prodInput, prodCfg, grades), [prodInput, prodCfg, grades]);
+  const comparison = useMemo(() => (showCompare ? compareGrades(prodInput, prodCfg, grades) : []), [showCompare, prodInput, prodCfg, grades]);
   const techInfo = useMemo(() => ([
     { label: "Марка стяжки", value: GRADE_LABEL[prod.screedGrade] },
     { label: "Орієнтир міцності", value: `≈${prod.strengthMPa} МПа` },
