@@ -45,7 +45,7 @@ export interface EstimateSnapshot extends Record<string, unknown> {
  * (сумісність з наявними читачами `calculation_json.lines/totalClient/...`),
  * а знімок цін і норм додається окремими полями.
  */
-export function buildEstimateSnapshot<TInput, TResult extends Record<string, unknown>>(
+export function buildEstimateSnapshot<TInput, TResult extends object>(
   src: EstimateSnapshotSource<TInput, TResult>,
 ): EstimateSnapshot {
   return {
