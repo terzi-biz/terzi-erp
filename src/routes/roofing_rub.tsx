@@ -41,8 +41,14 @@ import {
   FileText,
   Info,
   Lightbulb,
+  ShoppingCart,
+  HardHat,
+  ClipboardCheck,
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import { PurchaseSheet } from "@/components/roofing/PurchaseSheet";
+import { ProductionCard } from "@/components/roofing/ProductionCard";
+import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
@@ -166,7 +172,9 @@ function RubPage() {
     useModulePricing("roofing_rub", input.area);
   const [showInternalPref, setShowInternal] = useState(true);
   const showInternal = isInternal && showInternalPref;
-  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [view, setView] = useState<"calc" | "estimate" | "purchase" | "production" | "planfact">(
+    "calc",
+  );
   useEstimatePrefill(search.estimate, draft.loadRecord);
 
   const worksMapped = useMemo(() => {
@@ -305,19 +313,24 @@ function RubPage() {
         </div>
       </header>
 
-      <div className="flex gap-1 border-b border-border relative z-10">
-        <button
-          onClick={() => setView("calc")}
-          className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <Calculator className="w-4 h-4" /> Калькулятор
-        </button>
-        <button
-          onClick={() => setView("estimate")}
-          className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <FileText className="w-4 h-4" /> Кошторис / КП
-        </button>
+      <div className="flex gap-1 border-b border-border relative z-10 overflow-x-auto">
+        {(
+          [
+            ["calc", "Калькулятор", Calculator],
+            ["estimate", "Для заказчика", FileText],
+            ["purchase", "Для закупщика", ShoppingCart],
+            ["production", "Для прораба", HardHat],
+            ["planfact", "План / факт", ClipboardCheck],
+          ] as const
+        ).map(([key, label, Icon]) => (
+          <button
+            key={key}
+            onClick={() => setView(key)}
+            className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px whitespace-nowrap ${view === key ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            <Icon className="w-4 h-4" /> {label}
+          </button>
+        ))}
       </div>
 
       {view === "estimate" && (
@@ -337,6 +350,38 @@ function RubPage() {
           />
         </div>
       )}
+
+      {view === "purchase" && (
+        <div className="relative z-10">
+          <PurchaseSheet
+            lines={result.lines}
+            isInternal={showInternal}
+            estimateNumber={estimateNumber}
+          />
+        </div>
+      )}
+
+      {view === "production" && (
+        <div className="relative z-10">
+          <ProductionCard
+            input={input}
+            result={result}
+            estimateNumber={estimateNumber}
+            address={client.address}
+          />
+        </div>
+      )}
+
+      {view === "planfact" && (
+        <div className="relative z-10">
+          <PlanFactPanel
+            lines={result.lines}
+            estimateId={estimateId}
+            orderId={link.orderId ?? null}
+          />
+        </div>
+      )}
+
 
       <div
         className="grid lg:grid-cols-[1fr_400px] gap-6 relative z-10"
