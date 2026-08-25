@@ -3,7 +3,8 @@
  * RLS: читання — будь-який auth; запис — admin.
  */
 import { supabase } from "@/integrations/supabase/client";
-import type { DirectionDefinition, DirectionDefField, DirectionDefItem } from "./engines/direction-engine";
+import type { DirectionDefField, DirectionDefItem } from "./engines/direction-engine";
+import type { RuntimeDefinition, RuntimeItem, DerivedFormula } from "./directions/runtime";
 
 export interface DirectionRow {
   id: string;
@@ -29,14 +30,16 @@ export async function deleteDirection(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function loadDefinition(directionId: string): Promise<DirectionDefinition> {
-  const [dir, fields, materials, works, logistics, coeffs] = await Promise.all([
+export async function loadDefinition(directionId: string): Promise<RuntimeDefinition> {
+  const [dir, fields, materials, works, logistics, coeffs, services, formulas] = await Promise.all([
     supabase.from("directions").select("*").eq("id", directionId).single(),
     supabase.from("input_fields").select("*").eq("direction_id", directionId).order("sort_order"),
     supabase.from("material_items").select("*").eq("direction_id", directionId).order("sort_order"),
     supabase.from("work_items").select("*").eq("direction_id", directionId).order("sort_order"),
     supabase.from("logistics_items").select("*").eq("direction_id", directionId).order("sort_order"),
     supabase.from("coefficients").select("*").eq("direction_id", directionId).order("coef_group"),
+    supabase.from("additional_services").select("*").eq("direction_id", directionId).order("sort_order"),
+    supabase.from("formulas").select("*").eq("direction_id", directionId).order("formula_key"),
   ]);
   if (dir.error) throw dir.error;
   return {
@@ -47,6 +50,12 @@ export async function loadDefinition(directionId: string): Promise<DirectionDefi
     materials: ((materials.data ?? []) as unknown as DirectionDefItem[]),
     works: ((works.data ?? []) as unknown as DirectionDefItem[]),
     logistics: ((logistics.data ?? []) as unknown as DirectionDefItem[]),
+    services: ((services.data ?? []) as unknown as RuntimeItem[]),
+    formulas: (formulas.data ?? []).map((f) => ({
+      formula_key: f.formula_key,
+      expression: f.expression,
+      output_unit: f.output_unit,
+    })) as DerivedFormula[],
     coefficients: (coeffs.data ?? []).map((c) => ({
       coef_group: c.coef_group,
       coef_key: c.coef_key,
@@ -55,7 +64,7 @@ export async function loadDefinition(directionId: string): Promise<DirectionDefi
   };
 }
 
-type TableName = "input_fields" | "material_items" | "work_items" | "logistics_items" | "coefficients";
+type TableName = "input_fields" | "material_items" | "work_items" | "logistics_items" | "coefficients" | "additional_services" | "formulas";
 
 export async function upsertChild<T extends Record<string, unknown>>(
   table: TableName,

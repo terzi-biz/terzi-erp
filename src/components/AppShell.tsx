@@ -98,8 +98,13 @@ function AppShellLayout({ children }: { children: ReactNode }) {
     { to: "/directions-editor", icon: Sparkles, label: "Конструктор напрямків" },
     { to: "/data-exchange", icon: ArrowDownUp, label: "Імпорт та експорт" },
     ...(canManageAccess
-      ? [{ to: "/access", icon: ShieldCheck, label: "Доступи і ролі", badge: pendingApprovals || undefined }, { to: "/integrations", icon: Cable, label: "Інтеграції та API" }]
+      ? [
+          { to: "/data-audit", icon: ShieldCheck, label: "Аудит даних" },
+          { to: "/access", icon: ShieldCheck, label: "Доступи і ролі", badge: pendingApprovals || undefined },
+          { to: "/integrations", icon: Cable, label: "Інтеграції та API" },
+        ]
       : []),
+
     { to: "/settings", icon: Settings, label: t("settings") },
   ];
 

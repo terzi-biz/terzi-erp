@@ -10,7 +10,8 @@ import {
   listDirections, upsertDirection, deleteDirection, loadDefinition,
   upsertChild, deleteChild, type DirectionRow,
 } from "@/lib/directions-repo";
-import { evaluateDirection, type DirectionDefinition } from "@/lib/engines/direction-engine";
+import type { DirectionDefinition } from "@/lib/engines/direction-engine";
+import { evaluateDirectionRuntime, type RuntimeDefinition } from "@/lib/directions/runtime";
 import { evalFormula, tryEvalFormula } from "@/lib/engines/formula-eval";
 import { formatUah } from "@/lib/screed-calc";
 
@@ -25,7 +26,7 @@ const CATEGORIES = ["screed", "roofing", "insulation", "demolition", "finish", "
 function DirectionsAdmin() {
   const [dirs, setDirs] = useState<DirectionRow[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [def, setDef] = useState<DirectionDefinition | null>(null);
+  const [def, setDef] = useState<RuntimeDefinition | null>(null);
   const [tab, setTab] = useState<Tab>("general");
   const [loading, setLoading] = useState(false);
 
@@ -600,7 +601,7 @@ function CoeffsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
 }
 
 // ------- Preview tab -------
-function PreviewTab({ def }: { def: DirectionDefinition }) {
+function PreviewTab({ def }: { def: RuntimeDefinition }) {
   const initial = () => {
     const o: Record<string, unknown> = {};
     for (const f of def.fields) {
@@ -612,7 +613,7 @@ function PreviewTab({ def }: { def: DirectionDefinition }) {
   const [inputs, setInputs] = useState<Record<string, unknown>>(initial);
   useEffect(() => setInputs(initial()), [def]);
 
-  const result = useMemo(() => evaluateDirection(def, inputs), [def, inputs]);
+  const result = useMemo(() => evaluateDirectionRuntime(def, inputs), [def, inputs]);
   const [showFormulas, setShowFormulas] = useState(false);
 
   return (
@@ -667,10 +668,10 @@ function PreviewTab({ def }: { def: DirectionDefinition }) {
         <div className="text-xs uppercase font-bold text-primary flex items-center gap-2">
           <Play className="w-3 h-3" /> Розрахунок
         </div>
-        {(["materials", "works", "logistics"] as const).map((block) => {
+        {(["materials", "works", "logistics", "services"] as const).map((block) => {
           const items = result.lines.filter((l) => l.block === block);
           if (items.length === 0) return null;
-          const label = block === "materials" ? "Матеріали" : block === "works" ? "Роботи" : "Логістика";
+          const label = block === "materials" ? "Матеріали" : block === "works" ? "Роботи" : block === "logistics" ? "Логістика" : "Додаткові послуги";
           return (
             <div key={block}>
               <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mt-2 mb-1">{label}</div>
@@ -679,7 +680,12 @@ function PreviewTab({ def }: { def: DirectionDefinition }) {
                   {items.map((l, i) => (
                     <tr key={i} className="border-b border-border/30">
                       <td className="py-1">{l.name}</td>
-                      <td className="text-right text-muted-foreground">{l.qty} {l.unit}</td>
+                      <td className="text-right text-muted-foreground">
+                        {l.calcQty} {l.unit}
+                        {l.packs != null && l.packs > 0 && (
+                          <span className="ml-1 text-[10px]">(закупка {l.purchaseQty} {l.unit} = {l.packs} {l.packUnit || "уп."})</span>
+                        )}
+                      </td>
                       <td className="text-right">{formatUah(l.sum)}</td>
                     </tr>
                   ))}
@@ -689,14 +695,17 @@ function PreviewTab({ def }: { def: DirectionDefinition }) {
           );
         })}
         <div className="border-t border-border pt-2 mt-2 space-y-1 text-sm">
-          <Row k="Матеріали" v={formatUah(result.materialsSell)} />
-          <Row k="Роботи" v={formatUah(result.worksSell)} />
-          <Row k="Логістика" v={formatUah(result.logisticsSell)} />
-          <Row k="Разом клієнту" v={formatUah(result.totalSell)} bold />
-          <Row k="Собівартість" v={formatUah(result.totalCost)} muted />
-          <Row k="Валовий прибуток" v={formatUah(result.grossProfit)} muted />
-          <Row k="Маржа, %" v={result.marginPercent.toFixed(1) + "%"} muted />
+          <Row k="Матеріали" v={formatUah(result.totals.materialsSell)} />
+          <Row k="Роботи" v={formatUah(result.totals.worksSell)} />
+          <Row k="Логістика" v={formatUah(result.totals.logisticsSell)} />
+          {result.totals.servicesSell > 0 && <Row k="Додаткові послуги" v={formatUah(result.totals.servicesSell)} />}
+          <Row k="Разом клієнту" v={formatUah(result.totals.totalSell)} bold />
+          <Row k="Собівартість" v={formatUah(result.totals.totalCost)} muted />
+          <Row k="Валовий прибуток" v={formatUah(result.totals.grossProfit)} muted />
+          <Row k="Маржа, %" v={result.totals.marginPercent.toFixed(1) + "%"} muted />
+          <Row k="Рушій" v={result.engineVersion} muted />
         </div>
+        {result.blocking.map((w, i) => <div key={`b${i}`} className="text-xs text-destructive">⛔ {w}</div>)}
         {result.warnings.map((w, i) => <div key={i} className="text-xs text-amber-500">⚠ {w}</div>)}
       </div>
     </div>

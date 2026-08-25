@@ -1738,6 +1738,51 @@ export type Database = {
           },
         ]
       }
+      data_audit_runs: {
+        Row: {
+          affected_count: number
+          applied_at: string | null
+          applied_count: number
+          check_key: string
+          created_at: string
+          created_by: string | null
+          id: string
+          mode: string
+          note: string | null
+          report: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          affected_count?: number
+          applied_at?: string | null
+          applied_count?: number
+          check_key: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mode?: string
+          note?: string | null
+          report?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          affected_count?: number
+          applied_at?: string | null
+          applied_count?: number
+          check_key?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mode?: string
+          note?: string | null
+          report?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       directions: {
         Row: {
           active: boolean

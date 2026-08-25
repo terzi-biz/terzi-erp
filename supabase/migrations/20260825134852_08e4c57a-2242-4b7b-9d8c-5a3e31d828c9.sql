@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.log_catalog_price_change() FROM PUBLIC, anon, authenticated;
