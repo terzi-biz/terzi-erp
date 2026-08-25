@@ -41,6 +41,12 @@ export interface PvcInput {
 
   opaikaPoints: number;        // точки обпайки (виходи труб тощо)
 
+  /**
+   * Неармована мембрана Sikaplan D-15 — ТІЛЬКИ вузли, проходки, примикання.
+   * 0 = порахувати автоматично від периметру та кількості точок.
+   */
+  detailMembraneM2: number;
+
   // Профілі: 0 = рахувати автоматично від периметру
   pvcAngleMeters: number;      // ПВХ-уголок
   pvcClampMeters: number;      // прижимна планка
@@ -62,6 +68,16 @@ export interface PvcInput {
 
 export interface PvcCoefficients {
   overlapCoef: number;        // нахльост мембрани, 1.15
+  /** Довжина одного ПВХ-профілю/планки при закупівлі, м. */
+  profileBarLengthM: number;
+  /** Площа рулона армованої мембрани (2.0 × 20 м), м². */
+  fieldRollM2: number;
+  /** Площа рулона неармованої D-15 (1 × 20 м), м². */
+  detailRollM2: number;
+  /** Автонорма D-15: м² на 1 п.м примикання. */
+  detailPerMeterM2: number;
+  /** Автонорма D-15: м² на одну точку (воронка / аератор / обпайка). */
+  detailPerPointM2: number;
   geoCoef: number;            // запас геотекстилю
   fastenersPerM2: number;     // телескопічні кріплення на м² поля
   angleReserve: number;       // запас ПВХ-уголка від периметру
@@ -83,6 +99,11 @@ export interface PvcCoefficients {
 
 export const DEFAULT_PVC_COEFFS: PvcCoefficients = {
   overlapCoef: 1.15,
+  profileBarLengthM: 2,
+  fieldRollM2: 40,
+  detailRollM2: 20,
+  detailPerMeterM2: 0.25,
+  detailPerPointM2: 0.5,
   geoCoef: 1.10,
   fastenersPerM2: 4,
   angleReserve: 1.05,
@@ -103,8 +124,12 @@ export const DEFAULT_PVC_COEFFS: PvcCoefficients = {
 };
 
 export const DEFAULT_PVC_PRICES: Record<string, MaterialPrice> = {
+  // Армоване польове полотно. 1,5 мм підтверджено прайсом (Sikaplan 15 G, 2.0×20 м).
   pvc_15_sika: { buy: 360, sell: 468 },
-  pvc_18_sika: { buy: 655, sell: 852 },
+  // 1,8 мм — ціна НЕ підтверджена в каталозі. Заборонено підставляти ціну D-15 (655 грн/м²).
+  pvc_18_sika: { buy: 0, sell: 0 },
+  // Неармована деталювальна мембрана Sikaplan D-15, 1×20 м — лише вузли/проходки.
+  pvc_d15_detail: { buy: 655, sell: 851.5 },
   geo_300: { buy: 54, sell: 70 },
   fastener: { buy: 8, sell: 18 },
   funnel_scupper_75: { buy: 2000, sell: 2600 },
