@@ -24,7 +24,7 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-type Tab = "screed" | "roofing" | "insulation" | "demolition" | "common" | "access";
+type Tab = "screed" | "grades" | "roofing" | "insulation" | "demolition" | "common" | "access";
 
 const SCREED_GROUPS = [
   { title: "Норми витрат бригади", fields: [
