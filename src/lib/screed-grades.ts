@@ -95,6 +95,17 @@ export const DEFAULT_SCREED_PRODUCTION_CONFIG: ScreedProductionConfig = {
   cementDeliveryCost: 1200,
 };
 
+/** Повний набір адміністрованих налаштувань стяжки (зберігається у БД). */
+export interface ScreedConfigPayload {
+  grades: Record<ScreedGrade, GradeRecipe>;
+  config: ScreedProductionConfig;
+}
+
+export const DEFAULT_SCREED_CONFIG_PAYLOAD: ScreedConfigPayload = {
+  grades: SCREED_GRADES,
+  config: DEFAULT_SCREED_PRODUCTION_CONFIG,
+};
+
 export interface ProductionInput {
   areaM2: number;
   thicknessCm: number;
