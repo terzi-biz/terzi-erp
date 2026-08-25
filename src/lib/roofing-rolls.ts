@@ -16,15 +16,43 @@ export interface RollMaterial {
   brand: string;
   kind: RollLayerKind;      // Підкладковий (нижній) / Верхній (з посипкою)
   rollM2: number;           // площа рулона за прайсом
+  widthM: number;           // ширина полотна
+  lengthM: number;          // довжина рулона (rollM2 / widthM)
   buyPerM2: number;
   sellPerM2: number;
   weightKgPerM2: number;
+  /** Модифікатор бітуму: APP / SBS / ЕКО тощо (з назви прайсу). */
+  modifier: string;
+  /** Основа полотна: ПЕ (поліестер), СХ (склохолст). */
+  base: string;
+  supplier?: string;
+  /** Кратність закупівлі в рулонах (палета). */
+  packMultiple: number;
 }
 
 const MARKUP = 1.5;
 
+/** Стандартна ширина наплавного полотна, м. */
+export const DEFAULT_ROLL_WIDTH_M = 1;
+
 export const ROLL_AREA_OPTIONS = [10, 15] as const;
 export type RollAreaOption = (typeof ROLL_AREA_OPTIONS)[number];
+
+function modifierOf(name: string): string {
+  if (/АПП|APP/i.test(name)) return "APP";
+  if (/СБС|SBS/i.test(name)) return "SBS";
+  if (/ЕЛАСТ/i.test(name)) return "ЕЛАСТ";
+  if (/ФЛЕКС/i.test(name)) return "ФЛЕКС";
+  if (/ЕКО/i.test(name)) return "ЕКО";
+  return "—";
+}
+
+function baseOf(name: string): string {
+  if (/-ПЕ-/i.test(name)) return "Поліестер";
+  if (/-СХ-/i.test(name)) return "Склохолст";
+  return "—";
+}
+
 
 function codeOf(name: string): string {
   return "roll_" + name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_|_$/g, "");
