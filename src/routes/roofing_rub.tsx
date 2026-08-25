@@ -41,8 +41,14 @@ import {
   FileText,
   Info,
   Lightbulb,
+  ShoppingCart,
+  HardHat,
+  ClipboardCheck,
 } from "lucide-react";
 import { EstimateView } from "@/components/EstimateView";
+import { PurchaseSheet } from "@/components/roofing/PurchaseSheet";
+import { ProductionCard } from "@/components/roofing/ProductionCard";
+import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
@@ -166,7 +172,9 @@ function RubPage() {
     useModulePricing("roofing_rub", input.area);
   const [showInternalPref, setShowInternal] = useState(true);
   const showInternal = isInternal && showInternalPref;
-  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [view, setView] = useState<"calc" | "estimate" | "purchase" | "production" | "planfact">(
+    "calc",
+  );
   useEstimatePrefill(search.estimate, draft.loadRecord);
 
   const worksMapped = useMemo(() => {
