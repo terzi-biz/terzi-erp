@@ -9,6 +9,8 @@
 import { NumberInput } from "@/components/NumberInput";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Eye, EyeOff, FileDown, ImageIcon, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { toast } from "sonner";
+
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng } from "@/lib/pngExport";
 import { generateEstimatePdf } from "@/lib/estimate-pdf";
@@ -111,6 +113,8 @@ interface Props {
   thicknessCm?: number;
   estimateNumber: string;
   isInternal: boolean;
+  /** Якщо задано — експорт КП/зображення заблоковано (напр. позиція з нульовою ціною). */
+  exportBlockReason?: string | null;
   estimateId?: string;
   /** Ключ сховища ручних правок; задається чернеткою, щоб правки скидались разом із формою. */
   editsKey?: string;
@@ -166,7 +170,7 @@ const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
 
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
-  estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange, techInfo,
+  exportBlockReason, estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange, techInfo,
   editsKey, onEditsChange,
 }: Props) {
   const t = useT();
@@ -231,6 +235,7 @@ export function EstimateView({
 
   /** PDF генерується справжньою таблицею (не скріншотом аркуша). */
   const onPdf = async () => {
+    if (exportBlockReason) { toast.error(exportBlockReason); return; }
     const isInt = mode === "internal";
     const src = isInt ? effInternal : effClient;
     const blocks = isInt
@@ -286,7 +291,10 @@ export function EstimateView({
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
-  const onPng = () => activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
+  const onPng = () => {
+    if (exportBlockReason) { toast.error(exportBlockReason); return; }
+    return activeRef.current && exportElementAsPng(activeRef.current, filenamePng);
+  };
   const onResetActive = () => { setOverrides({}); setExtras([]); };
 
   const hasEdits = Object.keys(overrides).length > 0 || extras.length > 0;
@@ -309,10 +317,10 @@ export function EstimateView({
             <RotateCcw className="w-3 h-3" /> Скинути правки
           </button>
         )}
-        <button onClick={onPng} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
+        <button onClick={onPng} disabled={!!exportBlockReason} className="px-3 py-2 rounded bg-secondary text-xs font-semibold inline-flex items-center gap-2">
           <ImageIcon className="w-3 h-3" /> Зображення
         </button>
-        <button onClick={onPdf} className="px-3 py-2 rounded bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
+        <button onClick={onPdf} disabled={!!exportBlockReason} className="px-3 py-2 rounded bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
           <FileDown className="w-3 h-3" /> Друк PDF
         </button>
       </div>
@@ -321,6 +329,11 @@ export function EstimateView({
 
   return (
     <div className="space-y-4">
+      {exportBlockReason && (
+        <div className="panel border-destructive/50 bg-destructive/10 p-3 text-xs text-destructive font-semibold">
+          Експорт і збереження заблоковано: {exportBlockReason}
+        </div>
+      )}
       {/* Перемикач Внутрішня / Клієнтська — НАД кошторисом */}
       <div className="flex justify-center gap-1 panel p-3">
         {isInternal && (

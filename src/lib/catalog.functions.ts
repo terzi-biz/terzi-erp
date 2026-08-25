@@ -26,6 +26,13 @@ async function userIsInternal(supabase: any, userId: string): Promise<boolean> {
   return data === true;
 }
 
+/** Право бачити закупівельні ціни (собівартість) — серверна перевірка. */
+async function userSeesBuyPrices(userId: string): Promise<boolean> {
+  const { canViewInternalPrices } = await import("./access.server");
+  return canViewInternalPrices(userId);
+}
+
+
 export const listCatalog = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ module: ModuleEnum, kind: KindEnum }).parse(d))
@@ -39,7 +46,7 @@ export const listCatalog = createServerFn({ method: "GET" })
       .order("created_at", { ascending: true });
     if (error) { console.error("listCatalog", error); throw new Error("Не вдалося завантажити каталог"); }
     const list = rows ?? [];
-    const internal = await userIsInternal(context.supabase, context.userId);
+    const internal = await userSeesBuyPrices(context.userId);
     if (internal) return list;
     return list.map((r: any) => ({ ...r, buy_price: null }));
   });

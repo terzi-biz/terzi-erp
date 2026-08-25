@@ -235,3 +235,14 @@ export const verifyOwnerPassword = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ password: z.string().min(6).max(200) }).parse(d))
   .handler(async ({ data, context }) => verifyOwnerPasswordOp(context.userId, data.password));
+
+/**
+ * Чи має поточний користувач право бачити внутрішні ціни (собівартість/маржа).
+ * Перевірка виконується на сервері; UI лише відображає результат.
+ */
+export const getInternalPricesAccess = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { canViewInternalPrices } = await import("./access.server");
+    return { allowed: await canViewInternalPrices(context.userId) };
+  });

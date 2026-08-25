@@ -161,3 +161,48 @@ export function newToken(): string {
     .map((b) => b.toString(16).padStart(2, "0"))
     .join("");
 }
+
+/**
+ * Право бачити внутрішні ціни (собівартість, маржа, прибуток).
+ * Дозволено: власник, ролі admin/director/finance (legacy `user_roles`),
+ * роль доступу owner/ops_admin/finance або granular-право finance:view.
+ * Індивідуальний deny-override перекриває все.
+ */
+export async function canViewInternalPrices(userId: string): Promise<boolean> {
+  const db = await admin();
+  const { data: override } = await db
+    .from("user_permission_overrides")
+    .select("effect,expires_at")
+    .eq("user_id", userId)
+    .eq("module", "finance")
+    .eq("action", "view")
+    .maybeSingle();
+  const overrideActive = override && (!override.expires_at || new Date(override.expires_at) > new Date());
+  if (overrideActive && override!.effect === "deny") return false;
+  if (overrideActive && override!.effect === "allow") return true;
+
+  const actor = await loadActor(userId);
+  if (actor.isOwner) return true;
+
+  const { data: legacyRoles } = await db.from("user_roles").select("role").eq("user_id", userId);
+  const legacy = (legacyRoles ?? []).map((r: { role: string }) => r.role);
+  if (legacy.includes("admin") || legacy.includes("director") || legacy.includes("finance")) return true;
+
+  const { data: access } = await db
+    .from("user_access")
+    .select("role_key,status,access_expires_at")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!access || access.status !== "active") return false;
+  if (access.access_expires_at && new Date(access.access_expires_at) < new Date()) return false;
+  if (["owner", "ops_admin", "finance"].includes(access.role_key ?? "")) return true;
+
+  const { data: rp } = await db
+    .from("role_permissions")
+    .select("allowed")
+    .eq("role_key", access.role_key ?? "")
+    .eq("module", "finance")
+    .eq("action", "view")
+    .maybeSingle();
+  return rp?.allowed === true;
+}
