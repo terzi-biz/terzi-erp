@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as BrandingRouteImport } from './routes/branding'
 import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as DataAuditRouteImport } from './routes/data-audit'
 import { Route as DataExchangeRouteImport } from './routes/data-exchange'
 import { Route as DemolitionRouteImport } from './routes/demolition'
 import { Route as DirectionsEditorRouteImport } from './routes/directions-editor'
@@ -89,6 +90,11 @@ const BrandingRoute = BrandingRouteImport.update({
 const ClientsRoute = ClientsRouteImport.update({
   id: '/clients',
   path: '/clients',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DataAuditRoute = DataAuditRouteImport.update({
+  id: '/data-audit',
+  path: '/data-audit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DataExchangeRoute = DataExchangeRouteImport.update({
@@ -391,6 +397,7 @@ export interface FileRoutesByFullPath {
   '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
+  '/data-audit': typeof DataAuditRoute
   '/data-exchange': typeof DataExchangeRoute
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
@@ -454,6 +461,7 @@ export interface FileRoutesByTo {
   '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
+  '/data-audit': typeof DataAuditRoute
   '/data-exchange': typeof DataExchangeRoute
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
@@ -518,6 +526,7 @@ export interface FileRoutesById {
   '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
   '/clients': typeof ClientsRoute
+  '/data-audit': typeof DataAuditRoute
   '/data-exchange': typeof DataExchangeRoute
   '/demolition': typeof DemolitionRoute
   '/directions-editor': typeof DirectionsEditorRoute
@@ -583,6 +592,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/branding'
     | '/clients'
+    | '/data-audit'
     | '/data-exchange'
     | '/demolition'
     | '/directions-editor'
@@ -646,6 +656,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/branding'
     | '/clients'
+    | '/data-audit'
     | '/data-exchange'
     | '/demolition'
     | '/directions-editor'
@@ -709,6 +720,7 @@ export interface FileRouteTypes {
     | '/access'
     | '/branding'
     | '/clients'
+    | '/data-audit'
     | '/data-exchange'
     | '/demolition'
     | '/directions-editor'
@@ -773,6 +785,7 @@ export interface RootRouteChildren {
   AccessRoute: typeof AccessRoute
   BrandingRoute: typeof BrandingRoute
   ClientsRoute: typeof ClientsRoute
+  DataAuditRoute: typeof DataAuditRoute
   DataExchangeRoute: typeof DataExchangeRoute
   DemolitionRoute: typeof DemolitionRoute
   DirectionsEditorRoute: typeof DirectionsEditorRoute
@@ -860,6 +873,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients'
       preLoaderRoute: typeof ClientsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/data-audit': {
+      id: '/data-audit'
+      path: '/data-audit'
+      fullPath: '/data-audit'
+      preLoaderRoute: typeof DataAuditRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/data-exchange': {
@@ -1269,6 +1289,7 @@ const rootRouteChildren: RootRouteChildren = {
   AccessRoute: AccessRoute,
   BrandingRoute: BrandingRoute,
   ClientsRoute: ClientsRoute,
+  DataAuditRoute: DataAuditRoute,
   DataExchangeRoute: DataExchangeRoute,
   DemolitionRoute: DemolitionRoute,
   DirectionsEditorRoute: DirectionsEditorRoute,
