@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, Grid3x3, CheckCircle2, XCircle, Clock3 } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
 import { useServerFn } from "@tanstack/react-start";
@@ -11,6 +11,7 @@ import { resyncCatalogPrices } from "@/lib/catalog.functions";
 import { listRegistrationApprovals, reviewRegistrationApproval, type RegistrationApprovalRow } from "@/lib/registration.functions";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
+import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -371,9 +372,9 @@ function SettingsPage() {
       </div>
 
 
-      {tab !== "access" && ActionsBar}
+      {tab !== "access" && tab !== "grades" && ActionsBar}
 
-      {tab !== "common" && (
+      {tab !== "common" && tab !== "grades" && tab !== "access" && (
         <div className="panel p-3 mb-4 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-2">
             <Upload className="w-3 h-3 inline mr-1" /> Імпорт прайсу постачальника:
@@ -403,6 +404,7 @@ function SettingsPage() {
 
       <div className="space-y-4">
         {tab === "access" && <AccessPanel />}
+        {tab === "grades" && <ScreedGradesAdmin canEdit={canManageAccess} />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
