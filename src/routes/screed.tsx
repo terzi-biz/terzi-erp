@@ -620,6 +620,20 @@ function ScreedPage() {
         <button onClick={onPdf} className={`${btnBase} bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm hover:shadow-md`}><Download className="w-3.5 h-3.5" />{t("downloadPdf")}</button>
 
       </div>
+
+      {/* Мобільний sticky-підсумок */}
+      <div className="lg:hidden sticky bottom-0 -mx-4 md:-mx-6 mt-4 border-t border-border bg-background/95 px-4 py-2.5 backdrop-blur print:hidden">
+        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="min-w-0">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("totalClient")}</div>
+            <div className="truncate text-base font-black text-primary">{formatUah(result.totalClient)}</div>
+          </div>
+          <div className="shrink-0 text-right">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{t("pricePerM2")}</div>
+            <div className="text-sm font-bold tabular-nums">{formatNum(result.pricePerM2, 0)} грн/м²</div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
