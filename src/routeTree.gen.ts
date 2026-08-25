@@ -40,6 +40,7 @@ import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } fr
 import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
+import { Route as CrmIntakeRouteImport } from './routes/crm.intake'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
@@ -228,6 +229,11 @@ const CrmCallsRoute = CrmCallsRouteImport.update({
 const CrmContactsRoute = CrmContactsRouteImport.update({
   id: '/crm/contacts',
   path: '/crm/contacts',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CrmIntakeRoute = CrmIntakeRouteImport.update({
+  id: '/crm/intake',
+  path: '/crm/intake',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmLeadsRoute = CrmLeadsRouteImport.update({
@@ -429,6 +435,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
+  '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
@@ -494,6 +501,7 @@ export interface FileRoutesByTo {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
+  '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
@@ -560,6 +568,7 @@ export interface FileRoutesById {
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
+  '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
@@ -627,6 +636,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/crm/calls'
     | '/crm/contacts'
+    | '/crm/intake'
     | '/crm/leads'
     | '/crm/requests'
     | '/crm/tasks'
@@ -692,6 +702,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/crm/calls'
     | '/crm/contacts'
+    | '/crm/intake'
     | '/crm/leads'
     | '/crm/requests'
     | '/crm/tasks'
@@ -757,6 +768,7 @@ export interface FileRouteTypes {
     | '/.well-known/oauth-protected-resource'
     | '/crm/calls'
     | '/crm/contacts'
+    | '/crm/intake'
     | '/crm/leads'
     | '/crm/requests'
     | '/crm/tasks'
@@ -823,6 +835,7 @@ export interface RootRouteChildren {
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
   CrmCallsRoute: typeof CrmCallsRoute
   CrmContactsRoute: typeof CrmContactsRoute
+  CrmIntakeRoute: typeof CrmIntakeRoute
   CrmLeadsRoute: typeof CrmLeadsRoute
   CrmRequestsRoute: typeof CrmRequestsRoute
   CrmTasksRoute: typeof CrmTasksRoute
@@ -1075,6 +1088,13 @@ declare module '@tanstack/react-router' {
       path: '/crm/contacts'
       fullPath: '/crm/contacts'
       preLoaderRoute: typeof CrmContactsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/crm/intake': {
+      id: '/crm/intake'
+      path: '/crm/intake'
+      fullPath: '/crm/intake'
+      preLoaderRoute: typeof CrmIntakeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm/leads': {
@@ -1336,6 +1356,7 @@ const rootRouteChildren: RootRouteChildren = {
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
   CrmCallsRoute: CrmCallsRoute,
   CrmContactsRoute: CrmContactsRoute,
+  CrmIntakeRoute: CrmIntakeRoute,
   CrmLeadsRoute: CrmLeadsRoute,
   CrmRequestsRoute: CrmRequestsRoute,
   CrmTasksRoute: CrmTasksRoute,
