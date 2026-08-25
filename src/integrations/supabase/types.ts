@@ -5349,6 +5349,30 @@ export type Database = {
           },
         ]
       }
+      screed_config: {
+        Row: {
+          created_at: string
+          id: string
+          payload: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payload?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       stock_balances: {
         Row: {
           item_id: string
