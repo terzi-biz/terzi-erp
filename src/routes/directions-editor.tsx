@@ -386,17 +386,18 @@ function FieldsTab({ def, onChange }: { def: DirectionDefinition; onChange: () =
   );
 }
 
-// ------- Items tab (materials/works/logistics) -------
-type ItemsKind = "materials" | "works" | "logistics";
-const KIND_TABLE: Record<ItemsKind, "material_items" | "work_items" | "logistics_items"> = {
-  materials: "material_items", works: "work_items", logistics: "logistics_items",
+// ------- Items tab (materials/works/logistics/services) -------
+type ItemsKind = "materials" | "works" | "logistics" | "services";
+const KIND_TABLE: Record<ItemsKind, "material_items" | "work_items" | "logistics_items" | "additional_services"> = {
+  materials: "material_items", works: "work_items", logistics: "logistics_items", services: "additional_services",
 };
 
 interface ItemRow { id?: string; code?: string | null; name: string; unit: string; cost_price: number;
   sale_coef_key?: string | null; formula: string; is_client_visible?: boolean; sort_order: number; }
 
-function ItemsTab({ def, kind, onChange }: { def: DirectionDefinition; kind: ItemsKind; onChange: () => void }) {
-  const source = def[kind];
+function ItemsTab({ def, kind, onChange }: { def: RuntimeDefinition; kind: ItemsKind; onChange: () => void }) {
+  const source = (def[kind] ?? []) as unknown[];
+
   const mapIn = (r: unknown): ItemRow => {
     const x = r as Record<string, unknown>;
     return {
