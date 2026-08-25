@@ -6,16 +6,23 @@
  */
 import { describe, it, expect } from "vitest";
 import {
-  calculateScreedProduction, SCREED_GRADES, DEFAULT_SCREED_PRODUCTION_CONFIG,
+  calculateScreedProduction,
+  SCREED_GRADES,
+  DEFAULT_SCREED_PRODUCTION_CONFIG,
   type ProductionInput,
 } from "../screed-grades";
 import { calculatePvc, DEFAULT_PVC_PRICES, DEFAULT_PVC_COEFFS, type PvcInput } from "../pvc-calc";
 import { buildEstimateSnapshot, isSnapshotComplete } from "../estimate-snapshot";
 
 const control: ProductionInput = {
-  areaM2: 100, thicknessCm: 7, perimeterM: 40,
-  screedGrade: "M200", cementGrade: "m500",
-  hasMesh: false, hasSlope: false, marginPercent: 30,
+  areaM2: 100,
+  thicknessCm: 7,
+  perimeterM: 40,
+  screedGrade: "M200",
+  cementGrade: "m500",
+  hasMesh: false,
+  hasSlope: false,
+  marginPercent: 30,
 };
 
 describe("П1 — контрольний сценарій М200 (100 м² × 7 см = 7 м³)", () => {
@@ -65,17 +72,36 @@ describe("П1 — матриця фібри на 7 м³", () => {
 });
 
 const pvcInput: PvcInput = {
-  area: 100, perimeter: 40,
-  parapetHeightM: 0.5, parapetWidthM: 0.4, parapetOverlapM: 0.1,
+  area: 100,
+  perimeter: 40,
+  parapetHeightM: 0.5,
+  parapetWidthM: 0.4,
+  parapetOverlapM: 0.1,
   thickness: "1.5",
-  withGeotextile: false, withDemount: false, withSlope: false, withPrep: false,
-  funnels75: 0, funnels110: 2, funnels160: 0,
-  aerators75: 0, aerators110: 0, aerators160: 0,
+  withGeotextile: false,
+  withDemount: false,
+  withSlope: false,
+  withPrep: false,
+  funnels75: 0,
+  funnels110: 2,
+  funnels160: 0,
+  aerators75: 0,
+  aerators110: 0,
+  aerators160: 0,
   opaikaPoints: 3,
   detailMembraneM2: 0,
-  pvcAngleMeters: 0, pvcClampMeters: 0, dripEdgeMeters: 0,
-  cityDelivery: true, outOfCityKm: 0, withLift: false, haulContainers: 0,
-  payment: "cash", withVAT: false, partnerCommission: 0, discountPercent: 0, complexityPercent: 0,
+  pvcAngleMeters: 0,
+  pvcClampMeters: 0,
+  dripEdgeMeters: 0,
+  cityDelivery: true,
+  outOfCityKm: 0,
+  withLift: false,
+  haulContainers: 0,
+  payment: "cash",
+  withVAT: false,
+  partnerCommission: 0,
+  discountPercent: 0,
+  complexityPercent: 0,
 };
 
 describe("П3 — Sikaplan D-15 як окрема неармована мембрана", () => {
@@ -96,7 +122,8 @@ describe("П3 — Sikaplan D-15 як окрема неармована мемб�
   });
 
   it("автонорма D-15 рахується від периметру та точок", () => {
-    const expected = 40 * DEFAULT_PVC_COEFFS.detailPerMeterM2 + 5 * DEFAULT_PVC_COEFFS.detailPerPointM2;
+    const expected =
+      40 * DEFAULT_PVC_COEFFS.detailPerMeterM2 + 5 * DEFAULT_PVC_COEFFS.detailPerPointM2;
     expect(detail.qty).toBeCloseTo(expected, 2);
   });
 
@@ -116,7 +143,12 @@ describe("П3 — Sikaplan D-15 як окрема неармована мемб�
 });
 
 describe("П3 — ПВХ-планки і профілі як 2-метрові елементи", () => {
-  const r = calculatePvc({ ...pvcInput, pvcClampMeters: 41, pvcAngleMeters: 10, dripEdgeMeters: 7 });
+  const r = calculatePvc({
+    ...pvcInput,
+    pvcClampMeters: 41,
+    pvcAngleMeters: 10,
+    dripEdgeMeters: 7,
+  });
   for (const key of ["m_clamp", "m_angle", "m_drip"]) {
     it(`${key}: розрахунок у м.п., закупівля ceil(м/2) шт`, () => {
       const line = r.lines.find((l) => l.key === key)!;
@@ -132,9 +164,14 @@ describe("П3 — ПВХ-планки і профілі як 2-метрові е
 describe("П2 — незмінний знімок кошторису", () => {
   const prices = { materials: { sand: { buy: 700, sell: 910 } } };
   const snap = buildEstimateSnapshot({
-    module: "screed", engineVersion: "screed@test", priceBookVersion: 7,
-    inputs: { area: 100 }, result: { totalClient: 1000, lines: [] },
-    prices, norms: { coefficients: { filmCoef: 1.2 } }, priceSources: { sand: "catalog" },
+    module: "screed",
+    engineVersion: "screed@test",
+    priceBookVersion: 7,
+    inputs: { area: 100 },
+    result: { totalClient: 1000, lines: [] },
+    prices,
+    norms: { coefficients: { filmCoef: 1.2 } },
+    priceSources: { sand: "catalog" },
   });
 
   it("зберігає версії, ціни, норми та джерела цін", () => {

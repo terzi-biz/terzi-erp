@@ -49,7 +49,11 @@ export interface EstimateSnapshot extends Record<string, unknown> {
 function deepClone<T>(v: T): T {
   if (v === undefined || v === null) return v;
   if (typeof structuredClone === "function") {
-    try { return structuredClone(v); } catch { /* fallthrough */ }
+    try {
+      return structuredClone(v);
+    } catch {
+      /* fallthrough */
+    }
   }
   return JSON.parse(JSON.stringify(v)) as T;
 }
@@ -77,8 +81,12 @@ export function isSnapshotComplete(snap: unknown): boolean {
   const s = snap as Partial<EstimateSnapshot>;
   return (
     s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION &&
-    typeof s.engineVersion === "string" && s.engineVersion.length > 0 &&
-    !!s.prices && typeof s.prices === "object" && Object.keys(s.prices).length > 0 &&
-    !!s.norms && typeof s.norms === "object"
+    typeof s.engineVersion === "string" &&
+    s.engineVersion.length > 0 &&
+    !!s.prices &&
+    typeof s.prices === "object" &&
+    Object.keys(s.prices).length > 0 &&
+    !!s.norms &&
+    typeof s.norms === "object"
   );
 }
