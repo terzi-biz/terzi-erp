@@ -103,25 +103,27 @@ export const DEFAULT_PVC_COEFFS: PvcCoefficients = {
 };
 
 export const DEFAULT_PVC_PRICES: Record<string, MaterialPrice> = {
-  pvc_15_sika: { buy: 359, sell: 467 },
-  pvc_18_sika: { buy: 520, sell: 676 },
-  geo_300: { buy: 44, sell: 57 },
+  pvc_15_sika: { buy: 360, sell: 468 },
+  pvc_18_sika: { buy: 655, sell: 852 },
+  geo_300: { buy: 54, sell: 70 },
   fastener: { buy: 8, sell: 18 },
   funnel_scupper_75: { buy: 2000, sell: 2600 },
-  funnel_scupper_110: { buy: 2110, sell: 2742 },
+  funnel_scupper_110: { buy: 1927.1, sell: 2505 },
   funnel_gully_160: { buy: 2790, sell: 3627 },
-  pvc_aerator_75: { buy: 730, sell: 949 },
+  pvc_aerator_75: { buy: 710, sell: 923 },
   pvc_aerator_110: { buy: 890, sell: 1157 },
   pvc_aerator_160: { buy: 1290, sell: 1677 },
   pvc_angle: { buy: 85, sell: 110 },
-  pvc_clamp: { buy: 36, sell: 47 },
+  pvc_clamp: { buy: 50, sell: 65 },
   drip_edge: { buy: 110, sell: 143 },
-  sika_sealant: { buy: 397, sell: 516 },
-  dowel_8x50: { buy: 242, sell: 314 },
-  screw_5x70: { buy: 101, sell: 131 },
-  washer_50: { buy: 340, sell: 442 },
+  sika_sealant: { buy: 440, sell: 572 },
+  dowel_8x50: { buy: 230, sell: 299 },
+  screw_5x70: { buy: 96.3, sell: 125 },
+  washer_50: { buy: 270, sell: 351 },
+  pvc_metal: { buy: 2800, sell: 3640 },
   xps_50: { buy: 220, sell: 286 },
 };
+
 
 export const DEFAULT_PVC_WORKS: Record<string, number> = {
   prep: 40,
