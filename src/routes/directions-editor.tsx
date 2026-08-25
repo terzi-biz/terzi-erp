@@ -727,3 +727,208 @@ function Row({ k, v, bold, muted }: { k: string; v: string; bold?: boolean; mute
 
 function Th({ children }: { children: React.ReactNode }) { return <th className="px-2 py-1 font-semibold uppercase text-[10px] tracking-wider">{children}</th>; }
 function Td({ children }: { children: React.ReactNode }) { return <td className="px-2 py-1">{children}</td>; }
+
+// ------- Formulas tab (Хвиля 3) -------
+interface FormulaRow { id?: string; formula_key: string; expression: string; output_unit?: string | null; description?: string | null; }
+
+function FormulasTab({ def, onChange }: { def: RuntimeDefinition; onChange: () => void }) {
+  const [rows, setRows] = useState<FormulaRow[]>((def.formulas ?? []) as FormulaRow[]);
+  useEffect(() => setRows((def.formulas ?? []) as FormulaRow[]), [def]);
+
+  const testCtx = useMemo(() => {
+    const inputs: Record<string, unknown> = {};
+    for (const f of def.fields) {
+      const d = f.default_value;
+      inputs[f.field_key] = f.type === "number" ? Number(d ?? 1) : f.type === "checkbox" ? !!d : (d ?? "");
+    }
+    const coeffs: Record<string, number> = {};
+    for (const c of def.coefficients) coeffs[c.coef_key] = Number(c.value);
+    const derived: Record<string, number> = {};
+    for (const r of rows) {
+      const check = tryEvalFormula(r.expression, { ...inputs, inputs, coeffs, derived, ...derived });
+      if (check.ok) derived[r.formula_key] = check.value;
+    }
+    return { ...inputs, inputs, coeffs, derived, ...derived };
+  }, [def, rows]);
+
+  const add = () => setRows([...rows, { formula_key: "", expression: "", output_unit: "" }]);
+  const update = (i: number, patch: Partial<FormulaRow>) => setRows(rows.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const remove = async (i: number) => {
+    const r = rows[i];
+    if (r.id) { try { await deleteChild("formulas", r.id); toast.success("Видалено"); onChange(); } catch (e) { toast.error((e as Error).message); } }
+    setRows(rows.filter((_, idx) => idx !== i));
+  };
+  const payload = (r: FormulaRow) => ({
+    ...(r.id ? { id: r.id } : {}), direction_id: def.id,
+    formula_key: r.formula_key, expression: r.expression,
+    output_unit: r.output_unit || null, description: r.description || null,
+  });
+  const save = async (i: number) => {
+    const r = rows[i];
+    if (!r.formula_key || !r.expression) { toast.error("Заповніть ключ та вираз"); return; }
+    try { await upsertChild("formulas", payload(r)); toast.success("Збережено"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
+  };
+  const saveAll = async () => {
+    try { await Promise.all(rows.filter((r) => r.formula_key && r.expression).map((r) => upsertChild("formulas", payload(r)))); toast.success("Збережено всі"); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
+  };
+
+  return (
+    <div className="panel p-3 overflow-x-auto">
+      <div className="flex items-center justify-between mb-2 gap-2 flex-wrap">
+        <div className="text-xs text-muted-foreground max-w-3xl">
+          Проміжні формули доступні у виразах як <code>derived.KEY</code> або просто <code>KEY</code>.
+          Дозволено: <code>+ − × ÷</code>, <code>ceil, floor, round, min, max, abs, sqrt, pow, if(cond,a,b)</code>. Без eval і без AI.
+        </div>
+        <button onClick={saveAll} className="bg-primary text-primary-foreground px-3 py-1 rounded text-xs font-bold inline-flex items-center gap-1">
+          <Save className="w-3 h-3" /> Зберегти всі
+        </button>
+      </div>
+      <table className="w-full text-xs min-w-[760px]">
+        <thead><tr className="text-left text-muted-foreground border-b border-border">
+          <Th>Ключ</Th><Th>Вираз</Th><Th>Од.</Th><Th>Опис</Th><Th>{" "}</Th>
+        </tr></thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const check = tryEvalFormula(r.expression, testCtx);
+            return (
+              <tr key={r.id ?? `new-${i}`} className="border-b border-border/50">
+                <Td><input value={r.formula_key} onChange={(e) => update(i, { formula_key: e.target.value.replace(/[^a-zA-Z0-9_]/g, "_") })} className="input-xs w-36 font-mono" /></Td>
+                <Td>
+                  <div className="flex items-center gap-1">
+                    <input value={r.expression} onChange={(e) => update(i, { expression: e.target.value })}
+                      placeholder="area * coeffs.overlap" className={`input-xs w-72 font-mono ${r.expression && !check.ok ? "border-destructive" : ""}`} />
+                    {r.expression && (check.ok
+                      ? <span className="text-[10px] text-emerald-500 inline-flex items-center gap-0.5"><CheckCircle2 className="w-3 h-3" />{check.value.toFixed(2)}</span>
+                      : <span className="text-[10px] text-destructive inline-flex items-center gap-0.5" title={check.error}><AlertCircle className="w-3 h-3" />err</span>)}
+                  </div>
+                </Td>
+                <Td><input value={r.output_unit ?? ""} onChange={(e) => update(i, { output_unit: e.target.value })} className="input-xs w-16" /></Td>
+                <Td><input value={r.description ?? ""} onChange={(e) => update(i, { description: e.target.value })} className="input-xs w-48" /></Td>
+                <Td>
+                  <div className="flex gap-1">
+                    <button onClick={() => save(i)} className="p-1 rounded bg-primary text-primary-foreground" title="Зберегти"><Save className="w-3 h-3" /></button>
+                    <button onClick={() => remove(i)} className="p-1 rounded bg-destructive text-destructive-foreground" title="Видалити"><Trash2 className="w-3 h-3" /></button>
+                  </div>
+                </Td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      <button onClick={add} className="mt-2 flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded"><Plus className="w-3 h-3" /> Додати формулу</button>
+      <FormulaVarsHint def={def} />
+      <style>{`.input-xs{background:var(--input,#111);border:1px solid var(--border,#333);border-radius:4px;padding:2px 6px;font-size:12px}`}</style>
+    </div>
+  );
+}
+
+// ------- Versions tab (Хвиля 3) -------
+function VersionsTab({ def, onChange }: { def: RuntimeDefinition; onChange: () => void }) {
+  const [versions, setVersions] = useState<DirectionVersionRow[]>([]);
+  const [note, setNote] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [compare, setCompare] = useState<string | null>(null);
+
+  const load = async () => {
+    try { setVersions(await listVersions(def.id)); } catch (e) { toast.error((e as Error).message); }
+  };
+  useEffect(() => { void load(); }, [def.id]);
+
+  const publish = async () => {
+    setBusy(true);
+    try {
+      const v = await publishVersion(def.id, note);
+      toast.success(`Опубліковано версію v${v}`);
+      setNote("");
+      await load(); onChange();
+    } catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const rollback = async (row: DirectionVersionRow) => {
+    if (!confirm(`Відкатити чернетку до v${row.version}? Поточна чернетка буде перезаписана, опубліковані версії не змінюються.`)) return;
+    setBusy(true);
+    try { await restoreVersion(row); toast.success(`Чернетку відкатано до v${row.version}`); await load(); onChange(); }
+    catch (e) { toast.error((e as Error).message); }
+    finally { setBusy(false); }
+  };
+
+  const selected = versions.find((v) => v.id === compare) ?? null;
+  const diff = useMemo(() => (selected ? diffConfigs(selected.config, def) : []), [selected, def]);
+
+  return (
+    <div className="space-y-3">
+      <div className="panel p-4 space-y-2">
+        <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold">Публікація</div>
+        <p className="text-xs text-muted-foreground">
+          Публікація зберігає незмінний знімок конфігурації (поля, довідники, формули, коефіцієнти) з версією рушія.
+          Збережені кошториси працюють на своїй версії — публікація їх не змінює.
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Примітка до версії"
+            className="flex-1 min-w-[200px] bg-input border border-border rounded px-2 py-1 text-sm" />
+          <button onClick={publish} disabled={busy}
+            className="bg-primary text-primary-foreground px-4 py-2 rounded text-sm font-bold inline-flex items-center gap-2 disabled:opacity-50">
+            <CheckCircle2 className="w-4 h-4" /> Опублікувати v{(versions[0]?.version ?? 0) + 1}
+          </button>
+        </div>
+      </div>
+
+      <div className="panel p-0 overflow-x-auto">
+        <table className="w-full text-xs min-w-[600px]">
+          <thead><tr className="text-left text-muted-foreground border-b border-border">
+            <Th>Версія</Th><Th>Дата</Th><Th>Рушій</Th><Th>Примітка</Th><Th>{" "}</Th>
+          </tr></thead>
+          <tbody>
+            {versions.length === 0 && (
+              <tr><Td>—</Td><Td>Ще немає опублікованих версій</Td><Td>{" "}</Td><Td>{" "}</Td><Td>{" "}</Td></tr>
+            )}
+            {versions.map((v) => (
+              <tr key={v.id} className="border-b border-border/50">
+                <Td><span className="font-bold">v{v.version}</span></Td>
+                <Td>{new Date(v.published_at).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}</Td>
+                <Td className="font-mono text-[10px]">{v.engine_version}</Td>
+                <Td>{v.note ?? "—"}</Td>
+                <Td>
+                  <div className="flex gap-1">
+                    <button onClick={() => setCompare(compare === v.id ? null : v.id)} className="px-2 py-1 rounded bg-secondary font-semibold">
+                      {compare === v.id ? "Схвати" : "Порівняти з чернеткою"}
+                    </button>
+                    <button onClick={() => rollback(v)} disabled={busy} className="px-2 py-1 rounded bg-secondary font-semibold disabled:opacity-50">
+                      Відкат
+                    </button>
+                  </div>
+                </Td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {selected && (
+        <div className="panel p-3">
+          <div className="text-xs uppercase tracking-widest text-muted-foreground font-bold mb-2">
+            Зміни v{selected.version} → чернетка ({diff.length})
+          </div>
+          {diff.length === 0 && <div className="text-sm text-muted-foreground">Чернетка ідентична версії v{selected.version}.</div>}
+          <div className="space-y-1 max-h-[50vh] overflow-y-auto">
+            {diff.map((d, i) => (
+              <div key={`${d.block}-${d.key}-${i}`} className="text-xs flex gap-2 border-b border-border/40 pb-1">
+                <span className={`px-1.5 rounded font-bold shrink-0 ${
+                  d.kind === "added" ? "bg-emerald-500/15 text-emerald-500"
+                  : d.kind === "removed" ? "bg-destructive/15 text-destructive"
+                  : "bg-amber-500/15 text-amber-500"}`}>
+                  {d.kind === "added" ? "+" : d.kind === "removed" ? "−" : "~"}
+                </span>
+                <span className="font-semibold shrink-0">{d.block} · {d.key}</span>
+                <span className="text-muted-foreground break-all">{d.details}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
