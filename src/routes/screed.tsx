@@ -26,10 +26,11 @@ import { EstimateView } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import {
-  DEFAULT_SCREED_PRODUCTION_CONFIG, SCREED_GRADES, SCREED_GRADE_LIST, GRADE_LABEL,
+  SCREED_GRADE_LIST, GRADE_LABEL,
   SCREED_GRADE_DISCLAIMER, calculateScreedProduction, compareGrades, screedPositionName,
   type ScreedGrade, type ScreedProductionConfig,
 } from "@/lib/screed-grades";
+import { useScreedConfig } from "@/lib/useScreedConfig";
 
 export const Route = createFileRoute("/screed")({
   validateSearch: (s: Record<string, unknown>) => ({ estimate: typeof s.estimate === "string" ? s.estimate : undefined }),
