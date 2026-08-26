@@ -152,7 +152,7 @@ function PvcPage() {
     return w;
   }, [workPrices]);
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculatePvc(
         input,
@@ -164,6 +164,11 @@ function PvcPage() {
       ),
     [input, materialPrices, worksMapped, workCostPrices],
   );
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
+  );
+
 
   const upd = <K extends keyof PvcInput>(k: K, v: PvcInput[K]) =>
     setInput((s) => ({ ...s, [k]: v }));
