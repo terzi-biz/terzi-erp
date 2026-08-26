@@ -9,6 +9,7 @@ export const AUDIT_CHECKS = [
   "client_duplicates",
   "calls_to_leads",
   "leads_to_clients",
+  "leads_to_orders",
   "catalog_issues",
   "estimates_price_version",
 ] as const;
@@ -18,6 +19,7 @@ export const AUDIT_LABELS: Record<AuditCheck, string> = {
   client_duplicates: "Дублі клієнтів за телефоном",
   calls_to_leads: "Звінки без ліда",
   leads_to_clients: "Ліди без клієнта",
+  leads_to_orders: "Ліди без замовлення",
   catalog_issues: "Каталог: без коду або з нульовою ціною",
   estimates_price_version: "Кошториси без зафіксованої версії прайсу",
 };
