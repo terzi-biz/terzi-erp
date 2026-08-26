@@ -16,7 +16,11 @@ export interface PriceLineLike {
   qty: number;
   pricePerUnit: number;
   sum: number;
+  /** Внутрішні позиції (собівартість бригади тощо) не мають ціни продажу. */
+  showToClient?: boolean;
+  cost?: number;
 }
+
 
 export interface PriceIssue {
   key: string;
@@ -51,6 +55,9 @@ export function findPriceIssues(
   const out: PriceIssue[] = [];
   for (const l of lines) {
     if (!(l.qty > 0)) continue;
+    // Внутрішні позиції (бригада, бригадир) свідомо мають ціну продажу 0 —
+    // їхня вартість входить у собівартість, а не в КП. Це не помилка прайсу.
+    if (l.showToClient === false) continue;
     if (l.pricePerUnit > 0 || l.sum > 0) continue;
     out.push({
       key: l.key,

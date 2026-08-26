@@ -396,8 +396,26 @@ export async function binotelSyncPbxOp(userId: string, days = 7) {
  * автоматичне створення лідів/контактів/задач, але зіставляються з наявними
  * сутностями за телефоном. Повторний запуск безпечний: external_id оновлюється.
  */
+/** Планова синхронізація дзвінків без користувача (pg_cron). */
+export async function binotelSyncCallHistoryCron(days = 1) {
+  return syncBinotelCallHistory(days);
+}
+
 export async function binotelSyncCallHistoryOp(userId: string, days = 7) {
   const actor = await requireAccessManager(userId);
+  const res = await syncBinotelCallHistory(days);
+  await writeAudit(actor, {
+    module: "integrations",
+    action: "sync",
+    entityType: "binotel_calls",
+    entityLabel: `Історія Binotel за ${res.days} дн.: отримано ${res.received}, оброблено ${res.applied}`,
+    isCritical: true,
+    newValue: { days: res.days, received: res.received, applied: res.applied, failed: res.failed },
+  });
+  return res;
+}
+
+async function syncBinotelCallHistory(days: number) {
   const db = await admin();
   const integration = await getBinotelIntegration();
   if (!integration) throw new Error("Спочатку створіть підключення Binotel");
@@ -446,15 +464,6 @@ export async function binotelSyncCallHistoryOp(userId: string, days = 7) {
       last_error_at: errors.length ? syncedAt : null,
     } as any)
     .eq("id", integration.id);
-
-  await writeAudit(actor, {
-    module: "integrations",
-    action: "sync",
-    entityType: "binotel_calls",
-    entityLabel: `Історія Binotel за ${safeDays} дн.: отримано ${received}, оброблено ${applied}`,
-    isCritical: true,
-    newValue: { days: safeDays, received, applied, failed },
-  });
 
   return { days: safeDays, received, applied, failed, errors };
 }
