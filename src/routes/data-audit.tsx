@@ -11,6 +11,12 @@ import {
   applyDataAuditAction,
   listDataAuditRuns,
 } from "@/lib/data-audit.functions";
+import {
+  auditErrorMessage,
+  exportButtonState,
+  rowApplyDisabled,
+  runButtonState,
+} from "@/lib/data-audit/ui-state";
 
 export const Route = createFileRoute("/data-audit")({
   ssr: false,
@@ -71,7 +77,7 @@ function DataAuditPage() {
       setApplied({});
       qc.invalidateQueries({ queryKey: ["data-audit-runs"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Не вдалося сформувати звіт"),
+    onError: (e: unknown) => toast.error(auditErrorMessage(e, "Не вдалося сформувати звіт")),
   });
 
   const applyMut = useMutation({
@@ -81,8 +87,12 @@ function DataAuditPage() {
       toast.success(res.message);
       qc.invalidateQueries({ queryKey: ["data-audit-runs"] });
     },
-    onError: (e: any) => toast.error(e?.message ?? "Не вдалося застосувати"),
+    onError: (e: unknown) => toast.error(auditErrorMessage(e, "Не вдалося застосувати")),
   });
+
+  const ui = { running: runMut.isPending, applying: applyMut.isPending, hasReport: Boolean(report) };
+  const runBtn = runButtonState(ui);
+  const exportBtn = exportButtonState(ui);
 
   const exportCsv = () => {
     if (!report) return;
@@ -136,13 +146,13 @@ function DataAuditPage() {
         <div className="flex flex-wrap gap-2">
           <button
             className={`${btn} bg-primary text-primary-foreground`}
-            disabled={runMut.isPending}
+            disabled={runBtn.disabled}
             onClick={() => runMut.mutate({ check, save: true })}
           >
-            {runMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            {runBtn.loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             Сформувати звіт
           </button>
-          <button className={`${btn} border border-border`} disabled={!report} onClick={exportCsv}>
+          <button className={`${btn} border border-border`} disabled={exportBtn.disabled} onClick={exportCsv}>
             <Download className="w-4 h-4" /> Експорт CSV
           </button>
         </div>
@@ -193,7 +203,11 @@ function DataAuditPage() {
                           ) : (
                             <button
                               className={`${btn} border border-border text-xs px-2 py-1`}
-                              disabled={applyMut.isPending}
+                              disabled={rowApplyDisabled({
+                                applyKey: r.applyKey,
+                                appliedMessage: applied[r.applyKey],
+                                applying: applyMut.isPending,
+                              })}
                               onClick={() => {
                                 if (!window.confirm(`Застосувати?\n\n${r.change}`)) return;
                                 applyMut.mutate({ apply_key: r.applyKey });
