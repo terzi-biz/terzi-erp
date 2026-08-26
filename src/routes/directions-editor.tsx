@@ -243,6 +243,26 @@ function JsonIO({ def, onImported }: { def: DirectionDefinition; onImported: () 
   );
 }
 
+const SERVICE_TYPES: { key: string; label: string }[] = [
+  { key: "screed", label: "Стяжка" },
+  { key: "roofing_pvc", label: "ПВХ мембрана" },
+  { key: "roofing_ruberoid", label: "Руберойд" },
+  { key: "insulation", label: "Утеплення" },
+  { key: "demolition", label: "Демонтаж" },
+  { key: "plaster", label: "Штукатурка" },
+  { key: "polybeton", label: "Полібетон" },
+  { key: "other", label: "Інше" },
+];
+
+const DIRECTION_ROLES: { key: string; label: string }[] = [
+  { key: "admin", label: "Адміністратор" },
+  { key: "director", label: "Директор" },
+  { key: "manager", label: "Менеджер" },
+  { key: "finance", label: "Фінанси" },
+];
+
+const ICON_OPTIONS = ["layers", "droplets", "shield", "hammer", "thermometer", "grid", "ruler", "package"];
+
 function GeneralTab({ row, onSaved }: { row: DirectionRow; onSaved: () => void }) {
   const [draft, setDraft] = useState(row);
   useEffect(() => setDraft(row), [row]);
@@ -250,23 +270,65 @@ function GeneralTab({ row, onSaved }: { row: DirectionRow; onSaved: () => void }
     try { await upsertDirection(draft); toast.success("Збережено"); onSaved(); }
     catch (e) { toast.error((e as Error).message); }
   };
+  const roles = draft.allowed_roles ?? [];
+  const toggleRole = (key: string) =>
+    setDraft({ ...draft, allowed_roles: roles.includes(key) ? roles.filter((r) => r !== key) : [...roles, key] });
+  const inputCls = "w-full bg-input border border-border rounded px-2 py-1 text-sm";
   return (
     <div className="panel p-4 space-y-3 max-w-xl">
-      <Field label="ID (slug)"><input disabled value={draft.id} className="w-full bg-input border border-border rounded px-2 py-1 text-sm opacity-60" /></Field>
-      <Field label="Назва"><input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-        className="w-full bg-input border border-border rounded px-2 py-1 text-sm" /></Field>
-      <Field label="Категорія">
-        <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })}
-          className="w-full bg-input border border-border rounded px-2 py-1 text-sm">
-          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+      <Field label="ID (slug)"><input disabled value={draft.id} className={`${inputCls} opacity-60`} /></Field>
+      <Field label="Назва"><input value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} className={inputCls} /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Категорія">
+          <select value={draft.category} onChange={(e) => setDraft({ ...draft, category: e.target.value })} className={inputCls}>
+            {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </Field>
+        <Field label="Тип послуги">
+          <select value={draft.service_type ?? "other"} onChange={(e) => setDraft({ ...draft, service_type: e.target.value })} className={inputCls}>
+            {SERVICE_TYPES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+          </select>
+        </Field>
+      </div>
+      <Field label="Опис"><textarea value={draft.description ?? ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })} className={inputCls} rows={2} /></Field>
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Іконка">
+          <select value={draft.icon ?? "layers"} onChange={(e) => setDraft({ ...draft, icon: e.target.value })} className={inputCls}>
+            {ICON_OPTIONS.map((i) => <option key={i} value={i}>{i}</option>)}
+          </select>
+        </Field>
+        <Field label="Порядок у меню">
+          <input type="number" value={draft.sort_order ?? 0}
+            onChange={(e) => setDraft({ ...draft, sort_order: Number(e.target.value) || 0 })} className={inputCls} />
+        </Field>
+      </div>
+      <Field label="Статус напрямку">
+        <select value={draft.status ?? "draft"} onChange={(e) => setDraft({ ...draft, status: e.target.value })} className={inputCls}>
+          <option value="draft">Чернетка</option>
+          <option value="published">Опублікований{v((draft.current_version ?? 0) > 0) ? ` (v${draft.current_version})` : ""}</option>
+          <option value="archived">Архівний</option>
         </select>
       </Field>
-      <Field label="Опис"><textarea value={draft.description ?? ""} onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-        className="w-full bg-input border border-border rounded px-2 py-1 text-sm" rows={2} /></Field>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
-        Активний (доступний менеджерам)
-      </label>
+      <Field label="Ролі з доступом (порожньо = всі)">
+        <div className="flex flex-wrap gap-3 pt-1">
+          {DIRECTION_ROLES.map((r) => (
+            <label key={r.key} className="flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={roles.includes(r.key)} onChange={() => toggleRole(r.key)} />
+              {r.label}
+            </label>
+          ))}
+        </div>
+      </Field>
+      <div className="flex flex-col gap-1.5 pt-1">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={draft.active} onChange={(e) => setDraft({ ...draft, active: e.target.checked })} />
+          Активний (доступний менеджерам)
+        </label>
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={!!draft.is_addon} onChange={(e) => setDraft({ ...draft, is_addon: e.target.checked })} />
+          Додатковий блок (може входити до кошторису іншого напрямку)
+        </label>
+      </div>
       <button onClick={save} className="bg-primary text-primary-foreground px-4 py-2 rounded text-sm font-bold flex items-center gap-2">
         <Save className="w-4 h-4" /> Зберегти
       </button>
