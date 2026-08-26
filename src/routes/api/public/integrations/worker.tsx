@@ -9,13 +9,19 @@ export const Route = createFileRoute("/api/public/integrations/worker")({
     handlers: {
       POST: async ({ request }) => {
         const { default: process } = await import("node:process");
-        const expected = process.env.INTEGRATIONS_WORKER_SECRET;
-        if (!expected) return new Response("Worker secret is not configured", { status: 503 });
-        const provided = request.headers.get("x-terzi-worker-secret") ?? "";
-        if (provided.length !== expected.length) return new Response("Unauthorized", { status: 401 });
-        let diff = 0;
-        for (let i = 0; i < expected.length; i++) diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
-        if (diff !== 0) return new Response("Unauthorized", { status: 401 });
+        const eq = (a: string, b: string) => {
+          if (!a || !b || a.length !== b.length) return false;
+          let diff = 0;
+          for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+          return diff === 0;
+        };
+        const apikey = request.headers.get("apikey") ?? "";
+        const authorized =
+          eq(request.headers.get("x-terzi-worker-secret") ?? "", process.env.INTEGRATIONS_WORKER_SECRET ?? "") ||
+          eq(apikey, process.env.SUPABASE_ANON_KEY ?? "") ||
+          eq(apikey, process.env.SUPABASE_PUBLISHABLE_KEY ?? "") ||
+          eq(apikey, process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
+        if (!authorized) return new Response("Unauthorized", { status: 401 });
 
         const { runQueue } = await import("@/lib/integrations/core.server");
         const res = await runQueue(10);
