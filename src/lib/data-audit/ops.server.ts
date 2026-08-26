@@ -399,6 +399,17 @@ export async function applyAuditAction(
     return { applied: 1, message: "Лід привʼязано до клієнта" };
   }
 
+  if (parts[0] === "leadorder") {
+    const [, leadId, orderId] = parts;
+    const { error } = await client
+      .from("crm_leads")
+      .update({ order_id: orderId })
+      .eq("id", leadId)
+      .is("order_id", null);
+    if (error) throw new Error(`Не вдалося привʼязати лід до замовлення: ${error.message}`);
+    return { applied: 1, message: "Лід привʼязано до замовлення" };
+  }
+
   if (parts[0] === "merge") {
     const keeper = parts[1];
     const losers = (parts[2] ?? "").split(",").filter(Boolean);
