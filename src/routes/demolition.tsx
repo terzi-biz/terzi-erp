@@ -29,6 +29,8 @@ import { AlertTriangle, Image as ImageIcon, Eye, EyeOff, Calculator, FileText } 
 import { EstimateView } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
+import { TargetMarginPanel } from "@/components/TargetMarginPanel";
+import { applyTargetMargin } from "@/lib/target-margin";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/demolition")({

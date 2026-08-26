@@ -51,6 +51,8 @@ import { ProductionCard } from "@/components/roofing/ProductionCard";
 import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
+import { TargetMarginPanel } from "@/components/TargetMarginPanel";
+import { applyTargetMargin } from "@/lib/target-margin";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing_rub")({
