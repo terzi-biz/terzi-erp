@@ -465,15 +465,6 @@ async function syncBinotelCallHistory(days: number) {
     } as any)
     .eq("id", integration.id);
 
-  await writeAudit(actor, {
-    module: "integrations",
-    action: "sync",
-    entityType: "binotel_calls",
-    entityLabel: `Історія Binotel за ${safeDays} дн.: отримано ${received}, оброблено ${applied}`,
-    isCritical: true,
-    newValue: { days: safeDays, received, applied, failed },
-  });
-
   return { days: safeDays, received, applied, failed, errors };
 }
 
