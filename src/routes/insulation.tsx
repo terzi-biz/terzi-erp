@@ -29,6 +29,8 @@ import { AlertTriangle, Image as ImageIcon, Eye, EyeOff, Calculator, FileText } 
 import { EstimateView } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
+import { TargetMarginPanel } from "@/components/TargetMarginPanel";
+import { applyTargetMargin } from "@/lib/target-margin";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/insulation")({
@@ -90,13 +92,16 @@ function InsulationPage() {
   const { isInternal } = useInternalAccess();
   const { insulationCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<InsulationInput>({
+  const draft = useEstimateDraft<InsulationInput, { targetMargin: number }>({
     module: "insulation",
     defaultInput,
+    defaultExtra: { targetMargin: 0 },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
   const { materialPrices, workPrices, priceSources, priceBookVersion } = useModulePricing(
     "insulation",
     input.area,
@@ -114,7 +119,7 @@ function InsulationPage() {
     return w;
   }, [workPrices]);
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateInsulation(
         input,
@@ -124,6 +129,10 @@ function InsulationPage() {
         insulationCoeffs,
       ),
     [input, materialPrices, worksMapped, insulationCoeffs],
+  );
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
   );
 
   const upd = <K extends keyof InsulationInput>(k: K, v: InsulationInput[K]) =>
@@ -551,6 +560,16 @@ function InsulationPage() {
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           <div ref={printRef} className="space-y-4 bg-background">
+            <TargetMarginPanel
+              value={targetMargin}
+              onChange={setTargetMargin}
+              totalClient={result.totalClient}
+              pricePerM2={result.pricePerM2}
+              grossProfit={result.grossProfit}
+              marginPercent={result.marginPercent}
+              totalCost={result.totalCost}
+              showInternal={showInternal}
+            />
             <section className="panel p-4 md:p-5">
               <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">
                 Результати

@@ -51,6 +51,8 @@ import { ProductionCard } from "@/components/roofing/ProductionCard";
 import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
+import { TargetMarginPanel } from "@/components/TargetMarginPanel";
+import { applyTargetMargin } from "@/lib/target-margin";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing_rub")({
@@ -161,13 +163,16 @@ function RubPage() {
   const { isInternal } = useInternalAccess();
   const { roofingCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<RoofingInput>({
+  const draft = useEstimateDraft<RoofingInput, { targetMargin: number }>({
     module: "roofing_rub",
     defaultInput,
+    defaultExtra: { targetMargin: 0 },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
   const { materialPrices, workPrices, workCostPrices, priceSources, priceBookVersion } =
     useModulePricing("roofing_rub", input.area);
   const [showInternalPref, setShowInternal] = useState(true);
@@ -186,7 +191,7 @@ function RubPage() {
     return w;
   }, [workPrices]);
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateRoofing(
         input,
@@ -197,6 +202,10 @@ function RubPage() {
         roofingCoeffs,
       ),
     [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs],
+  );
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
   );
 
   const upd = <K extends keyof RoofingInput>(k: K, v: RoofingInput[K]) =>
@@ -911,6 +920,16 @@ function RubPage() {
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <TargetMarginPanel
+            value={targetMargin}
+            onChange={setTargetMargin}
+            totalClient={result.totalClient}
+            pricePerM2={result.pricePerM2}
+            grossProfit={result.grossProfit}
+            marginPercent={result.marginPercent}
+            totalCost={result.totalCost}
+            showInternal={showInternal}
+          />
           <section className="panel p-4 md:p-5">
             <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">
               Результати
