@@ -16,7 +16,11 @@ export interface PriceLineLike {
   qty: number;
   pricePerUnit: number;
   sum: number;
+  /** Внутрішні позиції (собівартість бригади тощо) не мають ціни продажу. */
+  showToClient?: boolean;
+  cost?: number;
 }
+
 
 export interface PriceIssue {
   key: string;
