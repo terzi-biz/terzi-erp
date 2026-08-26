@@ -305,7 +305,7 @@ function GeneralTab({ row, onSaved }: { row: DirectionRow; onSaved: () => void }
       <Field label="Статус напрямку">
         <select value={draft.status ?? "draft"} onChange={(e) => setDraft({ ...draft, status: e.target.value })} className={inputCls}>
           <option value="draft">Чернетка</option>
-          <option value="published">Опублікований{v((draft.current_version ?? 0) > 0) ? ` (v${draft.current_version})` : ""}</option>
+          <option value="published">Опублікований{(draft.current_version ?? 0) > 0 ? ` (v${draft.current_version})` : ""}</option>
           <option value="archived">Архівний</option>
         </select>
       </Field>
