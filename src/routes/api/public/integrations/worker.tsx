@@ -34,7 +34,19 @@ export const Route = createFileRoute("/api/public/integrations/worker")({
         } catch (e) {
           polls = [{ error: e instanceof Error ? e.message : "poll failed" }];
         }
-        return Response.json({ ok: true, ...res, polls });
+        // Планове підтягування історії дзвінків Binotel (останню добу).
+        let binotel: unknown = null;
+        try {
+          const { getBinotelIntegration, binotelSyncCallHistoryCron } = await import(
+            "@/lib/integrations/binotel/ops.server"
+          );
+          const integration = await getBinotelIntegration();
+          binotel = integration?.enabled ? await binotelSyncCallHistoryCron(1) : { skipped: true };
+        } catch (e) {
+          binotel = { error: e instanceof Error ? e.message : "binotel sync failed" };
+        }
+
+        return Response.json({ ok: true, ...res, polls, binotel });
       },
     },
   },
