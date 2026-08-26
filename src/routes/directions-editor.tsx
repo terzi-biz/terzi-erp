@@ -788,7 +788,7 @@ function Row({ k, v, bold, muted }: { k: string; v: string; bold?: boolean; mute
 }
 
 function Th({ children }: { children: React.ReactNode }) { return <th className="px-2 py-1 font-semibold uppercase text-[10px] tracking-wider">{children}</th>; }
-function Td({ children }: { children: React.ReactNode }) { return <td className="px-2 py-1">{children}</td>; }
+function Td({ children, className }: { children: React.ReactNode; className?: string }) { return <td className={`px-2 py-1 ${className ?? ""}`}>{children}</td>; }
 
 // ------- Formulas tab (Хвиля 3) -------
 interface FormulaRow { id?: string; formula_key: string; expression: string; output_unit?: string | null; description?: string | null; }
