@@ -71,13 +71,16 @@ function DemolitionPage() {
   const { isInternal } = useInternalAccess();
   const { demolitionCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<DemolitionInput>({
+  const draft = useEstimateDraft<DemolitionInput, { targetMargin: number }>({
     module: "demolition",
     defaultInput,
+    defaultExtra: { targetMargin: 0 },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
   const { materialPrices, workPrices, priceSources, priceBookVersion } = useModulePricing(
     "demolition",
     input.area,
@@ -95,7 +98,7 @@ function DemolitionPage() {
     return w;
   }, [workPrices]);
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateDemolition(
         input,
@@ -105,6 +108,10 @@ function DemolitionPage() {
         demolitionCoeffs,
       ),
     [input, materialPrices, worksMapped, demolitionCoeffs],
+  );
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
   );
 
   const upd = <K extends keyof DemolitionInput>(k: K, v: DemolitionInput[K]) =>

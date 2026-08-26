@@ -163,13 +163,16 @@ function RubPage() {
   const { isInternal } = useInternalAccess();
   const { roofingCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<RoofingInput>({
+  const draft = useEstimateDraft<RoofingInput, { targetMargin: number }>({
     module: "roofing_rub",
     defaultInput,
+    defaultExtra: { targetMargin: 0 },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
   const { materialPrices, workPrices, workCostPrices, priceSources, priceBookVersion } =
     useModulePricing("roofing_rub", input.area);
   const [showInternalPref, setShowInternal] = useState(true);
@@ -188,7 +191,7 @@ function RubPage() {
     return w;
   }, [workPrices]);
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateRoofing(
         input,
@@ -199,6 +202,10 @@ function RubPage() {
         roofingCoeffs,
       ),
     [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs],
+  );
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
   );
 
   const upd = <K extends keyof RoofingInput>(k: K, v: RoofingInput[K]) =>

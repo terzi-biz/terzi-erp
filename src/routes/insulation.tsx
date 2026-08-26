@@ -92,13 +92,16 @@ function InsulationPage() {
   const { isInternal } = useInternalAccess();
   const { insulationCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<InsulationInput>({
+  const draft = useEstimateDraft<InsulationInput, { targetMargin: number }>({
     module: "insulation",
     defaultInput,
+    defaultExtra: { targetMargin: 0 },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
   const { materialPrices, workPrices, priceSources, priceBookVersion } = useModulePricing(
     "insulation",
     input.area,
@@ -116,7 +119,7 @@ function InsulationPage() {
     return w;
   }, [workPrices]);
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateInsulation(
         input,
@@ -126,6 +129,10 @@ function InsulationPage() {
         insulationCoeffs,
       ),
     [input, materialPrices, worksMapped, insulationCoeffs],
+  );
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
   );
 
   const upd = <K extends keyof InsulationInput>(k: K, v: InsulationInput[K]) =>
