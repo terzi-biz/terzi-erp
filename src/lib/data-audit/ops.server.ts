@@ -9,6 +9,7 @@ export const AUDIT_CHECKS = [
   "client_duplicates",
   "calls_to_leads",
   "leads_to_clients",
+  "leads_to_orders",
   "catalog_issues",
   "estimates_price_version",
 ] as const;
@@ -18,6 +19,7 @@ export const AUDIT_LABELS: Record<AuditCheck, string> = {
   client_duplicates: "Дублі клієнтів за телефоном",
   calls_to_leads: "Звінки без ліда",
   leads_to_clients: "Ліди без клієнта",
+  leads_to_orders: "Ліди без замовлення",
   catalog_issues: "Каталог: без коду або з нульовою ціною",
   estimates_price_version: "Кошториси без зафіксованої версії прайсу",
 };
@@ -193,15 +195,18 @@ async function callsToLeads(): Promise<AuditReport> {
 }
 
 async function leadsToClients(): Promise<AuditReport> {
-  const leads = await fetchAll("crm_leads", "id,title,contact_id,client_id,created_at", (q) =>
-    q.is("client_id", null),
+  const leads = await fetchAll(
+    "crm_leads",
+    "id,title,contact_id,client_id,created_at,status,source,external_source",
+    (q) => q.is("client_id", null),
   );
   const contacts = await fetchAll("crm_contacts", "id,phone_norm,full_name");
-  const clients = await fetchAll("clients", "id,name,phone");
+  const clients = await fetchAll("clients", "id,name,phone,status");
 
   const contactById = new Map(contacts.map((c) => [c.id, c]));
   const clientByPhone = new Map<string, any[]>();
   for (const c of clients) {
+    if (c.status === "archived") continue;
     const key = normPhone(c.phone);
     if (!key) continue;
     const arr = clientByPhone.get(key) ?? [];
@@ -223,7 +228,13 @@ async function leadsToClients(): Promise<AuditReport> {
     rows.push({
       applyKey: `lead:${l.id}:${cands[0].id}`,
       title: l.title,
-      detail: `Контакт: ${ct?.full_name || "—"} · +${key}`,
+      detail: [
+        `Контакт: ${ct?.full_name || "—"}`,
+        `+${key}`,
+        `статус ліда: ${l.status || "—"}`,
+        `джерело: ${l.source || l.external_source || "—"}`,
+        `клієнт: ${cands[0].name || "без назви"} (тел. збігається)`,
+      ].join(" · "),
       change: `Привʼязати до клієнта «${cands[0].name || cands[0].id}»`,
     });
   }
@@ -234,7 +245,58 @@ async function leadsToClients(): Promise<AuditReport> {
     applicable: true,
     total,
     rows,
-    note: "Пропонуються лише однозначні відповідності телефону контакту й клієнта.",
+    note: "Пропонуються лише однозначні відповідності телефону контакту й активного клієнта.",
+  };
+}
+
+async function leadsToOrders(): Promise<AuditReport> {
+  const leads = await fetchAll(
+    "crm_leads",
+    "id,title,contact_id,client_id,order_id,status,created_at",
+    (q) => q.is("order_id", null).not("client_id", "is", null),
+  );
+  const orders = await fetchAll("orders", "id,number,name,client_id,amount_total,created_at");
+  const clients = await fetchAll("clients", "id,name,phone");
+
+  const ordersByClient = new Map<string, any[]>();
+  for (const o of orders) {
+    if (!o.client_id) continue;
+    const arr = ordersByClient.get(o.client_id) ?? [];
+    arr.push(o);
+    ordersByClient.set(o.client_id, arr);
+  }
+  const clientById = new Map(clients.map((c) => [c.id, c]));
+
+  const rows: AuditRow[] = [];
+  let total = 0;
+  for (const l of leads) {
+    const cands = ordersByClient.get(l.client_id) ?? [];
+    if (cands.length !== 1) continue;
+    const order = cands[0];
+    const client = clientById.get(l.client_id);
+    total += 1;
+    if (rows.length >= REPORT_LIMIT) continue;
+    rows.push({
+      applyKey: `leadorder:${l.id}:${order.id}`,
+      title: l.title,
+      detail: [
+        `клієнт: ${client?.name || "—"}`,
+        `замовлення: ${order.number} «${order.name}»`,
+        `сума: ${Number(order.amount_total) || 0} грн`,
+        `створене ${new Date(order.created_at).toLocaleDateString("uk-UA")}`,
+        `статус ліда: ${l.status || "—"}`,
+      ].join(" · "),
+      change: `Привʼязати лід до замовлення ${order.number}`,
+    });
+  }
+
+  return {
+    check: "leads_to_orders",
+    label: AUDIT_LABELS.leads_to_orders,
+    applicable: true,
+    total,
+    rows,
+    note: "Пропонуються лише однозначні випадки: лід уже привʼязаний до клієнта, а в клієнта рівно одне замовлення. Ланцюг лід → клієнт → замовлення закривається вручну за підтвердженням.",
   };
 }
 
@@ -297,6 +359,8 @@ export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> 
       return callsToLeads();
     case "leads_to_clients":
       return leadsToClients();
+    case "leads_to_orders":
+      return leadsToOrders();
     case "catalog_issues":
       return catalogIssues();
     case "estimates_price_version":
@@ -333,6 +397,17 @@ export async function applyAuditAction(
       .is("client_id", null);
     if (error) throw new Error(`Не вдалося привʼязати лід: ${error.message}`);
     return { applied: 1, message: "Лід привʼязано до клієнта" };
+  }
+
+  if (parts[0] === "leadorder") {
+    const [, leadId, orderId] = parts;
+    const { error } = await client
+      .from("crm_leads")
+      .update({ order_id: orderId })
+      .eq("id", leadId)
+      .is("order_id", null);
+    if (error) throw new Error(`Не вдалося привʼязати лід до замовлення: ${error.message}`);
+    return { applied: 1, message: "Лід привʼязано до замовлення" };
   }
 
   if (parts[0] === "merge") {

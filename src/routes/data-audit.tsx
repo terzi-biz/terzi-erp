@@ -42,6 +42,7 @@ const CHECKS = [
   { key: "client_duplicates", label: "Дублі клієнтів" },
   { key: "calls_to_leads", label: "Звінки без ліда" },
   { key: "leads_to_clients", label: "Ліди без клієнта" },
+  { key: "leads_to_orders", label: "Ліди без замовлення" },
   { key: "catalog_issues", label: "Каталог" },
   { key: "estimates_price_version", label: "Версія прайсу" },
 ] as const;
