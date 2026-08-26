@@ -560,6 +560,16 @@ function InsulationPage() {
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           <div ref={printRef} className="space-y-4 bg-background">
+            <TargetMarginPanel
+              value={targetMargin}
+              onChange={setTargetMargin}
+              totalClient={result.totalClient}
+              pricePerM2={result.pricePerM2}
+              grossProfit={result.grossProfit}
+              marginPercent={result.marginPercent}
+              totalCost={result.totalCost}
+              showInternal={showInternal}
+            />
             <section className="panel p-4 md:p-5">
               <h2 className="font-bold text-sm uppercase tracking-wider mb-3 text-primary">
                 Результати
