@@ -130,13 +130,17 @@ function PvcPage() {
   const { isInternal } = useInternalAccess();
   const { branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<PvcInput>({
+  const draft = useEstimateDraft<PvcInput, { targetMargin: number }>({
     module: "roofing_pvc",
     defaultInput,
+    defaultExtra: { targetMargin: 0 },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
   const savedStatus = draft.status;
+  const targetMargin = draft.extra.targetMargin;
+  const setTargetMargin = (v: number) => draft.setExtra({ targetMargin: v });
+
   const { materialPrices, workPrices, workCostPrices, priceSources, priceBookVersion } =
     useModulePricing("roofing_pvc", input.area);
   const [showInternalPref, setShowInternal] = useState(true);
