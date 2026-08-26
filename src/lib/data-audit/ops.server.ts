@@ -359,6 +359,8 @@ export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> 
       return callsToLeads();
     case "leads_to_clients":
       return leadsToClients();
+    case "leads_to_orders":
+      return leadsToOrders();
     case "catalog_issues":
       return catalogIssues();
     case "estimates_price_version":
