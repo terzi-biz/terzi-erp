@@ -60,9 +60,12 @@ export function applyTargetMargin<L extends MarginLine, T extends MarginResult<L
   if (!Number.isFinite(m) || m <= 0 || m >= 95) return res;
   if (!(res.totalCost > 0) || !(res.lines?.length > 0)) return res;
 
+  // Маржа рахується від ціни без ПДВ — податок не є виручкою компанії.
+  const oldVat = Number((res as { vatAdjustment?: number }).vatAdjustment) || 0;
   const target = priceForMargin(res.totalCost, m);
-  const delta = r2(target - res.totalClient);
+  const delta = r2(target - (res.totalClient - oldVat));
   if (Math.abs(delta) < 0.5) return res;
+
 
   const weightOf = (l: L) => (l.sum > 0 ? l.sum * (MARGIN_BLOCK_WEIGHTS[l.block] ?? 0.5) : 0);
   const base = res.lines.reduce((a, l) => a + weightOf(l), 0);
