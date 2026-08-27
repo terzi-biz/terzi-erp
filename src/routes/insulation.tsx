@@ -26,7 +26,7 @@ import {
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng } from "@/lib/pngExport";
 import { AlertTriangle, Image as ImageIcon, Eye, EyeOff, Calculator, FileText } from "lucide-react";
-import { EstimateView } from "@/components/EstimateView";
+import { EstimateView, vatFromResult } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import { TargetMarginPanel } from "@/components/TargetMarginPanel";
@@ -278,6 +278,7 @@ function InsulationPage() {
         <div className="relative z-10">
           <EstimateView
             result={result}
+            vat={vatFromResult(result)}
             client={client}
             branding={branding}
             module="Утеплення"

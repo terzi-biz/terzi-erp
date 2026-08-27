@@ -123,6 +123,11 @@ interface Props {
   /** Технічний блок кошторису (марка стяжки, об'єм суміші тощо). */
   techInfo?: { label: string; value: string }[];
   layers?: number;
+  /**
+   * ПДВ на матеріали. Якщо задано (amount > 0), податок розноситься по позиціях
+   * матеріалів («з ПДВ»), а роботи й логістика позначаються «без ПДВ».
+   */
+  vat?: { rate: number; amount: number };
   initialClientViewMode?: ClientViewMode;
   onClientViewModeChange?: (m: ClientViewMode) => void;
   schedule?: {
@@ -133,6 +138,7 @@ interface Props {
     gcalSyncedAt?: string | null;
   };
 }
+
 
 const BLOCK_LABELS: Record<string, string> = {
   materials: "Матеріали", works: "Роботи", logistics: "Логістика",
@@ -166,12 +172,54 @@ function buildFilename(opts: {
   return `${parts.join(" ")}.${opts.ext}`;
 }
 
+/**
+ * Витягує параметри ПДВ із результату калькулятора:
+ * ставка визначається як відношення нарахованого ПДВ до вартості матеріалів.
+ */
+export function vatFromResult(
+  res: { vatAdjustment?: number; materialsSell?: number },
+): { rate: number; amount: number } | undefined {
+  const amount = Number(res.vatAdjustment) || 0;
+  const materials = Number(res.materialsSell) || 0;
+  if (!(amount > 0) || !(materials > 0)) return undefined;
+  return { rate: amount / materials, amount };
+}
+
 const lineId = (r: EstimateLine) => `${r.block}::${r.key}::${r.name}`;
+
+/**
+ * Розносить ПДВ по позиціях матеріалів: ціна й сума кожного матеріалу
+ * показуються з ПДВ, роботи та логістика — без ПДВ (позначається в назві блоку).
+ * Собівартість не змінюється — податок не є прибутком.
+ */
+function applyVatToBlocks(blocks: EffectiveBlock[], rate: number): {
+  blocks: EffectiveBlock[]; vatAmount: number;
+} {
+  if (!(rate > 0)) return { blocks, vatAmount: 0 };
+  const pct = formatNum(rate * 100, 0);
+  let vatAmount = 0;
+  const out = blocks.map((g) => {
+    if (g.block !== "materials") {
+      return { ...g, label: `${g.label} (без ПДВ)` };
+    }
+    const rows = g.rows.map((r) => {
+      const sum = r.sum * (1 + rate);
+      vatAmount += r.sum * rate;
+      return {
+        ...r, sum, vatIncluded: rate,
+        pricePerUnit: r.qty > 0 ? sum / r.qty : r.pricePerUnit * (1 + rate),
+      };
+    });
+    return { ...g, label: `${g.label} (з ПДВ ${pct}%)`, rows };
+  });
+  return { blocks: out, vatAmount };
+}
+
 
 export function EstimateView({
   result, client, branding, module, area, thicknessCm, estimateNumber, isInternal,
   exportBlockReason, estimateId, layers, schedule, initialClientViewMode, onClientViewModeChange, techInfo,
-  editsKey, onEditsChange,
+  editsKey, onEditsChange, vat,
 }: Props) {
   const t = useT();
   const internalRef = useRef<HTMLDivElement | null>(null);
@@ -205,28 +253,43 @@ export function EstimateView({
 
   // Ефективні (з урахуванням ручних правок) рядки рахуємо на рівні батьківського
   // компонента, щоб і аркуш на екрані, і PDF-таблиця будувались з одних даних.
-  const effInternal = useEffectiveBlocks(groupedTop, overrides, extras, false, t);
-  const effClient = useEffectiveBlocks(groupedTop, overrides, extras, true, t, clientViewMode);
+  const effInternalNet = useEffectiveBlocks(groupedTop, overrides, extras, false, t);
+  const effClientNet = useEffectiveBlocks(groupedTop, overrides, extras, true, t, clientViewMode);
 
+  // ПДВ нараховується на матеріали й розноситься по позиціях, тому підсумок
+  // завжди дорівнює сумі рядків (матеріали з ПДВ + роботи/логістика без ПДВ).
+  const vatRate = vat && vat.amount > 0 && vat.rate > 0 ? vat.rate : 0;
+  const vatLabel = vatRate > 0 ? `ПДВ ${formatNum(vatRate * 100, 0)}%` : "";
+  const internalVat = applyVatToBlocks(effInternalNet, vatRate);
+  const clientVat = applyVatToBlocks(effClientNet, vatRate);
+  const effInternal = internalVat.blocks;
+  const effClient = clientVat.blocks;
 
   const baseLinesCost = result.lines.reduce((a, r) => a + r.cost, 0);
   const baseLinesSell = result.lines.reduce((a, r) => a + r.sum, 0);
   const hiddenCost = result.totalCost - baseLinesCost;
-  const hiddenSell = result.totalClient - baseLinesSell;
+  // ПДВ уже присутній у рядках матеріалів, тому вилучаємо його з «прихованої» частини.
+  const hiddenSell = result.totalClient - baseLinesSell - (vat?.amount ?? 0);
 
   const internalTotals = (() => {
     const cost = effInternal.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.cost, 0), 0) + hiddenCost;
     const sell = effInternal.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0) + hiddenSell;
+    const net = sell - internalVat.vatAmount;
     return {
-      totalCost: cost, totalSell: sell, grossProfit: sell - cost,
-      marginPct: sell > 0 ? ((sell - cost) / sell) * 100 : 0,
+      totalCost: cost, totalSell: sell, grossProfit: net - cost,
+      marginPct: net > 0 ? ((net - cost) / net) * 100 : 0,
       pricePerM2: area > 0 ? sell / area : 0,
+      vatAmount: internalVat.vatAmount, vatLabel,
     };
   })();
   const clientTotals = (() => {
     const sell = effClient.reduce((a, g) => a + g.rows.reduce((b, r) => b + r.sum, 0), 0) + hiddenSell;
-    return { totalSell: sell, pricePerM2: area > 0 ? sell / area : 0 };
+    return {
+      totalSell: sell, pricePerM2: area > 0 ? sell / area : 0,
+      vatAmount: clientVat.vatAmount, vatLabel,
+    };
   })();
+
 
   const activeRef = mode === "internal" ? internalRef : clientRef;
   const filenamePdf = buildFilename({ mode, module, area, address: client.address, ext: "pdf" });
@@ -283,6 +346,8 @@ export function EstimateView({
       grossProfit: internalTotals.grossProfit,
       marginPercent: internalTotals.marginPct,
       pricePerM2: isInt ? internalTotals.pricePerM2 : clientTotals.pricePerM2,
+      vatAmount: isInt ? internalTotals.vatAmount : clientTotals.vatAmount,
+      vatLabel,
       branding,
     });
     const url = URL.createObjectURL(blob);
@@ -492,7 +557,10 @@ interface EditableSheetProps extends SheetProps {
   setExtras: React.Dispatch<React.SetStateAction<ExtraLine[]>>;
   clientViewMode?: ClientViewMode;
   effective: EffectiveBlock[];
-  totals: { totalSell: number; pricePerM2: number; totalCost?: number; grossProfit?: number; marginPct?: number };
+  totals: {
+    totalSell: number; pricePerM2: number; totalCost?: number; grossProfit?: number; marginPct?: number;
+    vatAmount?: number; vatLabel?: string;
+  };
 }
 
 /** Спільний вхідний CSS для клітинок таблиці. */
@@ -515,6 +583,8 @@ export interface EffectiveRow {
   pricePerUnit: number; costPerUnit: number; sum: number; cost: number; isExtra: boolean;
   /** Рекомендована закупівля (кратність упаковки/довжини) — довідково, у суму не входить. */
   purchaseQty?: number; purchaseUnit?: string; note?: string;
+  /** Ставка ПДВ, уже включена в pricePerUnit/sum цього рядка (матеріали). */
+  vatIncluded?: number;
 }
 export interface EffectiveBlock { block: string; label: string; rows: EffectiveRow[] }
 
@@ -574,6 +644,7 @@ function InternalSheet(p: EditableSheetProps) {
   const grossProfit = p.totals.grossProfit ?? 0;
   const marginPct = p.totals.marginPct ?? 0;
   const pricePerM2 = p.totals.pricePerM2;
+  const vatAmount = p.totals.vatAmount ?? 0;
 
 
   const addExtra = (block: string) => {
@@ -657,7 +728,7 @@ function InternalSheet(p: EditableSheetProps) {
                     </td>
                     <td className="text-right p-1.5">
                       <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
-                        onChange={(v) => update({ pricePerUnit: v })} />
+                        onChange={(v) => update({ pricePerUnit: r.vatIncluded ? v / (1 + r.vatIncluded) : v })} />
                     </td>
                     <td className="text-right p-1.5">{formatUah(r.cost)}</td>
                     <td className="text-right p-1.5 font-semibold">{formatUah(r.sum)}</td>
@@ -696,6 +767,15 @@ function InternalSheet(p: EditableSheetProps) {
             <td colSpan={3} className="p-1 text-right">{formatNum(pricePerM2, 0)} грн/м²</td>
             <td className="print:hidden" />
           </tr>
+          {vatAmount > 0 && (
+            <tr>
+              <td className="p-1 text-right text-slate-600" colSpan={5}>
+                У т.ч. {p.totals.vatLabel} на матеріали:
+              </td>
+              <td colSpan={3} className="p-1 text-right">{formatUah(vatAmount)}</td>
+              <td className="print:hidden" />
+            </tr>
+          )}
         </tfoot>
       </table>
       </div>
@@ -717,6 +797,7 @@ function ClientSheet(p: EditableSheetProps) {
   const effective = p.effective;
   const grandTotal = p.totals.totalSell;
   const pricePerM2 = p.totals.pricePerM2;
+  const vatAmount = p.totals.vatAmount ?? 0;
 
   const addExtra = (block: string) => {
     setExtras((s) => [...s, {
@@ -787,7 +868,7 @@ function ClientSheet(p: EditableSheetProps) {
                       </td>
                       <td className="text-right p-1.5">
                         <NumberInput step="0.01" className={`${inputCls} text-right`} value={r.pricePerUnit}
-                          onChange={(v) => update({ pricePerUnit: v })} />
+                          onChange={(v) => update({ pricePerUnit: r.vatIncluded ? v / (1 + r.vatIncluded) : v })} />
                       </td>
                       <td className="text-right p-1.5 font-semibold">{formatUah(r.sum)}</td>
                       <td className="p-1.5 text-center print:hidden">
@@ -844,6 +925,15 @@ function ClientSheet(p: EditableSheetProps) {
             <td className="p-1 text-right">{formatNum(pricePerM2, 0)} грн/м²</td>
             <td className="print:hidden" />
           </tr>
+          {vatAmount > 0 && (
+            <tr>
+              <td colSpan={4} className="p-1 text-right text-slate-600">
+                У т.ч. {p.totals.vatLabel} на матеріали (роботи — без ПДВ):
+              </td>
+              <td className="p-1 text-right">{formatUah(vatAmount)}</td>
+              <td className="print:hidden" />
+            </tr>
+          )}
         </tfoot>
       </table>
       </div>

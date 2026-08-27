@@ -46,7 +46,8 @@ import {
   Phone,
   Search,
 } from "lucide-react";
-import { EstimateView } from "@/components/EstimateView";
+import { EstimateView, vatFromResult } from "@/components/EstimateView";
+import { applyTargetMargin } from "@/lib/target-margin";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import {
@@ -270,7 +271,7 @@ function ScreedPage() {
     [prod],
   );
 
-  const result = useMemo(
+  const baseResult = useMemo(
     () =>
       calculateScreed(
         input,
@@ -280,6 +281,11 @@ function ScreedPage() {
         logisticsPrices,
       ),
     [input, materialPrices, workPrices, logisticsPrices, settings],
+  );
+  // Цільова маржа впливає на кошторис, КП, друк і PDF — не лише на виробничий блок.
+  const result = useMemo(
+    () => applyTargetMargin(baseResult, targetMargin),
+    [baseResult, targetMargin],
   );
   const selfTest = useMemo(() => selfTestControlScenario(), []);
 
@@ -392,6 +398,7 @@ function ScreedPage() {
       {view === "estimate" && (
         <EstimateView
           result={result}
+          vat={vatFromResult(result)}
           client={client}
           branding={branding}
           module="Стяжка"

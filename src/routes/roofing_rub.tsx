@@ -45,7 +45,7 @@ import {
   HardHat,
   ClipboardCheck,
 } from "lucide-react";
-import { EstimateView } from "@/components/EstimateView";
+import { EstimateView, vatFromResult } from "@/components/EstimateView";
 import { PurchaseSheet } from "@/components/roofing/PurchaseSheet";
 import { ProductionCard } from "@/components/roofing/ProductionCard";
 import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
@@ -346,6 +346,7 @@ function RubPage() {
         <div className="relative z-10">
           <EstimateView
             result={result}
+            vat={vatFromResult(result)}
             client={client}
             branding={branding}
             module={`Покрівля руберойд ×${input.layers}`}

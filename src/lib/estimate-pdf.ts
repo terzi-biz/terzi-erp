@@ -43,6 +43,10 @@ export interface EstimatePdfInput {
   grossProfit?: number;
   marginPercent?: number;
   pricePerM2: number;
+  /** Сума ПДВ, уже включена в рядки матеріалів (0 — кошторис без ПДВ). */
+  vatAmount?: number;
+  /** Підпис ставки, напр. «ПДВ 20%». */
+  vatLabel?: string;
   branding: Branding;
 }
 
@@ -221,6 +225,12 @@ export async function generateEstimatePdf(input: EstimatePdfInput): Promise<Blob
   doc.setFontSize(fs(9));
   doc.setTextColor(80, 80, 80);
   doc.text(`Ціна за м²: ${num(input.pricePerM2)} грн/м²`, cName, y);
+  if ((input.vatAmount ?? 0) > 0) {
+    doc.text(
+      `У т.ч. ${input.vatLabel ?? "ПДВ"} на матеріали: ${num(input.vatAmount ?? 0)} грн · роботи та логістика — без ПДВ`,
+      cSum, y, { align: "right" },
+    );
+  }
   y += totalsH * 0.22;
 
   if (internal) {
