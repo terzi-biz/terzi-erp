@@ -95,7 +95,6 @@ export function applyTargetMargin<L extends MarginLine, T extends MarginResult<L
   const logisticsSell = sumBy("logistics");
   const subtotalSell = r2(lines.reduce((a, l) => a + l.sum, 0));
   // ПДВ нараховується на матеріали, тому перераховуємо його від нової вартості матеріалів.
-  const oldVat = Number((res as { vatAdjustment?: number }).vatAdjustment) || 0;
   const newVat =
     oldVat > 0 && res.materialsSell > 0 ? r2(oldVat * (materialsSell / res.materialsSell)) : oldVat;
   // Надбавки/знижки/комісії (різниця між підсумком і ціною клієнта) зберігаються.
