@@ -41,6 +41,16 @@ describe("target margin", () => {
     expect(applyTargetMargin(base(), 35)).toEqual(applyTargetMargin(base(), 35));
   });
 
+  it("recalculates VAT on materials and keeps it out of gross profit", () => {
+    const b = { ...base(), vatAdjustment: 2000, totalClient: 22000 };
+    const r = applyTargetMargin(b, 40) as typeof b;
+    const expectedVat = 2000 * (r.materialsSell / 10000);
+    expect(r.vatAdjustment).toBeCloseTo(expectedVat, 1);
+    expect(r.totalClient).toBeCloseTo(r.subtotalSell + expectedVat, 1);
+    expect(r.grossProfit).toBeCloseTo(r.totalClient - expectedVat - r.totalCost, 1);
+    expect(r.marginPercent).toBeCloseTo(40, 1);
+  });
+
   it("never sells a line below its cost", () => {
     const r = applyTargetMargin(base(), 1);
     for (const l of r.lines) expect(l.sum).toBeGreaterThanOrEqual(l.cost);
