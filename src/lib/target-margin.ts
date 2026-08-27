@@ -60,9 +60,12 @@ export function applyTargetMargin<L extends MarginLine, T extends MarginResult<L
   if (!Number.isFinite(m) || m <= 0 || m >= 95) return res;
   if (!(res.totalCost > 0) || !(res.lines?.length > 0)) return res;
 
+  // Маржа рахується від ціни без ПДВ — податок не є виручкою компанії.
+  const oldVat = Number((res as { vatAdjustment?: number }).vatAdjustment) || 0;
   const target = priceForMargin(res.totalCost, m);
-  const delta = r2(target - res.totalClient);
+  const delta = r2(target - (res.totalClient - oldVat));
   if (Math.abs(delta) < 0.5) return res;
+
 
   const weightOf = (l: L) => (l.sum > 0 ? l.sum * (MARGIN_BLOCK_WEIGHTS[l.block] ?? 0.5) : 0);
   const base = res.lines.reduce((a, l) => a + weightOf(l), 0);
@@ -91,12 +94,16 @@ export function applyTargetMargin<L extends MarginLine, T extends MarginResult<L
   const worksSell = sumBy("works");
   const logisticsSell = sumBy("logistics");
   const subtotalSell = r2(lines.reduce((a, l) => a + l.sum, 0));
+  // ПДВ нараховується на матеріали, тому перераховуємо його від нової вартості матеріалів.
+  const newVat =
+    oldVat > 0 && res.materialsSell > 0 ? r2(oldVat * (materialsSell / res.materialsSell)) : oldVat;
   // Надбавки/знижки/комісії (різниця між підсумком і ціною клієнта) зберігаються.
-  const offset = r2(res.totalClient - res.subtotalSell);
-  const totalClient = r2(subtotalSell + offset);
+  const offset = r2(res.totalClient - res.subtotalSell - oldVat);
+  const totalClient = r2(subtotalSell + offset + newVat);
   const scale = res.totalClient > 0 ? totalClient / res.totalClient : 1;
-  const grossProfit = r2(totalClient - res.totalCost);
-  const marginPercent = totalClient > 0 ? r2((grossProfit / totalClient) * 100) : 0;
+  const grossProfit = r2(totalClient - newVat - res.totalCost);
+  const marginPercent = totalClient - newVat > 0 ? r2((grossProfit / (totalClient - newVat)) * 100) : 0;
+
 
   if (clamped) {
     warnings.push(
@@ -111,6 +118,7 @@ export function applyTargetMargin<L extends MarginLine, T extends MarginResult<L
     worksSell,
     logisticsSell,
     subtotalSell,
+    ...(oldVat > 0 ? { vatAdjustment: newVat } : {}),
     totalClient,
     pricePerM2: r2(res.pricePerM2 * scale),
     grossProfit,
@@ -118,3 +126,4 @@ export function applyTargetMargin<L extends MarginLine, T extends MarginResult<L
     warnings,
   };
 }
+

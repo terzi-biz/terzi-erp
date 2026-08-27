@@ -25,7 +25,7 @@ import {
 import type { PaymentForm } from "@/lib/roofing-calc";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { AlertTriangle, Eye, EyeOff, Calculator, FileText, Info, Lightbulb } from "lucide-react";
-import { EstimateView } from "@/components/EstimateView";
+import { EstimateView, vatFromResult } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import { TargetMarginPanel } from "@/components/TargetMarginPanel";
@@ -309,6 +309,7 @@ function PvcPage() {
         <div className="relative z-10">
           <EstimateView
             result={result}
+            vat={vatFromResult(result)}
             client={client}
             branding={branding}
             module={`Покрівля ПВХ мембрана ${input.thickness} мм`}
