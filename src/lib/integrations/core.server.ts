@@ -186,22 +186,31 @@ export async function processEvent(eventId: string, opts?: { force?: boolean }):
   if (event.status === "done") return { status: "done", correlationId: event.correlation_id ?? null };
   if (event.unsupported && !opts?.force) return { status: "unsupported_event", correlationId: event.correlation_id ?? null };
 
-  // Атомарний захват: лише один воркер бере подію в обробку.
-  const lockedAt = event.locked_at ? new Date(event.locked_at).getTime() : 0;
-  const stale = !event.locked_at || Date.now() - lockedAt > STALE_LOCK_MS;
-  if (event.status === "processing" && !stale) {
-    return { status: "processing", message: "Подія вже обробляється", correlationId: event.correlation_id ?? null };
+  // Атомарний захват у Postgres: лише один воркер бере подію в обробку.
+  if (opts?.force) {
+    await db
+      .from("integration_events")
+      .update({ status: "processing", locked_at: new Date().toISOString(), unsupported: false } as any)
+      .eq("id", eventId);
+  } else {
+    const { data: claimRes, error: claimErr } = await (db as any).rpc("claim_integration_event", {
+      p_event_id: eventId,
+      p_stale_lock_seconds: Math.round(STALE_LOCK_MS / 1000),
+    });
+    if (claimErr) throw claimErr;
+    const claimStatus = (claimRes as any)?.status;
+    if (claimStatus !== "claimed") {
+      const map: Record<string, { status: string; message?: string }> = {
+        completed: { status: "done" },
+        unsupported: { status: "unsupported_event" },
+        already_processing: { status: "skipped", message: "Подію вже захопив інший обробник" },
+        missing: { status: "missing" },
+      };
+      const out = map[claimStatus] ?? { status: "skipped", message: "Подію не вдалося захопити" };
+      return { ...out, correlationId: event.correlation_id ?? null };
+    }
   }
-  const claim = await db
-    .from("integration_events")
-    .update({ status: "processing", locked_at: new Date().toISOString() } as any)
-    .eq("id", eventId)
-    .eq("attempt", event.attempt ?? 0)
-    .neq("status", "done")
-    .select("id");
-  if (!claim.data || claim.data.length === 0) {
-    return { status: "skipped", message: "Подію вже захопив інший обробник", correlationId: event.correlation_id ?? null };
-  }
+
 
   const attempt = (event.attempt ?? 0) + 1;
   const started = Date.now();
