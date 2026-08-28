@@ -115,6 +115,8 @@ const defaultInput: PvcInput = {
   pvcAngleMeters: 0,
   pvcClampMeters: 0,
   dripEdgeMeters: 0,
+  cappingMeters: 0,
+  withCapping: false,
   cityDelivery: true,
   outOfCityKm: 0,
   withLift: true,
