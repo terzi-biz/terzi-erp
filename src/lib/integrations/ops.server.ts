@@ -353,11 +353,24 @@ export async function retryEventOp(userId: string, eventId: string) {
   const actor = await loadActor(userId);
   if (!actor.canManage) await requirePermission(userId, "integrations", "retry");
   const db = await admin();
+  // Непідтримувану подію не можна повторити навіть вручну: вона термінальна
+  // і не має створювати CRM-наслідків.
+  const { data: current } = await db
+    .from("integration_events")
+    .select("id,unsupported,event_type")
+    .eq("id", eventId)
+    .maybeSingle();
+  if (!current) throw new Error("Подію не знайдено");
+  if ((current as any).unsupported) {
+    return {
+      status: "unsupported_event",
+      message: `Подію «${(current as any).event_type}» не підтримано — ручний повтор недоступний`,
+    };
+  }
   await db
     .from("integration_events")
     .update({ status: "pending", next_retry_at: new Date().toISOString(), locked_at: null })
     .eq("id", eventId);
-  // Ручний повтор — свідома дія оператора: дозволяємо і для unsupported.
   const res = await processEvent(eventId, { force: true });
   await writeAudit(actor, {
     module: "integrations",
