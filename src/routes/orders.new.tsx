@@ -6,10 +6,11 @@ import { ChevronLeft, ChevronRight, Check, AlertTriangle, Hash } from "lucide-re
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listClients, upsertClient } from "@/lib/clients.functions";
+import { saveOrder } from "@/lib/orders.functions";
 import {
-  saveOrder, ORDER_SERVICES, SERVICE_LABELS,
-  COMMERCIAL_STATUSES, COMMERCIAL_LABELS,
-} from "@/lib/orders.functions";
+  ORDER_SERVICES, SERVICE_LABELS, COMMERCIAL_STATUSES, COMMERCIAL_LABELS,
+} from "@/lib/orders.constants";
+
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders/new")({

@@ -2,46 +2,11 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { syncAutoEvent, addHours } from "./auto-events.server";
+import { orderManagementInput } from "./orders.schema";
+import {
+  COMMERCIAL_STATUSES, PRODUCTION_STATUSES, FINANCIAL_STATUSES, ORDER_SERVICES, RISK_LEVELS,
+} from "./orders.constants";
 
-export const COMMERCIAL_STATUSES = [
-  "new","qualification","measurement_scheduled","measurement_done","calculation",
-  "estimate_sent","negotiation","contract","awaiting_prepayment","sold","refused","postponed",
-] as const;
-export const PRODUCTION_STATUSES = [
-  "not_planned","preparation","awaiting_materials","ready_to_plan","planned",
-  "crew_assigned","in_progress","paused","works_done","acceptance","remarks","handed_over","warranty",
-] as const;
-export const FINANCIAL_STATUSES = [
-  "no_invoice","awaiting_payment","partial_payment","prepayment_received",
-  "has_debt","paid","financially_closed",
-] as const;
-export const ORDER_SERVICES = [
-  "screed","roofing_pvc","roofing_ruberoid","insulation","demolition","plaster","polybeton","other",
-] as const;
-export const RISK_LEVELS = ["green","yellow","red"] as const;
-
-export const COMMERCIAL_LABELS: Record<string,string> = {
-  new: "Новий", qualification: "Кваліфікація", measurement_scheduled: "Замір призначено",
-  measurement_done: "Замір виконано", calculation: "Розрахунок", estimate_sent: "Смета надіслана",
-  negotiation: "Переговори", contract: "Договір", awaiting_prepayment: "Очікує передоплату",
-  sold: "Продано", refused: "Відмова", postponed: "Відкладено",
-};
-export const PRODUCTION_LABELS: Record<string,string> = {
-  not_planned: "Не запланований", preparation: "Підготовка", awaiting_materials: "Очікує матеріали",
-  ready_to_plan: "Готовий до планування", planned: "Заплановано", crew_assigned: "Бригада призначена",
-  in_progress: "В роботі", paused: "Призупинено", works_done: "Роботи виконані",
-  acceptance: "Приймання", remarks: "Зауваження", handed_over: "Об'єкт зданий", warranty: "Гарантія",
-};
-export const FINANCIAL_LABELS: Record<string,string> = {
-  no_invoice: "Рахунок не виставлено", awaiting_payment: "Очікує оплату", partial_payment: "Часткова оплата",
-  prepayment_received: "Передоплата отримана", has_debt: "Є заборгованість", paid: "Оплачено",
-  financially_closed: "Фінансово закритий",
-};
-export const SERVICE_LABELS: Record<string,string> = {
-  screed: "Стяжка", roofing_pvc: "ПВХ-мембрана", roofing_ruberoid: "Рубероїд/Акваізол",
-  insulation: "Утеплення", demolition: "Демонтаж", plaster: "Штукатурка",
-  polybeton: "Полістиролбетон", other: "Інше",
-};
 
 const orderInput = z.object({
   id: z.string().uuid().optional(),
@@ -399,5 +364,49 @@ export const linkEstimateToOrder = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("estimates").update({ order_id: data.order_id }).eq("id", data.estimate_id);
     if (error) { console.error("linkEstimateToOrder", error); throw new Error("Не вдалося прив'язати кошторис"); }
+    return { ok: true };
+  });
+
+/**
+ * Ручне збереження управлінських полів замовлення.
+ * Основні колонки оновлюються напряму, ручні значення — merge у management_data,
+ * тому наступна синхронізація з CRM їх не перезаписує.
+ */
+export const saveOrderManagement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => orderManagementInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, services, management, ...core } = data;
+    const patch: any = {};
+    for (const [k, v] of Object.entries(core)) if (v !== undefined) patch[k] = v;
+
+    if (management && Object.keys(management).length) {
+      const { data: cur } = await context.supabase
+        .from("orders").select("management_data").eq("id", id).maybeSingle();
+      const prev = (cur?.management_data && typeof cur.management_data === "object" && !Array.isArray(cur.management_data))
+        ? (cur.management_data as Record<string, unknown>) : {};
+      const next: Record<string, unknown> = { ...prev };
+      for (const [k, v] of Object.entries(management)) {
+        if (v === undefined) continue;
+        if (v === null || v === "") delete next[k];
+        else next[k] = v;
+      }
+      patch.management_data = next;
+    }
+
+    if (Object.keys(patch).length) {
+      const { data: rows, error } = await context.supabase
+        .from("orders").update(patch).eq("id", id).select("id");
+      if (error) { console.error("saveOrderManagement", error); throw new Error("Не вдалося зберегти зміни"); }
+      if (!rows || rows.length === 0) throw new Error("Немає прав на редагування цього замовлення");
+    }
+
+    if (services) {
+      await context.supabase.from("order_services").delete().eq("order_id", id);
+      if (services.length) {
+        await context.supabase.from("order_services")
+          .insert(services.map((s) => ({ order_id: id, service: s })));
+      }
+    }
     return { ok: true };
   });
