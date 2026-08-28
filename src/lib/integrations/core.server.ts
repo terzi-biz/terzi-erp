@@ -114,13 +114,14 @@ export type EnqueueResult = {
   idempotencySource?: string;
 };
 
-/** Ідемпотентна постановка події в чергу: дублікат не створює нового запису. */
+/**
+ * Ідемпотентна постановка події в чергу.
+ * Дедуплікація, replay-вікно та вставка виконуються одним атомарним RPC
+ * `claim_integration_event` — Postgres є єдиним джерелом істини.
+ */
 export async function enqueueEvent(input: EnqueueInput): Promise<EnqueueResult> {
   const db = await admin();
   const payloadHash = await sha256Hex(JSON.stringify(input.payload ?? {}));
-  const dedupHash = await sha256Hex(
-    `${input.integrationId ?? ""}|${input.eventType}|${payloadHash}`,
-  );
   const { key, source } = buildIdempotencyKey({
     providerKey: input.providerKey,
     integrationId: input.integrationId,
@@ -129,87 +130,44 @@ export async function enqueueEvent(input: EnqueueInput): Promise<EnqueueResult> 
     adapterKey: input.idempotencyKey ?? null,
     payloadHash,
   });
-
   const replay = checkReplayWindow(input.providerKey, input.eventTs ?? null);
 
-  const { data: existing } = await db
-    .from("integration_events")
-    .select("id,duplicate_count,correlation_id")
-    .eq("idempotency_key", key)
-    .maybeSingle();
-  if (existing) {
-    const row = existing as any;
-    await db
-      .from("integration_events")
-      .update({ duplicate_count: (row.duplicate_count ?? 0) + 1 } as any)
-      .eq("id", row.id);
-    return {
-      id: row.id as string,
-      duplicate: true,
-      replay: replay.replay,
-      reason: replay.reason,
-      correlationId: row.correlation_id ?? null,
-      idempotencySource: source,
-    };
-  }
+  const { data, error } = await (db as any).rpc("claim_integration_event", {
+    p_integration_id: input.integrationId,
+    p_provider_key: input.providerKey,
+    p_direction: input.direction,
+    p_event_type: input.eventType,
+    p_payload: (input.payload ?? {}) as any,
+    p_payload_hash: payloadHash,
+    p_provider_event_id: input.providerEventId ?? null,
+    p_event_ts: input.eventTs ?? null,
+    p_correlation_id: input.correlationId ?? null,
+    p_idempotency_key: input.idempotencyKey ?? null,
+    p_replay_window_min: replay.windowMin,
+  });
+  if (error) throw error;
+  const res = (data ?? {}) as Record<string, any>;
 
-  if (replay.replay) {
+  if (res.status === "rejected_replay") {
     await logAttempt({
       integrationId: input.integrationId,
       level: "warn",
-      message: `Replay-захист: ${replay.reason}`,
+      message: `Replay-захист: ${replay.reason ?? res.reason ?? "подія поза вікном"}`,
       request: { event_type: input.eventType, event_ts: input.eventTs, provider_event_id: input.providerEventId },
     });
-    return { id: null, duplicate: false, replay: true, reason: replay.reason, idempotencySource: source };
+    return { id: null, duplicate: false, replay: true, reason: replay.reason ?? res.reason ?? null, idempotencySource: source };
   }
+  if (res.status === "rejected") throw new Error(res.reason ?? "Не вдалося зареєструвати подію");
 
-  const insertRow: Record<string, unknown> = {
-    integration_id: input.integrationId,
-    provider_key: input.providerKey,
-    direction: input.direction,
-    event_type: input.eventType,
-    payload: input.payload as any,
-    idempotency_key: key,
-    dedup_hash: dedupHash,
-    provider_event_id: input.providerEventId ?? null,
-    event_ts: input.eventTs ?? null,
-    entity_type: input.entityType ?? null,
-    entity_id: input.entityId ?? null,
-    status: "pending",
-    next_retry_at: new Date().toISOString(),
-  };
-  if (input.correlationId) insertRow.correlation_id = input.correlationId;
-
-  const { data, error } = await db
-    .from("integration_events")
-    .insert(insertRow as any)
-    .select("id,correlation_id")
-    .maybeSingle();
-
-  if (error) {
-    // Гонка: паралельний запит уже створив подію з тим самим ключем.
-    const { data: again } = await db
-      .from("integration_events")
-      .select("id,duplicate_count,correlation_id")
-      .eq("idempotency_key", key)
-      .maybeSingle();
-    if (again) {
-      const row = again as any;
-      await db
-        .from("integration_events")
-        .update({ duplicate_count: (row.duplicate_count ?? 0) + 1 } as any)
-        .eq("id", row.id);
-      return { id: row.id as string, duplicate: true, correlationId: row.correlation_id ?? null, idempotencySource: source };
-    }
-    throw error;
-  }
   return {
-    id: (data as any)?.id ?? null,
-    duplicate: false,
-    correlationId: (data as any)?.correlation_id ?? null,
-    idempotencySource: source,
+    id: (res.event_id as string) ?? null,
+    duplicate: res.status === "duplicate",
+    correlationId: res.correlation_id ?? null,
+    idempotencySource: (res.idempotency_source as string) ?? source,
   };
+  void key;
 }
+
 
 function nextRetryIso(attempt: number): string {
   const minutes = RETRY_BACKOFF_MIN[Math.min(attempt, RETRY_BACKOFF_MIN.length - 1)];
