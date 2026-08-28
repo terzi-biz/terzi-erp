@@ -1,4 +1,4 @@
-import type { RoofLine } from "@/lib/roofing-calc";
+import type { EstimateLineLike } from "@/lib/estimate-line";
 import { formatUah, formatNum } from "@/lib/screed-calc";
 import { ShoppingCart } from "lucide-react";
 
@@ -11,7 +11,7 @@ export function PurchaseSheet({
   isInternal,
   estimateNumber,
 }: {
-  lines: RoofLine[];
+  lines: EstimateLineLike[];
   isInternal: boolean;
   estimateNumber?: string;
 }) {

@@ -3,19 +3,22 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Link } from "@tanstack/react-router";
-import { Phone, Target, CheckSquare, Package, FileText, Receipt, Banknote, ExternalLink } from "lucide-react";
+import { Phone, Target, CheckSquare, Package, FileText, Receipt, Banknote, ExternalLink, Inbox, Ruler } from "lucide-react";
 import { getClientTimeline, type TimelineItem, type TimelineKind } from "@/lib/crm-timeline.functions";
 import { formatUah } from "@/lib/screed-calc";
 
 const KINDS: { key: TimelineKind; label: string; Icon: typeof Phone }[] = [
+  { key: "request", label: "Звернення", Icon: Inbox },
   { key: "call", label: "Дзвінки", Icon: Phone },
   { key: "lead", label: "Ліди", Icon: Target },
   { key: "task", label: "Задачі", Icon: CheckSquare },
+  { key: "measurement", label: "Заміри", Icon: Ruler },
   { key: "order", label: "Замовлення", Icon: Package },
   { key: "estimate", label: "Кошториси", Icon: FileText },
   { key: "invoice", label: "Рахунки", Icon: Receipt },
   { key: "payment", label: "Оплати", Icon: Banknote },
 ];
+
 
 const ICONS = Object.fromEntries(KINDS.map((k) => [k.key, k.Icon])) as Record<TimelineKind, typeof Phone>;
 

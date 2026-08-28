@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { NumberInput } from "@/components/NumberInput";
 import { useServerFn } from "@tanstack/react-start";
-import { useBlocker } from "@tanstack/react-router";
+import { useBlocker, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { Plus, Trash2, RotateCcw, Save, AlertTriangle, Pencil, Undo2 } from "lucide-react";
 import { listCatalog, upsertCatalogItem, deleteCatalogItem, seedCatalogDefaults, resyncCatalogPrices,
@@ -50,6 +50,42 @@ function margin(buy: number, sell: number) {
 }
 
 const fmt = (v: number | null | undefined) => (v == null ? "—" : Number(v).toFixed(2));
+
+/** Напрямки, доступні у каталозі (без архівного "roofing"). */
+const MODULE_TABS: Module[] = ["screed", "roofing_pvc", "roofing_rub", "insulation", "demolition", "common"];
+const KIND_ROUTE: Record<Kind, string> = {
+  material: "/materials", work: "/works", equipment: "/equipment", logistics: "/logistics",
+};
+
+/** Вкладки: напрямок + тип каталогу. Дані вже є в БД по кожному напрямку. */
+function CatalogTabs({ module, kind }: { module: Module; kind: Kind }) {
+  const chip = (on: boolean) =>
+    `px-3 py-1.5 rounded-md text-xs font-semibold border whitespace-nowrap transition-colors ${
+      on ? "bg-primary text-primary-foreground border-primary" : "bg-secondary/40 border-border text-muted-foreground hover:text-foreground"
+    }`;
+  return (
+    <div className="space-y-2 mb-5">
+      <div className="flex gap-1.5 flex-wrap">
+        {MODULE_TABS.map((m) => (
+          <Link key={m} to={KIND_ROUTE[kind]} search={{ module: m }} className={chip(m === module)}>
+            {MODULE_LABEL[m]}
+          </Link>
+        ))}
+        {module === "roofing" && (
+          <span className={chip(true)}>{MODULE_LABEL.roofing}</span>
+        )}
+      </div>
+      <div className="flex gap-1.5 flex-wrap">
+        {(Object.keys(KIND_ROUTE) as Kind[]).map((k) => (
+          <Link key={k} to={KIND_ROUTE[k]} search={{ module }} className={chip(k === kind)}>
+            {KIND_LABEL[k]}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 
 
 export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
@@ -202,7 +238,9 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+      <CatalogTabs module={module} kind={kind} />
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-border pb-4 mb-6">
+
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
           <h1 className="text-xl md:text-2xl font-black">{MODULE_LABEL[module]} · {KIND_LABEL[kind]}</h1>

@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { ClipboardCheck } from "lucide-react";
-import type { RoofLine } from "@/lib/roofing-calc";
+import type { EstimateLineLike } from "@/lib/estimate-line";
 import { formatNum } from "@/lib/screed-calc";
 import { listRoofingActuals, saveRoofingActual } from "@/lib/roofing-actuals.functions";
 
@@ -21,7 +21,7 @@ export function PlanFactPanel({
   estimateId,
   orderId,
 }: {
-  lines: RoofLine[];
+  lines: EstimateLineLike[];
   estimateId?: string;
   orderId?: string | null;
 }) {
@@ -149,7 +149,7 @@ function Row({
   fact,
   onSave,
 }: {
-  line: RoofLine;
+  line: EstimateLineLike;
   fact?: FactRowData;
   onSave: (p: FactRowData) => void;
 }) {

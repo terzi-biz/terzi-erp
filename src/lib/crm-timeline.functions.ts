@@ -7,7 +7,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type TimelineKind = "call" | "lead" | "task" | "order" | "estimate" | "invoice" | "payment";
+export type TimelineKind =
+  | "request"
+  | "call"
+  | "lead"
+  | "task"
+  | "measurement"
+  | "order"
+  | "estimate"
+  | "invoice"
+  | "payment";
+
 
 export type TimelineItem = {
   id: string;
@@ -81,19 +91,51 @@ export const getClientTimeline = createServerFn({ method: "GET" })
       });
     }
 
-    const orderIds = Array.from(new Set(invoiceRows.map((r) => r.order_id).filter(Boolean)));
+    const orderRows = (orders.data ?? []) as any[];
+    const orderIds = Array.from(
+      new Set([...invoiceRows.map((r) => r.order_id), ...orderRows.map((r) => r.id)].filter(Boolean)),
+    );
     if (orderIds.length) {
-      const { data: pays } = await db
-        .from("payments").select("id,amount,direction,created_at,order_id")
-        .in("order_id", orderIds).order("created_at", { ascending: false }).limit(data.limit);
-      for (const r of (pays ?? []) as any[]) {
+      const [pays, measurements] = await Promise.all([
+        db.from("payments").select("id,amount,direction,created_at,order_id")
+          .in("order_id", orderIds).order("created_at", { ascending: false }).limit(data.limit),
+        db.from("order_measurements").select("id,type,status,measured_at,created_at,order_id")
+          .in("order_id", orderIds).order("created_at", { ascending: false }).limit(data.limit),
+      ]);
+      for (const r of (pays.data ?? []) as any[]) {
         items.push({
           id: `payment:${r.id}`, kind: "payment", at: r.created_at,
           title: r.direction === "in" ? "Оплата від клієнта" : "Виплата",
           amount: r.amount != null ? Number(r.amount) : null,
         });
       }
+      for (const r of (measurements.data ?? []) as any[]) {
+        items.push({
+          id: `measurement:${r.id}`, kind: "measurement",
+          at: r.measured_at ?? r.created_at, title: "Замір на об'єкті",
+          subtitle: r.type ?? null, status: r.status ?? null,
+          href: r.order_id ? `/orders/${r.order_id}` : null,
+        });
+      }
     }
+
+    // Обращения (crm_requests) прив'язані до контактів клієнта.
+    const { data: contactRows } = await db.from("crm_contacts").select("id").eq("client_id", cid).limit(200);
+    const contactIds = (contactRows ?? []).map((c: any) => c.id);
+    if (contactIds.length) {
+      const { data: requests } = await db
+        .from("crm_requests").select("id,subject,message,source,status,created_at")
+        .in("contact_id", contactIds).order("created_at", { ascending: false }).limit(data.limit);
+      for (const r of (requests ?? []) as any[]) {
+        items.push({
+          id: `request:${r.id}`, kind: "request", at: r.created_at,
+          title: r.subject || "Звернення",
+          subtitle: r.source ?? (r.message ? String(r.message).slice(0, 80) : null),
+          status: r.status ?? null, href: "/crm/requests",
+        });
+      }
+    }
+
 
     items.sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
     return items.slice(0, data.limit);
