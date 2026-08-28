@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AccessRouteImport } from './routes/access'
 import { Route as BrandingRouteImport } from './routes/branding'
-import { Route as ClientsRouteImport } from './routes/clients'
 import { Route as DataAuditRouteImport } from './routes/data-audit'
 import { Route as DataExchangeRouteImport } from './routes/data-exchange'
 import { Route as DemolitionRouteImport } from './routes/demolition'
@@ -38,6 +37,7 @@ import { Route as WorksRouteImport } from './routes/works'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as CalcIndexRouteImport } from './routes/calc.index'
+import { Route as ClientsIndexRouteImport } from './routes/clients.index'
 import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
@@ -88,11 +88,6 @@ const AccessRoute = AccessRouteImport.update({
 const BrandingRoute = BrandingRouteImport.update({
   id: '/branding',
   path: '/branding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ClientsRoute = ClientsRouteImport.update({
-  id: '/clients',
-  path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DataAuditRoute = DataAuditRouteImport.update({
@@ -220,6 +215,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
 const CalcIndexRoute = CalcIndexRouteImport.update({
   id: '/calc/',
   path: '/calc/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsIndexRoute = ClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmIndexRoute = CrmIndexRouteImport.update({
@@ -414,7 +414,6 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
-  '/clients': typeof ClientsRoute
   '/data-audit': typeof DataAuditRoute
   '/data-exchange': typeof DataExchangeRoute
   '/demolition': typeof DemolitionRoute
@@ -462,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/calc/': typeof CalcIndexRoute
+  '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
   '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
@@ -481,7 +481,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
-  '/clients': typeof ClientsRoute
   '/data-audit': typeof DataAuditRoute
   '/data-exchange': typeof DataExchangeRoute
   '/demolition': typeof DemolitionRoute
@@ -529,6 +528,7 @@ export interface FileRoutesByTo {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/calc': typeof CalcIndexRoute
+  '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
   '/marketing': typeof MarketingIndexRoute
   '/objects': typeof ObjectsIndexRoute
@@ -549,7 +549,6 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/access': typeof AccessRoute
   '/branding': typeof BrandingRoute
-  '/clients': typeof ClientsRoute
   '/data-audit': typeof DataAuditRoute
   '/data-exchange': typeof DataExchangeRoute
   '/demolition': typeof DemolitionRoute
@@ -597,6 +596,7 @@ export interface FileRoutesById {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/calc/': typeof CalcIndexRoute
+  '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
   '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
@@ -618,7 +618,6 @@ export interface FileRouteTypes {
     | '/'
     | '/access'
     | '/branding'
-    | '/clients'
     | '/data-audit'
     | '/data-exchange'
     | '/demolition'
@@ -666,6 +665,7 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/calc/'
+    | '/clients/'
     | '/crm/'
     | '/marketing/'
     | '/objects/'
@@ -685,7 +685,6 @@ export interface FileRouteTypes {
     | '/'
     | '/access'
     | '/branding'
-    | '/clients'
     | '/data-audit'
     | '/data-exchange'
     | '/demolition'
@@ -733,6 +732,7 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/calc'
+    | '/clients'
     | '/crm'
     | '/marketing'
     | '/objects'
@@ -752,7 +752,6 @@ export interface FileRouteTypes {
     | '/'
     | '/access'
     | '/branding'
-    | '/clients'
     | '/data-audit'
     | '/data-exchange'
     | '/demolition'
@@ -800,6 +799,7 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/calc/'
+    | '/clients/'
     | '/crm/'
     | '/marketing/'
     | '/objects/'
@@ -820,7 +820,6 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AccessRoute: typeof AccessRoute
   BrandingRoute: typeof BrandingRoute
-  ClientsRoute: typeof ClientsRoute
   DataAuditRoute: typeof DataAuditRoute
   DataExchangeRoute: typeof DataExchangeRoute
   DemolitionRoute: typeof DemolitionRoute
@@ -868,6 +867,7 @@ export interface RootRouteChildren {
   OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
   CalcIndexRoute: typeof CalcIndexRoute
+  ClientsIndexRoute: typeof ClientsIndexRoute
   CrmIndexRoute: typeof CrmIndexRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
@@ -905,13 +905,6 @@ declare module '@tanstack/react-router' {
       path: '/branding'
       fullPath: '/branding'
       preLoaderRoute: typeof BrandingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/clients': {
-      id: '/clients'
-      path: '/clients'
-      fullPath: '/clients'
-      preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/data-audit': {
@@ -1087,6 +1080,13 @@ declare module '@tanstack/react-router' {
       path: '/calc'
       fullPath: '/calc/'
       preLoaderRoute: typeof CalcIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/': {
+      id: '/clients/'
+      path: '/clients'
+      fullPath: '/clients/'
+      preLoaderRoute: typeof ClientsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm/': {
@@ -1348,7 +1348,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
   BrandingRoute: BrandingRoute,
-  ClientsRoute: ClientsRoute,
   DataAuditRoute: DataAuditRoute,
   DataExchangeRoute: DataExchangeRoute,
   DemolitionRoute: DemolitionRoute,
@@ -1397,6 +1396,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
   CalcIndexRoute: CalcIndexRoute,
+  ClientsIndexRoute: ClientsIndexRoute,
   CrmIndexRoute: CrmIndexRoute,
   MarketingIndexRoute: MarketingIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,

@@ -6,6 +6,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { toE164 } from "./phone";
 
 export type TimelineKind =
   | "request"
@@ -40,8 +41,13 @@ export const getClientTimeline = createServerFn({ method: "GET" })
     const db = context.supabase;
     const cid = data.client_id;
 
+    // Один телефон = одна картка: підтягуємо дзвінки цього номера навіть без client_id.
+    const { data: clientRow } = await db.from("clients").select("phone").eq("id", cid).maybeSingle();
+    const e164 = toE164((clientRow as any)?.phone);
+    const callsFilter = (q: any) => (e164 ? q.or(`client_id.eq.${cid},phone_e164.eq.${e164}`) : q.eq("client_id", cid));
+
     const [calls, leads, tasks, orders, estimates, invoices] = await Promise.all([
-      db.from("crm_calls").select("id,direction,started_at,status,recording_url,created_at").eq("client_id", cid).order("created_at", { ascending: false }).limit(data.limit),
+      callsFilter(db.from("crm_calls").select("id,direction,started_at,status,recording_url,created_at")).order("created_at", { ascending: false }).limit(data.limit),
       db.from("crm_leads").select("id,title,status,direction,created_at").eq("client_id", cid).order("created_at", { ascending: false }).limit(data.limit),
       db.from("crm_tasks").select("id,title,status,due_at,created_at").eq("client_id", cid).order("created_at", { ascending: false }).limit(data.limit),
       db.from("orders").select("id,number,name,created_at").eq("client_id", cid).order("created_at", { ascending: false }).limit(data.limit),

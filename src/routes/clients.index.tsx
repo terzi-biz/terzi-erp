@@ -9,7 +9,7 @@ import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
 import { UnifiedTimeline } from "@/components/crm/UnifiedTimeline";
 
-export const Route = createFileRoute("/clients")({
+export const Route = createFileRoute("/clients/")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
