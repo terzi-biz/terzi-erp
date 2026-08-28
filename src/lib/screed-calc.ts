@@ -75,12 +75,13 @@ export interface NormsPerM3 {
   dieselLPerM3: number;      // L (station)
 }
 
-// Note: plasticizerLPerM3 is 10/7 ≈ 1.4286 (displayed as ~1.43) so the
-// control scenario (7 m³ → 10 L plast) lands exactly on the spec.
+// Норми на 1 м³ виводяться з контрольних 7 м³ (контракт C1/C2):
+// пісок 13,4 т, цемент М500 60 міш., пластифікатор 10 л, фібра 8 уп., дизель 17 л.
+export const CONTROL_VOLUME_M3 = 7;
 export const PROFILE_NORMS: Record<Exclude<Profile, "manual">, NormsPerM3 & { cementType: "m500" | "m400" }> = {
-  econom:     { cementType: "m400", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.0, dieselLPerM3: 3.14 },
-  standard:   { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.5, dieselLPerM3: 3.14 },
-  reinforced: { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 2.0, dieselLPerM3: 3.14 },
+  econom:     { cementType: "m400", cementBagsPerM3: 70 / 7, sandTonsPerM3: 13.6 / 7, plasticizerLPerM3: 7 / 7,    fiberPacksPerM3: 4 / 7,  dieselLPerM3: 17 / 7 },
+  standard:   { cementType: "m500", cementBagsPerM3: 60 / 7, sandTonsPerM3: 13.4 / 7, plasticizerLPerM3: 10 / 7,   fiberPacksPerM3: 8 / 7,  dieselLPerM3: 17 / 7 },
+  reinforced: { cementType: "m500", cementBagsPerM3: 80 / 7, sandTonsPerM3: 13.0 / 7, plasticizerLPerM3: 13.5 / 7, fiberPacksPerM3: 12 / 7, dieselLPerM3: 17 / 7 },
 };
 
 // Закупка / Продаж — синхронізовано з TERZI_Стяжка_v3_2.xlsx (вкладка МАТЕРІАЛИ).
