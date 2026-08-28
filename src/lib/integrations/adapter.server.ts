@@ -1,5 +1,6 @@
 import { keycrmAdapter } from "./keycrm/adapter.server";
 import { binotelAdapter } from "./binotel/adapter.server";
+import { FOUNDATION_ADAPTERS } from "./foundation/adapters.server";
 
 /**
  * Реєстр адаптерів провайдерів. Ядро не знає нічого про конкретні сервіси —
@@ -95,6 +96,9 @@ const REGISTRY: Record<string, IntegrationAdapter> = {
   keycrm: keycrmAdapter,
   binotel: binotelAdapter,
 };
+
+// Integration Foundation: Google Ads, GA4, Meta Ads, Finmap, сайт/лендінги.
+for (const adapter of FOUNDATION_ADAPTERS) REGISTRY[adapter.key] = adapter;
 
 export function getAdapter(providerKey: string): IntegrationAdapter | null {
   return REGISTRY[providerKey] ?? null;
