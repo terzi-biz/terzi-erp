@@ -115,6 +115,7 @@ export function computeOrderKpi(order: any, m: ManagementData = readManagement(o
       delta: sub(diffDays(m.actual_start, m.actual_end), diffDays(order?.planned_start, order?.planned_end)),
     },
     paid,
+    revenueSource,
     due: paid == null || dueBase == null ? null : dueBase - paid,
   };
 }
