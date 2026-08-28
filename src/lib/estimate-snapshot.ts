@@ -88,7 +88,9 @@ export function isSnapshotComplete(snap: unknown): boolean {
   if (!snap || typeof snap !== "object") return false;
   const s = snap as Partial<EstimateSnapshot>;
   return (
-    s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION &&
+    // snapshot@1 залишається читабельним — історичні кошториси не перебудовуються.
+    (s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION || s.snapshotVersion === "snapshot@1") &&
+
     typeof s.engineVersion === "string" &&
     s.engineVersion.length > 0 &&
     !!s.prices &&
