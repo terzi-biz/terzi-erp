@@ -52,7 +52,8 @@ function CalcIndex() {
             {MODULE_KEYS.map((m) => {
               const Icon = ICON[m];
               return (
-                <Link key={m} to={`/${m}`} className="panel p-6 hover:border-primary transition-colors group">
+                <Link key={m} to={`/${m}`}
+                  search={{ estimate: undefined }} className="panel p-6 hover:border-primary transition-colors group">
                   <Icon className="w-9 h-9 text-primary mb-3" />
                   <div className="font-black text-lg">{MODULE_LABEL[m]}</div>
                   <div className="text-xs text-muted-foreground mt-1">{DESC[m]}</div>

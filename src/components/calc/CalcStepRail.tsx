@@ -27,6 +27,7 @@ export function CalcStepRail({ module }: { module: ModuleKey }) {
           <Link
             key={m}
             to={`/${m}`}
+                  search={{ estimate: undefined }}
             className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
               m === module
                 ? "bg-primary text-primary-foreground border-primary"
