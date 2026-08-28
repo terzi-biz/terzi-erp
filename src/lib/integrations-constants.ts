@@ -31,21 +31,37 @@ export const AUTH_LABEL: Record<IntegrationAuthKind, string> = {
   basic: "Basic",
 };
 
-export const EVENT_STATUS_LABEL: Record<EventStatus, string> = {
+export const EVENT_STATUS_LABEL: Record<EffectiveEventStatus, string> = {
   pending: "У черзі",
   processing: "Обробка",
   done: "Виконано",
   failed: "Помилка",
   dead: "Зупинено",
+  unsupported_event: "Не підтримується",
 };
 
-export const EVENT_STATUS_TONE: Record<EventStatus, string> = {
+export const EVENT_STATUS_TONE: Record<EffectiveEventStatus, string> = {
   pending: "bg-primary/15 text-primary",
   processing: "bg-amber-500/15 text-amber-600",
   done: "bg-emerald-500/15 text-emerald-600",
   failed: "bg-destructive/15 text-destructive",
   dead: "bg-destructive/25 text-destructive",
+  unsupported_event: "bg-muted text-muted-foreground",
 };
+
+/** Вікно захисту від replay за замовчуванням (хвилини) і per-provider. */
+export const REPLAY_WINDOW_MIN_DEFAULT = 60 * 24;
+export const REPLAY_WINDOW_MIN: Record<string, number> = {
+  binotel: 60 * 6,
+  keycrm: 60 * 24,
+  echo: 60,
+};
+
+export function replayWindowMinutes(providerKey: string | null | undefined): number {
+  return (providerKey && REPLAY_WINDOW_MIN[providerKey]) || REPLAY_WINDOW_MIN_DEFAULT;
+}
+
+
 
 export const DIRECTION_LABEL: Record<EventDirection, string> = {
   inbound: "Вхідні",
