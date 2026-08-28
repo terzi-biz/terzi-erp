@@ -16,7 +16,6 @@ import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
-  calculateInsulation,
   DEFAULT_INSULATION_LOGISTICS,
   DEFAULT_INSULATION_WORKS,
   type InsulationInput,
@@ -31,7 +30,10 @@ import { EstimateView, vatFromResult } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import { TargetMarginPanel } from "@/components/TargetMarginPanel";
-import { applyTargetMargin } from "@/lib/target-margin";
+import type { InsulationResult } from "@/lib/insulation-calc";
+import { AmortizationPanel } from "@/components/AmortizationPanel";
+import { useCanonicalPreview } from "@/lib/useCanonicalPreview";
+import { DEFAULT_AMORT_SETTINGS, type AmortSettings } from "@/lib/core/amortization";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/insulation")({
@@ -93,10 +95,10 @@ function InsulationPage() {
   const { isInternal } = useInternalAccess();
   const { insulationCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<InsulationInput, { targetMargin: number }>({
+  const draft = useEstimateDraft<InsulationInput, { targetMargin: number; amort: AmortSettings }>({
     module: "insulation",
     defaultInput,
-    defaultExtra: { targetMargin: 0 },
+    defaultExtra: { targetMargin: 0, amort: DEFAULT_AMORT_SETTINGS },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
@@ -120,21 +122,24 @@ function InsulationPage() {
     return w;
   }, [workPrices]);
 
-  const baseResult = useMemo(
-    () =>
-      calculateInsulation(
-        input,
-        materialPrices,
-        worksMapped,
-        DEFAULT_INSULATION_LOGISTICS,
-        insulationCoeffs,
-      ),
-    [input, materialPrices, worksMapped, insulationCoeffs],
+  const amort = draft.extra.amort ?? DEFAULT_AMORT_SETTINGS;
+  const setAmort = (patch: Partial<AmortSettings>) =>
+    draft.setExtra({ amort: { ...amort, ...patch } });
+  // Live-preview рахує ЛИШЕ авторизований серверний Core: фронтенд надсилає
+  // вхідні параметри й ціни довідника, а отримує дозволений DTO.
+  const previewReq = useMemo(
+    () => ({
+      module: "insulation" as const,
+      input: input as unknown as Record<string, unknown>,
+      prices: { materials: materialPrices, works: worksMapped },
+      targetMargin,
+      amort,
+      priceBookVersion,
+    }),
+    [input, materialPrices, worksMapped, targetMargin, amort, priceBookVersion],
   );
-  const result = useMemo(
-    () => applyTargetMargin(baseResult, targetMargin),
-    [baseResult, targetMargin],
-  );
+  const preview = useCanonicalPreview(previewReq);
+  const result = preview.result as unknown as InsulationResult;
 
   const upd = <K extends keyof InsulationInput>(k: K, v: InsulationInput[K]) =>
     setInput((s) => ({ ...s, [k]: v }));
@@ -172,7 +177,7 @@ function InsulationPage() {
           module: "insulation",
           engineVersion: ENGINE_VERSIONS.insulation,
           priceBookVersion,
-          inputs: input,
+          inputs: { ...input, targetMargin, amort },
           result,
           prices: {
             materials: materialPrices,
@@ -563,6 +568,7 @@ function InsulationPage() {
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           <div ref={printRef} className="space-y-4 bg-background">
+            <AmortizationPanel value={amort} onChange={setAmort} amortCost={result.amortEquip} />
             <TargetMarginPanel
               value={targetMargin}
               onChange={setTargetMargin}

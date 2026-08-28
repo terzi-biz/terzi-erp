@@ -138,6 +138,8 @@ export interface LegacyCommercial {
   minCheck: number;
   engineVersion: string;
   priceBookVersion?: number | null;
+  /** Налаштування амортизації (перемикачі калькулятора). */
+  amort?: AmortSettings;
 }
 
 /**
@@ -179,6 +181,7 @@ export function coreFromLegacyResult(
     internalLines: internal,
     seller: sellerFromLegacy(cm.payment, cm.withVAT, cm.vatRatePercent ?? 20),
     amortCost: +((res.amortEquip ?? 0) + (res.amortTransport ?? 0)).toFixed(2),
+    ...(cm.amort ? { amort: cm.amort } : {}),
     adjustments: {
       complexityPercent: cm.complexityPercent,
       discountPercent: cm.discountPercent,

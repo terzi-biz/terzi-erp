@@ -17,7 +17,6 @@ import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { exportElementAsPng } from "@/lib/pngExport";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
-  calculateRoofing,
   DEFAULT_ROOFING_LOGISTICS,
   DEFAULT_ROOFING_WORKS,
   type RoofingInput,
@@ -53,7 +52,10 @@ import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import { TargetMarginPanel } from "@/components/TargetMarginPanel";
-import { applyTargetMargin } from "@/lib/target-margin";
+import type { RoofingResult } from "@/lib/roofing-calc";
+import { AmortizationPanel } from "@/components/AmortizationPanel";
+import { useCanonicalPreview } from "@/lib/useCanonicalPreview";
+import { DEFAULT_AMORT_SETTINGS, type AmortSettings } from "@/lib/core/amortization";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/roofing_rub")({
@@ -164,10 +166,10 @@ function RubPage() {
   const { isInternal } = useInternalAccess();
   const { roofingCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<RoofingInput, { targetMargin: number }>({
+  const draft = useEstimateDraft<RoofingInput, { targetMargin: number; amort: AmortSettings }>({
     module: "roofing_rub",
     defaultInput,
-    defaultExtra: { targetMargin: 0 },
+    defaultExtra: { targetMargin: 0, amort: DEFAULT_AMORT_SETTINGS },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
@@ -192,22 +194,24 @@ function RubPage() {
     return w;
   }, [workPrices]);
 
-  const baseResult = useMemo(
-    () =>
-      calculateRoofing(
-        input,
-        materialPrices,
-        worksMapped,
-        workCostPrices,
-        DEFAULT_ROOFING_LOGISTICS,
-        roofingCoeffs,
-      ),
-    [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs],
+  const amort = draft.extra.amort ?? DEFAULT_AMORT_SETTINGS;
+  const setAmort = (patch: Partial<AmortSettings>) =>
+    draft.setExtra({ amort: { ...amort, ...patch } });
+  // Live-preview рахує ЛИШЕ авторизований серверний Core: фронтенд надсилає
+  // вхідні параметри й ціни довідника, а отримує дозволений DTO.
+  const previewReq = useMemo(
+    () => ({
+      module: "roofing_rub" as const,
+      input: input as unknown as Record<string, unknown>,
+      prices: { materials: materialPrices, works: worksMapped, workCosts: workCostPrices, coeffs: roofingCoeffs },
+      targetMargin,
+      amort,
+      priceBookVersion,
+    }),
+    [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs, targetMargin, amort, priceBookVersion],
   );
-  const result = useMemo(
-    () => applyTargetMargin(baseResult, targetMargin),
-    [baseResult, targetMargin],
-  );
+  const preview = useCanonicalPreview(previewReq);
+  const result = preview.result as unknown as RoofingResult;
 
   const upd = <K extends keyof RoofingInput>(k: K, v: RoofingInput[K]) =>
     setInput((s) => ({ ...s, [k]: v }));
@@ -245,7 +249,7 @@ function RubPage() {
           module: "roofing_rub",
           engineVersion: ENGINE_VERSIONS.roofing,
           priceBookVersion,
-          inputs: input,
+          inputs: { ...input, targetMargin, amort },
           result,
           prices: {
             materials: materialPrices,
@@ -923,6 +927,7 @@ function RubPage() {
         </div>
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <AmortizationPanel value={amort} onChange={setAmort} amortCost={result.amortEquip} />
           <TargetMarginPanel
             value={targetMargin}
             onChange={setTargetMargin}

@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { NumberInput } from "@/components/NumberInput";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
@@ -11,7 +12,19 @@ import {
   upsertChild, deleteChild, type DirectionRow,
 } from "@/lib/directions-repo";
 import type { DirectionDefinition } from "@/lib/engines/direction-engine";
-import { evaluateDirectionRuntime, type RuntimeDefinition } from "@/lib/directions/runtime";
+import { type RuntimeDefinition, DIRECTION_ENGINE_VERSION } from "@/lib/directions/runtime";
+import { calculateDirection, type DirectionCalcResult } from "@/lib/directions/calc.functions";
+import { useServerFn } from "@tanstack/react-start";
+
+const EMPTY_PREVIEW: DirectionCalcResult = {
+  engineVersion: DIRECTION_ENGINE_VERSION, lines: [], derived: {}, areaCoef: 1,
+  totals: {
+    materialsSell: 0, worksSell: 0, logisticsSell: 0, servicesSell: 0, subtotalSell: 0,
+    discount: 0, surcharge: 0, vatMaterials: 0, fopFee: 0, partnerCommission: 0,
+    minOrderTopUp: 0, totalSell: 0, totalCost: 0, grossProfit: 0, marginPercent: 0, markupPercent: 0,
+  },
+  warnings: [], blocking: [],
+};
 import { evalFormula, tryEvalFormula } from "@/lib/engines/formula-eval";
 import {
   listVersions, publishVersion, restoreVersion, diffConfigs,
@@ -684,7 +697,14 @@ function PreviewTab({ def }: { def: RuntimeDefinition }) {
   const [inputs, setInputs] = useState<Record<string, unknown>>(initial);
   useEffect(() => setInputs(initial()), [def]);
 
-  const result = useMemo(() => evaluateDirectionRuntime(def, inputs), [def, inputs]);
+  // Прев'ю рахує серверний рушій — той самий, що і продакшн-розрахунок.
+  const calcFn = useServerFn(calculateDirection);
+  const previewQ = useQuery({
+    queryKey: ["direction-preview", def.id, JSON.stringify(def), JSON.stringify(inputs)],
+    queryFn: () => calcFn({ data: { directionId: def.id, source: "draft" as const, inputs } }),
+    placeholderData: (prev) => prev,
+  });
+  const result: DirectionCalcResult = previewQ.data?.result ?? EMPTY_PREVIEW;
   const [showFormulas, setShowFormulas] = useState(false);
 
   return (
@@ -728,7 +748,7 @@ function PreviewTab({ def }: { def: RuntimeDefinition }) {
               ...def.works.map((w) => ({ n: w.name, f: w.quantity_formula })),
               ...def.logistics.map((l) => ({ n: l.name, f: l.quantity_formula }))].map((x, i) => (
               <div key={i}>
-                <span className="text-muted-foreground">{x.n}:</span> {x.f || "—"} = <span className="text-primary">{x.f ? evalFormula(x.f, result.ctx).toFixed(2) : "0"}</span>
+                <span className="text-muted-foreground">{x.n}:</span> {x.f || "—"} = <span className="text-primary">{(result.lines.find((l) => l.name === x.n)?.calcQty ?? 0).toFixed(2)}</span>
               </div>
             ))}
           </div>
