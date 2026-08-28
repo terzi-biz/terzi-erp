@@ -202,7 +202,9 @@ export function CatalogPage({ module, kind }: { module: Module; kind: Kind }) {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto">
+      <CatalogTabs module={module} kind={kind} />
       <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-3 border-b border-border pb-4 mb-6">
+
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
           <h1 className="text-xl md:text-2xl font-black">{MODULE_LABEL[module]} · {KIND_LABEL[kind]}</h1>
