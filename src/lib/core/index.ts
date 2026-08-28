@@ -146,7 +146,12 @@ export function buildCanonicalResult(input: CoreInput): CanonicalResult {
     amortCost,
   });
 
-  const revenueNet = round2(linesNet + amortClient);
+  const adjustments = computeAdjustments(
+    round2(linesNet + amortClient),
+    input.adjustments ?? NO_ADJUSTMENTS,
+    seller.payment === "cashless" ? seller.cashlessAdjustPercent : 0,
+  );
+  const revenueNet = adjustments.net;
   const vat = vatBreakdown(seller, {
     materials: netByBlock.materials,
     works: netByBlock.works,
