@@ -16,7 +16,6 @@ import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
-  calculateDemolition,
   DEFAULT_DEMOLITION_LOGISTICS,
   DEFAULT_DEMOLITION_WORKS,
   type DemolitionInput,
@@ -31,7 +30,10 @@ import { EstimateView, vatFromResult } from "@/components/EstimateView";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import { TargetMarginPanel } from "@/components/TargetMarginPanel";
-import { applyTargetMargin } from "@/lib/target-margin";
+import type { DemolitionResult } from "@/lib/demolition-calc";
+import { AmortizationPanel } from "@/components/AmortizationPanel";
+import { useCanonicalPreview } from "@/lib/useCanonicalPreview";
+import { DEFAULT_AMORT_SETTINGS, type AmortSettings } from "@/lib/core/amortization";
 import logoAsset from "@/assets/terzi-logo.jpeg.asset.json";
 
 export const Route = createFileRoute("/demolition")({
@@ -72,10 +74,10 @@ function DemolitionPage() {
   const { isInternal } = useInternalAccess();
   const { demolitionCoeffs, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<DemolitionInput, { targetMargin: number }>({
+  const draft = useEstimateDraft<DemolitionInput, { targetMargin: number; amort: AmortSettings }>({
     module: "demolition",
     defaultInput,
-    defaultExtra: { targetMargin: 0 },
+    defaultExtra: { targetMargin: 0, amort: DEFAULT_AMORT_SETTINGS },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
@@ -99,21 +101,24 @@ function DemolitionPage() {
     return w;
   }, [workPrices]);
 
-  const baseResult = useMemo(
-    () =>
-      calculateDemolition(
-        input,
-        materialPrices,
-        worksMapped,
-        DEFAULT_DEMOLITION_LOGISTICS,
-        demolitionCoeffs,
-      ),
-    [input, materialPrices, worksMapped, demolitionCoeffs],
+  const amort = draft.extra.amort ?? DEFAULT_AMORT_SETTINGS;
+  const setAmort = (patch: Partial<AmortSettings>) =>
+    draft.setExtra({ amort: { ...amort, ...patch } });
+  // Live-preview рахує ЛИШЕ авторизований серверний Core: фронтенд надсилає
+  // вхідні параметри й ціни довідника, а отримує дозволений DTO.
+  const previewReq = useMemo(
+    () => ({
+      module: "demolition" as const,
+      input: input as unknown as Record<string, unknown>,
+      prices: { materials: materialPrices, works: worksMapped, coeffs: demolitionCoeffs },
+      targetMargin,
+      amort,
+      priceBookVersion,
+    }),
+    [input, materialPrices, worksMapped, demolitionCoeffs, targetMargin, amort, priceBookVersion],
   );
-  const result = useMemo(
-    () => applyTargetMargin(baseResult, targetMargin),
-    [baseResult, targetMargin],
-  );
+  const preview = useCanonicalPreview(previewReq);
+  const result = preview.result as unknown as DemolitionResult;
 
   const upd = <K extends keyof DemolitionInput>(k: K, v: DemolitionInput[K]) =>
     setInput((s) => ({ ...s, [k]: v }));
@@ -151,7 +156,7 @@ function DemolitionPage() {
           module: "demolition",
           engineVersion: ENGINE_VERSIONS.demolition,
           priceBookVersion,
-          inputs: input,
+          inputs: { ...input, targetMargin, amort },
           result,
           prices: {
             materials: materialPrices,
@@ -485,6 +490,7 @@ function DemolitionPage() {
 
         <div className="space-y-4 lg:sticky lg:top-4 lg:self-start">
           <div ref={printRef} className="space-y-4 bg-background">
+            <AmortizationPanel value={amort} onChange={setAmort} amortCost={result.amortEquip} />
             <TargetMarginPanel
               value={targetMargin}
               onChange={setTargetMargin}

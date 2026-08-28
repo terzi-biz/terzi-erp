@@ -17,7 +17,6 @@ import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
-  calculateScreed,
   formatUah,
   formatNum,
   selfTestControlScenario,
@@ -48,7 +47,6 @@ import {
   Search,
 } from "lucide-react";
 import { EstimateView, vatFromResult } from "@/components/EstimateView";
-import { applyTargetMargin } from "@/lib/target-margin";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import {
@@ -62,6 +60,10 @@ import {
   type ScreedProductionConfig,
 } from "@/lib/screed-grades";
 import { useScreedConfig } from "@/lib/useScreedConfig";
+import type { CalcResult } from "@/lib/screed-calc";
+import { AmortizationPanel } from "@/components/AmortizationPanel";
+import { useCanonicalPreview } from "@/lib/useCanonicalPreview";
+import { DEFAULT_AMORT_SETTINGS, type AmortSettings } from "@/lib/core/amortization";
 
 export const Route = createFileRoute("/screed")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -189,10 +191,10 @@ function ScreedPage() {
   const { isInternal } = useInternalAccess();
   const { settings, branding } = useAppStore();
   const search = Route.useSearch();
-  const draft = useEstimateDraft<ScreedInput, { targetMargin: number }>({
+  const draft = useEstimateDraft<ScreedInput, { targetMargin: number; amort: AmortSettings }>({
     module: "screed",
     defaultInput,
-    defaultExtra: { targetMargin: 30 },
+    defaultExtra: { targetMargin: 30, amort: DEFAULT_AMORT_SETTINGS },
     defaultManager: profile?.display_name ?? "",
   });
   const { input, setInput, client, setClient, link, setLink, estimateNumber, estimateId } = draft;
@@ -272,22 +274,28 @@ function ScreedPage() {
     [prod],
   );
 
-  const baseResult = useMemo(
-    () =>
-      calculateScreed(
-        input,
-        materialPrices,
-        workPrices as unknown as typeof import("@/lib/screed-calc").DEFAULT_WORK_PRICES,
-        settings,
-        logisticsPrices,
-      ),
-    [input, materialPrices, workPrices, logisticsPrices, settings],
+  const amort = draft.extra.amort ?? DEFAULT_AMORT_SETTINGS;
+  const setAmort = (patch: Partial<AmortSettings>) =>
+    draft.setExtra({ amort: { ...amort, ...patch } });
+  // Live-preview рахує ЛИШЕ авторизований серверний Core.
+  const previewReq = useMemo(
+    () => ({
+      module: "screed" as const,
+      input: input as unknown as Record<string, unknown>,
+      prices: {
+        materials: materialPrices,
+        works: workPrices as unknown as Record<string, number>,
+        logistics: logisticsPrices,
+        settings: settings as unknown as Record<string, unknown>,
+      },
+      targetMargin,
+      amort,
+      priceBookVersion,
+    }),
+    [input, materialPrices, workPrices, logisticsPrices, settings, targetMargin, amort, priceBookVersion],
   );
-  // Цільова маржа впливає на кошторис, КП, друк і PDF — не лише на виробничий блок.
-  const result = useMemo(
-    () => applyTargetMargin(baseResult, targetMargin),
-    [baseResult, targetMargin],
-  );
+  const preview = useCanonicalPreview(previewReq);
+  const result = preview.result as unknown as CalcResult;
   const selfTest = useMemo(() => selfTestControlScenario(), []);
 
   const upd = <K extends keyof ScreedInput>(k: K, v: ScreedInput[K]) =>
@@ -326,7 +334,7 @@ function ScreedPage() {
           module: "screed",
           engineVersion: ENGINE_VERSIONS.screed,
           priceBookVersion,
-          inputs: { ...input, targetMargin },
+          inputs: { ...input, targetMargin, amort },
           result: { ...result, production: prod },
           prices: { materials: materialPrices, works: workPrices, logistics: logisticsPrices },
           norms: { productionConfig: prodCfg, grades, settings },
@@ -396,6 +404,10 @@ function ScreedPage() {
           <FileText className="w-4 h-4" /> Кошторис / КП
         </button>
       </div>
+
+      {view === "calc" && (
+        <AmortizationPanel value={amort} onChange={setAmort} amortCost={result.amortEquip} />
+      )}
 
       {view === "estimate" && (
         <EstimateView
