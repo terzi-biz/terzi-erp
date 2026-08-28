@@ -1,3 +1,4 @@
+import { CalcStepRail } from "@/components/calc/CalcStepRail";
 import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useMemo, useCallback } from "react";
@@ -373,6 +374,7 @@ function ScreedPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-5 sm:space-y-7">
+      <CalcStepRail module="screed" />
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-5">
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
