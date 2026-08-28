@@ -124,7 +124,7 @@ describe("E.164", () => {
 
   it("не ламає короткі та невалідні номери", () => {
     expect(toE164("101")).toBeNull();
-    expect(normalizePhone("")).toBeNull();
+    expect(normalizePhone("")).toMatchObject({ valid: false, status: "empty", e164: null });
   });
 
   it("порівняння номерів не залежить від форматування", () => {
