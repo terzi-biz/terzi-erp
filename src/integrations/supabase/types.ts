@@ -1076,6 +1076,7 @@ export type Database = {
           payload: Json
           pbx_number: string | null
           pbx_number_name: string | null
+          phone_e164: string | null
           phone_norm: string | null
           provider: string | null
           recording_available: boolean
@@ -1112,6 +1113,7 @@ export type Database = {
           payload?: Json
           pbx_number?: string | null
           pbx_number_name?: string | null
+          phone_e164?: string | null
           phone_norm?: string | null
           provider?: string | null
           recording_available?: boolean
@@ -1148,6 +1150,7 @@ export type Database = {
           payload?: Json
           pbx_number?: string | null
           pbx_number_name?: string | null
+          phone_e164?: string | null
           phone_norm?: string | null
           provider?: string | null
           recording_available?: boolean
@@ -1191,6 +1194,7 @@ export type Database = {
           notes: string | null
           owner_id: string
           phone: string | null
+          phone_e164: string | null
           phone_extra: Json
           phone_norm: string | null
           position: string | null
@@ -1211,6 +1215,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           phone?: string | null
+          phone_e164?: string | null
           phone_extra?: Json
           phone_norm?: string | null
           position?: string | null
@@ -1231,6 +1236,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           phone?: string | null
+          phone_e164?: string | null
           phone_extra?: Json
           phone_norm?: string | null
           position?: string | null
@@ -1323,6 +1329,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           owner_id: string
+          phone_e164: string | null
           pipeline_id: string | null
           probability: number | null
           source: string | null
@@ -1361,6 +1368,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           owner_id?: string
+          phone_e164?: string | null
           pipeline_id?: string | null
           probability?: number | null
           source?: string | null
@@ -1399,6 +1407,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           owner_id?: string
+          phone_e164?: string | null
           pipeline_id?: string | null
           probability?: number | null
           source?: string | null
@@ -2482,11 +2491,14 @@ export type Database = {
       integration_events: {
         Row: {
           attempt: number
+          correlation_id: string
           created_at: string
           dedup_hash: string | null
           direction: Database["public"]["Enums"]["integration_event_direction"]
+          duplicate_count: number
           entity_id: string | null
           entity_type: string | null
+          event_ts: string | null
           event_type: string
           id: string
           idempotency_key: string | null
@@ -2496,18 +2508,23 @@ export type Database = {
           max_attempts: number
           next_retry_at: string
           payload: Json
+          provider_event_id: string | null
           provider_key: string | null
           result: Json | null
           status: Database["public"]["Enums"]["integration_event_status"]
+          unsupported: boolean
           updated_at: string
         }
         Insert: {
           attempt?: number
+          correlation_id?: string
           created_at?: string
           dedup_hash?: string | null
           direction: Database["public"]["Enums"]["integration_event_direction"]
+          duplicate_count?: number
           entity_id?: string | null
           entity_type?: string | null
+          event_ts?: string | null
           event_type: string
           id?: string
           idempotency_key?: string | null
@@ -2517,18 +2534,23 @@ export type Database = {
           max_attempts?: number
           next_retry_at?: string
           payload?: Json
+          provider_event_id?: string | null
           provider_key?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["integration_event_status"]
+          unsupported?: boolean
           updated_at?: string
         }
         Update: {
           attempt?: number
+          correlation_id?: string
           created_at?: string
           dedup_hash?: string | null
           direction?: Database["public"]["Enums"]["integration_event_direction"]
+          duplicate_count?: number
           entity_id?: string | null
           entity_type?: string | null
+          event_ts?: string | null
           event_type?: string
           id?: string
           idempotency_key?: string | null
@@ -2538,9 +2560,11 @@ export type Database = {
           max_attempts?: number
           next_retry_at?: string
           payload?: Json
+          provider_event_id?: string | null
           provider_key?: string | null
           result?: Json | null
           status?: Database["public"]["Enums"]["integration_event_status"]
+          unsupported?: boolean
           updated_at?: string
         }
         Relationships: [
