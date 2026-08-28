@@ -1,13 +1,11 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
-import { Plus, Trash2, FileText, Phone, Mail, MapPin, ChevronDown, ChevronUp, ExternalLink, History } from "lucide-react";
-import { listClients, upsertClient, deleteClient } from "@/lib/clients.functions";
-import { listEstimatesByClient, updateEstimateStatus, ESTIMATE_STATUSES } from "@/lib/estimates.functions";
+import { useMemo, useState } from "react";
+import { Plus, Phone, Mail, MapPin, Package, Banknote, Clock, User, Search } from "lucide-react";
+import { listClients, upsertClient, listClientManagers, type ClientListRow } from "@/lib/clients.functions";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
-import { UnifiedTimeline } from "@/components/crm/UnifiedTimeline";
 
 export const Route = createFileRoute("/clients/")({
   ssr: false,
@@ -15,19 +13,18 @@ export const Route = createFileRoute("/clients/")({
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
   },
+  head: () => ({
+    meta: [
+      { title: "Клієнти — TERZI ERP" },
+      { name: "description", content: "Реєстр клієнтів TERZI: замовлення, оплати, менеджери та остання активність." },
+      { property: "og:title", content: "Клієнти — TERZI ERP" },
+      { property: "og:description", content: "Реєстр клієнтів TERZI з фільтрами за статусом, джерелом і менеджером." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ClientsPage,
 });
-
-interface Client {
-  id: string;
-  name: string;
-  phone: string | null;
-  email: string | null;
-  address: string | null;
-  notes: string | null;
-  status: string;
-  created_at: string;
-}
 
 const STATUSES: Record<string, { label: string; cls: string }> = {
   lead: { label: "Лід", cls: "bg-warning/20 text-warning" },
@@ -36,100 +33,96 @@ const STATUSES: Record<string, { label: string; cls: string }> = {
   archived: { label: "Архів", cls: "bg-muted text-muted-foreground" },
 };
 
-const EST_STATUS_LABEL: Record<string, string> = {
-  preliminary: "Попередній", afterMeasure: "Після заміру", final: "Фінальний",
-  inWork: "В роботі", done: "Виконано", refused: "Відмова",
-  draft: "Чернетка", sent: "Надіслано", approved: "Затверджено", archived: "Архів",
-};
-
-const MODULE_ROUTES: Record<string, "/screed" | "/roofing_pvc" | "/roofing_rub" | "/insulation" | "/demolition"> = {
-  screed: "/screed", roofing: "/roofing_pvc", roofing_pvc: "/roofing_pvc", roofing_rub: "/roofing_rub",
-  insulation: "/insulation", demolition: "/demolition",
-};
-
-function ClientEstimates({ clientId }: { clientId: string }) {
-  const qc = useQueryClient();
-  const listFn = useServerFn(listEstimatesByClient);
-  const updFn = useServerFn(updateEstimateStatus);
-  const { data: rows = [], isLoading } = useQuery({
-    queryKey: ["client-estimates", clientId],
-    queryFn: () => listFn({ data: { client_id: clientId } }),
-  });
-  const updMut = useMutation({
-    mutationFn: (v: { id: string; status: string }) => updFn({ data: v as any }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["client-estimates", clientId] });
-      qc.invalidateQueries({ queryKey: ["estimates"] });
-    },
-  });
-  if (isLoading) return <div className="text-xs text-muted-foreground p-2">Завантаження…</div>;
-  if (!(rows as any[]).length) return <div className="text-xs text-muted-foreground p-2">Ще немає кошторисів для цього клієнта.</div>;
-  return (
-    <div className="mt-3 space-y-2">
-      {(rows as any[]).map((e) => {
-        const route = MODULE_ROUTES[e.module] ?? "/screed";
-        return (
-          <div key={e.id} className="rounded border border-border bg-secondary/30 p-2 text-xs">
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-mono truncate">{e.number}</div>
-              <div className="font-bold text-primary whitespace-nowrap">{formatUah(Number(e.total_client))}</div>
-            </div>
-            <div className="mt-1 flex items-center justify-between gap-2">
-              <select
-                value={e.status}
-                onChange={(ev) => updMut.mutate({ id: e.id, status: ev.target.value })}
-                className="bg-input border border-border rounded px-1.5 py-1 text-[11px]"
-              >
-                {ESTIMATE_STATUSES.map((s) => (
-                  <option key={s} value={s}>{EST_STATUS_LABEL[s] ?? s}</option>
-                ))}
-              </select>
-              <Link to={route} search={{ estimate: e.id } as any}
-                className="inline-flex items-center gap-1 text-primary hover:underline">
-                <ExternalLink className="w-3 h-3" /> Відкрити
-              </Link>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+function fmtDate(v: string | null) {
+  if (!v) return "—";
+  const d = new Date(v);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString("uk-UA");
 }
 
 function ClientsPage() {
   const qc = useQueryClient();
   const list = useServerFn(listClients);
   const upsert = useServerFn(upsertClient);
-  const del = useServerFn(deleteClient);
+  const managersFn = useServerFn(listClientManagers);
   const [open, setOpen] = useState(false);
-  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-  const [timeline, setTimeline] = useState<Record<string, boolean>>({});
-  const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "", status: "lead" as const });
+  const [q, setQ] = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fSource, setFSource] = useState("");
+  const [fManager, setFManager] = useState("");
+  const [form, setForm] = useState({
+    name: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "",
+    status: "lead" as "lead" | "active" | "done" | "archived",
+  });
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => list() });
+  const { data: managers = [] } = useQuery({ queryKey: ["client-managers"], queryFn: () => managersFn(), retry: false });
+
   const saveMut = useMutation({
-    mutationFn: () => upsert({ data: form }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["clients"] }); setOpen(false); setForm({ name: "", phone: "", email: "", address: "", notes: "", status: "lead" }); },
+    mutationFn: () => upsert({
+      data: {
+        ...form,
+        manager_id: form.manager_id || null,
+        source: form.source || null,
+      } as any,
+    }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      setOpen(false);
+      setForm({ name: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "", status: "lead" });
+    },
   });
-  const delMut = useMutation({
-    mutationFn: (id: string) => del({ data: { id } }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["clients"] }),
-  });
+
+  const rows = clients as ClientListRow[];
+  const sources = useMemo(
+    () => Array.from(new Set(rows.map((c) => c.source).filter(Boolean))) as string[],
+    [rows],
+  );
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return rows.filter((c) => {
+      if (fStatus && c.status !== fStatus) return false;
+      if (fSource && c.source !== fSource) return false;
+      if (fManager && c.manager_id !== fManager) return false;
+      if (!needle) return true;
+      return [c.name, c.phone, c.email, c.address].some((v) => (v ?? "").toLowerCase().includes(needle));
+    });
+  }, [rows, q, fStatus, fSource, fManager]);
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      <div className="flex items-end justify-between border-b border-border pb-4 mb-6">
+      <div className="flex items-end justify-between border-b border-border pb-4 mb-4 gap-4">
         <div>
           <div className="hatch-accent h-1 w-16 mb-2 rounded" />
-          <h1 className="text-2xl font-black">Клієнти / Проєкти</h1>
-          <p className="text-sm text-muted-foreground mt-1">Картки клієнтів з кошторисами та статусом.</p>
+          <h1 className="text-2xl font-black">Клієнти</h1>
+          <p className="text-sm text-muted-foreground mt-1">Картки клієнтів із замовленнями, оплатами та активністю.</p>
         </div>
         <button onClick={() => setOpen(true)}
-          className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2">
+          className="px-4 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold inline-flex items-center gap-2 shrink-0">
           <Plus className="w-4 h-4" /> Новий клієнт
         </button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 mb-6">
+        <div className="relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <input className={`${inp} pl-9`} placeholder="Пошук: ПІБ, телефон, email…" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        <select className={inp} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
+          <option value="">Усі статуси</option>
+          {Object.entries(STATUSES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <select className={inp} value={fSource} onChange={(e) => setFSource(e.target.value)}>
+          <option value="">Усі джерела</option>
+          {sources.map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select className={inp} value={fManager} onChange={(e) => setFManager(e.target.value)}>
+          <option value="">Усі менеджери</option>
+          {(managers as any[]).map((m) => (
+            <option key={m.user_id} value={m.user_id}>{m.display_name ?? m.user_id.slice(0, 8)}</option>
+          ))}
+        </select>
       </div>
 
       {open && (
@@ -142,7 +135,16 @@ function ClientsPage() {
                 <input className={inp} placeholder="Телефон" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <input className={inp} placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
-              <input className={inp} placeholder="Адреса замовлення" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <input className={inp} placeholder="Адреса" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+              <div className="grid grid-cols-2 gap-3">
+                <input className={inp} placeholder="Джерело" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+                <select className={inp} value={form.manager_id} onChange={(e) => setForm({ ...form, manager_id: e.target.value })}>
+                  <option value="">Менеджер не вказаний</option>
+                  {(managers as any[]).map((m) => (
+                    <option key={m.user_id} value={m.user_id}>{m.display_name ?? m.user_id.slice(0, 8)}</option>
+                  ))}
+                </select>
+              </div>
               <textarea className={inp} placeholder="Нотатки" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               <select className={inp} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value as "lead" })}>
                 {Object.entries(STATUSES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
@@ -158,47 +160,50 @@ function ClientsPage() {
       )}
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {(clients as Client[]).map((c) => {
+        {filtered.map((c) => {
           const st = STATUSES[c.status] ?? STATUSES.lead;
           return (
-            <div key={c.id} className="panel p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div className="font-bold text-lg">{c.name}</div>
-                <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded ${st.cls}`}>{st.label}</span>
+            <Link key={c.id} to="/clients/$id" params={{ id: c.id }}
+              className="panel p-5 block hover:border-primary/60 transition-colors">
+              <div className="flex items-start justify-between mb-3 gap-2">
+                <div className="font-bold text-lg truncate">{c.name}</div>
+                <span className={`text-[10px] uppercase tracking-wider px-2 py-1 rounded shrink-0 ${st.cls}`}>{st.label}</span>
               </div>
               <div className="space-y-1.5 text-xs text-muted-foreground">
-                {c.phone && <div className="flex items-center gap-2"><Phone className="w-3 h-3" />{c.phone}</div>}
+                {c.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-3 h-3" />
+                    <a href={`tel:${c.phone_e164 ?? c.phone}`} onClick={(e) => e.stopPropagation()}
+                      className="text-primary hover:underline">{c.phone}</a>
+                  </div>
+                )}
                 {c.email && <div className="flex items-center gap-2"><Mail className="w-3 h-3" />{c.email}</div>}
-                {c.address && <div className="flex items-center gap-2"><MapPin className="w-3 h-3" />{c.address}</div>}
+                {c.address && <div className="flex items-center gap-2 truncate"><MapPin className="w-3 h-3 shrink-0" />{c.address}</div>}
+                <div className="flex items-center gap-2"><User className="w-3 h-3" />{c.manager_display ?? "Менеджер не вказаний"}{c.source ? ` · ${c.source}` : ""}</div>
               </div>
-              {c.notes && <div className="mt-3 text-xs bg-secondary/40 rounded p-2">{c.notes}</div>}
-              <div className="mt-4 flex gap-2 pt-3 border-t border-border">
-                <button onClick={() => setExpanded((m) => ({ ...m, [c.id]: !m[c.id] }))}
-                  className="flex-1 text-xs py-2 rounded bg-secondary font-semibold inline-flex items-center justify-center gap-1">
-                  <FileText className="w-3 h-3" /> Кошториси
-                  {expanded[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
-                <button onClick={() => setTimeline((m) => ({ ...m, [c.id]: !m[c.id] }))}
-                  className="flex-1 text-xs py-2 rounded bg-secondary font-semibold inline-flex items-center justify-center gap-1">
-                  <History className="w-3 h-3" /> Історія
-                  {timeline[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                </button>
-                <Link to="/screed" search={{ estimate: undefined }} className="text-xs px-3 py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
-                  + Новий
-                </Link>
-                <button onClick={() => confirm(`Видалити "${c.name}"?`) && delMut.mutate(c.id)}
-                  className="px-2 py-2 rounded bg-destructive/10 text-destructive">
-                  <Trash2 className="w-3 h-3" />
-                </button>
+              <div className="mt-4 grid grid-cols-3 gap-2 pt-3 border-t border-border text-center">
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground inline-flex items-center gap-1"><Package className="w-3 h-3" />Замовлень</div>
+                  <div className="font-bold text-sm">{c.orders_count}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground">Сума</div>
+                  <div className="font-bold text-sm text-primary">{formatUah(c.orders_total)}</div>
+                </div>
+                <div>
+                  <div className="text-[10px] uppercase text-muted-foreground inline-flex items-center gap-1"><Banknote className="w-3 h-3" />Оплачено</div>
+                  <div className="font-bold text-sm text-success">{formatUah(c.paid_total)}</div>
+                </div>
               </div>
-              {expanded[c.id] && <ClientEstimates clientId={c.id} />}
-              {timeline[c.id] && <UnifiedTimeline clientId={c.id} />}
-            </div>
+              <div className="mt-3 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <Clock className="w-3 h-3" /> Остання активність: {fmtDate(c.last_activity_at)}
+              </div>
+            </Link>
           );
         })}
-        {clients.length === 0 && (
+        {!filtered.length && (
           <div className="col-span-full panel p-10 text-center text-muted-foreground">
-            Ще немає клієнтів. Додайте першого.
+            {rows.length ? "Нічого не знайдено за фільтрами." : "Ще немає клієнтів. Додайте першого."}
           </div>
         )}
       </div>
