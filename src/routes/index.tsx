@@ -209,7 +209,8 @@ function Dashboard() {
       <section aria-label="Динаміка та план/факт">
         <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Динаміка, воронка, план/факт</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {dynamics.length ? dynamics.map((id) => <Metric key={id} id={id} value={id === "cash_flow" && scoped.length ? formatUah(revenue) : NO_DATA} />) : (
+          {/* Cash flow рахується лише з фактичних надходжень/витрат. Кошториси не є грошима → «Немає даних». */}
+          {dynamics.length ? dynamics.map((id) => <Metric key={id} id={id} value={NO_DATA} {...(id === "cash_flow" ? { hint: "Потрібні фактичні надходження та витрати" } : {})} />) : (
             <div className="panel p-4 text-sm text-muted-foreground">{NO_DATA}</div>
           )}
           <div className="panel p-4">
