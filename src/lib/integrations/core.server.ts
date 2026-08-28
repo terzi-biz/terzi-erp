@@ -7,6 +7,7 @@ import { admin } from "../access.server";
 import { getAdapter, type AdapterContext, type IntegrationRow } from "./adapter.server";
 import { sha256Hex } from "./signature.server";
 import { RETRY_BACKOFF_MIN } from "../integrations-constants";
+import { buildIdempotencyKey, checkReplayWindow, classifyError } from "./webhook-core";
 
 const SENSITIVE = /(token|secret|password|pass|api[-_]?key|authorization|signature|refresh|client[-_]?secret)/i;
 const MAX_PREVIEW = 4000;
