@@ -534,7 +534,7 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
 
   const events = useQuery({
     queryKey: ["int-events", status, integrationId],
-    queryFn: () => fnEvents({ data: { status: (status || null) as any, integrationId: integrationId || null, limit: 100 } }),
+    queryFn: () => fnEvents({ data: { status: (status && status !== "unsupported_event" ? status : null) as any, integrationId: integrationId || null, limit: 100 } }),
   });
   const logs = useQuery({
     queryKey: ["int-logs", openId],
