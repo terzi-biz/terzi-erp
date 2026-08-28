@@ -76,13 +76,16 @@ export interface NormsPerM3 {
   dieselLPerM3: number;      // L (station)
 }
 
-// Note: plasticizerLPerM3 is 10/7 ≈ 1.4286 (displayed as ~1.43) so the
-// control scenario (7 m³ → 10 L plast) lands exactly on the spec.
+// Усі норми виведені з контрольних 7 м³ Launch Contract §1:
+// пісок 13,4 т, пластифікатор 10 л, дизель 17 л, фібра — з матриці марок
+// (М100=4, М200=8, М300=12). Значення 9 і 11 упаковок заборонені контрактом.
+const PER_M3 = 1 / SCREED_CONTROL.volumeM3;
 export const PROFILE_NORMS: Record<Exclude<Profile, "manual">, NormsPerM3 & { cementType: "m500" | "m400" }> = {
-  econom:     { cementType: "m400", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.0, dieselLPerM3: 3.14 },
-  standard:   { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.5, dieselLPerM3: 3.14 },
-  reinforced: { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 2.0, dieselLPerM3: 3.14 },
+  econom:     { cementType: "m400", cementBagsPerM3: 8.57, sandTonsPerM3: SCREED_CONTROL.sandTonsTechnical * PER_M3, plasticizerLPerM3: SCREED_CONTROL.plasticizerLiters * PER_M3, fiberPacksPerM3: SCREED_GRADES.M100.fiberPacksPer7m3 * PER_M3, dieselLPerM3: SCREED_CONTROL.dieselLitersBase * PER_M3 },
+  standard:   { cementType: "m500", cementBagsPerM3: SCREED_CONTROL.cementM500Bags * PER_M3, sandTonsPerM3: SCREED_CONTROL.sandTonsTechnical * PER_M3, plasticizerLPerM3: SCREED_CONTROL.plasticizerLiters * PER_M3, fiberPacksPerM3: SCREED_GRADES.M200.fiberPacksPer7m3 * PER_M3, dieselLPerM3: SCREED_CONTROL.dieselLitersBase * PER_M3 },
+  reinforced: { cementType: "m500", cementBagsPerM3: SCREED_GRADES.M300.cementM500BagsPer7m3 * PER_M3, sandTonsPerM3: SCREED_GRADES.M300.sandTonsPer7m3 * PER_M3, plasticizerLPerM3: SCREED_GRADES.M300.plasticizerLitersPer7m3 * PER_M3, fiberPacksPerM3: SCREED_GRADES.M300.fiberPacksPer7m3 * PER_M3, dieselLPerM3: SCREED_CONTROL.dieselLitersBase * PER_M3 },
 };
+
 
 // Закупка / Продаж — синхронізовано з TERZI_Стяжка_v3_2.xlsx (вкладка МАТЕРІАЛИ).
 export const DEFAULT_MATERIAL_PRICES: Record<string, MaterialPrice> = {
