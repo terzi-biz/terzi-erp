@@ -9,6 +9,8 @@
 
 import { SCREED_CONTROL } from "./core/contract";
 import { SCREED_GRADES, type ScreedGrade } from "./screed-grades";
+import { coreFromLegacyResult } from "./core/legacy-adapter";
+import type { CanonicalResult } from "./core/dto";
 
 
 export type Profile = "econom" | "standard" | "reinforced" | "manual";
@@ -207,6 +209,8 @@ export interface CalcLine {
 
 
 export interface CalcResult {
+  /** Канонічний результат Calculation Core — єдине джерело підсумків. */
+  core?: CanonicalResult;
   volumeM3: number;
   thicknessUsed: number;
   lines: CalcLine[];
@@ -540,7 +544,7 @@ export function calculateScreed(
   const marginPercent = totalClient > 0 ? (grossProfit / totalClient) * 100 : 0;
   if (marginPercent < s.marginThreshold) warnings.push("warnLowMargin");
 
-  return {
+  const result: CalcResult = {
     volumeM3, thicknessUsed: thickness, lines, warnings,
     materialsSell, worksSell, logisticsSell, subtotalSell: materialsSell + worksSell + logisticsSell,
     discountAmount, complexityAmount, partnerCommission: input.partnerCommission,
@@ -549,6 +553,17 @@ export function calculateScreed(
     materialsCost, worksCost, logisticsCost, amortEquip, amortTransport, totalCost,
     grossProfit, marginPercent,
   };
+  result.core = coreFromLegacyResult("screed", area, result, {
+    payment: input.payment,
+    withVAT: input.withVAT,
+    vatRatePercent: 20, // Launch Contract §6: справжня ставка ПДВ
+    complexityPercent: input.complexityPercent,
+    discountPercent: input.discountPercent,
+    partnerCommission: input.partnerCommission,
+    minCheck: s.minCheck,
+    engineVersion: "screed@core1",
+  });
+  return result;
 }
 
 export function formatUah(v: number): string {

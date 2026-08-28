@@ -24,6 +24,8 @@ export interface LegacyLine {
   purchaseQty?: number;
   purchaseUnit?: string;
   note?: string;
+  /** false — позиція існує лише у внутрішньому контурі. */
+  showToClient?: boolean;
 }
 
 const BLOCKS: readonly CoreBlock[] = [
@@ -52,6 +54,7 @@ export function toRawLine(l: LegacyLine): RawLine {
     sellPerUnit: +l.pricePerUnit || 0,
     priceStatus:
       (+l.pricePerUnit || 0) > 0 || (+l.costPerUnit || 0) > 0 ? "confirmed" : "confirmed_zero",
+    ...(l.showToClient === false ? { billingMode: "internal_only" as const } : {}),
     ...(l.note ? { note: l.note } : {}),
   };
 }

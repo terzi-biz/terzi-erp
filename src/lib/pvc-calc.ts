@@ -479,7 +479,7 @@ export function calculatePvc(
   result.core = coreFromLegacyResult("roofing_pvc", area, result, {
     payment: input.payment,
     withVAT: input.withVAT,
-    vatRatePercent: Math.round((c.vatRate) * 100),
+    vatRatePercent: 20, // Launch Contract §6: справжня ставка ПДВ
     complexityPercent: input.complexityPercent,
     discountPercent: input.discountPercent,
     partnerCommission: input.partnerCommission,
