@@ -528,11 +528,13 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
   const fnLogs = useServerFn(listIntegrationEventLogs);
   const [status, setStatus] = useState<string>(logsOnly ? "" : "");
   const [integrationId, setIntegrationId] = useState<string>("");
+  const [provider, setProvider] = useState<string>("");
+  const [q, setQ] = useState<string>("");
   const [openId, setOpenId] = useState<string | null>(null);
 
   const events = useQuery({
     queryKey: ["int-events", status, integrationId],
-    queryFn: () => fnEvents({ data: { status: (status || null) as any, integrationId: integrationId || null, limit: 100 } }),
+    queryFn: () => fnEvents({ data: { status: (status && status !== "unsupported_event" ? status : null) as any, integrationId: integrationId || null, limit: 100 } }),
   });
   const logs = useQuery({
     queryKey: ["int-logs", openId],
@@ -554,6 +556,18 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
 
+  const providers = Array.from(new Set(list.map((i) => i.provider_key).filter(Boolean))) as string[];
+  const needle = q.trim().toLowerCase();
+  const rows = ((events.data ?? []) as any[]).filter((e) => {
+    if (provider && e.provider_key !== provider) return false;
+    if (status === "unsupported_event" && !e.unsupported) return false;
+    if (status && status !== "unsupported_event" && e.unsupported) return false;
+    if (!needle) return true;
+    return [e.correlation_id, e.provider_event_id, e.event_type, e.idempotency_key, e.entity_id]
+      .some((v) => String(v ?? "").toLowerCase().includes(needle));
+  });
+  const rowStatus = (e: any): EventStatus | "unsupported_event" => (e.unsupported ? "unsupported_event" : (e.status as EventStatus));
+
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2 items-center">
@@ -563,8 +577,18 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
         </select>
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="bg-input border border-border rounded px-2 py-1.5 text-sm">
           <option value="">Усі статуси</option>
-          {(Object.keys(EVENT_STATUS_LABEL) as EventStatus[]).map((s) => <option key={s} value={s}>{EVENT_STATUS_LABEL[s]}</option>)}
+          {(Object.keys(EVENT_STATUS_LABEL) as (EventStatus | "unsupported_event")[]).map((s) => <option key={s} value={s}>{EVENT_STATUS_LABEL[s]}</option>)}
         </select>
+        <select value={provider} onChange={(e) => setProvider(e.target.value)} className="bg-input border border-border rounded px-2 py-1.5 text-sm">
+          <option value="">Усі провайдери</option>
+          {providers.map((p) => <option key={p} value={p}>{p}</option>)}
+        </select>
+        <input
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Correlation ID, ID події, тип"
+          className="bg-input border border-border rounded px-2 py-1.5 text-sm min-w-[220px]"
+        />
         <button onClick={() => runNow.mutate({})} className="px-3 py-1.5 rounded bg-secondary text-sm font-semibold hover:bg-accent flex items-center gap-2">
           <RefreshCw className={`w-4 h-4 ${runNow.isPending ? "animate-spin" : ""}`} /> Обробити чергу
         </button>
@@ -574,17 +598,18 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
         <table className="w-full min-w-[760px] text-sm">
           <thead className="bg-secondary text-xs uppercase">
             <tr>
-              <th className="p-2 text-left">Час</th><th className="p-2 text-left">Подія</th><th className="p-2 text-left">Напрям</th>
+              <th className="p-2 text-left">Час</th><th className="p-2 text-left">Подія</th><th className="p-2 text-left">Correlation</th><th className="p-2 text-left">Напрям</th>
               <th className="p-2 text-left">Статус</th><th className="p-2 text-left">Спроби</th><th className="p-2 text-left">Помилка</th><th className="p-2" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {((events.data ?? []) as any[]).map((e) => (
+            {rows.map((e) => (
               <tr key={e.id} className={openId === e.id ? "bg-accent" : ""}>
                 <td className="p-2 whitespace-nowrap text-xs">{fmt(e.created_at)}</td>
                 <td className="p-2 font-mono text-xs">{e.event_type}</td>
+                <td className="p-2 font-mono text-[10px] text-muted-foreground max-w-[160px] truncate" title={e.correlation_id ?? ""}>{e.correlation_id ?? "—"}</td>
                 <td className="p-2 text-xs">{DIRECTION_LABEL[e.direction as "inbound" | "outbound"]}</td>
-                <td className="p-2"><span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${EVENT_STATUS_TONE[e.status as EventStatus]}`}>{EVENT_STATUS_LABEL[e.status as EventStatus]}</span></td>
+                <td className="p-2"><span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${EVENT_STATUS_TONE[rowStatus(e)]}`}>{EVENT_STATUS_LABEL[rowStatus(e)]}</span></td>
                 <td className="p-2 text-xs">{e.attempt}/{e.max_attempts}</td>
                 <td className="p-2 text-xs text-destructive max-w-[220px] truncate">{e.last_error ?? ""}</td>
                 <td className="p-2 text-right whitespace-nowrap">
@@ -598,7 +623,7 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
                 </td>
               </tr>
             ))}
-            {((events.data ?? []) as any[]).length === 0 && <tr><td colSpan={7} className="p-4 text-sm text-muted-foreground">Подій немає.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={8} className="p-4 text-sm text-muted-foreground">Подій немає.</td></tr>}
           </tbody>
         </table>
       </div>

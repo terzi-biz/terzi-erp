@@ -357,7 +357,8 @@ export async function retryEventOp(userId: string, eventId: string) {
     .from("integration_events")
     .update({ status: "pending", next_retry_at: new Date().toISOString(), locked_at: null })
     .eq("id", eventId);
-  const res = await processEvent(eventId);
+  // Ручний повтор — свідома дія оператора: дозволяємо і для unsupported.
+  const res = await processEvent(eventId, { force: true });
   await writeAudit(actor, {
     module: "integrations",
     action: "event_retry",

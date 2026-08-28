@@ -75,7 +75,22 @@ export const Route = createFileRoute("/api/public/integrations/webhook/$slug")({
           idempotencyKey: normalized.idempotencyKey ?? null,
           entityType: normalized.entityType ?? null,
           entityId: normalized.entityId ?? null,
+          providerEventId: normalized.providerEventId ?? null,
+          eventTs: normalized.eventTs ?? null,
+          correlationId: request.headers.get("x-correlation-id"),
         });
+
+        if (res.replay && !res.id) {
+          await logAttempt({
+            integrationId: integration.id,
+            level: "warn",
+            message: `Replay-захист: ${res.reason ?? "подія поза вікном"}`,
+            httpStatus: 409,
+            durationMs: Date.now() - started,
+            request: parsed,
+          });
+          return Response.json({ ok: false, replay: true, error: res.reason }, { status: 409 });
+        }
 
         await db.from("integration_webhooks").update({ last_call_at: new Date().toISOString() }).eq("id", (hook as any).id);
         await logAttempt({
@@ -88,7 +103,12 @@ export const Route = createFileRoute("/api/public/integrations/webhook/$slug")({
           request: parsed,
         });
 
-        return Response.json({ ok: true, duplicate: res.duplicate, event_id: res.id });
+        return Response.json({
+          ok: true,
+          duplicate: res.duplicate,
+          event_id: res.id,
+          correlation_id: res.correlationId ?? null,
+        });
       },
       GET: async () => new Response("Method not allowed", { status: 405 }),
     },

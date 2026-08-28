@@ -9,6 +9,7 @@ import { admin } from "../../access.server";
 import type { AdapterContext, IntegrationAdapter } from "../adapter.server";
 import { BINOTEL_MANIFEST_TEMPLATE, BINOTEL_STATUS_LABEL } from "../binotel-manifest";
 import { normPhone } from "../keycrm/sync.server";
+import { classifyBinotelEvent } from "./events";
 
 type Manifest = typeof BINOTEL_MANIFEST_TEMPLATE & Record<string, any>;
 
@@ -117,21 +118,29 @@ export const binotelAdapter: IntegrationAdapter = {
   normalizeEvent(ctx, raw, headers) {
     const body = (raw ?? {}) as Record<string, any>;
     const m = binotelManifest(ctx);
-    const known = new Set((m.webhook_events ?? []).map((e: any) => e.key ?? e));
-    const declared = String(body.event ?? body.eventType ?? body.type ?? "");
-    const eventType = declared && (known.size === 0 || known.has(declared)) ? `binotel.${declared}` : "binotel.raw";
+    const cls = classifyBinotelEvent(body);
     const call = mapCall(m, body);
+    const externalId = call.externalId ? String(call.externalId) : null;
     return {
-      eventType,
+      eventType: cls.eventType,
       payload: body,
-      idempotencyKey: headers.get("x-idempotency-key") ?? (call.externalId ? `binotel:${eventType}:${call.externalId}` : null),
+      idempotencyKey:
+        headers.get("x-idempotency-key") ??
+        (cls.providerEventId ? `binotel:${cls.providerEventId}` : externalId ? `binotel:${cls.eventType}:${externalId}` : null),
+      providerEventId: cls.providerEventId,
+      eventTs: cls.eventTs,
       entityType: "call",
-      entityId: call.externalId ? String(call.externalId) : null,
+      entityId: externalId,
     };
   },
 
   /** Зберігає дзвінок, знаходить клієнта, за потреби створює лід і задачу. */
   async handleInbound(ctx, payload, eventType) {
+    const cls = classifyBinotelEvent(payload as Record<string, any>);
+    if (!cls.supported) {
+      // Не позначаємо успіхом: подія фіксується як unsupported_event без CRM-побічних дій.
+      return { ok: false, unsupported: true, message: cls.reason ?? `Подія «${eventType}» не підтримується` };
+    }
     const { handleCallCompleted } = await import("./calls.server");
     const result = await handleCallCompleted(ctx.integration.id, payload as Record<string, any>);
     return {

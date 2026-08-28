@@ -29,9 +29,20 @@ export type NormalizedEvent = {
   idempotencyKey?: string | null;
   entityType?: string | null;
   entityId?: string | null;
+  /** ID події у провайдера — головний ключ ідемпотентності Webhook Core. */
+  providerEventId?: string | null;
+  /** Час події у провайдера (ISO) — для replay-вікна. */
+  eventTs?: string | null;
 };
 
-export type AdapterResult = { ok: boolean; message?: string; data?: unknown; httpStatus?: number };
+export type AdapterResult = {
+  ok: boolean;
+  message?: string;
+  data?: unknown;
+  httpStatus?: number;
+  /** Подія відома провайдеру, але не підтримується ERP: термінальний статус без повторів. */
+  unsupported?: boolean;
+};
 
 export type IntegrationAdapter = {
   key: string;
