@@ -70,6 +70,8 @@ export function buildEstimateSnapshot<TInput, TResult extends object>(
   return {
     ...deepClone(src.result),
     snapshotVersion: ESTIMATE_SNAPSHOT_VERSION,
+    contractVersion: CONTRACT_VERSION,
+
     module: src.module,
     engineVersion: src.engineVersion,
     priceBookVersion: src.priceBookVersion ?? null,
