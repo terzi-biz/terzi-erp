@@ -28,7 +28,7 @@ export const listAccounts = createServerFn({ method: "GET" })
 
 export const saveAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => accountInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const { data: out, error } = id
@@ -52,7 +52,7 @@ export const listInvoices = createServerFn({ method: "GET" })
 
 export const saveInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => invoiceInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, lines, ...rest } = data;
     const total = Math.round(lines.reduce((s, l) => s + l.qty * l.price, 0) * 100) / 100;
@@ -85,7 +85,7 @@ export const listPayments = createServerFn({ method: "GET" })
 
 export const savePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => paymentInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload: any = { ...rest };
@@ -99,7 +99,7 @@ export const savePayment = createServerFn({ method: "POST" })
 
 export const deletePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => idInput.parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("payments").delete().eq("id", data.id);
     if (error) { console.error("deletePayment", error); throw new Error("Не вдалося видалити платіж"); }
@@ -120,7 +120,7 @@ export const listExpenses = createServerFn({ method: "GET" })
 
 export const saveExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => expenseInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload: any = { ...rest };
@@ -134,7 +134,7 @@ export const saveExpense = createServerFn({ method: "POST" })
 
 export const deleteExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => idInput.parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("expenses").delete().eq("id", data.id);
     if (error) { console.error("deleteExpense", error); throw new Error("Не вдалося видалити витрату"); }
@@ -144,7 +144,7 @@ export const deleteExpense = createServerFn({ method: "POST" })
 /** P&L по замовленню: план з кошторисів, факт з оплат і витрат. */
 export const getOrderPnl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  PLACEHOLDER
+  .inputValidator((d: unknown) => orderIdInput.parse(d))
   .handler(async ({ data, context }) => {
     const [{ data: estimates }, { data: payments }, { data: expenses }, { data: invoices }] = await Promise.all([
       context.supabase.from("estimates").select("total_client,total_cost,status").eq("order_id", data.order_id),
