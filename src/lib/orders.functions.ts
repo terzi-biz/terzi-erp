@@ -401,3 +401,47 @@ export const linkEstimateToOrder = createServerFn({ method: "POST" })
     if (error) { console.error("linkEstimateToOrder", error); throw new Error("Не вдалося прив'язати кошторис"); }
     return { ok: true };
   });
+
+/**
+ * Ручне збереження управлінських полів замовлення.
+ * Основні колонки оновлюються напряму, ручні значення — merge у management_data,
+ * тому наступна синхронізація з CRM їх не перезаписує.
+ */
+export const saveOrderManagement = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => orderManagementInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, services, management, ...core } = data;
+    const patch: any = {};
+    for (const [k, v] of Object.entries(core)) if (v !== undefined) patch[k] = v;
+
+    if (management && Object.keys(management).length) {
+      const { data: cur } = await context.supabase
+        .from("orders").select("management_data").eq("id", id).maybeSingle();
+      const prev = (cur?.management_data && typeof cur.management_data === "object" && !Array.isArray(cur.management_data))
+        ? (cur.management_data as Record<string, unknown>) : {};
+      const next: Record<string, unknown> = { ...prev };
+      for (const [k, v] of Object.entries(management)) {
+        if (v === undefined) continue;
+        if (v === null || v === "") delete next[k];
+        else next[k] = v;
+      }
+      patch.management_data = next;
+    }
+
+    if (Object.keys(patch).length) {
+      const { data: rows, error } = await context.supabase
+        .from("orders").update(patch).eq("id", id).select("id");
+      if (error) { console.error("saveOrderManagement", error); throw new Error("Не вдалося зберегти зміни"); }
+      if (!rows || rows.length === 0) throw new Error("Немає прав на редагування цього замовлення");
+    }
+
+    if (services) {
+      await context.supabase.from("order_services").delete().eq("order_id", id);
+      if (services.length) {
+        await context.supabase.from("order_services")
+          .insert(services.map((s) => ({ order_id: id, service: s })));
+      }
+    }
+    return { ok: true };
+  });
