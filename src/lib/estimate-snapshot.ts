@@ -12,7 +12,10 @@
  * Історичні кошториси не перераховуються і не бекфіляться автоматично.
  */
 
-export const ESTIMATE_SNAPSHOT_VERSION = "snapshot@1";
+import { CONTRACT_VERSION } from "./core/contract";
+
+export const ESTIMATE_SNAPSHOT_VERSION = "snapshot@2";
+
 
 export interface EstimateSnapshotSource<TInput, TResult> {
   module: string;
