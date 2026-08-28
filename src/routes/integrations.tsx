@@ -528,6 +528,8 @@ function Queue({ list, onChanged, logsOnly }: { list: any[]; onChanged: () => vo
   const fnLogs = useServerFn(listIntegrationEventLogs);
   const [status, setStatus] = useState<string>(logsOnly ? "" : "");
   const [integrationId, setIntegrationId] = useState<string>("");
+  const [provider, setProvider] = useState<string>("");
+  const [q, setQ] = useState<string>("");
   const [openId, setOpenId] = useState<string | null>(null);
 
   const events = useQuery({
