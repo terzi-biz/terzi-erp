@@ -559,7 +559,7 @@ export function formatNum(v: number, frac = 1): string {
   return new Intl.NumberFormat("uk-UA", { maximumFractionDigits: frac }).format(v);
 }
 
-/** Built-in self-test for the control scenario from the spec. */
+/** Самоперевірка контрольного сценарію Launch Contract §1 (100 м² × 7 см, М200). */
 export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
     area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
@@ -572,16 +572,18 @@ export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const sand = r.lines.find((l) => l.key === "m_sand");
   const plast = r.lines.find((l) => l.key === "m_plast");
   const fiber = r.lines.find((l) => l.key === "m_fiber");
-  const stationDieselL = +(r.volumeM3 * 3.14 * floorCoef(3)).toFixed(1);
+  const diesel = r.lines.find((l) => l.key === "m_diesel");
 
   const checks = [
-    ["volume = 7 м³", r.volumeM3 === 7],
-    ["цемент М500 = 60 мішків", cement?.qty === 60],
-    ["пісок продажа = 14 т", sand?.qty === 14],
-    ["пластифікатор = 10 л", plast?.qty === 10],
-    ["фібра = 11 уп.", fiber?.qty === 11],
-    ["дизель = 22 л (1-5 поверх)", stationDieselL === 22],
+    ["volume = 7 м³", r.volumeM3 === SCREED_CONTROL.volumeM3],
+    ["цемент М500 = 60 мішків", cement?.qty === SCREED_CONTROL.cementM500Bags],
+    ["пісок технічно = 13,4 т", sand?.qty === SCREED_CONTROL.sandTonsTechnical],
+    ["закупівля піску = 14 т", sand?.purchaseQty === 14],
+    ["пластифікатор = 10 л", plast?.qty === SCREED_CONTROL.plasticizerLiters],
+    ["фібра = 8 уп.", fiber?.qty === SCREED_CONTROL.fiberPacks],
+    ["дизель базовий = 17 л", diesel?.qty === SCREED_CONTROL.dieselLitersBase],
   ] as const;
+
 
   return {
     ok: checks.every((c) => c[1]),
