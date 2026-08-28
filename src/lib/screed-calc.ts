@@ -1,11 +1,9 @@
 /**
  * TERZI Screed (напівсуха стяжка) — core calculation engine.
- *
- * Контракт: docs/ERP_LAUNCH_CONTRACT.md (C1, C2).
- * Контрольний сценарій 100 м² / 7 см / М200 → 7 м³, 60 мішків М500,
- * 13,4 т піску технічно (закупівля 14 т показується окремо), 10 л
- * пластифікатора, 8 упаковок фібри, 17 л дизеля в базовому сценарії.
- * Норми з 9 та 11 упаковками фібри і 22 л дизеля вилучені.
+ * All norms and prices are editable via the settings store; defaults below
+ * implement the brief's control scenario: 100 m² / 7 cm / Standard М200 →
+ * 7 m³, 60 bags cement М500, 13.9 t sand (14 t to client), 10 L plast,
+ * 11 packs fiber, 22 L diesel (floors 1–5).
  */
 
 import { SCREED_GRADES, type ScreedGrade } from "./screed-grades";
@@ -75,13 +73,12 @@ export interface NormsPerM3 {
   dieselLPerM3: number;      // L (station)
 }
 
-// Норми на 1 м³ виводяться з контрольних 7 м³ (контракт C1/C2):
-// пісок 13,4 т, цемент М500 60 міш., пластифікатор 10 л, фібра 8 уп., дизель 17 л.
-export const CONTROL_VOLUME_M3 = 7;
+// Note: plasticizerLPerM3 is 10/7 ≈ 1.4286 (displayed as ~1.43) so the
+// control scenario (7 m³ → 10 L plast) lands exactly on the spec.
 export const PROFILE_NORMS: Record<Exclude<Profile, "manual">, NormsPerM3 & { cementType: "m500" | "m400" }> = {
-  econom:     { cementType: "m400", cementBagsPerM3: 70 / 7, sandTonsPerM3: 13.6 / 7, plasticizerLPerM3: 7 / 7,    fiberPacksPerM3: 4 / 7,  dieselLPerM3: 17 / 7 },
-  standard:   { cementType: "m500", cementBagsPerM3: 60 / 7, sandTonsPerM3: 13.4 / 7, plasticizerLPerM3: 10 / 7,   fiberPacksPerM3: 8 / 7,  dieselLPerM3: 17 / 7 },
-  reinforced: { cementType: "m500", cementBagsPerM3: 80 / 7, sandTonsPerM3: 13.0 / 7, plasticizerLPerM3: 13.5 / 7, fiberPacksPerM3: 12 / 7, dieselLPerM3: 17 / 7 },
+  econom:     { cementType: "m400", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.0, dieselLPerM3: 3.14 },
+  standard:   { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 1.5, dieselLPerM3: 3.14 },
+  reinforced: { cementType: "m500", cementBagsPerM3: 8.57, sandTonsPerM3: 1.99, plasticizerLPerM3: 10 / 7, fiberPacksPerM3: 2.0, dieselLPerM3: 3.14 },
 };
 
 // Закупка / Продаж — синхронізовано з TERZI_Стяжка_v3_2.xlsx (вкладка МАТЕРІАЛИ).
@@ -196,9 +193,6 @@ export interface CalcLine {
   sum: number;              // sell
   cost: number;             // internal
   showToClient: boolean;
-  /** Закупівельна кількість (контракт C6) — не впливає на суму клієнта. */
-  purchaseQty?: number;
-  purchaseUnit?: string;
 }
 
 export interface CalcResult {
@@ -297,15 +291,13 @@ export function calculateScreed(
     sum: cementBags * prices[cementKey].sell, cost: cementBags * prices[cementKey].buy, showToClient: true });
   if (cementBags > 80) warnings.push("warnManipulator");
 
-  // C1/C6: у вартість іде технічна потреба (13,4 т), закупівля — окремим полем.
   const sandTonsTech = +(norms.sandTonsPerM3 * volumeM3).toFixed(2);
   const sandTonsSale = ceil(sandTonsTech);
   const sandKey = input.sandType === "screened" ? "m_sand_screened" : "m_sand";
   const sandPrice = (input.sandType === "screened" ? prices.sand_screened : prices.sand) ?? DEFAULT_MATERIAL_PRICES.sand;
-  lines.push({ key: sandKey, block: "materials", name: sandKey, unit: "т", qty: sandTonsTech,
-    purchaseQty: sandTonsSale, purchaseUnit: "т (закупівля)",
+  lines.push({ key: sandKey, block: "materials", name: sandKey, unit: "т", qty: sandTonsSale,
     pricePerUnit: sandPrice.sell, costPerUnit: sandPrice.buy,
-    sum: sandTonsTech * sandPrice.sell, cost: sandTonsTech * sandPrice.buy, showToClient: true });
+    sum: sandTonsSale * sandPrice.sell, cost: sandTonsTech * sandPrice.buy, showToClient: true });
 
   const plastL = ceil(norms.plasticizerLPerM3 * volumeM3);
   lines.push({ key: "m_plast", block: "materials", name: "m_plast", unit: "л", qty: plastL,
@@ -342,21 +334,13 @@ export function calculateScreed(
       sum: meshArea * prices[pkey].sell, cost: meshArea * prices[pkey].buy, showToClient: true });
   }
 
-  // Дизель для станції. C1: базовий сценарій 100 м² × 7 см → 17 л.
-  // Надбавка за поверховість — окремим рядком, у базовий сценарій не входить.
-  const stationDieselL = Math.ceil(volumeM3 * norms.dieselLPerM3);
+  // Дизель для станції — залежить від об'єму (товщина × площа) та поверху.
+  // Контроль: 100 м² × 7 см (V=7 м³), поверх 1–5 → 22 л.
+  const stationDieselL = Math.ceil(volumeM3 * norms.dieselLPerM3 * fc);
   if (stationDieselL > 0) {
     lines.push({ key: "m_diesel", block: "materials", name: "m_diesel", unit: "л", qty: stationDieselL,
       pricePerUnit: prices.diesel.sell, costPerUnit: prices.diesel.buy,
       sum: stationDieselL * prices.diesel.sell, cost: stationDieselL * prices.diesel.buy, showToClient: true });
-  }
-  const dieselFloorExtraL = Math.ceil(stationDieselL * (fc - 1));
-  if (dieselFloorExtraL > 0) {
-    lines.push({ key: "m_diesel_floor", block: "materials", name: "m_diesel_floor", unit: "л",
-      qty: dieselFloorExtraL,
-      pricePerUnit: prices.diesel.sell, costPerUnit: prices.diesel.buy,
-      sum: dieselFloorExtraL * prices.diesel.sell, cost: dieselFloorExtraL * prices.diesel.buy,
-      showToClient: true });
   }
 
 
@@ -551,7 +535,7 @@ export function formatNum(v: number, frac = 1): string {
   return new Intl.NumberFormat("uk-UA", { maximumFractionDigits: frac }).format(v);
 }
 
-/** Контрольний сценарій контракту (docs/ERP_LAUNCH_CONTRACT.md, C1). */
+/** Built-in self-test for the control scenario from the spec. */
 export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
     area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
@@ -564,16 +548,15 @@ export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const sand = r.lines.find((l) => l.key === "m_sand");
   const plast = r.lines.find((l) => l.key === "m_plast");
   const fiber = r.lines.find((l) => l.key === "m_fiber");
-  const diesel = r.lines.find((l) => l.key === "m_diesel");
+  const stationDieselL = +(r.volumeM3 * 3.14 * floorCoef(3)).toFixed(1);
 
   const checks = [
     ["volume = 7 м³", r.volumeM3 === 7],
     ["цемент М500 = 60 мішків", cement?.qty === 60],
-    ["пісок технічно = 13,4 т", sand?.qty === 13.4],
-    ["пісок закупівля = 14 т", sand?.purchaseQty === 14],
+    ["пісок продажа = 14 т", sand?.qty === 14],
     ["пластифікатор = 10 л", plast?.qty === 10],
-    ["фібра = 8 уп.", fiber?.qty === 8],
-    ["дизель базовий = 17 л", diesel?.qty === 17],
+    ["фібра = 11 уп.", fiber?.qty === 11],
+    ["дизель = 22 л (1-5 поверх)", stationDieselL === 22],
   ] as const;
 
   return {
