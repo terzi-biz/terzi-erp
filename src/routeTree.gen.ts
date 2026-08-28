@@ -37,6 +37,7 @@ import { Route as WarehouseRouteImport } from './routes/warehouse'
 import { Route as WorksRouteImport } from './routes/works'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
+import { Route as CalcIndexRouteImport } from './routes/calc.index'
 import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
@@ -216,6 +217,11 @@ const Char91DotwellKnownChar93OauthProtectedResourceRoute =
     path: '/.well-known/oauth-protected-resource',
     getParentRoute: () => rootRouteImport,
   } as any)
+const CalcIndexRoute = CalcIndexRouteImport.update({
+  id: '/calc/',
+  path: '/calc/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CrmIndexRoute = CrmIndexRouteImport.update({
   id: '/crm/',
   path: '/crm/',
@@ -455,6 +461,7 @@ export interface FileRoutesByFullPath {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/calc/': typeof CalcIndexRoute
   '/crm/': typeof CrmIndexRoute
   '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
@@ -521,6 +528,7 @@ export interface FileRoutesByTo {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/calc': typeof CalcIndexRoute
   '/crm': typeof CrmIndexRoute
   '/marketing': typeof MarketingIndexRoute
   '/objects': typeof ObjectsIndexRoute
@@ -588,6 +596,7 @@ export interface FileRoutesById {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/calc/': typeof CalcIndexRoute
   '/crm/': typeof CrmIndexRoute
   '/marketing/': typeof MarketingIndexRoute
   '/objects/': typeof ObjectsIndexRoute
@@ -656,6 +665,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/calc/'
     | '/crm/'
     | '/marketing/'
     | '/objects/'
@@ -722,6 +732,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/calc'
     | '/crm'
     | '/marketing'
     | '/objects'
@@ -788,6 +799,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/calc/'
     | '/crm/'
     | '/marketing/'
     | '/objects/'
@@ -855,6 +867,7 @@ export interface RootRouteChildren {
   OrdersIdRoute: typeof OrdersIdRoute
   OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
+  CalcIndexRoute: typeof CalcIndexRoute
   CrmIndexRoute: typeof CrmIndexRoute
   MarketingIndexRoute: typeof MarketingIndexRoute
   ObjectsIndexRoute: typeof ObjectsIndexRoute
@@ -1067,6 +1080,13 @@ declare module '@tanstack/react-router' {
       path: '/.well-known/oauth-protected-resource'
       fullPath: '/.well-known/oauth-protected-resource'
       preLoaderRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/calc/': {
+      id: '/calc/'
+      path: '/calc'
+      fullPath: '/calc/'
+      preLoaderRoute: typeof CalcIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm/': {
@@ -1376,6 +1396,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersIdRoute: OrdersIdRoute,
   OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
+  CalcIndexRoute: CalcIndexRoute,
   CrmIndexRoute: CrmIndexRoute,
   MarketingIndexRoute: MarketingIndexRoute,
   ObjectsIndexRoute: ObjectsIndexRoute,
