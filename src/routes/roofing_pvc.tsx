@@ -589,6 +589,15 @@ function PvcPage() {
                   placeholder={`авто ≈ ${input.perimeter}`}
                 />
               </Field>
+              <Field label="Накривка парапету, п.м" hint="0 — не рахується. Закупівля елементами по 2 м.">
+                <NumberInput
+                  min={0}
+                  className={inp}
+                  value={input.cappingMeters ?? 0}
+                  onChange={(v) => upd("cappingMeters", v)}
+                  placeholder={`авто ≈ ${input.perimeter}`}
+                />
+              </Field>
             </div>
             <Tip>
               Розхідники (рондоль, дюбель, шуруп, герметик) рахуються автоматично: рондоль{" "}
