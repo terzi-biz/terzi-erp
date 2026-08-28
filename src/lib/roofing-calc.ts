@@ -21,6 +21,8 @@ import {
   ROOFING_KB_COEFF_OVERRIDES,
 } from "./roofing-knowledge.generated";
 import { findRoll } from "./roofing-rolls";
+import { coreFromLegacyResult } from "./core/legacy-adapter";
+import type { CanonicalResult } from "./core/dto";
 
 export type RoofSystem = "rubemast" | "pvc";
 export type PvcThickness = "1.5" | "1.8";
@@ -238,6 +240,8 @@ export interface RoofLine {
 }
 
 export interface RoofingResult {
+  /** Канонічний результат Calculation Core — єдине джерело підсумків. */
+  core?: CanonicalResult;
   effectiveAreaM2: number;
   rolls?: number;
   fasteners?: number;
@@ -677,7 +681,7 @@ export function calculateRoofing(
   const marginPercent = totalClient > 0 ? (grossProfit / totalClient) * 100 : 0;
   if (marginPercent < c.marginThreshold) warnings.push("warnLowMargin");
 
-  return {
+  const result: RoofingResult = {
     effectiveAreaM2,
     rolls: rollsCount, fasteners: fastenersCount, primerL, gasCylinders, galtelMeters,
     lines, warnings,
@@ -688,4 +692,15 @@ export function calculateRoofing(
     materialsCost, worksCost, logisticsCost, amortEquip, amortTransport, totalCost,
     grossProfit, marginPercent,
   };
+  result.core = coreFromLegacyResult("roofing_rub", area, result, {
+    payment: input.payment,
+    withVAT: input.withVAT,
+    vatRatePercent: Math.round((c.vatRate) * 100),
+    complexityPercent: input.complexityPercent,
+    discountPercent: input.discountPercent,
+    partnerCommission: input.partnerCommission,
+    minCheck: c.minCheck,
+    engineVersion: "roofing_rub@core1",
+  });
+  return result;
 }

@@ -12,6 +12,8 @@
  */
 import type { MaterialPrice } from "./screed-calc";
 import type { RoofLine, RoofingResult, PaymentForm } from "./roofing-calc";
+import { coreFromLegacyResult } from "./core/legacy-adapter";
+import type { CanonicalResult } from "./core/dto";
 
 export type PvcThickness = "1.5" | "1.8";
 export type PvcDiameter = "75" | "110" | "160";
@@ -458,7 +460,7 @@ export function calculatePvc(
   if (marginPercent < c.marginThreshold) warnings.push("warnLowMargin");
   if (verticalHeightM === 0) warnings.push("Не задана вертикаль парапету — мембрана рахується лише по горизонталі.");
 
-  return {
+  const result: PvcResult = {
     horizontalAreaM2: area,
     verticalAreaM2,
     verticalHeightM,
@@ -474,4 +476,15 @@ export function calculatePvc(
     materialsCost, worksCost, logisticsCost, amortEquip, amortTransport, totalCost,
     grossProfit, marginPercent,
   };
+  result.core = coreFromLegacyResult("roofing_pvc", area, result, {
+    payment: input.payment,
+    withVAT: input.withVAT,
+    vatRatePercent: Math.round((c.vatRate) * 100),
+    complexityPercent: input.complexityPercent,
+    discountPercent: input.discountPercent,
+    partnerCommission: input.partnerCommission,
+    minCheck: c.minCheck,
+    engineVersion: "roofing_pvc@core1",
+  });
+  return result;
 }
