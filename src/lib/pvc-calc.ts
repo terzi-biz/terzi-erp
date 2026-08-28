@@ -243,14 +243,18 @@ export function calculatePvc(
       "Внесіть підтверджену ціну в довідник. Підставляти ціну неармованої Sikaplan D-15 (655 грн/м²) заборонено.",
     );
   }
+  const fieldRolls = c.fieldRollM2 > 0 ? ceil(membraneM2 / c.fieldRollM2) : 0;
+  const fieldPurchaseM2 = +(fieldRolls * c.fieldRollM2).toFixed(2);
   push({
     key: "m_pvc", block: "materials",
     name: `ПВХ-мембрана армована Sikaplan ${input.thickness} мм, польове полотно (з нахльостом ×${c.overlapCoef})`,
     unit: "м²", qty: membraneM2, pricePerUnit: fieldPrice.sell, costPerUnit: fieldPrice.buy,
-    purchaseQty: c.fieldRollM2 > 0 ? ceil(membraneM2 / c.fieldRollM2) : undefined,
+    purchaseQty: fieldRolls > 0 ? fieldRolls : undefined,
     purchaseUnit: `рул. × ${c.fieldRollM2} м²`,
-    note: `Розрахункова площа ${membraneM2} м²; закупівля рулонами по ${c.fieldRollM2} м².`,
+    note: `Чиста площа ${totalGeomM2} м²; розрахункова з нахльостом ${membraneM2} м²; ` +
+      `закупівля ${fieldRolls} рул. = ${fieldPurchaseM2} м²; залишок ${+(fieldPurchaseM2 - membraneM2).toFixed(2)} м².`,
   });
+
 
   // Неармована D-15 — окремий код, окрема одиниця, лише вузли/проходки/примикання.
   const detailPointsQty = Math.max(0, input.opaikaPoints) +
