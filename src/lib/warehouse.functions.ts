@@ -1,11 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { uuid, nullableUuid, lineInput } from "@/lib/warehouse.schema";
 
 /** Склад: довідники, залишки, документи руху, резерв, інвентаризація. */
-
-const uuid = z.string().uuid();
-const nullableUuid = uuid.nullable().optional();
 
 export const listWarehouses = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -91,13 +89,6 @@ export const listStockDocuments = createServerFn({ method: "GET" })
     if (error) { console.error("listStockDocuments", error); throw new Error("Не вдалося завантажити документи"); }
     return data ?? [];
   });
-
-const lineInput = z.object({
-  item_id: uuid,
-  qty: z.number(),
-  price: z.number().min(0).default(0),
-  note: z.string().max(300).optional().nullable(),
-});
 
 export const saveStockDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

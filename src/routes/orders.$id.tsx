@@ -686,8 +686,9 @@ function ProductionTab({ o }: { o: any }) {
 function FinanceTab({ o }: { o: any }) {
   const pnlFn = useServerFn(getOrderPnl);
   const resFn = useServerFn(listReservations);
-  const { data: pnl } = useQuery({ queryKey: ["order-pnl", o.id], queryFn: () => pnlFn({ data: { order_id: o.id } }) });
-  const { data: reservations = [] } = useQuery({ queryKey: ["order-reservations", o.id], queryFn: () => resFn({ data: { order_id: o.id } }) });
+  const { data: pnl } = useQuery({ queryKey: ["order-pnl", o.id], queryFn: () => pnlFn({ data: { order_id: o.id } }), enabled: !!o?.id, retry: false });
+  const { data: reservations = [] } = useQuery({ queryKey: ["order-reservations", o.id], queryFn: () => resFn({ data: { order_id: o.id } }), enabled: !!o?.id, retry: false });
+
 
   return (
     <div className="space-y-4">
