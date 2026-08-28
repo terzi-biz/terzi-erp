@@ -7,7 +7,17 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
-export type TimelineKind = "call" | "lead" | "task" | "order" | "estimate" | "invoice" | "payment";
+export type TimelineKind =
+  | "request"
+  | "call"
+  | "lead"
+  | "task"
+  | "measurement"
+  | "order"
+  | "estimate"
+  | "invoice"
+  | "payment";
+
 
 export type TimelineItem = {
   id: string;
