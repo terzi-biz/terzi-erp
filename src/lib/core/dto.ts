@@ -10,6 +10,7 @@ import type { BillingMode, PriceBlockingError, PriceStatus } from "./price-polic
 import type { SellerSettings, VatCategory, VatCategoryTotal } from "./vat";
 import { taxStatusLabel } from "./vat";
 import type { AmortSettings } from "./amortization";
+import type { AdjustmentBreakdown } from "./adjustments";
 import type { ProfitResult } from "./margin";
 
 export type CoreBlock = "materials" | "works" | "logistics" | "equipment" | "services" | "other";
@@ -72,6 +73,8 @@ export interface CanonicalResult {
   vatTotal: number;
   /** Виручка без клієнтських податків. */
   revenueNet: number;
+  /** Розклад комерційних коригувань. */
+  adjustments: AdjustmentBreakdown;
   /** Клієнтський підсумок з податками. */
   totalClient: number;
   materialsCost: number;
@@ -98,6 +101,7 @@ export interface InternalEstimateDTO {
   vat: VatCategoryTotal[];
   vatTotal: number;
   revenueNet: number;
+  adjustments: AdjustmentBreakdown;
   totalClient: number;
   materialsCost: number;
   worksCost: number;
@@ -154,6 +158,7 @@ export function toInternalDTO(r: CanonicalResult): InternalEstimateDTO {
     vat: r.vat.map((v) => ({ ...v })),
     vatTotal: r.vatTotal,
     revenueNet: r.revenueNet,
+    adjustments: { ...r.adjustments },
     totalClient: r.totalClient,
     materialsCost: r.materialsCost,
     worksCost: r.worksCost,
