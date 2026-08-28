@@ -115,6 +115,8 @@ const defaultInput: PvcInput = {
   pvcAngleMeters: 0,
   pvcClampMeters: 0,
   dripEdgeMeters: 0,
+  cappingMeters: 0,
+  withCapping: false,
   cityDelivery: true,
   outOfCityKm: 0,
   withLift: true,
@@ -586,6 +588,15 @@ function PvcPage() {
                   className={inp}
                   value={input.dripEdgeMeters}
                   onChange={(v) => upd("dripEdgeMeters", v)}
+                  placeholder={`авто ≈ ${input.perimeter}`}
+                />
+              </Field>
+              <Field label="Накривка парапету, п.м" hint="0 — не рахується. Закупівля елементами по 2 м.">
+                <NumberInput
+                  min={0}
+                  className={inp}
+                  value={input.cappingMeters ?? 0}
+                  onChange={(v) => upd("cappingMeters", v)}
                   placeholder={`авто ≈ ${input.perimeter}`}
                 />
               </Field>

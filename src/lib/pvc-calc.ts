@@ -12,6 +12,8 @@
  */
 import type { MaterialPrice } from "./screed-calc";
 import type { RoofLine, RoofingResult, PaymentForm } from "./roofing-calc";
+import { coreFromLegacyResult } from "./core/legacy-adapter";
+import type { CanonicalResult } from "./core/dto";
 
 export type PvcThickness = "1.5" | "1.8";
 export type PvcDiameter = "75" | "110" | "160";
@@ -51,6 +53,10 @@ export interface PvcInput {
   pvcAngleMeters: number;      // ПВХ-уголок
   pvcClampMeters: number;      // прижимна планка
   dripEdgeMeters: number;      // капельник
+  /** Накривка парапету з ПВХ-ламінованої жерсті, п.м. 0 = авто від периметру. */
+  cappingMeters?: number;
+  /** Ставити накривку парапету взагалі. */
+  withCapping?: boolean;
 
   // Логістика
   cityDelivery: boolean;
@@ -159,6 +165,7 @@ export const DEFAULT_PVC_WORKS: Record<string, number> = {
   aerator: 1100,
   opaika: 150,
   drip_edge: 200,
+  pvc_metal_lay: 180,
   pvc_angle_lay: 80,
   pvc_clamp_lay: 90,
   slope: 220,
@@ -174,6 +181,7 @@ export const DEFAULT_PVC_WORK_COSTS: Record<string, number> = {
   aerator: 550,
   opaika: 60,
   drip_edge: 100,
+  pvc_metal_lay: 90,
   pvc_angle_lay: 40,
   pvc_clamp_lay: 45,
   slope: 80,
@@ -312,6 +320,22 @@ export function calculatePvc(
       ...barPurchase(dripM) });
     push({ key: "w_drip", block: "works", name: "Монтаж капельника", unit: "п.м", qty: dripM,
       pricePerUnit: wp("drip_edge"), costPerUnit: wc("drip_edge") });
+  }
+
+  // Накривка парапету з ПВХ-ламінованої жерсті (елементи по 2 м)
+  const cappingM = input.withCapping === false
+    ? 0
+    : (input.cappingMeters ?? 0) > 0
+      ? +(input.cappingMeters as number)
+      : input.withCapping
+        ? perimeter
+        : 0;
+  if (cappingM > 0) {
+    push({ key: "m_capping", block: "materials", name: "Накривка парапету (ПВХ-ламінована жерсть)", unit: "п.м",
+      qty: cappingM, pricePerUnit: px("pvc_metal").sell, costPerUnit: px("pvc_metal").buy,
+      ...barPurchase(cappingM) });
+    push({ key: "w_capping", block: "works", name: "Монтаж накривки парапету", unit: "п.м", qty: cappingM,
+      pricePerUnit: wp("pvc_metal_lay"), costPerUnit: wc("pvc_metal_lay") });
   }
 
   // Воронки за діаметрами
@@ -458,12 +482,13 @@ export function calculatePvc(
   if (marginPercent < c.marginThreshold) warnings.push("warnLowMargin");
   if (verticalHeightM === 0) warnings.push("Не задана вертикаль парапету — мембрана рахується лише по горизонталі.");
 
-  return {
+  const result: PvcResult = {
     horizontalAreaM2: area,
     verticalAreaM2,
     verticalHeightM,
     membraneM2,
     effectiveAreaM2: totalGeomM2,
+    rolls: fieldRolls,
     fasteners,
     lines, warnings,
     materialsSell, worksSell, logisticsSell,
@@ -474,4 +499,15 @@ export function calculatePvc(
     materialsCost, worksCost, logisticsCost, amortEquip, amortTransport, totalCost,
     grossProfit, marginPercent,
   };
+  result.core = coreFromLegacyResult("roofing_pvc", area, result, {
+    payment: input.payment,
+    withVAT: input.withVAT,
+    vatRatePercent: 20, // Launch Contract §6: справжня ставка ПДВ
+    complexityPercent: input.complexityPercent,
+    discountPercent: input.discountPercent,
+    partnerCommission: input.partnerCommission,
+    minCheck: c.minCheck,
+    engineVersion: "roofing_pvc@core1",
+  });
+  return result;
 }

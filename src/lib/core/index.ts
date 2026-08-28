@@ -29,6 +29,11 @@ import {
   type AmortSettings,
 } from "./amortization";
 import { defaultSellerSettings, vatBreakdown, vatRateFor, type SellerSettings } from "./vat";
+import {
+  computeAdjustments,
+  NO_ADJUSTMENTS,
+  type CommercialAdjustments,
+} from "./adjustments";
 
 export * from "./contract";
 export * from "./dto";
@@ -36,6 +41,7 @@ export * from "./margin";
 export * from "./price-policy";
 export * from "./vat";
 export * from "./amortization";
+export * from "./adjustments";
 
 /** Сирий рядок від калькулятора. */
 export interface RawLine {
@@ -66,6 +72,8 @@ export interface CoreInput {
   amort?: AmortSettings;
   /** Амортизація обладнання, віднесена на замовлення, грн. */
   amortCost?: number;
+  /** Комерційні коригування: складність, знижка, комісія, мінімальний чек. */
+  adjustments?: CommercialAdjustments;
   warnings?: readonly string[];
   engineVersion: string;
   priceBookVersion?: number | null;
@@ -146,7 +154,12 @@ export function buildCanonicalResult(input: CoreInput): CanonicalResult {
     amortCost,
   });
 
-  const revenueNet = round2(linesNet + amortClient);
+  const adjustments = computeAdjustments(
+    round2(linesNet + amortClient),
+    input.adjustments ?? NO_ADJUSTMENTS,
+    seller.payment === "cashless" ? seller.cashlessAdjustPercent : 0,
+  );
+  const revenueNet = adjustments.net;
   const vat = vatBreakdown(seller, {
     materials: netByBlock.materials,
     works: netByBlock.works,
@@ -188,6 +201,7 @@ export function buildCanonicalResult(input: CoreInput): CanonicalResult {
     vat,
     vatTotal,
     revenueNet,
+    adjustments,
     totalClient,
     materialsCost: round2(materialsCost),
     worksCost: round2(worksCost),

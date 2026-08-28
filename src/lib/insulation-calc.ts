@@ -12,6 +12,8 @@
  */
 import type { MaterialPrice } from "./screed-calc";
 import { areaLaborTier } from "./area-tiers";
+import { coreFromLegacyResult } from "./core/legacy-adapter";
+import type { CanonicalResult } from "./core/dto";
 
 export type InsZone = "facade" | "roof" | "floor" | "polystyrcrete";
 export type InsMaterial = "eps_50" | "xps_50" | "mineral" | "polystyrcrete";
@@ -116,6 +118,8 @@ export interface InsLine {
 }
 
 export interface InsulationResult {
+  /** Канонічний результат Calculation Core — єдине джерело підсумків. */
+  core?: CanonicalResult;
   lines: InsLine[];
   warnings: string[];
   materialsSell: number; worksSell: number; logisticsSell: number;
@@ -281,7 +285,7 @@ export function calculateInsulation(
   const marginPercent = totalClient > 0 ? (grossProfit / totalClient) * 100 : 0;
   if (marginPercent < c.marginThreshold) warnings.push("Маржинальність нижче порогу");
 
-  return {
+  const result: InsulationResult = {
     lines, warnings,
     materialsSell, worksSell, logisticsSell, subtotalSell: materialsSell + worksSell + logisticsSell,
     discountAmount, complexityAmount, partnerCommission: input.partnerCommission,
@@ -290,4 +294,15 @@ export function calculateInsulation(
     materialsCost, worksCost, logisticsCost, amortEquip, amortTransport, totalCost,
     grossProfit, marginPercent,
   };
+  result.core = coreFromLegacyResult("insulation", area, result, {
+    payment: input.payment,
+    withVAT: input.withVAT,
+    vatRatePercent: 20, // Launch Contract §6: справжня ставка ПДВ
+    complexityPercent: input.complexityPercent,
+    discountPercent: input.discountPercent,
+    partnerCommission: input.partnerCommission,
+    minCheck: c.minCheck,
+    engineVersion: "insulation@core1",
+  });
+  return result;
 }

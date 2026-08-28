@@ -12,6 +12,8 @@
  */
 import type { MaterialPrice } from "./screed-calc";
 import { areaLaborTier } from "./area-tiers";
+import { coreFromLegacyResult } from "./core/legacy-adapter";
+import type { CanonicalResult } from "./core/dto";
 
 export type DemoType = "screed" | "tile" | "roof" | "walls";
 export type ContainerSize = 8 | 27;
@@ -109,6 +111,8 @@ export interface DemoLine {
 }
 
 export interface DemolitionResult {
+  /** Канонічний результат Calculation Core — єдине джерело підсумків. */
+  core?: CanonicalResult;
   wasteM3: number;
   containers: number;
   lines: DemoLine[];
@@ -248,7 +252,7 @@ export function calculateDemolition(
   const marginPercent = totalClient > 0 ? (grossProfit / totalClient) * 100 : 0;
   if (marginPercent < c.marginThreshold) warnings.push("Маржинальність нижче порогу");
 
-  return {
+  const result: DemolitionResult = {
     wasteM3: looseM3, containers,
     lines, warnings,
     materialsSell, worksSell, logisticsSell, subtotalSell: materialsSell + worksSell + logisticsSell,
@@ -258,4 +262,15 @@ export function calculateDemolition(
     materialsCost, worksCost, logisticsCost, amortEquip, amortTransport, totalCost,
     grossProfit, marginPercent,
   };
+  result.core = coreFromLegacyResult("demolition", area, result, {
+    payment: input.payment,
+    withVAT: input.withVAT,
+    vatRatePercent: 20, // Launch Contract §6: справжня ставка ПДВ
+    complexityPercent: input.complexityPercent,
+    discountPercent: input.discountPercent,
+    partnerCommission: input.partnerCommission,
+    minCheck: c.minCheck,
+    engineVersion: "demolition@core1",
+  });
+  return result;
 }
