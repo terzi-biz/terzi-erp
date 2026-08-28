@@ -551,7 +551,7 @@ export function formatNum(v: number, frac = 1): string {
   return new Intl.NumberFormat("uk-UA", { maximumFractionDigits: frac }).format(v);
 }
 
-/** Built-in self-test for the control scenario from the spec. */
+/** Контрольний сценарій контракту (docs/ERP_LAUNCH_CONTRACT.md, C1). */
 export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const r = calculateScreed({
     area: 100, thicknessCm: 7, roomsCount: 1, floor: 3, profile: "standard", cementType: "auto",
@@ -564,15 +564,16 @@ export function selfTestControlScenario(): { ok: boolean; report: string[] } {
   const sand = r.lines.find((l) => l.key === "m_sand");
   const plast = r.lines.find((l) => l.key === "m_plast");
   const fiber = r.lines.find((l) => l.key === "m_fiber");
-  const stationDieselL = +(r.volumeM3 * 3.14 * floorCoef(3)).toFixed(1);
+  const diesel = r.lines.find((l) => l.key === "m_diesel");
 
   const checks = [
     ["volume = 7 м³", r.volumeM3 === 7],
     ["цемент М500 = 60 мішків", cement?.qty === 60],
-    ["пісок продажа = 14 т", sand?.qty === 14],
+    ["пісок технічно = 13,4 т", sand?.qty === 13.4],
+    ["пісок закупівля = 14 т", sand?.purchaseQty === 14],
     ["пластифікатор = 10 л", plast?.qty === 10],
-    ["фібра = 11 уп.", fiber?.qty === 11],
-    ["дизель = 22 л (1-5 поверх)", stationDieselL === 22],
+    ["фібра = 8 уп.", fiber?.qty === 8],
+    ["дизель базовий = 17 л", diesel?.qty === 17],
   ] as const;
 
   return {
