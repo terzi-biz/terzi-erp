@@ -38,6 +38,7 @@ import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
 import { Route as CalcIndexRouteImport } from './routes/calc.index'
 import { Route as ClientsIndexRouteImport } from './routes/clients.index'
+import { Route as ClientsIdRouteImport } from './routes/clients.$id'
 import { Route as CrmIndexRouteImport } from './routes/crm.index'
 import { Route as CrmCallsRouteImport } from './routes/crm.calls'
 import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
@@ -220,6 +221,11 @@ const CalcIndexRoute = CalcIndexRouteImport.update({
 const ClientsIndexRoute = ClientsIndexRouteImport.update({
   id: '/clients/',
   path: '/clients/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClientsIdRoute = ClientsIdRouteImport.update({
+  id: '/clients/$id',
+  path: '/clients/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CrmIndexRoute = CrmIndexRouteImport.update({
@@ -438,6 +444,7 @@ export interface FileRoutesByFullPath {
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/clients/$id': typeof ClientsIdRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/intake': typeof CrmIntakeRoute
@@ -505,6 +512,7 @@ export interface FileRoutesByTo {
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/clients/$id': typeof ClientsIdRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/intake': typeof CrmIntakeRoute
@@ -573,6 +581,7 @@ export interface FileRoutesById {
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  '/clients/$id': typeof ClientsIdRoute
   '/crm/calls': typeof CrmCallsRoute
   '/crm/contacts': typeof CrmContactsRoute
   '/crm/intake': typeof CrmIntakeRoute
@@ -642,6 +651,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/clients/$id'
     | '/crm/calls'
     | '/crm/contacts'
     | '/crm/intake'
@@ -709,6 +719,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/clients/$id'
     | '/crm/calls'
     | '/crm/contacts'
     | '/crm/intake'
@@ -776,6 +787,7 @@ export interface FileRouteTypes {
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
+    | '/clients/$id'
     | '/crm/calls'
     | '/crm/contacts'
     | '/crm/intake'
@@ -844,6 +856,7 @@ export interface RootRouteChildren {
   WorksRoute: typeof WorksRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
+  ClientsIdRoute: typeof ClientsIdRoute
   CrmCallsRoute: typeof CrmCallsRoute
   CrmContactsRoute: typeof CrmContactsRoute
   CrmIntakeRoute: typeof CrmIntakeRoute
@@ -1087,6 +1100,13 @@ declare module '@tanstack/react-router' {
       path: '/clients'
       fullPath: '/clients/'
       preLoaderRoute: typeof ClientsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/clients/$id': {
+      id: '/clients/$id'
+      path: '/clients/$id'
+      fullPath: '/clients/$id'
+      preLoaderRoute: typeof ClientsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/crm/': {
@@ -1373,6 +1393,7 @@ const rootRouteChildren: RootRouteChildren = {
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
     Char91DotwellKnownChar93OauthProtectedResourceRoute,
+  ClientsIdRoute: ClientsIdRoute,
   CrmCallsRoute: CrmCallsRoute,
   CrmContactsRoute: CrmContactsRoute,
   CrmIntakeRoute: CrmIntakeRoute,
