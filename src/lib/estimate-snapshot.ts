@@ -12,7 +12,10 @@
  * Історичні кошториси не перераховуються і не бекфіляться автоматично.
  */
 
-export const ESTIMATE_SNAPSHOT_VERSION = "snapshot@1";
+import { CONTRACT_VERSION } from "./core/contract";
+
+export const ESTIMATE_SNAPSHOT_VERSION = "snapshot@2";
+
 
 export interface EstimateSnapshotSource<TInput, TResult> {
   module: string;
@@ -30,6 +33,8 @@ export interface EstimateSnapshotSource<TInput, TResult> {
 
 export interface EstimateSnapshot extends Record<string, unknown> {
   snapshotVersion: string;
+  /** Версія Launch Contract, за правилами якої побудовано кошторис. */
+  contractVersion: string;
   module: string;
   engineVersion: string;
   priceBookVersion: number | null;
@@ -39,6 +44,7 @@ export interface EstimateSnapshot extends Record<string, unknown> {
   norms: Record<string, unknown>;
   priceSources: Record<string, string>;
 }
+
 
 /**
  * Формує повний знімок. Результат розрахунку розкладається в корінь
@@ -64,6 +70,8 @@ export function buildEstimateSnapshot<TInput, TResult extends object>(
   return {
     ...deepClone(src.result),
     snapshotVersion: ESTIMATE_SNAPSHOT_VERSION,
+    contractVersion: CONTRACT_VERSION,
+
     module: src.module,
     engineVersion: src.engineVersion,
     priceBookVersion: src.priceBookVersion ?? null,
@@ -80,7 +88,9 @@ export function isSnapshotComplete(snap: unknown): boolean {
   if (!snap || typeof snap !== "object") return false;
   const s = snap as Partial<EstimateSnapshot>;
   return (
-    s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION &&
+    // snapshot@1 залишається читабельним — історичні кошториси не перебудовуються.
+    (s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION || s.snapshotVersion === "snapshot@1") &&
+
     typeof s.engineVersion === "string" &&
     s.engineVersion.length > 0 &&
     !!s.prices &&
