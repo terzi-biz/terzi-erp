@@ -47,6 +47,10 @@ import {
   Search,
 } from "lucide-react";
 import { EstimateView, vatFromResult } from "@/components/EstimateView";
+import { CalcViewTabs, type CalcView } from "@/components/calc/CalcViewTabs";
+import { PurchaseSheet } from "@/components/roofing/PurchaseSheet";
+import { GenericProductionCard } from "@/components/calc/GenericProductionCard";
+import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import {
@@ -206,7 +210,7 @@ function ScreedPage() {
 
   const [showInternalPref, setShowInternal] = useState(true);
   const showInternal = isInternal && showInternalPref;
-  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [view, setView] = useState<CalcView>("calc");
   useEstimatePrefill(search.estimate, draft.loadRecord);
 
   const [showCompare, setShowCompare] = useState(false);
@@ -390,20 +394,7 @@ function ScreedPage() {
         </div>
       </header>
 
-      <div className="flex gap-1 border-b border-border">
-        <button
-          onClick={() => setView("calc")}
-          className={`px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <Calculator className="w-4 h-4" /> Калькулятор
-        </button>
-        <button
-          onClick={() => setView("estimate")}
-          className={`px-4 py-2.5 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px transition-colors ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <FileText className="w-4 h-4" /> Кошторис / КП
-        </button>
-      </div>
+      <CalcViewTabs view={view} onChange={setView} />
 
       {view === "calc" && (
         <AmortizationPanel value={amort} onChange={setAmort} amortCost={result.amortEquip} />
@@ -426,6 +417,24 @@ function ScreedPage() {
           editsKey={draft.editsKey}
           onEditsChange={draft.setEditsSig}
         />
+      )}
+
+      {view === "purchase" && (
+        <div className="relative z-10">
+          <PurchaseSheet lines={result.lines} isInternal={showInternal} estimateNumber={estimateNumber} />
+        </div>
+      )}
+
+      {view === "production" && (
+        <div className="relative z-10">
+          <GenericProductionCard lines={result.lines} title={"Стяжка"} estimateNumber={estimateNumber} address={client.address} />
+        </div>
+      )}
+
+      {view === "planfact" && (
+        <div className="relative z-10">
+          <PlanFactPanel lines={result.lines} estimateId={estimateId} orderId={link.orderId ?? null} />
+        </div>
       )}
 
       <div

@@ -27,6 +27,10 @@ import { formatUah, formatNum } from "@/lib/screed-calc";
 import { exportElementAsPng } from "@/lib/pngExport";
 import { AlertTriangle, Image as ImageIcon, Eye, EyeOff, Calculator, FileText } from "lucide-react";
 import { EstimateView, vatFromResult } from "@/components/EstimateView";
+import { CalcViewTabs, type CalcView } from "@/components/calc/CalcViewTabs";
+import { PurchaseSheet } from "@/components/roofing/PurchaseSheet";
+import { GenericProductionCard } from "@/components/calc/GenericProductionCard";
+import { PlanFactPanel } from "@/components/roofing/PlanFactPanel";
 import { EstimateDraftControls } from "@/components/EstimateDraftControls";
 import { useEstimateDraft } from "@/lib/useEstimateDraft";
 import { TargetMarginPanel } from "@/components/TargetMarginPanel";
@@ -112,7 +116,7 @@ function InsulationPage() {
   const [showInternalPref, setShowInternal] = useState(true);
   const showInternal = isInternal && showInternalPref;
   const printRef = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState<"calc" | "estimate">("calc");
+  const [view, setView] = useState<CalcView>("calc");
   useEstimatePrefill(search.estimate, draft.loadRecord);
 
   const worksMapped = useMemo(() => {
@@ -266,20 +270,7 @@ function InsulationPage() {
         </div>
       </header>
 
-      <div className="flex gap-1 border-b border-border relative z-10">
-        <button
-          onClick={() => setView("calc")}
-          className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "calc" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <Calculator className="w-4 h-4" /> Калькулятор
-        </button>
-        <button
-          onClick={() => setView("estimate")}
-          className={`px-4 py-2 text-sm font-semibold inline-flex items-center gap-2 border-b-2 -mb-px ${view === "estimate" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-        >
-          <FileText className="w-4 h-4" /> Кошторис / КП
-        </button>
-      </div>
+      <CalcViewTabs view={view} onChange={setView} />
 
       {view === "estimate" && (
         <div className="relative z-10">
@@ -298,6 +289,24 @@ function InsulationPage() {
             editsKey={draft.editsKey}
             onEditsChange={draft.setEditsSig}
           />
+        </div>
+      )}
+
+      {view === "purchase" && (
+        <div className="relative z-10">
+          <PurchaseSheet lines={result.lines} isInternal={showInternal} estimateNumber={estimateNumber} />
+        </div>
+      )}
+
+      {view === "production" && (
+        <div className="relative z-10">
+          <GenericProductionCard lines={result.lines} title={"Утеплення"} estimateNumber={estimateNumber} address={client.address} />
+        </div>
+      )}
+
+      {view === "planfact" && (
+        <div className="relative z-10">
+          <PlanFactPanel lines={result.lines} estimateId={estimateId} orderId={link.orderId ?? null} />
         </div>
       )}
 
