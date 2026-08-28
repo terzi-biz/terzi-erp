@@ -912,42 +912,51 @@ export type Database = {
         Row: {
           address: string | null
           created_at: string
+          crm_link: string | null
           email: string | null
           external_id: string | null
           external_source: string | null
           id: string
+          manager_id: string | null
           name: string
           notes: string | null
           owner_id: string
           phone: string | null
+          source: string | null
           status: string
           updated_at: string
         }
         Insert: {
           address?: string | null
           created_at?: string
+          crm_link?: string | null
           email?: string | null
           external_id?: string | null
           external_source?: string | null
           id?: string
+          manager_id?: string | null
           name: string
           notes?: string | null
           owner_id: string
           phone?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           address?: string | null
           created_at?: string
+          crm_link?: string | null
           email?: string | null
           external_id?: string | null
           external_source?: string | null
           id?: string
+          manager_id?: string | null
           name?: string
           notes?: string | null
           owner_id?: string
           phone?: string | null
+          source?: string | null
           status?: string
           updated_at?: string
         }
