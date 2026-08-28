@@ -6444,6 +6444,25 @@ export type Database = {
     }
     Functions: {
       cancel_stock_document: { Args: { _doc_id: string }; Returns: Json }
+      claim_integration_event: {
+        Args: {
+          p_claim?: boolean
+          p_correlation_id?: string
+          p_direction?: string
+          p_event_id?: string
+          p_event_ts?: string
+          p_event_type?: string
+          p_idempotency_key?: string
+          p_integration_id?: string
+          p_payload?: Json
+          p_payload_hash?: string
+          p_provider_event_id?: string
+          p_provider_key?: string
+          p_replay_window_min?: number
+          p_stale_lock_seconds?: number
+        }
+        Returns: Json
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
