@@ -196,6 +196,9 @@ export interface CalcLine {
   sum: number;              // sell
   cost: number;             // internal
   showToClient: boolean;
+  /** Закупівельна кількість (контракт C6) — не впливає на суму клієнта. */
+  purchaseQty?: number;
+  purchaseUnit?: string;
 }
 
 export interface CalcResult {
