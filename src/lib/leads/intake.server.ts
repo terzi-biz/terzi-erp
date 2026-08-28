@@ -12,6 +12,7 @@
  *    сирі поля маскуються.
  */
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
+import { extractAttribution, attributionToJson, type Attribution } from "@/lib/marketing/attribution-fields";
 
 export interface IntakePayload {
   provider?: string;
@@ -26,7 +27,17 @@ export interface IntakePayload {
   address?: string;
   utm?: Record<string, string>;
   gclid?: string;
+  gbraid?: string;
+  wbraid?: string;
   fbclid?: string;
+  ttclid?: string;
+  landing_url?: string;
+  referrer?: string;
+  form_id?: string;
+  ga_client_id?: string;
+  ga_session_id?: string;
+  first_touch?: string;
+  last_touch?: string;
   external_id?: string;
 }
 
@@ -102,6 +113,10 @@ export async function handleLeadIntake(
   ctx: { ipHash: string | null; signatureOk: boolean },
 ): Promise<IntakeResult> {
   const phoneNorm = normalizePhone(payload.phone);
+  // Атрибуція: utm, click id (gclid/gbraid/wbraid/fbclid/ttclid), landing_url,
+  // form_id, GA4 client/session, first/last touch. Порожні поля не вигадуються.
+  const attribution: Attribution = { ...extractAttribution(payload as Record<string, unknown>) };
+  const attributionJson = attributionToJson(attribution);
   if (!phoneNorm && !payload.email) {
     return { status: "rejected", error: "Потрібен телефон або e-mail" };
   }
@@ -133,9 +148,9 @@ export async function handleLeadIntake(
       contact_name: payload.name ?? null,
       phone_norm: phoneNorm,
       email: payload.email ?? null,
-      utm: payload.utm ?? {},
-      gclid: payload.gclid ?? null,
-      fbclid: payload.fbclid ?? null,
+      utm: { ...(payload.utm ?? {}), ...attributionJson },
+      gclid: attribution.gclid ?? null,
+      fbclid: attribution.fbclid ?? null,
       payload: maskPayload(payload),
       status: "accepted",
     })
@@ -213,9 +228,9 @@ export async function handleLeadIntake(
           status: "open",
           external_source: provider,
           external_id: payload.external_id ?? null,
-          utm: payload.utm ?? {},
-          first_touch_at: new Date().toISOString(),
-          last_touch_at: new Date().toISOString(),
+          utm: { ...(payload.utm ?? {}), ...attributionJson },
+          first_touch_at: attribution.first_touch_at ?? new Date().toISOString(),
+          last_touch_at: attribution.last_touch_at ?? new Date().toISOString(),
           notes: payload.message ?? null,
         })
         .select("id").maybeSingle();
@@ -242,7 +257,7 @@ export async function handleLeadIntake(
         lead_id: leadId,
         status: "new",
         external_id: payload.external_id ?? null,
-        payload: maskPayload(payload),
+        payload: { ...maskPayload(payload), attribution: attributionJson },
       })
       .select("id").maybeSingle();
     if (reqErr) throw reqErr;

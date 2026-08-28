@@ -184,13 +184,21 @@ export async function processEvent(eventId: string, opts?: { force?: boolean }):
   if (!ev) return { status: "missing" };
   const event = ev as any;
   if (event.status === "done") return { status: "done", correlationId: event.correlation_id ?? null };
-  if (event.unsupported && !opts?.force) return { status: "unsupported_event", correlationId: event.correlation_id ?? null };
+  // Непідтримувана подія — термінальна: ані автоматичний, ані ручний force-повтор
+  // її не переобробляє і жодних CRM-дій не створює.
+  if (event.unsupported) {
+    return {
+      status: "unsupported_event",
+      message: "Подія не підтримується — повтор неможливий",
+      correlationId: event.correlation_id ?? null,
+    };
+  }
 
   // Атомарний захват у Postgres: лише один воркер бере подію в обробку.
   if (opts?.force) {
     await db
       .from("integration_events")
-      .update({ status: "processing", locked_at: new Date().toISOString(), unsupported: false } as any)
+      .update({ status: "processing", locked_at: new Date().toISOString() } as any)
       .eq("id", eventId);
   } else {
     const { data: claimRes, error: claimErr } = await (db as any).rpc("claim_integration_event", {
