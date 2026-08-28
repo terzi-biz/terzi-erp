@@ -1,3 +1,4 @@
+import { CalcStepRail } from "@/components/calc/CalcStepRail";
 import { createFileRoute } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useMemo, useRef, useCallback } from "react";
@@ -190,6 +191,7 @@ function DemolitionPage() {
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 relative">
+      <CalcStepRail module="demolition" />
       <img
         src={logoAsset.url}
         alt=""

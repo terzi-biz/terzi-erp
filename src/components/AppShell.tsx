@@ -1,28 +1,29 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useI18n, useT } from "@/lib/i18n";
+import { useI18n } from "@/lib/i18n";
 import { useAuth } from "@/lib/auth";
 import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
-  LayoutDashboard, Layers, Home, Snowflake, Hammer, History, Palette, Settings,
-  BarChart3, LogOut, Users, ChevronDown, Package, Wrench, Truck, Menu, X, CalendarDays, ShieldCheck, Cable, Sparkles, Building2, HardHat, Target, Contact, Inbox, PhoneCall, ListTodo, Boxes, Wallet, ArrowDownUp, Megaphone,
+  LayoutDashboard, Target, Calculator, FileText, Building2, Wallet, BarChart3, Settings,
+  LogOut, ChevronDown, Menu, X,
 } from "lucide-react";
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
-import { MARKETING_NAV } from "./marketing/nav";
-
-type Mod = "screed" | "roofing_pvc" | "roofing_rub" | "insulation" | "demolition";
-
-const MOD_LABEL: Record<Mod, string> = {
-  screed: "Стяжка",
-  roofing_pvc: "ПВХ мембрана",
-  roofing_rub: "Руберойд",
-  insulation: "Утеплення",
-  demolition: "Демонтаж",
-};
+import { navForRoles, activeSectionKey, type NavSection } from "./nav-model";
 
 const AppShellContext = createContext(false);
+
+const SECTION_ICON: Record<string, typeof LayoutDashboard> = {
+  dashboard: LayoutDashboard,
+  crm: Target,
+  calc: Calculator,
+  estimates: FileText,
+  orders: Building2,
+  finance: Wallet,
+  analytics: BarChart3,
+  settings: Settings,
+};
 
 /** Guards against nested AppShell usage: inner instances render children only. */
 export function AppShell({ children }: { children: ReactNode }) {
@@ -37,7 +38,13 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function AppShellLayout({ children }: { children: ReactNode }) {
   const { profile, user, roles, signOut } = useAuth();
-  const primaryRole = roles.includes("admin") ? "admin" : roles.includes("director") ? "director" : roles.includes("finance") ? "finance" : (roles[0] ?? "manager");
+  const primaryRole = roles.includes("admin")
+    ? "admin"
+    : roles.includes("director")
+      ? "director"
+      : roles.includes("finance")
+        ? "finance"
+        : (roles[0] ?? "manager");
   const canManageAccess = roles.includes("admin") || roles.includes("director");
   const listApprovals = useServerFn(listRegistrationApprovals);
   const { data: approvals = [] } = useQuery({
@@ -49,69 +56,20 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   const pendingApprovals = approvals.filter((row) => row.status === "pending").length;
   const roleLabels: Record<string, string> = { admin: "Адмін", director: "Директор", manager: "Менеджер", finance: "Фінансист" };
   const displayName = profile?.display_name || user?.email || "Користувач";
-  const t = useT();
   const { lang, setLang } = useI18n();
   const loc = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close drawer on navigation
   useEffect(() => { setMobileOpen(false); }, [loc.pathname, loc.searchStr]);
 
-  const moduleIcons: Record<Mod, typeof Layers> = {
-    screed: Layers, roofing_pvc: Home, roofing_rub: Home, insulation: Snowflake, demolition: Hammer,
-  };
-  const modules: Mod[] = ["screed", "roofing_pvc", "roofing_rub", "insulation", "demolition"];
+  const sections: NavSection[] = navForRoles(roles);
+  const active = activeSectionKey(loc.pathname);
+  const [openKey, setOpenKey] = useState<string | null>(active);
+  useEffect(() => { if (active) setOpenKey(active); }, [active]);
 
-  const initialOpen = (() => {
-    const search = typeof window !== "undefined" ? window.location.search : "";
-    for (const m of modules) {
-      if (loc.pathname === `/${m}` || search.includes(`module=${m}`)) return m;
-    }
-    return "screed" as Mod;
-  })();
-  const [openMod, setOpenMod] = useState<Mod | null>(initialOpen);
-
-  const topLinks = [
-    { to: "/", icon: LayoutDashboard, label: t("dashboard") },
-    { to: "/orders", icon: Building2, label: "Замовлення" },
-    { to: "/operations", icon: CalendarDays, label: "Операційний календар" },
-    { to: "/production", icon: HardHat, label: "Виробництво" },
-    { to: "/warehouse", icon: Boxes, label: "Склад" },
-    { to: "/finance", icon: Wallet, label: "Фінанси" },
-  ];
-  const crmLinks = [
-    { to: "/crm", icon: BarChart3, label: "Панель CRM" },
-    { to: "/crm/leads", icon: Target, label: "Воронка лідів" },
-    { to: "/crm/contacts", icon: Contact, label: "Контакти" },
-    { to: "/crm/requests", icon: Inbox, label: "Звернення" },
-    { to: "/crm/intake", icon: Inbox, label: "Вхідні ліди" },
-    { to: "/crm/calls", icon: PhoneCall, label: "Дзвінки" },
-    { to: "/crm/tasks", icon: ListTodo, label: "Задачі" },
-    { to: "/clients", icon: Users, label: "Клієнти" },
-  ];
-  const [crmOpen, setCrmOpen] = useState(loc.pathname.startsWith("/crm") || loc.pathname === "/clients");
-  const [mktOpen, setMktOpen] = useState(loc.pathname.startsWith("/marketing"));
-
-  const bottomLinks = [
-    { to: "/history", icon: History, label: t("history") },
-    { to: "/reports", icon: BarChart3, label: t("reports") },
-    { to: "/branding", icon: Palette, label: t("branding") },
-    { to: "/directions-editor", icon: Sparkles, label: "Конструктор напрямків" },
-    { to: "/data-exchange", icon: ArrowDownUp, label: "Імпорт та експорт" },
-    ...(canManageAccess
-      ? [
-          { to: "/data-audit", icon: ShieldCheck, label: "Аудит даних" },
-          { to: "/access", icon: ShieldCheck, label: "Доступи і ролі", badge: pendingApprovals || undefined },
-          { to: "/integrations", icon: Cable, label: "Інтеграції та API" },
-        ]
-      : []),
-
-    { to: "/settings", icon: Settings, label: t("settings") },
-  ];
-
-  const linkCls = (active: boolean) =>
+  const linkCls = (isActive: boolean) =>
     `flex items-center gap-3 px-5 py-2.5 text-sm font-medium border-l-2 transition-colors ${
-      active ? "bg-sidebar-accent text-primary border-primary" : "text-sidebar-foreground/80 border-transparent hover:bg-sidebar-accent hover:text-sidebar-foreground"
+      isActive ? "bg-sidebar-accent text-primary border-primary" : "text-sidebar-foreground/80 border-transparent hover:bg-sidebar-accent hover:text-sidebar-foreground"
     }`;
 
   const Sidebar = (
@@ -119,7 +77,6 @@ function AppShellLayout({ children }: { children: ReactNode }) {
       style={{ backgroundColor: "var(--color-sidebar)" }}
       className="w-72 md:w-64 shrink-0 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col h-full opacity-100 isolate"
     >
-
       <div className="px-5 py-5 border-b border-sidebar-border flex items-center justify-between gap-2">
         <Link to="/" className="flex items-center gap-2 min-w-0">
           <TerziLogo size={40} />
@@ -128,99 +85,57 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground mt-1 truncate">Будівельна компанія</div>
           </div>
         </Link>
-        <button onClick={() => setMobileOpen(false)} className="md:hidden p-1 rounded hover:bg-sidebar-accent shrink-0">
+        <button onClick={() => setMobileOpen(false)} className="md:hidden p-1 rounded hover:bg-sidebar-accent shrink-0" aria-label="Закрити меню">
           <X className="w-5 h-5" />
         </button>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-3">
-        {topLinks.map((n) => (
-          <Link key={n.to} to={n.to} className={linkCls(loc.pathname === n.to)}>
-            <n.icon className="w-4 h-4" />{n.label}
-          </Link>
-        ))}
-
-        <button onClick={() => setCrmOpen(!crmOpen)}
-          className={`w-full ${linkCls(loc.pathname.startsWith("/crm") || loc.pathname === "/clients")} justify-between`}>
-          <span className="flex items-center gap-3"><Target className="w-4 h-4" />CRM</span>
-          <ChevronDown className={`w-3 h-3 transition-transform ${crmOpen ? "rotate-180" : ""}`} />
-        </button>
-        {crmOpen && (
-          <div className="bg-sidebar-accent/40">
-            {crmLinks.map((n) => (
-              <Link key={n.to} to={n.to}
-                className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === n.to ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
-                <n.icon className="w-3 h-3" /> {n.label}
+      <nav className="flex-1 overflow-y-auto py-3" aria-label="Головне меню">
+        {sections.map((s) => {
+          const Icon = SECTION_ICON[s.key] ?? LayoutDashboard;
+          const isActive = active === s.key;
+          const opened = openKey === s.key;
+          const badge = s.key === "settings" ? pendingApprovals || undefined : undefined;
+          if (!s.children.length) {
+            return (
+              <Link key={s.key} to={s.to} className={linkCls(isActive)}>
+                <Icon className="w-4 h-4" />
+                <span className="min-w-0 flex-1 truncate">{s.label}</span>
               </Link>
-            ))}
-          </div>
-        )}
-
-        <button onClick={() => setMktOpen(!mktOpen)}
-          className={`w-full ${linkCls(loc.pathname.startsWith("/marketing"))} justify-between`}>
-          <span className="flex items-center gap-3"><Megaphone className="w-4 h-4" />Маркетинг</span>
-          <ChevronDown className={`w-3 h-3 transition-transform ${mktOpen ? "rotate-180" : ""}`} />
-        </button>
-        {mktOpen && (
-          <div className="bg-sidebar-accent/40">
-            {MARKETING_NAV.map((n) => (
-              <Link key={n.to} to={n.to}
-                className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === n.to ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
-                {n.label}
-              </Link>
-            ))}
-          </div>
-        )}
-
-
-
-
-
-        <div className="mt-2 mb-1 px-5 text-[10px] uppercase tracking-widest text-muted-foreground">Модулі</div>
-        {modules.map((m) => {
-          const Icon = moduleIcons[m];
-          const opened = openMod === m;
-          const isActive = loc.pathname === `/${m}` ||
-            (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("module") === m);
+            );
+          }
           return (
-            <div key={m}>
-              <button onClick={() => setOpenMod(opened ? null : m)}
-                className={`w-full ${linkCls(isActive)} justify-between`}>
-                <span className="flex items-center gap-3"><Icon className="w-4 h-4" />{MOD_LABEL[m]}</span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${opened ? "rotate-180" : ""}`} />
+            <div key={s.key}>
+              <button
+                onClick={() => setOpenKey(opened ? null : s.key)}
+                aria-expanded={opened}
+                className={`w-full ${linkCls(isActive)} justify-between`}
+              >
+                <span className="flex items-center gap-3 min-w-0">
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span className="truncate">{s.label}</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  {badge ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-black text-primary-foreground">{badge}</span> : null}
+                  <ChevronDown className={`w-3 h-3 transition-transform ${opened ? "rotate-180" : ""}`} />
+                </span>
               </button>
               {opened && (
                 <div className="bg-sidebar-accent/40">
-                  <Link to={`/${m}`} search={{ estimate: undefined }} className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === `/${m}` ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}>
-                    <Wrench className="w-3 h-3" /> Калькулятор
-                  </Link>
-                  <Link to="/materials" search={{ module: m }} className="flex items-center gap-2 pl-12 pr-4 py-2 text-xs text-sidebar-foreground/80 hover:text-sidebar-foreground">
-                    <Package className="w-3 h-3" /> Матеріали
-                  </Link>
-                  <Link to="/works" search={{ module: m }} className="flex items-center gap-2 pl-12 pr-4 py-2 text-xs text-sidebar-foreground/80 hover:text-sidebar-foreground">
-                    <Wrench className="w-3 h-3" /> Роботи
-                  </Link>
-                  <Link to="/equipment" search={{ module: m }} className="flex items-center gap-2 pl-12 pr-4 py-2 text-xs text-sidebar-foreground/80 hover:text-sidebar-foreground">
-                    <Package className="w-3 h-3" /> Обладнання
-                  </Link>
-                  <Link to="/logistics" search={{ module: m }} className="flex items-center gap-2 pl-12 pr-4 py-2 text-xs text-sidebar-foreground/80 hover:text-sidebar-foreground">
-                    <Truck className="w-3 h-3" /> Логістика
-                  </Link>
+                  {s.children.map((c) => (
+                    <Link
+                      key={`${s.key}:${c.to}`}
+                      to={c.to}
+                      className={`flex items-center gap-2 pl-12 pr-4 py-2 text-xs ${loc.pathname === c.to ? "text-primary font-bold" : "text-sidebar-foreground/80 hover:text-sidebar-foreground"}`}
+                    >
+                      {c.label}
+                    </Link>
+                  ))}
                 </div>
               )}
             </div>
           );
         })}
-
-        <div className="mt-3 pt-3 border-t border-sidebar-border">
-          {bottomLinks.map((n) => (
-            <Link key={n.to} to={n.to} className={linkCls(loc.pathname === n.to)}>
-              <n.icon className="w-4 h-4" />
-              <span className="min-w-0 flex-1 truncate">{n.label}</span>
-              {n.badge ? <span className="grid h-5 min-w-5 place-items-center rounded-full bg-primary px-1.5 text-[10px] font-black text-primary-foreground">{n.badge}</span> : null}
-            </Link>
-          ))}
-        </div>
       </nav>
 
       <div className="p-4 border-t border-sidebar-border space-y-2">
@@ -243,7 +158,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             )}
             <div className="min-w-0 flex-1">
               <div className="text-xs font-semibold truncate">{displayName}</div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabels[primaryRole]}</div>
+              <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{roleLabels[primaryRole] ?? primaryRole}</div>
             </div>
           </div>
           <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="mt-2 w-full flex items-center justify-center gap-1.5 bg-background hover:bg-accent border border-border rounded py-1.5 text-[11px] font-semibold">
@@ -256,26 +171,21 @@ function AppShellLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex relative brand-watermark">
-      {/* Mobile top bar */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 bg-sidebar border-b border-sidebar-border flex items-center justify-between px-4 h-14">
-        <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded hover:bg-sidebar-accent">
+        <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded hover:bg-sidebar-accent" aria-label="Відкрити меню">
           <Menu className="w-5 h-5" />
         </button>
         <div className="flex items-center gap-2 min-w-0">
           <TerziLogo size={28} />
           <div className="font-black tracking-tight truncate">TERZI</div>
         </div>
-        <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="p-2 -mr-2 rounded hover:bg-sidebar-accent">
+        <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="p-2 -mr-2 rounded hover:bg-sidebar-accent" aria-label="Вийти">
           <LogOut className="w-4 h-4" />
         </button>
       </div>
 
-      {/* Desktop sidebar */}
-      <div className="hidden md:block">
-        {Sidebar}
-      </div>
+      <div className="hidden md:block">{Sidebar}</div>
 
-      {/* Mobile drawer */}
       {mobileOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />

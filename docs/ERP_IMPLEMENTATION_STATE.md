@@ -36,3 +36,28 @@
 - Wave C — CRM та інтеграції на спільній черзі подій.
 - Wave D — маркетинг: атрибуція й KPI без «фальшивих нулів».
 - Wave E — замовлення, склад і фінанси: проведення документів і звірка актів.
+
+## Acceptance-перевірка Wave A (28.08.2026)
+
+| Пункт | Стан | Файл | Тест |
+| --- | --- | --- | --- |
+| Core виконується на довіреному серверному контурі, DTO видає авторизований endpoint | готово | `src/lib/core/calc.functions.ts`, `src/lib/core/estimate-dto.functions.ts` | `src/lib/__tests__/wave-a-acceptance.test.ts` |
+| Клієнтський контур без закупівель, собівартості, амортизації, прибутку, маржі (ключів немає фізично) | готово | `src/lib/core/dto.ts` | `wave-a-acceptance.test.ts` |
+| Внутрішній контур лише за правом | готово | `src/lib/access.server.ts` | `wave-a-acceptance.test.ts` |
+| Підтверджений нуль: причина, автор, дата, billing_mode; непідтверджений нуль блокує | готово (додано `zeroApproval`) | `src/lib/core/price-policy.ts` | `wave-a-acceptance.test.ts` |
+| `/roofing` — лише історичний перегляд, нові розрахунки в `/roofing_pvc` і `/roofing_rub` | готово | `src/routes/roofing.tsx` | `wave-a-acceptance.test.ts` |
+| Єдина оболонка кроків у 5 калькуляторах | готово | `src/components/calc/CalcStepRail.tsx`, `src/routes/calc.index.tsx` | `wave-a-acceptance.test.ts` |
+
+**Залишкові обмеження, зафіксовані чесно:**
+- Калькулятори досі виконують `buildCanonicalResult` і локально для миттєвого попереднього перегляду; збереження, PDF і внутрішній контур ідуть через серверні функції. Повний перенос live-preview у серверний Core запланований у Wave B (єдиний runtime `schema`/`calculate`).
+- Користувацькі перемикачі амортизації (враховувати в собівартості / включати в клієнтську ціну, %, грн/м², фікс) поки доступні в налаштуваннях обладнання; крок 7 оболонки калькулятора отримає їх разом із серверним runtime Wave B, щоб не дублювати обчислення у фронтенді.
+- Видалення сміттєвого напрямку «1» і dry-run дублів не виконувалися: потрібен окремий preview-прогін зв'язків, production і історія не змінюються.
+
+## Prompt №3 — інформаційна архітектура
+
+| Вимога | Стан | Файл | Тест |
+| --- | --- | --- | --- |
+| 8 розділів першого рівня, решта перенесена без втрат | готово | `src/components/nav-model.ts`, `src/components/AppShell.tsx` | `wave-a-acceptance.test.ts` |
+| «Розрахунки» — картки напрямків і єдина послідовність кроків | готово | `src/routes/calc.index.tsx`, `src/components/calc/CalcStepRail.tsx` | `wave-a-acceptance.test.ts` |
+| Конструктор напрямків у Налаштуваннях | готово | `src/components/nav-model.ts` (`/directions-editor`) | `wave-a-acceptance.test.ts` |
+| Ролевий дашборд: ≤6 KPI, динаміка, дії, глобальні фільтри, персональний layout, «Немає даних», час оновлення | готово | `src/lib/dashboard/widgets.ts`, `src/routes/index.tsx` | `wave-a-acceptance.test.ts` |

@@ -1,107 +1,230 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useT } from "@/lib/i18n";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { formatUah } from "@/lib/screed-calc";
 import { listEstimates } from "@/lib/estimates.functions";
-import { Layers, Home, Snowflake, Hammer, Plus, History, Users, Palette, BarChart3, Settings } from "lucide-react";
+import { usePersistedState } from "@/lib/usePersistedState";
+import {
+  PERIODS, ROLE_LAYOUT, WIDGETS, WIDGETS_BY_ID, periodRange, roleFromRoles,
+  type PeriodKey,
+} from "@/lib/dashboard/widgets";
+import { Plus, RotateCcw, SlidersHorizontal, Info, X } from "lucide-react";
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [
-    { title: "TERZI Estimate System" },
-    { name: "description", content: "ERP-калькулятор TERZI для кошторисів, клієнтів, модулів робіт і фінансового контролю." },
-    { property: "og:title", content: "TERZI Estimate System" },
-    { property: "og:description", content: "ERP-калькулятор TERZI для кошторисів, клієнтів, модулів робіт і фінансового контролю." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary_large_image" },
-  ] }),
+  head: () => ({
+    meta: [
+      { title: "Приладова панель — TERZI ERP" },
+      { name: "description", content: "Ролева приладова панель TERZI: KPI, динаміка, план/факт, задачі та якість даних." },
+      { property: "og:title", content: "Приладова панель — TERZI ERP" },
+      { property: "og:description", content: "Ролева приладова панель TERZI: KPI, динаміка, план/факт, задачі та якість даних." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Dashboard,
 });
 
-interface E { id: string; created_at: string; total_client: number; }
+interface E { id: string; created_at: string; total_client: number; status?: string | null; module?: string | null }
+
+const NO_DATA = "Немає даних";
+
+function Metric({ id, value, hint }: { id: string; value: string; hint?: string }) {
+  const def = WIDGETS_BY_ID[id];
+  return (
+    <div className="panel p-4 group relative" tabIndex={0}>
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{def?.label ?? id}</div>
+        <Info className="w-3.5 h-3.5 text-muted-foreground/60 shrink-0" aria-hidden />
+      </div>
+      <div className={`text-2xl font-black mt-2 ${value === NO_DATA ? "text-muted-foreground text-base font-semibold" : "text-primary"}`}>{value}</div>
+      {hint ? <div className="text-[11px] text-muted-foreground mt-1">{hint}</div> : null}
+      {def ? (
+        <div className="pointer-events-none absolute left-3 right-3 top-full z-20 hidden group-hover:block group-focus-within:block rounded-md border border-border bg-popover p-2 text-[11px] text-popover-foreground shadow-lg">
+          <div>{def.definition}</div>
+          <div className="mt-1 text-muted-foreground">Джерело: {def.source}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function Dashboard() {
-  const t = useT();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
+  const role = roleFromRoles(roles);
   const list = useServerFn(listEstimates);
-  const { data: rows = [] } = useQuery({ queryKey: ["estimates"], queryFn: () => list(), enabled: !!user });
-  const history = rows as E[];
-  const total = history.reduce((a, e) => a + Number(e.total_client), 0);
-  const avg = history.length ? total / history.length : 0;
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const todayCount = history.filter((e) => new Date(e.created_at).getTime() >= today.getTime()).length;
+  const { data: rows = [], dataUpdatedAt, isLoading } = useQuery({
+    queryKey: ["estimates"],
+    queryFn: () => list(),
+    enabled: !!user,
+  });
+  const all = rows as E[];
 
-  const modules = [
-    { to: "/screed", icon: Layers, label: t("screed"), active: true, desc: "Напівсуха машинна стяжка" },
-    { to: "/roofing_pvc", icon: Home, label: "ПВХ мембрана", active: true, desc: "Sikaplan / геотекстиль" },
-    { to: "/roofing_rub", icon: Home, label: "Руберойд", active: true, desc: "Акваізол / Руберіт, 1–3 шари" },
-    { to: "/insulation", icon: Snowflake, label: t("insulation"), active: true, desc: "EPS, XPS, мінвата, полістиролбетон" },
-    { to: "/demolition", icon: Hammer, label: t("demolition"), active: true, desc: "Стяжка, плитка, покрівля, перегородки" },
-  ];
+  const [period, setPeriod] = usePersistedState<PeriodKey>("terzi:dash:period", "d30");
+  const [custom, setCustom] = usePersistedState<{ from?: string; to?: string }>("terzi:dash:custom", {});
+  const [moduleFilter, setModuleFilter] = usePersistedState<string>("terzi:dash:module", "");
+  const [layout, setLayout] = usePersistedState<string[]>(`terzi:dash:layout:${role}`, ROLE_LAYOUT[role]);
+  const [editing, setEditing] = useState(false);
 
-  const quick = [
-    { to: "/screed", icon: Plus, label: t("newEstimate") },
-    { to: "/clients", icon: Users, label: "Клієнти" },
-    { to: "/history", icon: History, label: t("history") },
-    { to: "/reports", icon: BarChart3, label: t("managerReport") },
-    { to: "/branding", icon: Palette, label: t("branding") },
-    { to: "/settings", icon: Settings, label: t("settings") },
-  ];
+  const range = useMemo(() => periodRange(period, new Date(), custom), [period, custom]);
+  const scoped = useMemo(
+    () =>
+      all.filter((e) => {
+        const t = new Date(e.created_at).getTime();
+        if (t < range.from.getTime() || t >= range.to.getTime()) return false;
+        if (moduleFilter && e.module !== moduleFilter) return false;
+        return true;
+      }),
+    [all, range, moduleFilter],
+  );
+
+  const revenue = scoped.reduce((a, e) => a + Number(e.total_client || 0), 0);
+  const avg = scoped.length ? revenue / scoped.length : 0;
+
+  const valueFor = (id: string): { value: string; hint?: string } => {
+    switch (id) {
+      case "revenue":
+      case "personal_sales":
+        return scoped.length ? { value: formatUah(revenue), hint: `${scoped.length} кошторисів` } : { value: NO_DATA };
+      case "sent_estimates":
+      case "drafts": {
+        const wanted = id === "drafts" ? ["draft", "чернетка"] : ["sent", "надіслано"];
+        const n = scoped.filter((e) => wanted.includes(String(e.status ?? "").toLowerCase())).length;
+        return scoped.length ? { value: String(n) } : { value: NO_DATA };
+      }
+      default:
+        return { value: NO_DATA };
+    }
+  };
+
+  const visible = layout.filter((id) => WIDGETS_BY_ID[id]);
+  const kpi = visible.filter((id) => WIDGETS_BY_ID[id]?.group === "kpi").slice(0, 6);
+  const dynamics = visible.filter((id) => WIDGETS_BY_ID[id]?.group === "dynamics");
+  const actions = visible.filter((id) => WIDGETS_BY_ID[id]?.group === "actions");
+
+  const roleTitle: Record<string, string> = {
+    manager: "Менеджер", estimator: "Кошторисник", foreman: "Виробництво",
+    finance: "Фінанси", director: "Директор", admin: "Адміністратор",
+  };
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <header className="flex items-end justify-between border-b border-border pb-6">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
+      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-border pb-5">
         <div>
           <div className="hatch-accent h-1 w-16 mb-3 rounded" />
-          <h1 className="text-3xl font-black tracking-tight">{t("appName")}</h1>
-          <p className="text-muted-foreground mt-1">{t("tagline")}</p>
+          <h1 className="text-2xl font-black tracking-tight">Приладова панель</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            Роль: {roleTitle[role]} · оновлено{" "}
+            {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString("uk-UA") : "—"}
+          </p>
         </div>
-        <Link to="/screed" search={{ estimate: undefined }} className="bg-primary text-primary-foreground px-5 py-3 rounded-md font-bold uppercase tracking-wide text-sm hover:opacity-90 inline-flex items-center gap-2">
-          <Plus className="w-4 h-4" /> {t("newEstimate")}
-        </Link>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setEditing((v) => !v)}
+            className="inline-flex items-center gap-1.5 border border-border rounded-md px-3 py-2 text-xs font-semibold hover:bg-accent"
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5" /> Віджети
+          </button>
+          <Link to="/calc" className="bg-primary text-primary-foreground px-4 py-2 rounded-md font-bold uppercase tracking-wide text-xs inline-flex items-center gap-2 hover:opacity-90">
+            <Plus className="w-4 h-4" /> Новий розрахунок
+          </Link>
+        </div>
       </header>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: t("totalEstimates"), value: String(history.length) },
-          { label: t("totalSum"), value: formatUah(total) },
-          { label: t("avgCheck"), value: formatUah(avg) },
-          { label: t("todayCount"), value: String(todayCount) },
-        ].map((k) => (
-          <div key={k.label} className="panel p-5">
-            <div className="text-xs uppercase tracking-wider text-muted-foreground">{k.label}</div>
-            <div className="text-2xl font-black mt-2 text-primary">{k.value}</div>
-          </div>
+      <section aria-label="Фільтри" className="panel p-3 flex flex-wrap items-center gap-2">
+        {PERIODS.map((p) => (
+          <button
+            key={p.key}
+            onClick={() => setPeriod(p.key)}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold border transition-colors ${
+              period === p.key ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {p.label}
+          </button>
         ))}
-      </div>
+        {period === "custom" && (
+          <span className="flex items-center gap-1.5">
+            <input type="date" aria-label="Від" value={custom.from ?? ""} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className="border border-border rounded px-2 py-1 text-xs bg-background" />
+            <input type="date" aria-label="До" value={custom.to ?? ""} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className="border border-border rounded px-2 py-1 text-xs bg-background" />
+          </span>
+        )}
+        <select
+          aria-label="Напрямок"
+          value={moduleFilter}
+          onChange={(e) => setModuleFilter(e.target.value)}
+          className="border border-border rounded px-2 py-1.5 text-xs bg-background"
+        >
+          <option value="">Усі напрямки</option>
+          <option value="screed">Стяжка</option>
+          <option value="roofing_pvc">ПВХ мембрана</option>
+          <option value="roofing_rub">Руберойд</option>
+          <option value="insulation">Утеплення</option>
+          <option value="demolition">Демонтаж</option>
+        </select>
+      </section>
 
-      <section>
-        <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4">{t("pickModule")}</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {modules.map((m) => (
-            <Link key={m.to} to={m.to} className="panel p-6 hover:border-primary transition-all group relative overflow-hidden">
-              <div className="absolute top-0 right-0 hatch-accent h-1 w-20" />
-              <m.icon className="w-10 h-10 text-primary mb-3" />
-              <div className="font-black text-xl">{m.label}</div>
-              <div className="text-xs text-muted-foreground mt-1">{m.desc}</div>
-              <div className={`mt-4 text-[10px] uppercase tracking-widest font-bold px-2 py-1 rounded inline-block ${m.active ? "bg-success/20 text-success" : "bg-muted text-muted-foreground"}`}>
-                {m.active ? t("active") : t("comingSoon")}
-              </div>
-            </Link>
-          ))}
+      {editing && (
+        <section className="panel p-4 space-y-3" aria-label="Налаштування віджетів">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-bold">Мої віджети</div>
+            <div className="flex gap-2">
+              <button onClick={() => setLayout(ROLE_LAYOUT[role])} className="inline-flex items-center gap-1 text-xs border border-border rounded px-2 py-1 hover:bg-accent">
+                <RotateCcw className="w-3 h-3" /> За замовчуванням
+              </button>
+              <button onClick={() => setEditing(false)} className="inline-flex items-center gap-1 text-xs border border-border rounded px-2 py-1 hover:bg-accent">
+                <X className="w-3 h-3" /> Готово
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
+            {WIDGETS.map((w) => {
+              const on = layout.includes(w.id);
+              return (
+                <label key={w.id} className="flex items-center gap-2 text-xs border border-border rounded px-2 py-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={on}
+                    onChange={() => setLayout(on ? layout.filter((x) => x !== w.id) : [...layout, w.id])}
+                  />
+                  <span className="truncate">{w.label}</span>
+                </label>
+              );
+            })}
+          </div>
+          <p className="text-[11px] text-muted-foreground">Налаштування зберігається лише для вашого облікового запису.</p>
+        </section>
+      )}
+
+      <section aria-label="Ключові показники">
+        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+          {kpi.length ? kpi.map((id) => {
+            const v = valueFor(id);
+            return <Metric key={id} id={id} value={isLoading ? "…" : v.value} {...(v.hint ? { hint: v.hint } : {})} />;
+          }) : <div className="text-sm text-muted-foreground">{NO_DATA}</div>}
         </div>
       </section>
 
-      <section>
-        <h2 className="text-lg font-bold uppercase tracking-wider text-muted-foreground mb-4">Швидкі дії</h2>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          {quick.map((q) => (
-            <Link key={q.to + q.label} to={q.to} className="panel p-4 hover:border-primary text-center transition-all">
-              <q.icon className="w-6 h-6 text-primary mx-auto mb-2" />
-              <div className="text-xs font-semibold">{q.label}</div>
-            </Link>
-          ))}
+      <section aria-label="Динаміка та план/факт">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Динаміка, воронка, план/факт</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {dynamics.length ? dynamics.map((id) => <Metric key={id} id={id} value={id === "cash_flow" && scoped.length ? formatUah(revenue) : NO_DATA} />) : (
+            <div className="panel p-4 text-sm text-muted-foreground">{NO_DATA}</div>
+          )}
+          <div className="panel p-4">
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">Середній чек за період</div>
+            <div className="text-2xl font-black mt-2 text-primary">{scoped.length ? formatUah(avg) : NO_DATA}</div>
+          </div>
+        </div>
+      </section>
+
+      <section aria-label="Дії та проблеми">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Дії, проблеми, прострочення, якість даних</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+          {actions.length ? actions.map((id) => <Metric key={id} id={id} value={NO_DATA} />) : (
+            <div className="panel p-4 text-sm text-muted-foreground">{NO_DATA}</div>
+          )}
         </div>
       </section>
     </div>
