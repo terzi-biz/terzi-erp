@@ -488,7 +488,7 @@ export function calculateScreed(
       pricePerUnit: cm.sell, costPerUnit: cm.buy, sum: cm.sell, cost: cm.buy, showToClient: true });
   }
 
-  const sandTrips = Math.max(1, ceil(sandTonsSale / s.sandTripCapacity));
+  const sandTrips = Math.max(1, ceil(sandTonsPurchase / s.sandTripCapacity));
   const sandCode =
     input.sandDelivery === "outskirts" ? "sand_outskirts" :
     input.sandDelivery === "chornomorsk" ? "sand_chornomorsk" : "sand_city";
