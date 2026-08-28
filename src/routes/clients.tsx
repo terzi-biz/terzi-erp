@@ -2,11 +2,12 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { Plus, Trash2, FileText, Phone, Mail, MapPin, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Plus, Trash2, FileText, Phone, Mail, MapPin, ChevronDown, ChevronUp, ExternalLink, History } from "lucide-react";
 import { listClients, upsertClient, deleteClient } from "@/lib/clients.functions";
 import { listEstimatesByClient, updateEstimateStatus, ESTIMATE_STATUSES } from "@/lib/estimates.functions";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
+import { UnifiedTimeline } from "@/components/crm/UnifiedTimeline";
 
 export const Route = createFileRoute("/clients")({
   ssr: false,
@@ -102,6 +103,7 @@ function ClientsPage() {
   const del = useServerFn(deleteClient);
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [timeline, setTimeline] = useState<Record<string, boolean>>({});
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "", notes: "", status: "lead" as const });
 
   const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => list() });
@@ -176,6 +178,11 @@ function ClientsPage() {
                   <FileText className="w-3 h-3" /> Кошториси
                   {expanded[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                 </button>
+                <button onClick={() => setTimeline((m) => ({ ...m, [c.id]: !m[c.id] }))}
+                  className="flex-1 text-xs py-2 rounded bg-secondary font-semibold inline-flex items-center justify-center gap-1">
+                  <History className="w-3 h-3" /> Історія
+                  {timeline[c.id] ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                </button>
                 <Link to="/screed" search={{ estimate: undefined }} className="text-xs px-3 py-2 rounded bg-primary text-primary-foreground font-semibold inline-flex items-center justify-center gap-1">
                   + Новий
                 </Link>
@@ -185,6 +192,7 @@ function ClientsPage() {
                 </button>
               </div>
               {expanded[c.id] && <ClientEstimates clientId={c.id} />}
+              {timeline[c.id] && <UnifiedTimeline clientId={c.id} />}
             </div>
           );
         })}
