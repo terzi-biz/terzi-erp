@@ -33,6 +33,8 @@ export interface EstimateSnapshotSource<TInput, TResult> {
 
 export interface EstimateSnapshot extends Record<string, unknown> {
   snapshotVersion: string;
+  /** Версія Launch Contract, за правилами якої побудовано кошторис. */
+  contractVersion: string;
   module: string;
   engineVersion: string;
   priceBookVersion: number | null;
@@ -42,6 +44,7 @@ export interface EstimateSnapshot extends Record<string, unknown> {
   norms: Record<string, unknown>;
   priceSources: Record<string, string>;
 }
+
 
 /**
  * Формує повний знімок. Результат розрахунку розкладається в корінь
