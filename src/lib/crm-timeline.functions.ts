@@ -18,7 +18,7 @@ export type TimelineItem = {
   status?: string | null;
   amount?: number | null;
   href?: string | null;
-  meta?: Record<string, unknown>;
+  meta?: { call_id?: string; has_recording?: boolean };
 };
 
 export const getClientTimeline = createServerFn({ method: "GET" })
