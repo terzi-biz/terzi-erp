@@ -1,9 +1,11 @@
 /**
  * TERZI Screed (напівсуха стяжка) — core calculation engine.
- * All norms and prices are editable via the settings store; defaults below
- * implement the brief's control scenario: 100 m² / 7 cm / Standard М200 →
- * 7 m³, 60 bags cement М500, 13.9 t sand (14 t to client), 10 L plast,
- * 11 packs fiber, 22 L diesel (floors 1–5).
+ *
+ * Контракт: docs/ERP_LAUNCH_CONTRACT.md (C1, C2).
+ * Контрольний сценарій 100 м² / 7 см / М200 → 7 м³, 60 мішків М500,
+ * 13,4 т піску технічно (закупівля 14 т показується окремо), 10 л
+ * пластифікатора, 8 упаковок фібри, 17 л дизеля в базовому сценарії.
+ * Норми з 9 та 11 упаковками фібри і 22 л дизеля вилучені.
  */
 
 import { SCREED_GRADES, type ScreedGrade } from "./screed-grades";
