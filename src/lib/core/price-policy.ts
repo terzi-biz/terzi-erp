@@ -30,6 +30,20 @@ export interface PricePolicyLine {
   /** Позиція вимагає коду довідника (системний прайс). */
   requiresCatalogCode?: boolean;
   catalogCode?: string | null;
+  /** Дозвіл на підтверджений нуль: причина, автор, дата (Launch Contract §10). */
+  zeroApproval?: ZeroApproval | null;
+}
+
+/** Явний дозвіл нульової собівартості/ціни. */
+export interface ZeroApproval {
+  reason: string;
+  approvedBy: string;
+  approvedAt: string;
+}
+
+/** Дозвіл валідний лише якщо є причина, автор і дата. */
+export function isZeroApprovalValid(a: ZeroApproval | null | undefined): boolean {
+  return !!a && !!a.reason?.trim() && !!a.approvedBy?.trim() && !!a.approvedAt?.trim();
 }
 
 export interface PriceBlockingError {
@@ -40,6 +54,7 @@ export interface PriceBlockingError {
     | "missing_price"
     | "unconfirmed_price"
     | "zero_not_allowed"
+    | "unapproved_zero"
     | "missing_catalog_code";
   message: string;
 }
@@ -48,6 +63,7 @@ const REASON_TEXT: Record<PriceBlockingError["reason"], string> = {
   missing_price: "ціни немає ні в довіднику, ні в дефолтах",
   unconfirmed_price: "ціна не підтверджена відповідальним",
   zero_not_allowed: "нульова ціна не дозволена для окремої продаваної позиції",
+  unapproved_zero: "нуль не підтверджено: потрібні причина, автор і дата дозволу",
   missing_catalog_code: "відсутній обов'язковий код довідника",
 };
 
@@ -79,6 +95,16 @@ export function findBlockingPriceErrors(
     }
     if (l.priceStatus === "unconfirmed") {
       push(l, "unconfirmed_price");
+      continue;
+    }
+    if (
+      l.priceStatus === "confirmed_zero" &&
+      l.billingMode === "separate_line" &&
+      !(l.sellPerUnit > 0) &&
+      l.zeroApproval !== undefined &&
+      !isZeroApprovalValid(l.zeroApproval)
+    ) {
+      push(l, "unapproved_zero");
       continue;
     }
     if (
