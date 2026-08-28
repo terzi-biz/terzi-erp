@@ -350,14 +350,22 @@ export function calculateScreed(
       sum: meshArea * prices[pkey].sell, cost: meshArea * prices[pkey].buy, showToClient: true });
   }
 
-  // Дизель для станції — залежить від об'єму (товщина × площа) та поверху.
-  // Контроль: 100 м² × 7 см (V=7 м³), поверх 1–5 → 22 л.
-  const stationDieselL = Math.ceil(volumeM3 * norms.dieselLPerM3 * fc);
+  // Дизель для станції. Launch Contract §1: базовий сценарій 100 м² × 7 см = 17 л;
+  // надбавка за поверховість — ОКРЕМА позиція, базові літри не змінює.
+  const stationDieselL = Math.ceil(volumeM3 * norms.dieselLPerM3);
   if (stationDieselL > 0) {
     lines.push({ key: "m_diesel", block: "materials", name: "m_diesel", unit: "л", qty: stationDieselL,
       pricePerUnit: prices.diesel.sell, costPerUnit: prices.diesel.buy,
       sum: stationDieselL * prices.diesel.sell, cost: stationDieselL * prices.diesel.buy, showToClient: true });
   }
+  const dieselFloorL = Math.max(0, Math.ceil(volumeM3 * norms.dieselLPerM3 * fc) - stationDieselL);
+  if (dieselFloorL > 0) {
+    lines.push({ key: "m_diesel_floor", block: "materials", name: "m_diesel_floor", unit: "л", qty: dieselFloorL,
+      pricePerUnit: prices.diesel.sell, costPerUnit: prices.diesel.buy,
+      sum: dieselFloorL * prices.diesel.sell, cost: dieselFloorL * prices.diesel.buy, showToClient: true,
+      note: `Надбавка за поверховість (коефіцієнт ×${fc}).` });
+  }
+
 
 
 
