@@ -122,7 +122,7 @@ export type EnqueueResult = {
 export async function enqueueEvent(input: EnqueueInput): Promise<EnqueueResult> {
   const db = await admin();
   const payloadHash = await sha256Hex(JSON.stringify(input.payload ?? {}));
-  const { key, source } = buildIdempotencyKey({
+  const { source } = buildIdempotencyKey({
     providerKey: input.providerKey,
     integrationId: input.integrationId,
     eventType: input.eventType,
@@ -165,7 +165,6 @@ export async function enqueueEvent(input: EnqueueInput): Promise<EnqueueResult> 
     correlationId: res.correlation_id ?? null,
     idempotencySource: (res.idempotency_source as string) ?? source,
   };
-  void key;
 }
 
 
