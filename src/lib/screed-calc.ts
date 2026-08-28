@@ -297,13 +297,15 @@ export function calculateScreed(
     sum: cementBags * prices[cementKey].sell, cost: cementBags * prices[cementKey].buy, showToClient: true });
   if (cementBags > 80) warnings.push("warnManipulator");
 
+  // C1/C6: у вартість іде технічна потреба (13,4 т), закупівля — окремим полем.
   const sandTonsTech = +(norms.sandTonsPerM3 * volumeM3).toFixed(2);
   const sandTonsSale = ceil(sandTonsTech);
   const sandKey = input.sandType === "screened" ? "m_sand_screened" : "m_sand";
   const sandPrice = (input.sandType === "screened" ? prices.sand_screened : prices.sand) ?? DEFAULT_MATERIAL_PRICES.sand;
-  lines.push({ key: sandKey, block: "materials", name: sandKey, unit: "т", qty: sandTonsSale,
+  lines.push({ key: sandKey, block: "materials", name: sandKey, unit: "т", qty: sandTonsTech,
+    purchaseQty: sandTonsSale, purchaseUnit: "т (закупівля)",
     pricePerUnit: sandPrice.sell, costPerUnit: sandPrice.buy,
-    sum: sandTonsSale * sandPrice.sell, cost: sandTonsTech * sandPrice.buy, showToClient: true });
+    sum: sandTonsTech * sandPrice.sell, cost: sandTonsTech * sandPrice.buy, showToClient: true });
 
   const plastL = ceil(norms.plasticizerLPerM3 * volumeM3);
   lines.push({ key: "m_plast", block: "materials", name: "m_plast", unit: "л", qty: plastL,
