@@ -1,12 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { orderPnl, accountBalance } from "@/lib/finance-calc";
+import {
+  accountInput, invoiceInput, paymentInput, expenseInput, idInput, orderIdInput,
+} from "@/lib/finance.schema";
 
 /** Фінанси: рахунки компанії, інвойси, оплати, витрати, P&L по замовленню. */
-
-const uuid = z.string().uuid();
-const nullableUuid = uuid.nullable().optional();
 
 export const listAccounts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -29,14 +28,7 @@ export const listAccounts = createServerFn({ method: "GET" })
 
 export const saveAccount = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    id: uuid.optional(),
-    name: z.string().min(1).max(200),
-    kind: z.enum(["cash", "bank", "fop"]).default("bank"),
-    currency: z.string().max(10).default("UAH"),
-    opening_balance: z.number().default(0),
-    archived: z.boolean().optional(),
-  }).parse(d))
+  .inputValidator((d: unknown) => accountInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const { data: out, error } = id
@@ -60,23 +52,7 @@ export const listInvoices = createServerFn({ method: "GET" })
 
 export const saveInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    id: uuid.optional(),
-    order_id: nullableUuid,
-    client_id: nullableUuid,
-    estimate_id: nullableUuid,
-    kind: z.enum(["advance", "stage", "final", "other"]).default("stage"),
-    status: z.enum(["draft", "issued", "partial", "paid", "overdue", "cancelled"]).default("draft"),
-    issue_date: z.string().min(4),
-    due_date: z.string().min(4).optional().nullable(),
-    note: z.string().max(1000).optional().nullable(),
-    lines: z.array(z.object({
-      name: z.string().min(1).max(300),
-      unit: z.string().max(30).default("шт"),
-      qty: z.number(),
-      price: z.number(),
-    })).default([]),
-  }).parse(d))
+  .inputValidator((d: unknown) => invoiceInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, lines, ...rest } = data;
     const total = Math.round(lines.reduce((s, l) => s + l.qty * l.price, 0) * 100) / 100;
@@ -109,17 +85,7 @@ export const listPayments = createServerFn({ method: "GET" })
 
 export const savePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    id: uuid.optional(),
-    invoice_id: nullableUuid,
-    order_id: nullableUuid,
-    account_id: nullableUuid,
-    direction: z.enum(["in", "out"]).default("in"),
-    amount: z.number().min(0),
-    paid_at: z.string().min(4),
-    method: z.string().max(60).optional().nullable(),
-    note: z.string().max(500).optional().nullable(),
-  }).parse(d))
+  .inputValidator((d: unknown) => paymentInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload: any = { ...rest };
@@ -133,7 +99,7 @@ export const savePayment = createServerFn({ method: "POST" })
 
 export const deletePayment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: uuid }).parse(d))
+  .inputValidator((d: unknown) => idInput.parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("payments").delete().eq("id", data.id);
     if (error) { console.error("deletePayment", error); throw new Error("Не вдалося видалити платіж"); }
@@ -154,17 +120,7 @@ export const listExpenses = createServerFn({ method: "GET" })
 
 export const saveExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({
-    id: uuid.optional(),
-    order_id: nullableUuid,
-    account_id: nullableUuid,
-    category: z.string().max(60).default("other"),
-    name: z.string().min(1).max(300),
-    amount: z.number().min(0),
-    spent_at: z.string().min(4),
-    supplier: z.string().max(200).optional().nullable(),
-    note: z.string().max(500).optional().nullable(),
-  }).parse(d))
+  .inputValidator((d: unknown) => expenseInput.parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const payload: any = { ...rest };
@@ -178,7 +134,7 @@ export const saveExpense = createServerFn({ method: "POST" })
 
 export const deleteExpense = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ id: uuid }).parse(d))
+  .inputValidator((d: unknown) => idInput.parse(d))
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase.from("expenses").delete().eq("id", data.id);
     if (error) { console.error("deleteExpense", error); throw new Error("Не вдалося видалити витрату"); }
@@ -188,7 +144,7 @@ export const deleteExpense = createServerFn({ method: "POST" })
 /** P&L по замовленню: план з кошторисів, факт з оплат і витрат. */
 export const getOrderPnl = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ order_id: uuid }).parse(d))
+  .inputValidator((d: unknown) => orderIdInput.parse(d))
   .handler(async ({ data, context }) => {
     const [{ data: estimates }, { data: payments }, { data: expenses }, { data: invoices }] = await Promise.all([
       context.supabase.from("estimates").select("total_client,total_cost,status").eq("order_id", data.order_id),
