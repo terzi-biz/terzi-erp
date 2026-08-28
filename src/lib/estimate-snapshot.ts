@@ -13,8 +13,10 @@
  */
 
 import { CONTRACT_VERSION } from "./core/contract";
+import type { CanonicalResult, ClientEstimateDTO, InternalEstimateDTO } from "./core/dto";
+import { toClientDTO, toInternalDTO } from "./core/dto";
 
-export const ESTIMATE_SNAPSHOT_VERSION = "snapshot@2";
+export const ESTIMATE_SNAPSHOT_VERSION = "snapshot@3";
 
 
 export interface EstimateSnapshotSource<TInput, TResult> {
@@ -43,6 +45,11 @@ export interface EstimateSnapshot extends Record<string, unknown> {
   prices: Record<string, unknown>;
   norms: Record<string, unknown>;
   priceSources: Record<string, string>;
+  /** Канонічний результат Core: податки, оплата, амортизація, коригування. */
+  canonical?: CanonicalResult;
+  /** Заморожені рядки внутрішнього та клієнтського контурів. */
+  internalDTO?: InternalEstimateDTO;
+  clientDTO?: ClientEstimateDTO;
 }
 
 
@@ -80,6 +87,16 @@ export function buildEstimateSnapshot<TInput, TResult extends object>(
     prices: deepClone(src.prices),
     norms: deepClone(src.norms ?? {}),
     priceSources: { ...(src.priceSources ?? {}) },
+    ...(() => {
+      const canonical = (src.result as { core?: CanonicalResult }).core;
+      if (!canonical) return {};
+      const frozen = deepClone(canonical);
+      return {
+        canonical: frozen,
+        internalDTO: toInternalDTO(frozen),
+        clientDTO: toClientDTO(frozen),
+      };
+    })(),
   };
 }
 
@@ -89,7 +106,9 @@ export function isSnapshotComplete(snap: unknown): boolean {
   const s = snap as Partial<EstimateSnapshot>;
   return (
     // snapshot@1 залишається читабельним — історичні кошториси не перебудовуються.
-    (s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION || s.snapshotVersion === "snapshot@1") &&
+    (s.snapshotVersion === ESTIMATE_SNAPSHOT_VERSION ||
+      s.snapshotVersion === "snapshot@2" ||
+      s.snapshotVersion === "snapshot@1") &&
 
     typeof s.engineVersion === "string" &&
     s.engineVersion.length > 0 &&
