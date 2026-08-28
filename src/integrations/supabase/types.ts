@@ -5028,6 +5028,7 @@ export type Database = {
           id: string
           latitude: number | null
           longitude: number | null
+          management_data: Json
           manager_comment: string | null
           manager_id: string | null
           name: string
@@ -5062,6 +5063,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          management_data?: Json
           manager_comment?: string | null
           manager_id?: string | null
           name: string
@@ -5096,6 +5098,7 @@ export type Database = {
           id?: string
           latitude?: number | null
           longitude?: number | null
+          management_data?: Json
           manager_comment?: string | null
           manager_id?: string | null
           name?: string
