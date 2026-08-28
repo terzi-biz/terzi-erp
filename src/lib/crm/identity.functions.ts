@@ -21,7 +21,6 @@ export const getFoundationStatus = createServerFn({ method: "GET" })
     ]);
     const env = process.env as unknown as Record<string, string | undefined>;
     return listFoundationContracts().map((c) => ({
-      key: c.key,
       label: c.label,
       kind: c.kind,
       inbound: c.inbound,
