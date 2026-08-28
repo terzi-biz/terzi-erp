@@ -61,3 +61,15 @@
 | «Розрахунки» — картки напрямків і єдина послідовність кроків | готово | `src/routes/calc.index.tsx`, `src/components/calc/CalcStepRail.tsx` | `wave-a-acceptance.test.ts` |
 | Конструктор напрямків у Налаштуваннях | готово | `src/components/nav-model.ts` (`/directions-editor`) | `wave-a-acceptance.test.ts` |
 | Ролевий дашборд: ≤6 KPI, динаміка, дії, глобальні фільтри, персональний layout, «Немає даних», час оновлення | готово | `src/lib/dashboard/widgets.ts`, `src/routes/index.tsx` | `wave-a-acceptance.test.ts` |
+
+## Prompt №4 — Webhook Core (доробка)
+
+| Вимога | Стан | Файл | Тест |
+| --- | --- | --- | --- |
+| E.164-нормалізація з незмінним оригіналом | готово | `src/lib/phone.ts` | `src/lib/integrations/__tests__/webhook-core.test.ts` |
+| Ідемпотентність за `provider_event_id`, лічильник дублів | готово | `src/lib/integrations/webhook-core.ts`, `core.server.ts` | там само |
+| Replay-захист за `event_ts` з per-provider вікном | готово | `src/lib/integrations/webhook-core.ts` | там само |
+| Атомарний захват події (без паралельної обробки дубля) | готово | `core.server.ts` (`processEvent`) | — |
+| Retryable / permanent / unsupported: повтори лише де доречно | готово | `webhook-core.ts` `classifyError` | там само |
+| `echo.ping` і невідомі події Binotel → `unsupported_event`, не «успіх» | готово | `src/lib/integrations/binotel/events.ts`, `adapter.server.ts` | там само |
+| Журнал: фільтри provider / correlation / статус, ручний retry unsupported | готово | `src/routes/integrations.tsx`, `ops.server.ts` | — |
