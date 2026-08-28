@@ -220,20 +220,38 @@ const STALE_LOCK_MS = 10 * 60_000;
 
 
 /** Обробка однієї події. Повертає підсумковий статус. */
-export async function processEvent(eventId: string): Promise<{ status: string; message?: string }> {
+export async function processEvent(eventId: string, opts?: { force?: boolean }): Promise<{ status: string; message?: string; correlationId?: string | null }> {
   const db = await admin();
   const { data: ev } = await db.from("integration_events").select("*").eq("id", eventId).maybeSingle();
   if (!ev) return { status: "missing" };
   const event = ev as any;
-  if (event.status === "done") return { status: "done" };
+  if (event.status === "done") return { status: "done", correlationId: event.correlation_id ?? null };
+  if (event.unsupported && !opts?.force) return { status: "unsupported_event", correlationId: event.correlation_id ?? null };
+
+  // Атомарний захват: лише один воркер бере подію в обробку.
+  const lockedAt = event.locked_at ? new Date(event.locked_at).getTime() : 0;
+  const stale = !event.locked_at || Date.now() - lockedAt > STALE_LOCK_MS;
+  if (event.status === "processing" && !stale) {
+    return { status: "processing", message: "Подія вже обробляється", correlationId: event.correlation_id ?? null };
+  }
+  const claim = await db
+    .from("integration_events")
+    .update({ status: "processing", locked_at: new Date().toISOString() } as any)
+    .eq("id", eventId)
+    .eq("attempt", event.attempt ?? 0)
+    .neq("status", "done")
+    .select("id");
+  if (!claim.data || claim.data.length === 0) {
+    return { status: "skipped", message: "Подію вже захопив інший обробник", correlationId: event.correlation_id ?? null };
+  }
 
   const attempt = (event.attempt ?? 0) + 1;
-  await db.from("integration_events").update({ status: "processing", locked_at: new Date().toISOString() }).eq("id", eventId);
-
   const started = Date.now();
   let ok = false;
   let message = "";
   let data: unknown = null;
+  let unsupported = false;
+  let httpStatus: number | null = null;
 
   try {
     const integration = event.integration_id ? await loadIntegration(event.integration_id) : null;
@@ -248,15 +266,21 @@ export async function processEvent(eventId: string): Promise<{ status: string; m
     ok = res.ok;
     message = res.message ?? "";
     data = res.data ?? null;
+    unsupported = Boolean((res as any).unsupported);
+    httpStatus = (res as any).httpStatus ?? null;
     if (!ok) throw new Error(message || "Адаптер повернув помилку");
   } catch (e: any) {
     ok = false;
     message = e?.message ?? String(e);
+    httpStatus = httpStatus ?? e?.status ?? null;
   }
 
   const duration = Date.now() - started;
   const maxAttempts = event.max_attempts ?? 5;
-  const status = ok ? "done" : attempt >= maxAttempts ? "dead" : "failed";
+  const errorClass = ok ? null : classifyError({ message, httpStatus, unsupported });
+  // Повторюємо лише retryable; permanent і unsupported — термінальні.
+  const status = ok ? "done" : errorClass === "retryable" && attempt < maxAttempts ? "failed" : "dead";
+  const terminal = status === "dead";
 
   await db
     .from("integration_events")
@@ -264,36 +288,46 @@ export async function processEvent(eventId: string): Promise<{ status: string; m
       status,
       attempt,
       locked_at: null,
+      unsupported: unsupported || undefined,
       last_error: ok ? null : message,
       result: ok ? ((maskDeep(data) ?? null) as any) : null,
-      next_retry_at: ok || status === "dead" ? event.next_retry_at : nextRetryIso(attempt),
-    })
+      next_retry_at: ok || terminal ? event.next_retry_at : nextRetryIso(attempt),
+    } as any)
     .eq("id", eventId);
 
   await logAttempt({
     eventId,
     integrationId: event.integration_id,
     attempt,
-    level: ok ? "info" : status === "dead" ? "error" : "warn",
-    message: message || (ok ? "Успішно" : null),
+    level: ok ? "info" : unsupported ? "warn" : terminal ? "error" : "warn",
+    message:
+      message ||
+      (ok ? "Успішно" : null) ||
+      (unsupported ? `Подія не підтримується (${event.event_type})` : null),
+    httpStatus,
     durationMs: duration,
     request: event.payload,
     response: data,
   });
 
-  if (event.integration_id) {
+  if (event.integration_id && !unsupported) {
     await db
       .from("integrations")
       .update(
         ok
           ? { last_success_at: new Date().toISOString(), status: "active", last_error: null }
-          : { last_error: message, last_error_at: new Date().toISOString(), status: status === "dead" ? "error" : undefined },
+          : { last_error: message, last_error_at: new Date().toISOString(), status: terminal ? "error" : undefined },
       )
       .eq("id", event.integration_id);
   }
 
-  return { status, message };
+  return {
+    status: unsupported ? "unsupported_event" : status,
+    message,
+    correlationId: event.correlation_id ?? null,
+  };
 }
+
 
 /** Завершує подію, яку маршрут уже успішно обробив синхронно. */
 export async function completeEvent(eventId: string | null, result: unknown): Promise<void> {
