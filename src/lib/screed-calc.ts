@@ -199,7 +199,12 @@ export interface CalcLine {
   sum: number;              // sell
   cost: number;             // internal
   showToClient: boolean;
+  /** Рекомендована закупівля (кратність фасовки). Не впливає на суму — Launch Contract §6. */
+  purchaseQty?: number;
+  purchaseUnit?: string;
+  note?: string;
 }
+
 
 export interface CalcResult {
   volumeM3: number;
