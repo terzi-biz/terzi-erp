@@ -4,6 +4,8 @@ export type IntegrationStatus = "disconnected" | "connecting" | "active" | "erro
 export type IntegrationAuthKind = "none" | "api_key" | "oauth2" | "hmac" | "basic";
 export type EventDirection = "inbound" | "outbound";
 export type EventStatus = "pending" | "processing" | "done" | "failed" | "dead";
+/** Похідний статус для UI: «dead + unsupported» показуємо окремо. */
+export type EffectiveEventStatus = EventStatus | "unsupported_event";
 
 export const STATUS_LABEL: Record<IntegrationStatus, string> = {
   disconnected: "Не підключено",
