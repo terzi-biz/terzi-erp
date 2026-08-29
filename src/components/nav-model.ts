@@ -6,7 +6,10 @@
  * тощо перенесені у відповідні підрозділи.
  */
 
+import { moduleLabel } from "@/lib/modules";
+
 export interface NavChild {
+
   to: string;
   label: string;
   /** Пошуковий параметр для сторінок довідників (module=...). */
