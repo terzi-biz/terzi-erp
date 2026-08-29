@@ -4,13 +4,19 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
+    "setup": "bun install && node -e \"const f=require('fs');if(!f.existsSync('.env'))f.copyFileSync('.env.example','.env')\"",
     "dev": "vite dev",
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "format": "prettier --write .",
+    "db:validate": "node scripts/validate-migrations.mjs",
+    "db:snapshot": "node scripts/schema-snapshot.mjs",
+    "db:reset": "supabase db reset",
     "sync:roofing": "node scripts/sync-roofing-knowledge.mjs"
   },
   "dependencies": {
