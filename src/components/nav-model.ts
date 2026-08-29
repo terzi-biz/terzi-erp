@@ -6,7 +6,10 @@
  * тощо перенесені у відповідні підрозділи.
  */
 
+import { moduleLabel } from "@/lib/modules";
+
 export interface NavChild {
+
   to: string;
   label: string;
   /** Пошуковий параметр для сторінок довідників (module=...). */
@@ -25,13 +28,12 @@ export interface NavSection {
 export const MODULE_KEYS = ["screed", "roofing_pvc", "roofing_rub", "insulation", "demolition"] as const;
 export type ModuleKey = (typeof MODULE_KEYS)[number];
 
-export const MODULE_LABEL: Record<ModuleKey, string> = {
-  screed: "Стяжка",
-  roofing_pvc: "ПВХ мембрана",
-  roofing_rub: "Руберойд",
-  insulation: "Утеплення",
-  demolition: "Демонтаж",
-};
+/** Підписи беруться з канонічного реєстру модулів (src/lib/modules.ts). */
+export const MODULE_LABEL: Record<ModuleKey, string> = MODULE_KEYS.reduce(
+  (acc, key) => ({ ...acc, [key]: moduleLabel(key) }),
+  {} as Record<ModuleKey, string>,
+);
+
 
 export const NAV_SECTIONS: NavSection[] = [
   { key: "dashboard", label: "Дашборд", to: "/", children: [] },
