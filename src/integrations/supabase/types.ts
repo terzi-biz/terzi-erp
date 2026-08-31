@@ -205,6 +205,30 @@ export type Database = {
           },
         ]
       }
+      analytics_targets: {
+        Row: {
+          id: string
+          metric: string
+          month: string
+          target: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          metric: string
+          month: string
+          target?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          metric?: string
+          month?: string
+          target?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       archived_records: {
         Row: {
           archived_by: string | null
@@ -4327,6 +4351,39 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_manual_spend: {
+        Row: {
+          amount: number
+          campaign: string | null
+          comment: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          source: string
+          spend_date: string
+        }
+        Insert: {
+          amount?: number
+          campaign?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source: string
+          spend_date: string
+        }
+        Update: {
+          amount?: number
+          campaign?: string | null
+          comment?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          source?: string
+          spend_date?: string
+        }
+        Relationships: []
+      }
       marketing_recommendations: {
         Row: {
           approved_at: string | null
@@ -4406,6 +4463,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      marketing_source_map: {
+        Row: {
+          created_at: string
+          id: string
+          normalized: string
+          raw_source: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          normalized: string
+          raw_source: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          normalized?: string
+          raw_source?: string
+        }
+        Relationships: []
       }
       marketing_touchpoints: {
         Row: {
@@ -6455,6 +6533,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      analytics_overview: {
+        Args: { p_from: string; p_to: string }
+        Returns: Json
+      }
       cancel_stock_document: { Args: { _doc_id: string }; Returns: Json }
       claim_integration_event: {
         Args: {
@@ -6482,6 +6564,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      normalize_marketing_source: { Args: { _raw: string }; Returns: string }
       post_stock_count: { Args: { _count_id: string }; Returns: Json }
       post_stock_document: { Args: { _doc_id: string }; Returns: Json }
       stock_costs: {
