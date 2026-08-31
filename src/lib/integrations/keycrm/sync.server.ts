@@ -389,11 +389,22 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
       }
     : {};
 
+  // Джерело = рекламний канал (довідник sources keyCRM або utm_source), а не назва CRM.
+  let orderSource: string | null =
+    ext.source?.name ?? ext.source_name ?? (typeof ext.source === "string" ? ext.source : null);
+  if (!orderSource && ext.source_id != null) {
+    const sl = await getLink(ctx.integration.id, "sources", String(ext.source_id));
+    const p = (sl?.payload ?? {}) as Record<string, unknown>;
+    orderSource = (p.name as string) ?? (p.title as string) ?? null;
+  }
+  if (!orderSource) orderSource = (utm as any).utm_source ?? (utm as any).utm_campaign ?? null;
+
   const row = {
     number: `KCRM-${externalId}`,
     name: String(ext.title ?? ext.name ?? `Замовлення keyCRM #${externalId}`),
     client_id: clientId,
-    source: ext.source?.name ?? ext.source_name ?? ext.source ?? "keyCRM",
+    source: orderSource,
+
     address: ext.shipping?.address ?? ext.delivery_address ?? ext.address ?? null,
     crm_link: `keycrm:order:${externalId}`,
     notes: ext.manager_comment ?? ext.comment ?? null,
