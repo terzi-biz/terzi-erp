@@ -379,6 +379,16 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
           .reduce((s: number, p: any) => s + (Number(p?.amount) || 0), 0)
       : null);
 
+  const utm = ext.utm_source || ext.utm
+    ? {
+        utm_source: ext.utm_source ?? ext.utm?.source ?? ext.utm?.utm_source ?? null,
+        utm_medium: ext.utm_medium ?? ext.utm?.medium ?? ext.utm?.utm_medium ?? null,
+        utm_campaign: ext.utm_campaign ?? ext.utm?.campaign ?? ext.utm?.utm_campaign ?? null,
+        utm_content: ext.utm_content ?? ext.utm?.content ?? ext.utm?.utm_content ?? null,
+        utm_term: ext.utm_term ?? ext.utm?.term ?? ext.utm?.utm_term ?? null,
+      }
+    : {};
+
   const row = {
     number: `KCRM-${externalId}`,
     name: String(ext.title ?? ext.name ?? `Замовлення keyCRM #${externalId}`),
@@ -395,7 +405,11 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
     crm_status: ext.status?.name ?? ext.status_name ?? (typeof ext.status === "string" ? ext.status : null),
     ordered_at: isoOrNull(ext.ordered_at ?? ext.created_at ?? ext.createdAt),
     manager_comment: ext.manager_comment ?? null,
+    utm: utm as any,
+    external_source: "keycrm",
+    external_id: externalId,
   };
+
   if (!internalId) {
     const { data: byNumber } = await db.from("orders").select("id").eq("number", row.number).maybeSingle();
     internalId = (byNumber as any)?.id ?? null;
@@ -780,7 +794,72 @@ async function extractOrderChildren(ctx: AdapterContext, order: any) {
   for (const p of payments) {
     await applyReference(ctx, "payments", { ...p, order_id: order.id, id: p.id ?? `${order.id}-${p.payment_method_id ?? "p"}` });
   }
+
+  const link = await getLink(ctx.integration.id, "orders", String(order.id));
+  const orderId = link?.internal_id ?? null;
+  if (!orderId) return;
+  const db = await admin();
+  const owner = await ownerFor(ctx);
+
+  // Коментарі keyCRM → коментарі замовлення (без дублів за текстом+датою).
+  const comments = Array.isArray(order?.comments) ? order.comments : [];
+  if (comments.length) {
+    const { data: existing } = await db.from("order_comments").select("body,created_at").eq("order_id", orderId);
+    const seen = new Set((existing ?? []).map((c: any) => String(c.body)));
+    for (const c of comments) {
+      const body = String(c.comment ?? c.text ?? c.body ?? "").trim();
+      if (!body || seen.has(body)) continue;
+      seen.add(body);
+      await db.from("order_comments").insert({
+        order_id: orderId,
+        author_name: c.author?.name ?? c.manager?.name ?? "keyCRM",
+        body,
+      } as any);
+    }
+  }
+
+  // Файли keyCRM → файли замовлення (ключ — URL).
+  const files = [
+    ...(Array.isArray(order?.files) ? order.files : []),
+    ...(Array.isArray(order?.attachments) ? order.attachments : []),
+  ];
+  if (files.length) {
+    const { data: existing } = await db.from("order_files").select("url").eq("order_id", orderId);
+    const seen = new Set((existing ?? []).map((f: any) => String(f.url)));
+    for (const f of files) {
+      const url = String(f?.url ?? f?.link ?? f?.path ?? "").trim();
+      if (!url || seen.has(url)) continue;
+      seen.add(url);
+      await db.from("order_files").insert({
+        order_id: orderId,
+        url,
+        file_name: f?.name ?? f?.file_name ?? null,
+        category: "keycrm",
+      } as any);
+    }
+  }
+
+  // Задачі keyCRM → crm_tasks з ідемпотентним external_key.
+  const tasks = Array.isArray(order?.tasks) ? order.tasks : [];
+  for (const t of tasks) {
+    const externalKey = `keycrm:task:${t?.id ?? `${order.id}-${t?.title ?? ""}`}`;
+    const done = Boolean(t?.completed ?? t?.is_completed ?? t?.done);
+    const row: Record<string, unknown> = {
+      order_id: orderId,
+      title: String(t?.title ?? t?.text ?? "Задача keyCRM"),
+      description: t?.description ?? t?.comment ?? null,
+      kind: "keycrm",
+      status: done ? "done" : "open",
+      due_at: t?.deadline_at ?? t?.due_at ?? t?.deadline ?? null,
+      external_key: externalKey,
+      owner_id: owner,
+    };
+    const { data: exists } = await db.from("crm_tasks").select("id").eq("external_key", externalKey).maybeSingle();
+    if ((exists as any)?.id) await db.from("crm_tasks").update(row as any).eq("id", (exists as any).id);
+    else await db.from("crm_tasks").insert(row as any);
+  }
 }
+
 
 async function extractLeadComments(ctx: AdapterContext, card: any) {
   const comments = Array.isArray(card?.comments) ? card.comments : [];

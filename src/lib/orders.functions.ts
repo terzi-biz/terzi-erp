@@ -80,7 +80,8 @@ export const getOrder = createServerFn({ method: "POST" })
     if (error) { console.error("getOrder", error); throw new Error("Не вдалося отримати об'єкт"); }
     if (!obj) throw new Error("Об'єкт не знайдено");
     const [{ data: services }, { data: zones }, { data: measurements }, { data: assignments },
-      { data: files }, { data: comments }, { data: history }, { data: estimates }, { data: bookings }] =
+      { data: files }, { data: comments }, { data: history }, { data: estimates }, { data: bookings },
+      { data: tasks }] =
       await Promise.all([
         context.supabase.from("order_services").select("*").eq("order_id", data.id),
         context.supabase.from("order_zones").select("*").eq("order_id", data.id).order("created_at"),
@@ -91,12 +92,31 @@ export const getOrder = createServerFn({ method: "POST" })
         context.supabase.from("order_status_history").select("*").eq("order_id", data.id).order("changed_at", { ascending: false }).limit(200),
         context.supabase.from("estimates").select("id,number,module,status,total_client,created_at").eq("order_id", data.id).order("created_at", { ascending: false }),
         context.supabase.from("crew_bookings").select("*").eq("order_id", data.id).order("date", { ascending: false }),
+        context.supabase.from("crm_tasks")
+          .select("id,title,description,kind,status,priority,due_at,completed_at,created_at,assigned_to,external_key")
+          .eq("order_id", data.id).order("created_at", { ascending: false }).limit(200),
       ]);
     let client: any = null;
     if (obj.client_id) {
       const { data: c } = await context.supabase.from("clients").select("*").eq("id", obj.client_id).maybeSingle();
       client = c ?? null;
     }
+
+    // Телефонія: дзвінки клієнта цього замовлення (за client_id або нормалізованим номером).
+    const { toE164 } = await import("./phone");
+    const e164 = toE164(client?.phone ?? null);
+    let calls: any[] = [];
+    if (obj.client_id || e164) {
+      let q = context.supabase.from("crm_calls")
+        .select("id,direction,status,started_at,created_at,duration_sec,is_missed,from_number,to_number,phone_e164,recording_url,recording_available,external_id,client_id")
+        .order("started_at", { ascending: false, nullsFirst: false }).limit(100);
+      q = obj.client_id && e164
+        ? q.or(`client_id.eq.${obj.client_id},phone_e164.eq.${e164}`)
+        : obj.client_id ? q.eq("client_id", obj.client_id) : q.eq("phone_e164", e164 as string);
+      const { data: rows } = await q;
+      calls = rows ?? [];
+    }
+
     let manager_display: string | null = null;
     if (obj.manager_id) {
       const { staffName } = await import("./staff.server");
@@ -107,8 +127,10 @@ export const getOrder = createServerFn({ method: "POST" })
       services: services ?? [], zones: zones ?? [], measurements: measurements ?? [],
       assignments: assignments ?? [], files: files ?? [], comments: comments ?? [],
       history: history ?? [], estimates: estimates ?? [], bookings: bookings ?? [],
+      tasks: tasks ?? [], calls,
     };
   });
+
 
 export const saveOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -408,5 +430,85 @@ export const saveOrderManagement = createServerFn({ method: "POST" })
           .insert(services.map((s) => ({ order_id: id, service: s })));
       }
     }
+    return { ok: true };
+  });
+
+/* ───────────────────────── Задачі замовлення ───────────────────────── */
+
+const orderTaskInput = z.object({
+  id: z.string().uuid().optional(),
+  order_id: z.string().uuid(),
+  title: z.string().min(1).max(300),
+  description: z.string().max(4000).optional().nullable(),
+  kind: z.string().max(50).optional().nullable(),
+  due_at: z.string().max(40).optional().nullable(),
+  priority: z.enum(["low", "normal", "high", "critical"]).optional(),
+  status: z.enum(["open", "done", "cancelled"]).optional(),
+});
+
+export const saveOrderTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => orderTaskInput.parse(d))
+  .handler(async ({ data, context }) => {
+    const { id, order_id, ...rest } = data;
+    const { data: ord } = await context.supabase
+      .from("orders").select("client_id").eq("id", order_id).maybeSingle();
+    const row: any = {
+      ...rest,
+      order_id,
+      client_id: (ord as any)?.client_id ?? null,
+      completed_at: rest.status === "done" ? new Date().toISOString() : null,
+    };
+    if (!id) { row.owner_id = context.userId; row.assigned_to = context.userId; }
+    const { data: out, error } = id
+      ? await context.supabase.from("crm_tasks").update(row).eq("id", id).select().single()
+      : await context.supabase.from("crm_tasks").insert(row).select().single();
+    if (error) { console.error("saveOrderTask", error); throw new Error("Не вдалося зберегти задачу"); }
+    return out;
+  });
+
+export const deleteOrderTask = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("crm_tasks").delete().eq("id", data.id);
+    if (error) { console.error("deleteOrderTask", error); throw new Error("Не вдалося видалити задачу"); }
+    return { ok: true };
+  });
+
+/* ───────────────────────── Файли замовлення ───────────────────────── */
+
+export const saveOrderFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    order_id: z.string().uuid(),
+    url: z.string().min(3).max(1000),
+    file_name: z.string().max(300).optional().nullable(),
+    category: z.string().max(60).optional().nullable(),
+    note: z.string().max(1000).optional().nullable(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: out, error } = await context.supabase.from("order_files").insert({
+      ...data, uploaded_by: context.userId,
+    }).select().single();
+    if (error) { console.error("saveOrderFile", error); throw new Error("Не вдалося додати файл"); }
+    return out;
+  });
+
+export const deleteOrderFile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("order_files").delete().eq("id", data.id);
+    if (error) { console.error("deleteOrderFile", error); throw new Error("Не вдалося видалити файл"); }
+    return { ok: true };
+  });
+
+export const deleteOrderComment = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase.from("order_comments").delete().eq("id", data.id);
+    if (error) { console.error("deleteOrderComment", error); throw new Error("Не вдалося видалити коментар"); }
     return { ok: true };
   });

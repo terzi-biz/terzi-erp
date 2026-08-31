@@ -2,13 +2,15 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X } from "lucide-react";
+import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall, PhoneMissed } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import {
   getOrder, deleteOrder, updateOrderStatus, saveOrderZone, deleteOrderZone,
-  addOrderComment, saveOrderMeasurement, saveOrderManagement,
+  addOrderComment, deleteOrderComment, saveOrderMeasurement, saveOrderManagement,
+  saveOrderTask, deleteOrderTask, saveOrderFile, deleteOrderFile,
 } from "@/lib/orders.functions";
+
 import {
   COMMERCIAL_STATUSES, PRODUCTION_STATUSES, FINANCIAL_STATUSES, RISK_LEVELS,
   COMMERCIAL_LABELS, PRODUCTION_LABELS, FINANCIAL_LABELS, SERVICE_LABELS, ORDER_SERVICES, RISK_LABELS,
@@ -37,7 +39,7 @@ export const Route = createFileRoute("/orders/$id")({
   component: ObjectDetailPage,
 });
 
-type Tab = "overview"|"measurements"|"calc"|"zones"|"estimates"|"contracts"|"finance"|"comments"|"tasks"|"history"|"production"|"files";
+type Tab = "overview"|"measurements"|"calc"|"zones"|"estimates"|"contracts"|"finance"|"comments"|"tasks"|"calls"|"history"|"production"|"files";
 
 const fmtDate = (v?: string | null) =>
   v ? new Date(v).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -76,11 +78,13 @@ function ObjectDetailPage() {
     { key: "estimates", label: "Кошториси", icon: FileText },
     { key: "contracts", label: "Договори", icon: FileText },
     { key: "finance", label: "Фінанси", icon: DollarSign },
-    { key: "comments", label: "Коментарі", icon: MessageSquare },
-    { key: "tasks", label: "Задачі", icon: ListChecks },
+    { key: "comments", label: `Коментарі${(o.comments ?? []).length ? ` (${o.comments.length})` : ""}`, icon: MessageSquare },
+    { key: "tasks", label: `Задачі${(o.tasks ?? []).length ? ` (${o.tasks.length})` : ""}`, icon: ListChecks },
+    { key: "calls", label: `Дзвінки${(o.calls ?? []).length ? ` (${o.calls.length})` : ""}`, icon: PhoneCall },
     { key: "history", label: "Історія", icon: HistoryIcon },
     { key: "production", label: "Виробництво", icon: Calendar },
-    { key: "files", label: "Файли", icon: ImageIcon },
+    { key: "files", label: `Файли${(o.files ?? []).length ? ` (${o.files.length})` : ""}`, icon: ImageIcon },
+
   ];
 
   return (
@@ -124,12 +128,15 @@ function ObjectDetailPage() {
               onChange={(v) => statusMut.mutate({ risk_level: v })} />
           </div>
 
-          {o.services?.length > 0 && (
+          {(o.services?.length > 0 || o.work_tags?.length > 0) && (
             <div className="flex flex-wrap gap-1">
-              {o.services.map((s: any) => (
+              {(o.services ?? []).map((s: any) => (
                 <span key={s.id ?? s.service} className="text-[11px] px-2 py-0.5 rounded bg-primary/10 text-primary">
                   {SERVICE_LABELS[s.service] ?? s.service}
                 </span>
+              ))}
+              {(o.work_tags ?? []).map((t: string) => (
+                <span key={t} className="text-[11px] px-2 py-0.5 rounded bg-secondary text-muted-foreground">#{t}</span>
               ))}
             </div>
           )}
@@ -155,11 +162,13 @@ function ObjectDetailPage() {
             {tab === "contracts" && <ComingSoon text="Формування договору за шаблоном буде підключено у Хвилі 2. Тимчасово використовуйте кошториси зі статусом «Договір»." />}
             {tab === "finance" && <FinanceTab o={o} />}
             {tab === "comments" && <CommentsTab o={o} />}
-            {tab === "tasks" && <ComingSoon text="Модуль задач буде підключено у Хвилі 4 (CRM)." />}
+            {tab === "tasks" && <TasksTab o={o} />}
+            {tab === "calls" && <CallsTab o={o} />}
             {tab === "history" && <HistoryTab o={o} />}
             {tab === "production" && <ProductionTab o={o} />}
-            {tab === "files" && <ComingSoon text="Файлове сховище буде підключено окремим релізом." />}
+            {tab === "files" && <FilesTab o={o} />}
           </div>
+
         </div>
       </div>
     </AppShell>
@@ -256,6 +265,7 @@ function OverviewTab({ o }: { o: any }) {
     actual_start: dateInput(m.actual_start), actual_end: dateInput(m.actual_end),
     source_detail: m.source_detail ?? "", responsible_name: m.responsible_name ?? "", foreman_name: m.foreman_name ?? "",
     work_description: m.work_description ?? "", internal_note: m.internal_note ?? "",
+    work_tags: (o.work_tags ?? []).join(", "),
   }));
 
   const numOrNull = (v: any) => (v === "" || v === null || v === undefined ? null : Number(v));
@@ -270,6 +280,7 @@ function OverviewTab({ o }: { o: any }) {
       planned_start: strOrNull(form.planned_start),
       planned_end: strOrNull(form.planned_end),
       services: form.services,
+      work_tags: String(form.work_tags ?? "").split(",").map((t: string) => t.trim()).filter(Boolean),
       management: {
         estimate_total: numOrNull(form.estimate_total),
         contract_total: numOrNull(form.contract_total),
@@ -323,6 +334,8 @@ function OverviewTab({ o }: { o: any }) {
             <input className={inputCls} value={form.responsible_name} onChange={(e) => set("responsible_name", e.target.value)} /></label>
           <label className="text-xs space-y-1"><span className="text-muted-foreground">Прораб</span>
             <input className={inputCls} value={form.foreman_name} onChange={(e) => set("foreman_name", e.target.value)} /></label>
+          <label className="text-xs space-y-1 md:col-span-2"><span className="text-muted-foreground">Мітки видів робіт (через кому)</span>
+            <input className={inputCls} value={form.work_tags} onChange={(e) => set("work_tags", e.target.value)} placeholder="стяжка, покрівля, демонтаж" /></label>
         </div>
 
         <div>
@@ -401,6 +414,9 @@ function OverviewTab({ o }: { o: any }) {
         <Field label="Адреса" value={o.address ?? "—"} />
         <Field label="Плановий період" value={`${fmtDate(o.planned_start)} → ${fmtDate(o.planned_end)}`} />
         <Field label="Фактичний період" value={`${fmtDate(m.actual_start)} → ${fmtDate(m.actual_end)}`} source={m.actual_start || m.actual_end ? "Вручну" : undefined} />
+        <Field label="Статус у KeyCRM" value={o.crm_status ?? "—"} source={o.crm_status ? "CRM" : undefined} />
+        <Field label="Створено в KeyCRM" value={fmtDate(o.ordered_at)} source={o.ordered_at ? "CRM" : undefined} />
+        <Field label="UTM" value={utmText(o) ?? "—"} source={utmText(o) ? "CRM" : undefined} />
         <Field label="Сума кошторисів у системі" value={totalClient ? formatUah(totalClient) : "—"} source={totalClient ? "Кошторис" : undefined} />
       </div>
 
@@ -725,6 +741,7 @@ function FinanceTab({ o }: { o: any }) {
 function CommentsTab({ o }: { o: any }) {
   const qc = useQueryClient();
   const addFn = useServerFn(addOrderComment);
+  const delFn = useServerFn(deleteOrderComment);
   const [text, setText] = useState("");
   const send = async () => {
     if (!text.trim()) return;
@@ -743,7 +760,11 @@ function CommentsTab({ o }: { o: any }) {
           <div key={c.id} className="border border-border rounded p-2 text-sm">
             <div className="flex justify-between text-xs text-muted-foreground">
               <b>{c.author_name ?? "—"}</b>
-              <span>{new Date(c.created_at).toLocaleString("uk-UA")}</span>
+              <span className="flex items-center gap-2">
+                {new Date(c.created_at).toLocaleString("uk-UA")}
+                <button onClick={async () => { if (confirm("Видалити коментар?")) { await delFn({ data: { id: c.id } }); qc.invalidateQueries({ queryKey: ["object", o.id] }); } }}
+                  className="text-destructive"><Trash2 className="w-3 h-3" /></button>
+              </span>
             </div>
             <div className="mt-1">{c.body}</div>
           </div>
@@ -771,6 +792,192 @@ function HistoryTab({ o }: { o: any }) {
         </div>
       ))}
       {(!o.history || o.history.length === 0) && <div className="text-xs text-muted-foreground text-center py-4">Історії немає</div>}
+    </div>
+  );
+}
+
+
+/* ───────────────────────── Задачі, дзвінки, файли ───────────────────────── */
+
+function utmText(o: any): string | null {
+  const u = o?.utm && typeof o.utm === "object" ? o.utm : null;
+  if (!u) return null;
+  const parts = Object.entries(u)
+    .filter(([, v]) => v != null && String(v).trim() !== "")
+    .map(([k, v]) => `${String(k).replace(/^utm_/, "")}: ${v}`);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+const TASK_STATUS_LABELS: Record<string, string> = { open: "Відкрита", done: "Виконана", cancelled: "Скасована" };
+const TASK_PRIORITY_LABELS: Record<string, string> = { low: "Низький", normal: "Звичайний", high: "Високий", critical: "Критичний" };
+
+function TasksTab({ o }: { o: any }) {
+  const qc = useQueryClient();
+  const saveFn = useServerFn(saveOrderTask);
+  const delFn = useServerFn(deleteOrderTask);
+  const [adding, setAdding] = useState(false);
+  const [form, setForm] = useState<any>({ title: "", description: "", due_at: "", priority: "normal" });
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["object", o.id] });
+  const inputCls = "w-full rounded border border-input bg-background px-2 py-1.5 text-sm";
+
+  const add = async () => {
+    if (!form.title.trim()) { toast.error("Вкажіть назву задачі"); return; }
+    try {
+      await saveFn({ data: {
+        order_id: o.id, title: form.title.trim(),
+        description: form.description || null,
+        due_at: form.due_at ? new Date(form.due_at).toISOString() : null,
+        priority: form.priority, status: "open", kind: "manual",
+      } });
+      setForm({ title: "", description: "", due_at: "", priority: "normal" });
+      setAdding(false); invalidate(); toast.success("Задачу створено");
+    } catch (e: any) { toast.error(e?.message ?? "Помилка"); }
+  };
+
+  const toggle = async (t: any) => {
+    await saveFn({ data: { id: t.id, order_id: o.id, title: t.title, status: t.status === "done" ? "open" : "done" } });
+    invalidate();
+  };
+
+  const tasks = (o.tasks ?? []) as any[];
+
+  return (
+    <div className="space-y-3">
+      <div className="flex justify-between items-center">
+        <div className="text-sm text-muted-foreground">
+          Задач: {tasks.length} · відкритих: {tasks.filter((t) => t.status === "open").length}
+        </div>
+        <button onClick={() => setAdding(true)} className="inline-flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-semibold">
+          <Plus className="w-3.5 h-3.5" /> Нова задача
+        </button>
+      </div>
+
+      {adding && (
+        <div className="border border-border rounded p-3 space-y-2 bg-secondary/20">
+          <input className={inputCls} placeholder="Що зробити *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} />
+          <textarea rows={2} className={inputCls} placeholder="Опис" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+          <div className="grid grid-cols-2 gap-2">
+            <input type="datetime-local" className={inputCls} value={form.due_at} onChange={(e) => setForm({ ...form, due_at: e.target.value })} />
+            <select className={inputCls} value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })}>
+              {Object.entries(TASK_PRIORITY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={add} className="text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-semibold">Зберегти</button>
+            <button onClick={() => setAdding(false)} className="text-xs text-muted-foreground">Відміна</button>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        {tasks.map((t) => (
+          <div key={t.id} className="border border-border rounded p-3 text-sm flex items-start gap-3">
+            <input type="checkbox" checked={t.status === "done"} onChange={() => toggle(t)} className="mt-1" />
+            <div className="min-w-0 flex-1">
+              <div className={`font-semibold ${t.status === "done" ? "line-through text-muted-foreground" : ""}`}>{t.title}</div>
+              {t.description && <div className="text-xs text-muted-foreground mt-0.5">{t.description}</div>}
+              <div className="text-[11px] text-muted-foreground mt-1 flex flex-wrap gap-2">
+                <span>{TASK_STATUS_LABELS[t.status] ?? t.status}</span>
+                <span>· {TASK_PRIORITY_LABELS[t.priority] ?? t.priority}</span>
+                {t.due_at && <span>· до {new Date(t.due_at).toLocaleString("uk-UA")}</span>}
+                {t.external_key && <span className="text-primary">· KeyCRM</span>}
+              </div>
+            </div>
+            <button onClick={async () => { if (confirm("Видалити задачу?")) { await delFn({ data: { id: t.id } }); invalidate(); } }}
+              className="text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
+          </div>
+        ))}
+        {tasks.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Задач немає</div>}
+      </div>
+    </div>
+  );
+}
+
+function CallsTab({ o }: { o: any }) {
+  const calls = (o.calls ?? []) as any[];
+  const dur = (s: number | null) => {
+    const n = Number(s ?? 0);
+    if (!n) return "—";
+    return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
+  };
+  return (
+    <div className="space-y-3">
+      <div className="text-xs text-muted-foreground">
+        Дзвінки клієнта цього замовлення (Binotel). Всього: {calls.length} · пропущених: {calls.filter((c) => c.is_missed).length}
+      </div>
+      <div className="space-y-2">
+        {calls.map((c) => (
+          <div key={c.id} className="border border-border rounded p-3 text-sm space-y-1">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <div className="flex items-center gap-2 font-semibold">
+                {c.is_missed ? <PhoneMissed className="w-3.5 h-3.5 text-destructive" /> : <PhoneCall className="w-3.5 h-3.5 text-success" />}
+                {c.direction === "inbound" ? "Вхідний" : "Вихідний"} · {c.phone_e164 ?? c.from_number ?? c.to_number ?? "—"}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {c.started_at ? new Date(c.started_at).toLocaleString("uk-UA") : "—"} · {dur(c.duration_sec)}
+              </div>
+            </div>
+            {c.recording_url && (
+              <audio controls preload="none" src={c.recording_url} className="w-full h-8" />
+            )}
+          </div>
+        ))}
+        {calls.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Дзвінків не знайдено</div>}
+      </div>
+      <Link to="/crm/calls" className="text-primary text-xs hover:underline">→ Всі дзвінки в CRM</Link>
+    </div>
+  );
+}
+
+function FilesTab({ o }: { o: any }) {
+  const qc = useQueryClient();
+  const saveFn = useServerFn(saveOrderFile);
+  const delFn = useServerFn(deleteOrderFile);
+  const [form, setForm] = useState<any>({ url: "", file_name: "", category: "", note: "" });
+  const inputCls = "w-full rounded border border-input bg-background px-2 py-1.5 text-sm";
+  const invalidate = () => qc.invalidateQueries({ queryKey: ["object", o.id] });
+
+  const add = async () => {
+    if (!form.url.trim()) { toast.error("Вкажіть посилання на файл"); return; }
+    try {
+      await saveFn({ data: {
+        order_id: o.id, url: form.url.trim(),
+        file_name: form.file_name || null, category: form.category || null, note: form.note || null,
+      } });
+      setForm({ url: "", file_name: "", category: "", note: "" });
+      invalidate(); toast.success("Файл додано");
+    } catch (e: any) { toast.error(e?.message ?? "Помилка"); }
+  };
+
+  const files = (o.files ?? []) as any[];
+
+  return (
+    <div className="space-y-3">
+      <div className="border border-border rounded p-3 space-y-2 bg-secondary/20">
+        <div className="text-xs text-muted-foreground">Додати посилання на документ, фото або креслення (в т.ч. з KeyCRM чи Google Drive).</div>
+        <input className={inputCls} placeholder="URL файлу *" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
+        <div className="grid grid-cols-2 gap-2">
+          <input className={inputCls} placeholder="Назва" value={form.file_name} onChange={(e) => setForm({ ...form, file_name: e.target.value })} />
+          <input className={inputCls} placeholder="Категорія (фото, договір, схема)" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} />
+        </div>
+        <button onClick={add} className="text-xs bg-primary text-primary-foreground rounded px-3 py-1.5 font-semibold">Додати файл</button>
+      </div>
+      <div className="space-y-1">
+        {files.map((f) => (
+          <div key={f.id} className="flex items-center justify-between gap-2 border-b border-border/60 py-2 text-sm">
+            <a href={f.url} target="_blank" rel="noreferrer" className="text-primary hover:underline truncate">
+              {f.file_name ?? f.url}
+            </a>
+            <div className="flex items-center gap-3 text-xs text-muted-foreground shrink-0">
+              {f.category && <span>{f.category}</span>}
+              <span>{new Date(f.created_at).toLocaleDateString("uk-UA")}</span>
+              <button onClick={async () => { if (confirm("Видалити файл?")) { await delFn({ data: { id: f.id } }); invalidate(); } }}
+                className="text-destructive"><Trash2 className="w-3.5 h-3.5" /></button>
+            </div>
+          </div>
+        ))}
+        {files.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Файлів немає</div>}
+      </div>
     </div>
   );
 }

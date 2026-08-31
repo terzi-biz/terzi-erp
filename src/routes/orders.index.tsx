@@ -55,9 +55,17 @@ function OrdersPage() {
   const [service, setService] = useState("all");
   const [manager, setManager] = useState("all");
   const [risk, setRisk] = useState("all");
+  const [tag, setTag] = useState("all");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
 
   const managers = useMemo(
     () => Array.from(new Set((data as any[]).map((r) => r.manager_display).filter(Boolean))).sort(),
+    [data],
+  );
+
+  const tags = useMemo(
+    () => Array.from(new Set((data as any[]).flatMap((r) => r.work_tags ?? []))).sort(),
     [data],
   );
 
@@ -69,13 +77,20 @@ function OrdersPage() {
       if (risk !== "all" && r.risk_level !== risk) return false;
       if (manager !== "all" && r.manager_display !== manager) return false;
       if (service !== "all" && !(r.services ?? []).includes(service)) return false;
+      if (tag !== "all" && !(r.work_tags ?? []).includes(tag)) return false;
+      const created = r.ordered_at ?? r.created_at;
+      if (from && (!created || created.slice(0, 10) < from)) return false;
+      if (to && (!created || created.slice(0, 10) > to)) return false;
       if (!nq) return true;
       return [r.number, r.name, r.address, r.client?.name, r.client?.phone, r.manager_display]
         .filter(Boolean).join(" ").toLowerCase().includes(nq);
     });
-  }, [data, q, status, prod, service, manager, risk]);
+  }, [data, q, status, prod, service, manager, risk, tag, from, to]);
 
-  const resetFilters = () => { setQ(""); setStatus("all"); setProd("all"); setService("all"); setManager("all"); setRisk("all"); };
+  const resetFilters = () => {
+    setQ(""); setStatus("all"); setProd("all"); setService("all");
+    setManager("all"); setRisk("all"); setTag("all"); setFrom(""); setTo("");
+  };
   const selectCls = "rounded-md border border-input bg-background text-xs px-2.5 py-2";
 
   return (
@@ -119,6 +134,21 @@ function OrdersPage() {
               {Object.entries(RISK_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <select value={tag} onChange={(e) => setTag(e.target.value)} className={selectCls}>
+              <option value="all">Мітки робіт: всі</option>
+              {tags.map((t) => <option key={t as string} value={t as string}>{t as string}</option>)}
+            </select>
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="whitespace-nowrap">з</span>
+              <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={`${selectCls} w-full`} />
+            </label>
+            <label className="flex items-center gap-1 text-xs text-muted-foreground">
+              <span className="whitespace-nowrap">по</span>
+              <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={`${selectCls} w-full`} />
+            </label>
+          </div>
+          <div className="text-[11px] text-muted-foreground">Період — за датою створення в KeyCRM (якщо її немає, за датою створення в ERP).</div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <button onClick={resetFilters} className="hover:text-foreground underline">Скинути фільтри</button>
             <span>Знайдено: <b className="text-foreground">{rows.length}</b> з {(data as any[]).length}</span>
@@ -167,6 +197,9 @@ function OrderCard({ r }: { r: any }) {
         <div className="flex flex-wrap gap-1">
           {(r.services ?? []).map((s: string) => (
             <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{SERVICE_LABELS[s] ?? s}</span>
+          ))}
+          {(r.work_tags ?? []).map((t: string) => (
+            <span key={t} className="text-[10px] px-1.5 py-0.5 rounded bg-secondary text-muted-foreground">#{t}</span>
           ))}
         </div>
 
