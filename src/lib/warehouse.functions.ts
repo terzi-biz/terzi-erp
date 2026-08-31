@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { uuid, nullableUuid, lineInput } from "@/lib/warehouse.schema";
+import { uuid, nullableUuid, lineInput, ITEM_COLS, DOC_COLS, LINE_COLS, loadCosts } from "@/lib/warehouse.schema";
 
 /** Склад: довідники, залишки, документи руху, резерв, інвентаризація. */
 
@@ -32,21 +32,6 @@ export const saveWarehouse = createServerFn({ method: "POST" })
     if (error) { console.error("saveWarehouse", error); throw new Error("Не вдалося зберегти склад"); }
     return out;
   });
-
-/** Колонки собівартості (avg_cost / total_cost / price) закриті на рівні
- *  привілеїв БД; їх повертає лише RPC `stock_costs()` для ролей finance/admin. */
-const ITEM_COLS = "id,name,sku,unit,category,module,catalog_item_id,min_qty,archived,created_at,updated_at";
-const DOC_COLS = "id,number,doc_type,status,doc_date,warehouse_id,target_warehouse_id,order_id,supplier,note,created_by,posted_at,posted_by,created_at,updated_at";
-const LINE_COLS = "id,document_id,item_id,qty,note,created_at";
-
-type CostRow = { kind: string; id: string; parent_id: string | null; cost: number | null };
-
-async function loadCosts(supabase: any) {
-  const { data } = await supabase.rpc("stock_costs");
-  const map = new Map<string, number>();
-  for (const r of (data ?? []) as CostRow[]) map.set(`${r.kind}:${r.id}`, Number(r.cost) || 0);
-  return map;
-}
 
 export const listStockItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
