@@ -66,6 +66,7 @@ import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 import { Route as OrdersNewRouteImport } from './routes/orders.new'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
+import { Route as ReportsCeoRouteImport } from './routes/reports.ceo'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -364,6 +365,11 @@ const ProductionIdRoute = ProductionIdRouteImport.update({
   path: '/production/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsCeoRoute = ReportsCeoRouteImport.update({
+  id: '/ceo',
+  path: '/ceo',
+  getParentRoute: () => ReportsRoute,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -434,7 +440,7 @@ export interface FileRoutesByFullPath {
   '/materials': typeof MaterialsRoute
   '/mcp': typeof McpRoute
   '/operations': typeof OperationsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/roofing': typeof RoofingRoute
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
@@ -467,6 +473,7 @@ export interface FileRoutesByFullPath {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/reports/ceo': typeof ReportsCeoRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -502,7 +509,7 @@ export interface FileRoutesByTo {
   '/materials': typeof MaterialsRoute
   '/mcp': typeof McpRoute
   '/operations': typeof OperationsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/roofing': typeof RoofingRoute
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
@@ -535,6 +542,7 @@ export interface FileRoutesByTo {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/reports/ceo': typeof ReportsCeoRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -571,7 +579,7 @@ export interface FileRoutesById {
   '/materials': typeof MaterialsRoute
   '/mcp': typeof McpRoute
   '/operations': typeof OperationsRoute
-  '/reports': typeof ReportsRoute
+  '/reports': typeof ReportsRouteWithChildren
   '/roofing': typeof RoofingRoute
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
@@ -604,6 +612,7 @@ export interface FileRoutesById {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/reports/ceo': typeof ReportsCeoRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -674,6 +683,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/reports/ceo'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -742,6 +752,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/reports/ceo'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -810,6 +821,7 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/reports/ceo'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -846,7 +858,7 @@ export interface RootRouteChildren {
   MaterialsRoute: typeof MaterialsRoute
   McpRoute: typeof McpRoute
   OperationsRoute: typeof OperationsRoute
-  ReportsRoute: typeof ReportsRoute
+  ReportsRoute: typeof ReportsRouteWithChildren
   RoofingRoute: typeof RoofingRoute
   Roofing_pvcRoute: typeof Roofing_pvcRoute
   Roofing_rubRoute: typeof Roofing_rubRoute
@@ -1298,6 +1310,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/ceo': {
+      id: '/reports/ceo'
+      path: '/ceo'
+      fullPath: '/reports/ceo'
+      preLoaderRoute: typeof ReportsCeoRouteImport
+      parentRoute: typeof ReportsRoute
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -1364,6 +1383,17 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface ReportsRouteChildren {
+  ReportsCeoRoute: typeof ReportsCeoRoute
+}
+
+const ReportsRouteChildren: ReportsRouteChildren = {
+  ReportsCeoRoute: ReportsCeoRoute,
+}
+
+const ReportsRouteWithChildren =
+  ReportsRoute._addFileChildren(ReportsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
@@ -1382,7 +1412,7 @@ const rootRouteChildren: RootRouteChildren = {
   MaterialsRoute: MaterialsRoute,
   McpRoute: McpRoute,
   OperationsRoute: OperationsRoute,
-  ReportsRoute: ReportsRoute,
+  ReportsRoute: ReportsRouteWithChildren,
   RoofingRoute: RoofingRoute,
   Roofing_pvcRoute: Roofing_pvcRoute,
   Roofing_rubRoute: Roofing_rubRoute,

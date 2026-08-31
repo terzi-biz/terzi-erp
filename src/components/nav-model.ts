@@ -93,10 +93,12 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Аналітика",
     to: "/reports",
     children: [
+      { to: "/reports/ceo", label: "CEO-звіт" },
       { to: "/reports", label: "Продажі та виробництво" },
       { to: "/marketing", label: "Маркетинг" },
       { to: "/data-audit", label: "Якість даних" },
     ],
+
   },
   {
     key: "settings",
