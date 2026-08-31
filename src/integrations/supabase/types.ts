@@ -6484,6 +6484,15 @@ export type Database = {
       }
       post_stock_count: { Args: { _count_id: string }; Returns: Json }
       post_stock_document: { Args: { _doc_id: string }; Returns: Json }
+      stock_costs: {
+        Args: never
+        Returns: {
+          cost: number
+          id: string
+          kind: string
+          parent_id: string
+        }[]
+      }
     }
     Enums: {
       access_request_kind:

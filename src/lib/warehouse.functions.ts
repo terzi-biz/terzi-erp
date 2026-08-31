@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { uuid, nullableUuid, lineInput } from "@/lib/warehouse.schema";
+import { uuid, nullableUuid, lineInput, ITEM_COLS, DOC_COLS, LINE_COLS, loadCosts } from "@/lib/warehouse.schema";
 
 /** Склад: довідники, залишки, документи руху, резерв, інвентаризація. */
 
@@ -36,9 +36,10 @@ export const saveWarehouse = createServerFn({ method: "POST" })
 export const listStockItems = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const [{ data: items, error }, { data: balances }] = await Promise.all([
-      context.supabase.from("stock_items").select("*").eq("archived", false).order("name"),
+    const [{ data: items, error }, { data: balances }, costs] = await Promise.all([
+      context.supabase.from("stock_items").select(ITEM_COLS).eq("archived", false).order("name"),
       context.supabase.from("stock_balances").select("*"),
+      loadCosts(context.supabase),
     ]);
     if (error) { console.error("listStockItems", error); throw new Error("Не вдалося завантажити номенклатуру"); }
     const byItem = new Map<string, { qty: number; reserved: number }>();
@@ -50,6 +51,7 @@ export const listStockItems = createServerFn({ method: "GET" })
     }
     return (items ?? []).map((i: any) => ({
       ...i,
+      avg_cost: costs.get(`item:${i.id}`) ?? null,
       qty: byItem.get(i.id)?.qty ?? 0,
       reserved_qty: byItem.get(i.id)?.reserved ?? 0,
       balances: ((balances ?? []) as any[]).filter((b) => b.item_id === i.id),
@@ -72,8 +74,8 @@ export const saveStockItem = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
     const { data: out, error } = id
-      ? await context.supabase.from("stock_items").update(rest).eq("id", id).select().single()
-      : await context.supabase.from("stock_items").insert(rest).select().single();
+      ? await context.supabase.from("stock_items").update(rest).eq("id", id).select(ITEM_COLS).single()
+      : await context.supabase.from("stock_items").insert(rest).select(ITEM_COLS).single();
     if (error) { console.error("saveStockItem", error); throw new Error("Не вдалося зберегти позицію"); }
     return out;
   });
@@ -81,13 +83,20 @@ export const saveStockItem = createServerFn({ method: "POST" })
 export const listStockDocuments = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("stock_documents")
-      .select("*, lines:stock_document_lines(*), warehouse:warehouse_id(name), order:order_id(number,name)")
-      .order("created_at", { ascending: false })
-      .limit(300);
+    const [{ data, error }, costs] = await Promise.all([
+      context.supabase
+        .from("stock_documents")
+        .select(`${DOC_COLS}, lines:stock_document_lines(${LINE_COLS}), warehouse:warehouse_id(name), order:order_id(number,name)`)
+        .order("created_at", { ascending: false })
+        .limit(300),
+      loadCosts(context.supabase),
+    ]);
     if (error) { console.error("listStockDocuments", error); throw new Error("Не вдалося завантажити документи"); }
-    return data ?? [];
+    return (data ?? []).map((d: any) => ({
+      ...d,
+      total_cost: costs.get(`document:${d.id}`) ?? null,
+      lines: (d.lines ?? []).map((l: any) => ({ ...l, price: costs.get(`line:${l.id}`) ?? null })),
+    }));
   });
 
 export const saveStockDocument = createServerFn({ method: "POST" })
@@ -108,8 +117,8 @@ export const saveStockDocument = createServerFn({ method: "POST" })
     const payload: any = { ...rest };
     if (!id) payload.created_by = context.userId;
     const { data: doc, error } = id
-      ? await context.supabase.from("stock_documents").update(payload).eq("id", id).select().single()
-      : await context.supabase.from("stock_documents").insert(payload).select().single();
+      ? await context.supabase.from("stock_documents").update(payload).eq("id", id).select(DOC_COLS).single()
+      : await context.supabase.from("stock_documents").insert(payload).select(DOC_COLS).single();
     if (error) { console.error("saveStockDocument", error); throw new Error("Не вдалося зберегти документ"); }
 
     await context.supabase.from("stock_document_lines").delete().eq("document_id", doc.id);
@@ -120,6 +129,7 @@ export const saveStockDocument = createServerFn({ method: "POST" })
     }
     return doc;
   });
+
 
 export const postStockDocument = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
