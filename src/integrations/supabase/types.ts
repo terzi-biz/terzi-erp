@@ -5796,6 +5796,13 @@ export type Database = {
             foreignKeyName: "stock_balances_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
+            referencedRelation: "stock_item_costs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_balances_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
             referencedRelation: "stock_items"
             referencedColumns: ["id"]
           },
@@ -5839,6 +5846,13 @@ export type Database = {
             columns: ["count_id"]
             isOneToOne: false
             referencedRelation: "stock_counts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_count_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_item_costs"
             referencedColumns: ["id"]
           },
           {
@@ -5930,7 +5944,21 @@ export type Database = {
             foreignKeyName: "stock_document_lines_document_id_fkey"
             columns: ["document_id"]
             isOneToOne: false
+            referencedRelation: "stock_document_costs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_document_lines_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
             referencedRelation: "stock_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_document_lines_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_item_costs"
             referencedColumns: ["id"]
           },
           {
@@ -6115,6 +6143,13 @@ export type Database = {
           warehouse_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "stock_reservations_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_item_costs"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "stock_reservations_item_id_fkey"
             columns: ["item_id"]
@@ -6452,7 +6487,69 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      stock_document_costs: {
+        Row: {
+          id: string | null
+          total_cost: number | null
+        }
+        Insert: {
+          id?: string | null
+          total_cost?: number | null
+        }
+        Update: {
+          id?: string | null
+          total_cost?: number | null
+        }
+        Relationships: []
+      }
+      stock_document_line_costs: {
+        Row: {
+          document_id: string | null
+          id: string | null
+          price: number | null
+        }
+        Insert: {
+          document_id?: string | null
+          id?: string | null
+          price?: number | null
+        }
+        Update: {
+          document_id?: string | null
+          id?: string | null
+          price?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_document_lines_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "stock_document_costs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_document_lines_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "stock_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_item_costs: {
+        Row: {
+          avg_cost: number | null
+          id: string | null
+        }
+        Insert: {
+          avg_cost?: number | null
+          id?: string | null
+        }
+        Update: {
+          avg_cost?: number | null
+          id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       cancel_stock_document: { Args: { _doc_id: string }; Returns: Json }
