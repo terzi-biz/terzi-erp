@@ -22,5 +22,7 @@ export const orderManagementInput = z.object({
   planned_start: isoOrNull,
   planned_end: isoOrNull,
   services: z.array(z.enum(ORDER_SERVICES)).optional(),
+  work_tags: z.array(z.string().min(1).max(60)).max(30).optional(),
   management: managementDataSchema.partial().optional(),
 });
+

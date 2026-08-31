@@ -5109,6 +5109,8 @@ export type Database = {
           crm_status: string | null
           distance_km: number | null
           district: string | null
+          external_id: string | null
+          external_source: string | null
           financial_status: Database["public"]["Enums"]["object_financial_status"]
           floor: number | null
           has_lift: boolean | null
@@ -5132,6 +5134,8 @@ export type Database = {
           risk_level: Database["public"]["Enums"]["object_risk_level"]
           source: string | null
           updated_at: string
+          utm: Json
+          work_tags: string[]
         }
         Insert: {
           access_notes?: string | null
@@ -5144,6 +5148,8 @@ export type Database = {
           crm_status?: string | null
           distance_km?: number | null
           district?: string | null
+          external_id?: string | null
+          external_source?: string | null
           financial_status?: Database["public"]["Enums"]["object_financial_status"]
           floor?: number | null
           has_lift?: boolean | null
@@ -5167,6 +5173,8 @@ export type Database = {
           risk_level?: Database["public"]["Enums"]["object_risk_level"]
           source?: string | null
           updated_at?: string
+          utm?: Json
+          work_tags?: string[]
         }
         Update: {
           access_notes?: string | null
@@ -5179,6 +5187,8 @@ export type Database = {
           crm_status?: string | null
           distance_km?: number | null
           district?: string | null
+          external_id?: string | null
+          external_source?: string | null
           financial_status?: Database["public"]["Enums"]["object_financial_status"]
           floor?: number | null
           has_lift?: boolean | null
@@ -5202,6 +5212,8 @@ export type Database = {
           risk_level?: Database["public"]["Enums"]["object_risk_level"]
           source?: string | null
           updated_at?: string
+          utm?: Json
+          work_tags?: string[]
         }
         Relationships: [
           {
