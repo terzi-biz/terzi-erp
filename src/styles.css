@@ -42,6 +42,8 @@
   --color-panel-foreground: var(--panel-foreground);
   --color-steel: var(--steel);
   --color-concrete: var(--concrete);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
   --font-sans: "Inter", system-ui, -apple-system, sans-serif;
   --font-display: "Inter", system-ui, sans-serif;
 }
