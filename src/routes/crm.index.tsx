@@ -135,7 +135,7 @@ function CrmDashboard() {
 
 
         <div className="grid gap-4 lg:grid-cols-2">
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-md border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,.12)]">
             <div className="flex items-center gap-2 text-sm font-bold mb-3"><Inbox className="w-4 h-4" /> Останні звернення</div>
             <div className="space-y-2">
               {(requests as any[]).slice(0, 6).map((r) => (
@@ -147,7 +147,7 @@ function CrmDashboard() {
               {!requests.length ? <div className="text-sm text-muted-foreground">Звернень поки немає</div> : null}
             </div>
           </div>
-          <div className="rounded-xl border border-border bg-card p-4">
+          <div className="rounded-md border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,.12)]">
             <div className="flex items-center gap-2 text-sm font-bold mb-3"><PhoneCall className="w-4 h-4" /> Останні дзвінки</div>
             <div className="space-y-2">
               {(calls as any[]).slice(0, 6).map((c) => (
