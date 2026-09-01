@@ -26,18 +26,21 @@ export const Route = createFileRoute("/crm/")({
 
 const money = (n: number) => new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(n) + " ₴";
 
+const STAGE_PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#fd9b98", "#ccc8f9", "#f9deff"];
+
 function Kpi({ icon: Icon, label, value, hint, tone = "default" }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good" }) {
   const toneCls = tone === "warn" ? "text-destructive" : tone === "good" ? "text-success" : "text-primary";
   return (
-    <div className="rounded-xl border border-border bg-card p-4">
-      <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-muted-foreground">
-        <Icon className={`w-4 h-4 ${toneCls}`} /> {label}
+    <div className="rounded-md border border-border bg-card px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,.12)]">
+      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+        <Icon className={`w-3.5 h-3.5 ${toneCls}`} /> {label}
       </div>
-      <div className="mt-2 text-2xl font-black tracking-tight">{value}</div>
-      {hint ? <div className="text-xs text-muted-foreground mt-1">{hint}</div> : null}
+      <div className="mt-2 text-[26px] leading-none font-black tracking-tight">{value}</div>
+      {hint ? <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div> : null}
     </div>
   );
 }
+
 
 function CrmDashboard() {
   const leadsFn = useServerFn(listLeads);
