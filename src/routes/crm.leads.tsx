@@ -108,6 +108,8 @@ function LeadsPage() {
     if (next) move.mutate({ id: lead.id, stage_id: next.id });
   };
 
+  const STAGE_PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#fd9b98", "#ccc8f9", "#f9deff"];
+
   return (
     <AppShell>
       <div className="p-4 md:p-6 space-y-4">
@@ -127,34 +129,38 @@ function LeadsPage() {
           </div>
         </div>
 
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
-          {stages.map((s) => {
+        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+          {stages.map((s, si) => {
             const items = (leads as any[]).filter((l) => l.stage_id === s.id);
             const sum = items.reduce((a, l) => a + Number(l.budget || 0), 0);
+            const color = s.color || STAGE_PALETTE[si % STAGE_PALETTE.length];
             return (
-              <div key={s.id} className="w-[280px] shrink-0 rounded-xl border border-border bg-card/60">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                  <span className="flex items-center gap-2 text-sm font-bold">
-                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color || "var(--color-primary)" }} />
-                    {s.name}
-                  </span>
-                  <span className="text-[11px] text-muted-foreground">{items.length} · {money(sum)}</span>
+              <div key={s.id} className="w-[272px] shrink-0 rounded-md bg-muted/40">
+                <div className="rounded-t-md px-3 py-2" style={{ backgroundColor: color }}>
+                  <div className="text-[12px] font-bold uppercase tracking-wide text-[#22303f] truncate">{s.name}</div>
+                  <div className="text-[11px] font-medium text-[#22303f]/70">{items.length} лідів · {money(sum)}</div>
                 </div>
-                <div className="p-2 space-y-2 min-h-[80px]">
+                <div className="p-2 space-y-2 min-h-[120px]">
                   {items.map((l) => (
-                    <div key={l.id} className="rounded-lg border border-border bg-background p-2.5">
-                      <button onClick={() => setOpenId(l.id)} className="block w-full text-left text-sm font-semibold truncate">{l.title}</button>
-                      <div className="mt-1 text-xs text-muted-foreground truncate">{l.address || l.direction || "—"}</div>
+                    <div key={l.id} className="group rounded-[3px] bg-card px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,.18)] border-l-[3px] hover:shadow-[0_2px_6px_rgba(0,0,0,.28)] transition-shadow"
+                      style={{ borderLeftColor: color }}>
+                      <button onClick={() => setOpenId(l.id)} className="block w-full text-left text-[13px] font-semibold leading-snug truncate hover:text-primary">
+                        {l.title}
+                      </button>
+                      <div className="mt-0.5 text-[11px] text-muted-foreground truncate">{l.address || l.direction || "—"}</div>
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="text-xs font-bold">{money(Number(l.budget || 0))}</span>
-                        <span className="flex gap-1">
-                          <button onClick={() => shift(l, -1)} className="rounded border border-border p-1 hover:bg-accent"><ChevronLeft className="w-3 h-3" /></button>
-                          <button onClick={() => shift(l, 1)} className="rounded border border-border p-1 hover:bg-accent"><ChevronRight className="w-3 h-3" /></button>
+                        <span className="text-[13px] font-bold">{money(Number(l.budget || 0))}</span>
+                        <span className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button onClick={() => shift(l, -1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronLeft className="w-3 h-3" /></button>
+                          <button onClick={() => shift(l, 1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronRight className="w-3 h-3" /></button>
                         </span>
                       </div>
+                      {l.source ? (
+                        <span className="mt-2 inline-block rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{l.source}</span>
+                      ) : null}
                     </div>
                   ))}
-                  {!items.length ? <div className="text-xs text-muted-foreground px-1 py-3">Порожньо</div> : null}
+                  {!items.length ? <div className="text-[11px] text-muted-foreground px-1 py-3">Порожньо</div> : null}
                 </div>
               </div>
             );
@@ -162,6 +168,7 @@ function LeadsPage() {
           {!stages.length ? <div className="text-sm text-muted-foreground">Немає етапів у воронці</div> : null}
         </div>
       </div>
+
 
       {creating ? (
         <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 p-0 md:p-4" onClick={() => setCreating(false)}>
