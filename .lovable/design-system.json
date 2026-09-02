@@ -1,0 +1,1262 @@
+{
+  "meta": {
+    "name": "TERZI ERP system ",
+    "package": "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e",
+    "version": "1.0.0",
+    "framework": "react",
+    "css_framework": "tailwind",
+    "starter_template": "custom_design_system_tailwind",
+    "theme_files": [
+      "src/styles.css"
+    ],
+    "source_type": "local",
+    "source_manifest": {
+      "#enrichment": "6e1c36944d9e4aaa6f591fd426280eb22d9520dc7d72fed1da0c0e6dda58c6c4",
+      ".github/workflows/ci.yml": "b1cb15df455c5abe55919354db71fdcb",
+      ".gitignore": "6d9e901a692b46a83707c245fb03bc91",
+      ".lovable/knowledge/roofing-calculator.md": "3161e8a420d2507481d19e12d63b5f2b",
+      ".lovable/mcp/manifest.json": "4a5962f10a69b22e0602ba0bda523f1e",
+      ".lovable/plan.md": "33bd767e1819b9b71253878165729cc4",
+      ".lovable/plan/автозбереження-кошторисів-чистий-старт-калькуляторів-2026-08-24.md": "e373dd21f14e10cb5d843058cb7d3a56",
+      ".lovable/plan/запуск-terzi-erp-єдине-ядро-напрямків-конструктор-цілісність-2026-08-25.md": "c64e146b743740be4b91359519ed8d80",
+      ".lovable/plan/незалежний-аудит-terzi-erp-read-only-2026-08-01.md": "889655b85d397c6e0ae7097040d81c57",
+      ".lovable/plan/розширення-модуля-руберойд-до-повного-інструменту-наплавної-2026-08-25.md": "5f5a2c035da3ad3d2417a2b6a34f9134",
+      ".lovable/plan/склад-фінанси-та-перейменування-об-єкти-замовлення-2026-08-05.md": "8838f099ffb21205e947c935bdb16e96",
+      ".lovable/plan/інтеграція-binotel-terzi-erp-аудит-і-план-2026-08-01.md": "4920e0ad08529a84a52b75a07b989eee",
+      ".lovable/project.json": "a1c5fe2100cbfd6c5221d0477996734d",
+      ".prettierignore": "7279a476f196a2da5f7edd18db568dc6",
+      ".prettierrc": "185ef0234746ab738ac1ab6cec5e2bd9",
+      "AGENTS.md": "437f31a106b6bfc31233c5d2ec417fbc",
+      "ARCHITECTURE.md": "52fbbd353ea4867d94614816dd03decb",
+      "CONTRIBUTING.md": "7601455d54070467ce7e6587d3d41ca0",
+      "HANDOFF.md": "1321dbeed739c7d6a2401bd3dca0faa6",
+      "README.md": "d722af8e07c49b9102cc1dafca562a64",
+      "SECURITY.md": "c15d0e5dbd977dbb411860068692ad92",
+      "bunfig.toml": "06df017e61bba1ddb38372a88b93a532",
+      "components.json": "30d3d035361ce807021f5c54620962e9",
+      "docs/BI.md": "2d247021e2ea5cc2f99e9e4b2b777b73",
+      "docs/CRM.md": "2196461f38a57402546555cb37af291a",
+      "docs/DATABASE.md": "c983cf20248ec16fdc1add8ad04d288c",
+      "docs/DATA_MODEL.md": "0837beb2d04b1354e93833fafaf646b9",
+      "docs/DEPLOYMENT.md": "ad5b7b7537e9ffe9b32e5e436cbb5893",
+      "docs/ERP_IMPLEMENTATION_STATE.md": "53b27dcbebdc6ca1c78b7784a620ef42",
+      "docs/ERP_LAUNCH_CONTRACT.md": "a2e3db946de10729e03d1d1dd08567ed",
+      "docs/FINANCE.md": "85988d4ab815b5234dc805b136543f1a",
+      "docs/INTEGRATIONS.md": "b3f837f92c559ea917a4cc93abfb9dde",
+      "docs/KNOWN_ISSUES.md": "4811b77ce58bd4d0f2bbd855ab147b9f",
+      "docs/MARKETING.md": "496acf8ff65225bad10fda614d7ac583",
+      "docs/MODULES.md": "2dc7871d96cd61fa0021e6d79eff0f30",
+      "docs/OPEN_SOURCE.md": "56199fbad0fb92fc3ae39edcf5be7d1c",
+      "docs/ORDERS.md": "8bec7c81e06aa651788c18493e044f7c",
+      "docs/PRODUCTION.md": "190ad851d36afb0c63c10fe82172e1a8",
+      "docs/ROADMAP.md": "df6bccd4694847bc9678cce21d26271e",
+      "docs/SCHEMA_DRIFT.md": "b81c2872a981902319f32934b096daa8",
+      "docs/TESTING.md": "c2cbc1cf11bbd1d53148b465d325f5b4",
+      "docs/THIRD_PARTY_LICENSES.md": "1078f398670971b303b9d29a9d3be74d",
+      "docs/adr/0001-canonical-order-entity.md": "a7e030ad4ef5f25ba4b2a686482c47b5",
+      "docs/adr/0002-calculation-core.md": "89370c526654c3fcceac4b94829df1b9",
+      "docs/adr/0003-module-registry.md": "9f35465f953609d5dd061b6ff5c1fb2e",
+      "docs/adr/0004-rbac-and-rls.md": "9d8704d3c133efcd03fa362c3fb2e75e",
+      "docs/adr/0005-open-source-license-strategy.md": "6b13342d211d7ebe089e6dec9a2e494c",
+      "docs/audit/API_AND_FUNCTION_MATRIX.md": "4239c1bd44ca4369d07b639bae5217a3",
+      "docs/audit/BACKEND_AUDIT.md": "0cd398c7336b070f8c6d7d87ac73aecf",
+      "docs/audit/BUSINESS_LOGIC_AUDIT.md": "ec56c3c2ee8b5ba2344cbfca13d2561d",
+      "docs/audit/CALCULATORS_AUDIT.md": "f15f7abb88633e16e79d9926f3e4c006",
+      "docs/audit/CRM_AUDIT.md": "9618070db6eaba712dd66a947f3e4c87",
+      "docs/audit/DATABASE_AUDIT.md": "940b4de7aaf114f84ac1252d1c6248c9",
+      "docs/audit/DATABASE_MATRIX.md": "94606f9acd5457d0960bcb885f59afb1",
+      "docs/audit/DATA_MIGRATION_READINESS.md": "397a25572320bdb6c3866d89609d84db",
+      "docs/audit/DEAD_CODE_AND_STUBS.md": "7fbc69b55e79a5238078885716f02535",
+      "docs/audit/EXECUTIVE_SUMMARY.md": "770113778d7a54cb72ba835663db17ad",
+      "docs/audit/FINAL_ROADMAP.md": "b04851853ddb29ffc9fd59ba10340aef",
+      "docs/audit/FRONTEND_AUDIT.md": "da238507d354abe5cc705ae156f281d1",
+      "docs/audit/INTEGRATION_READINESS.md": "622dbcd5ca19d298187d919fc078bd8d",
+      "docs/audit/ISSUE_REGISTER.json": "572a6e24895c187bd77cfed2d34f8014",
+      "docs/audit/ISSUE_REGISTER.md": "99eac6cda22953520daf53e1a38c4dc9",
+      "docs/audit/PAGE_MATRIX.md": "fc19bb0244e67ca4c064c2d39f828854",
+      "docs/audit/PERFORMANCE_AUDIT.md": "bef93861b92222792e2f849111473fba",
+      "docs/audit/RLS_ROLE_MATRIX.md": "fde8145900491577327f48ce628c4e9b",
+      "docs/audit/ROUTE_MATRIX.md": "fa641b5b84f63ecf78cae04c5af62094",
+      "docs/audit/SECURITY_AUDIT.md": "883257b46f5ff96797cb89e14fea9617",
+      "docs/audit/SYSTEM_ARCHITECTURE.md": "6ae4710339599b82a35832580238cce3",
+      "docs/audit/TEST_REPORT.md": "3b51a4e11b220537bba5f9839c68c62e",
+      "docs/migrations/pending/2026-08-25_pvc_d15_split.sql": "02671486c1f17edac4d72eaac34be38c",
+      "e2e/smoke.spec.ts": "069abc5ecaa0549188918999986b10fc",
+      "eslint.config.js": "345bdd57e188e0e4525edcd00e5003f5",
+      "package.json": "7894bc27be841387da40a6efe86b9eb5",
+      "playwright.config.ts": "55cff20a0939afa311d2e3ee736c04dd",
+      "public/favicon.ico": "9fb8c3b014b2d5e4fce3ceed998aa9f5",
+      "scripts/schema-snapshot.mjs": "f51f06c9b0fcf5f9a7e5e2225aa3f023",
+      "scripts/sync-roofing-knowledge.mjs": "28ed8c52c0a9761c37cb19a05bdf882e",
+      "scripts/validate-migrations.mjs": "bb0808595f43b13d36549424583eb71d",
+      "src/assets/TERZI_калькулятор_направления.xlsx.asset.json": "96bb8ee4144589342cee72b47c81e12c",
+      "src/assets/terzi-footer.png": "5bd22f341e8c62148caee1ff18dfec54",
+      "src/assets/terzi-header.jpg": "44df1cc9b4dd3567b7967af3519e0844",
+      "src/assets/terzi-hero.jpeg.asset.json": "108ff5c571bc5dcdbf82579f1692265d",
+      "src/assets/terzi-logo-gold.jpeg.asset.json": "4d38574e5674830474dac073f7fd623e",
+      "src/assets/terzi-logo.jpeg.asset.json": "8ed37b52253011b03e10651731070ded",
+      "src/components/AmortizationPanel.tsx": "0840fe9a7ca2d280c409429d0d9ba5c8",
+      "src/components/AppShell.tsx": "313554dc9aa732a3e621904c15907228",
+      "src/components/CatalogPage.tsx": "ee0b471de45b535b25090dd5061022f3",
+      "src/components/EstimateDraftControls.tsx": "fc9cb6b312e22e406c04d1204dea9a25",
+      "src/components/EstimateLinkPicker.tsx": "9c8126b11eb44f165ce48357849a817a",
+      "src/components/EstimateView.tsx": "b3c538ae4c228335bb73652e2925f3b8",
+      "src/components/ModuleStub.tsx": "57fd03c8c7e5565e40650a4131daaaf8",
+      "src/components/NumberInput.tsx": "dafaee36d16f1b1ecffa53cebaf074b0",
+      "src/components/PriceImportDialog.tsx": "bcba1b72bc8685a55542423356bec9c8",
+      "src/components/RoofingNormsAdmin.tsx": "cd6943a4f23808037c0ba541cd30e579",
+      "src/components/SchedulePanel.tsx": "4ccaf9d202426a69d4a803a4b89a2c08",
+      "src/components/ScreedGradesAdmin.tsx": "c9b188f0facbf24148aaa20a93ac9af5",
+      "src/components/TargetMarginPanel.tsx": "136cda6bc3c8a9929145bbfa973652c6",
+      "src/components/TerziLogo.tsx": "f89e25609ed4866f2d5cef26ae2c5fd5",
+      "src/components/calc/CalcStepRail.tsx": "5c5bd625d1cb773b2c3a08c95f20e74b",
+      "src/components/calc/CalcViewTabs.tsx": "388dff79b32d24f00024fb3889abaf00",
+      "src/components/calc/GenericProductionCard.tsx": "bb9c960dae95e8142f315b6d181a5105",
+      "src/components/crm/UnifiedTimeline.tsx": "0dc4055f6e6b293b9545a457abdf3f50",
+      "src/components/integrations/BinotelCallDialog.tsx": "0018ed57bd06b13e24d54ee0751ba70c",
+      "src/components/integrations/BinotelCallsPanel.tsx": "7ffe8421a53b4d34ec72e9c4a6af894d",
+      "src/components/integrations/BinotelPanel.tsx": "699608ff0aa78be3cca25cd11107f56d",
+      "src/components/integrations/ConflictsPanel.tsx": "03f3c4cc4d140ac8da3b4bc3538fe88d",
+      "src/components/integrations/ImportPanel.tsx": "8521a0a5923e306bd6aad619ef10570b",
+      "src/components/integrations/OneWayPanel.tsx": "2a704f6a57e0c5d2bf4d8f2858b51c64",
+      "src/components/integrations/SyncPanel.tsx": "6be273f3a755b0105a9a4dde30479d42",
+      "src/components/marketing/CrudPanel.tsx": "90a963c1a4910cbc22f1ab4a5e229a25",
+      "src/components/marketing/MarketingShell.tsx": "309a074a4d1a9a24082bb426d48edde7",
+      "src/components/marketing/nav.ts": "19c002ad954e7ded9cebe76644e9cd1f",
+      "src/components/nav-model.ts": "28f420671d18ad3c1d68f3cb1665b86c",
+      "src/components/roofing/PlanFactPanel.tsx": "0886ce38e240eae39c20a293c14b042e",
+      "src/components/roofing/ProductionCard.tsx": "b7cb9eee59f0422e588db06ab27b9e37",
+      "src/components/roofing/PurchaseSheet.tsx": "b0f32452b55dc3afb2e12e178e952cc5",
+      "src/components/ui/accordion.tsx": "55f9dda62b4e3913c9b23e5015a86aef",
+      "src/components/ui/alert-dialog.tsx": "96350e949e9b7b674545430a410ab89c",
+      "src/components/ui/alert.tsx": "f993d7e96b1e25ce50e68ed97e11d2a8",
+      "src/components/ui/aspect-ratio.tsx": "c5c364545e1b25a94e9e752cd67ad048",
+      "src/components/ui/avatar.tsx": "72989cd32f72c4122802540ef32525a5",
+      "src/components/ui/badge.tsx": "81cade001fc4260f9943e18dcd79449b",
+      "src/components/ui/breadcrumb.tsx": "bb9ac254f12662b20d5d50b84308bf3a",
+      "src/components/ui/button.tsx": "7d07d520f486b12bd47373d694ecd2ee",
+      "src/components/ui/calendar.tsx": "415d91d7006d4cc654e27620fca340f6",
+      "src/components/ui/card.tsx": "d6c48ea36221b9cdc3576d305d12d5d5",
+      "src/components/ui/carousel.tsx": "e324c68ae00cd5aed49317638abd429a",
+      "src/components/ui/chart.tsx": "6a3baf94f2e89f1f97d4d7a28f3622d2",
+      "src/components/ui/checkbox.tsx": "f78aac270ca482c8c2cb907ef6260462",
+      "src/components/ui/collapsible.tsx": "767631bbc344945c236f185f4078d71d",
+      "src/components/ui/command.tsx": "014782599cc838b021ec68b07ad4ea02",
+      "src/components/ui/context-menu.tsx": "e9d689beb53d9adb63165bfe64838bf6",
+      "src/components/ui/dialog.tsx": "ef4fe8e7de8675730afe3d633b260e09",
+      "src/components/ui/drawer.tsx": "8be333e8fd8e42576b1b5f72f07f4337",
+      "src/components/ui/dropdown-menu.tsx": "32156e221f3473280114c80fdb818829",
+      "src/components/ui/form.tsx": "1b0aa6302b9017ea2a1307c22a1d2983",
+      "src/components/ui/hover-card.tsx": "1442794c5ca2a78d69e4e613b315ed3d",
+      "src/components/ui/input-otp.tsx": "58cff10c8942cac8483c0bcd65d39d3c",
+      "src/components/ui/input.tsx": "1d4cc52a4cd8afb3e18e45bda942bb8a",
+      "src/components/ui/label.tsx": "7e35df4ca8edd0835efd97ca7937ef92",
+      "src/components/ui/menubar.tsx": "5870465653e12c3d0e35a2fad6f9faa9",
+      "src/components/ui/navigation-menu.tsx": "e85351147a02b29577ff83d188b63c24",
+      "src/components/ui/pagination.tsx": "fac6cdbb4bbf78b273d85cd36d6cbb49",
+      "src/components/ui/popover.tsx": "f18aa1da2144f25ee60795c539c51bcd",
+      "src/components/ui/progress.tsx": "55c462e5c9dd678dcf2c0c510b014ac4",
+      "src/components/ui/radio-group.tsx": "0e1ace237a5da3197e3eb1e6683faba9",
+      "src/components/ui/resizable.tsx": "d9fcb9203c749fcab4e125a99bb12a86",
+      "src/components/ui/scroll-area.tsx": "87b65d3eb26f2b02ff35a7acea585ba5",
+      "src/components/ui/select.tsx": "31ea1bbd6671833b010b2e852c8a55d0",
+      "src/components/ui/separator.tsx": "433d163c4ffa00b59398a0c293198b5e",
+      "src/components/ui/sheet.tsx": "0221fbf97b69611b47fcbc10bb27669a",
+      "src/components/ui/sidebar.tsx": "83c1623eb50ebc370d7b1b84a542e369",
+      "src/components/ui/skeleton.tsx": "41b182e6e2fc3805960d41e767d4a972",
+      "src/components/ui/slider.tsx": "4752f1bfa26426988d325599e01c335b",
+      "src/components/ui/sonner.tsx": "97f59f60be3413196d095fcbf7383216",
+      "src/components/ui/switch.tsx": "82f5d8b0c59bb7ff305caa9f502e79ff",
+      "src/components/ui/table.tsx": "7cc889989d53894b659903c73aded96e",
+      "src/components/ui/tabs.tsx": "56e725558c2ce72c18243bf51717f385",
+      "src/components/ui/textarea.tsx": "c7aad96fb9545210d53135a96c76ed6b",
+      "src/components/ui/toggle-group.tsx": "ac26383acf721d116ca8e3ab5c5355d5",
+      "src/components/ui/toggle.tsx": "ee8c5adac74e7242b85b544db1a8fbad",
+      "src/components/ui/tooltip.tsx": "67d71db5a1ab935695d1def497f5b8a6",
+      "src/hooks/use-mobile.tsx": "c0a0bdd4638c391a1dd06ac82074e60b",
+      "src/integrations/lovable/index.ts": "2b281422ef62231e654f8668addb90a5",
+      "src/integrations/supabase/auth-attacher.ts": "dad043cda134d909e52de0346c16625e",
+      "src/integrations/supabase/auth-middleware.ts": "07a7c39fd62f38075d67d5aa0cb189ae",
+      "src/integrations/supabase/client.server.ts": "24c2f9d3dadbb91e13970a31918bc153",
+      "src/integrations/supabase/client.ts": "3a64714432051d16e6cacf8c69945f67",
+      "src/integrations/supabase/previewAuthStorage.ts": "bc45a76c9242c4b85d6d4345625c46e9",
+      "src/integrations/supabase/types.ts": "c8b35ade563aa4da4b0c868b12c105ef",
+      "src/lib/__tests__/approved-business-rules.test.ts": "c743308b6a52c0587244ab6e219265ce",
+      "src/lib/__tests__/core-wave-a.test.ts": "de6f9b021d3e3b2cb409ed921b03a4a1",
+      "src/lib/__tests__/data-audit-apply.test.ts": "cc35fc4a2813837be0c924edede2110c",
+      "src/lib/__tests__/data-audit-ui-state.test.ts": "fddd2cf99d4e8f5001868cd73f9d494c",
+      "src/lib/__tests__/direction-runtime.test.ts": "669fe8e0c06d41cab4a3cdebb8f99324",
+      "src/lib/__tests__/launch-contract.test.ts": "27b81b96f392676494b79c77dfc2d45c",
+      "src/lib/__tests__/modules-registry.test.ts": "944eeaae64fc2c7d2f884d6eed21e724",
+      "src/lib/__tests__/order-management.test.ts": "6d95382acb5fd0092fa9aeaab8019b32",
+      "src/lib/__tests__/price-integrity.test.ts": "2386189ed7a81e72cbd514d53ffd171a",
+      "src/lib/__tests__/roofing-core.test.ts": "a23af0617d23f96b9a25744367c6cf47",
+      "src/lib/__tests__/screed-grades.test.ts": "07aea2ce1810a5c0790c8f6771e1140c",
+      "src/lib/__tests__/server-preview-runtime.test.ts": "01261fe0fe778dfa68e7a8e9c93aefd6",
+      "src/lib/__tests__/target-margin.test.ts": "8565e0f744a25ce6ebde8439714b3ecf",
+      "src/lib/__tests__/warehouse-finance.test.ts": "6a5d7765ee4be69ed7e68f3e079d8465",
+      "src/lib/__tests__/wave-a-acceptance.test.ts": "0333df2089ecc89915c8be988b37f74a",
+      "src/lib/access-constants.ts": "a4e07b791b31ba8183ef915a87bb24b7",
+      "src/lib/access-ops.server.ts": "9c9b4f110250e4fb40149b2efe4ed7ab",
+      "src/lib/access.functions.ts": "aff25c8f12b1fa38bf14190b430dbc43",
+      "src/lib/access.server.ts": "6b42f255017ee633646f219a6cc0cf6e",
+      "src/lib/analytics.functions.ts": "86b0a77a4b5162a097be33f900eda9bd",
+      "src/lib/analytics.schema.ts": "a04e32ec87b2211cbf5f2b0de6d949fa",
+      "src/lib/analytics.server.ts": "b3884d93f5179d4808ef448f086f9bd8",
+      "src/lib/api/example.functions.ts": "043d58c65b874e64b81caf99e5963ecf",
+      "src/lib/area-tiers.ts": "268ee925f91e133d40538bd975fbfb22",
+      "src/lib/auth.tsx": "07b847fb8d905df5916a60b628a18cce",
+      "src/lib/auto-events.server.ts": "428016f523149d95272de2e86d0e1c66",
+      "src/lib/binotel.functions.ts": "424668fc38a4511a49cb3352a055c9a6",
+      "src/lib/bookings.functions.ts": "049583edfb96a276dccae4fc10224de9",
+      "src/lib/brigades.ts": "8268682aeec7d5f692e75ca12c6f54cd",
+      "src/lib/calendar-taxonomy.ts": "8322a6ed686ad83db3520ef2b9bf9b0b",
+      "src/lib/calendar.functions.ts": "314a012cd02d38979288ca30cd325b7b",
+      "src/lib/calendar.server.ts": "b80e68ba42d1829767eff94231b26889",
+      "src/lib/catalog-tiers.ts": "dbb7497b6a391577dbe7d3b6f587834b",
+      "src/lib/catalog.functions.ts": "fb0978dd0fd33f6954898c57464fdd0b",
+      "src/lib/clients.functions.ts": "74bbb2e5e5c7e4960bb8046f2dce47e2",
+      "src/lib/clients.schema.ts": "a69f4d3c51183e0107642b6a73158f33",
+      "src/lib/colorSafe.ts": "bd0158ab83d29c8d3f2467f594d008c1",
+      "src/lib/config.server.ts": "630ee452f2db063bc3eb97a65e1ade1f",
+      "src/lib/core/adjustments.ts": "72ad9e900c3a81a892cde26695a3bda8",
+      "src/lib/core/amortization.ts": "37e472f5f79d2f18300f0999ddd7f00e",
+      "src/lib/core/calc.functions.ts": "7bc28c4ba5f5e7c6bbe85ac56d5363a3",
+      "src/lib/core/contract.ts": "5c8b67e9b12dae5b3943caab3b20a812",
+      "src/lib/core/dto.ts": "9c7b6ed1bed88cc12aa25810e59b1753",
+      "src/lib/core/estimate-dto.functions.ts": "6027014f3f482169b094194a19f94f03",
+      "src/lib/core/index.ts": "5219437de509afe66827287b9ddb585c",
+      "src/lib/core/legacy-adapter.ts": "1e7af04d0584179eb2c595757bfbd6f0",
+      "src/lib/core/margin.ts": "d8b4cc42f159c5a275457eb7b741c252",
+      "src/lib/core/module-registry.ts": "a1ba72fe0eac2d8d009bf2cafd67c651",
+      "src/lib/core/preview.functions.ts": "2c6789ab089b5b0e4ce4f9fec88e4eb3",
+      "src/lib/core/price-policy.ts": "a431a169d1e6d0954620841623509fa4",
+      "src/lib/core/vat.ts": "8e05c0e8999f991bfd75a5720451e451",
+      "src/lib/crm-timeline.functions.ts": "2b3cb1a4c286863a7b716e434a634241",
+      "src/lib/crm.functions.ts": "75071147d2658c3c503b46dc28cde727",
+      "src/lib/crm/__tests__/identity.test.ts": "1df7b5e0b217142f1ab40cb7c91295e5",
+      "src/lib/crm/identity.functions.ts": "f7745c26dc0f8c64eaa6dbe780be6c65",
+      "src/lib/crm/identity.server.ts": "7af2d420b534aafd5e6f8d3cfb990d7b",
+      "src/lib/crm/identity.ts": "c52c3359b882632ce1d651467052bd31",
+      "src/lib/dashboard/widgets.ts": "07402a145e933caa55e29e8795418044",
+      "src/lib/data-audit.functions.ts": "2f62cc46765b621388e11942673f3984",
+      "src/lib/data-audit/ops.server.ts": "f239cdc856106417616c0c736be4160e",
+      "src/lib/data-audit/ui-state.ts": "596407e35c4da7eaf9868a7c8360d415",
+      "src/lib/data-exchange.functions.ts": "a2409b67499dceb4ef520d7280f55eca",
+      "src/lib/data-exchange/ops.server.ts": "12194cfdf35cfcbc4cc175c06ce1d931",
+      "src/lib/data-exchange/registry.ts": "066cafb12c0b71d877709e8f13664703",
+      "src/lib/demolition-calc.ts": "78708e60d624f915fcd7a0b65cf99072",
+      "src/lib/directions-repo.ts": "a7cd1f55761244476b3577fdb5bfb53d",
+      "src/lib/directions/calc.functions.ts": "86aa2cadfd227589e4c1c0014e8bca80",
+      "src/lib/directions/cleanup.functions.ts": "dd20334f5a524aae7fa3ab9c104aff4f",
+      "src/lib/directions/load.server.ts": "8d26fb837ff00accb24d9daeae088843",
+      "src/lib/directions/runtime.ts": "0feb44fbea6285bb088ebba48c63348c",
+      "src/lib/directions/versions.ts": "365b217e4121e2933f6ebbea3a53e162",
+      "src/lib/duration-calc.ts": "4a5b2e505331d1ef8625a07b6134b1e6",
+      "src/lib/engines/direction-engine.ts": "c2857aeec5d62eb3a2732780698be789",
+      "src/lib/engines/formula-eval.ts": "d24f4833b95267aa77b63994c54c2ac0",
+      "src/lib/engines/versions.ts": "06d418b0211a05b86cdb2c6cd83e6e4e",
+      "src/lib/error-capture.ts": "00e77bfacfb2d79c0816361e678f1b65",
+      "src/lib/error-page.ts": "8da0ddd7569bac2676b9a5c8edff8a36",
+      "src/lib/estimate-line.ts": "bd092220963ea8d78576e14b0cae9a40",
+      "src/lib/estimate-pdf.ts": "b887a85587b946d20bbf1b102b24e737",
+      "src/lib/estimate-snapshot.ts": "5e3ef620fb5a541738e7f67f280b7992",
+      "src/lib/estimates.functions.ts": "f25e2c3a73cb3e168fbea9a27364166a",
+      "src/lib/finance-calc.ts": "b6976bda5425fb9fd696578ae4d69751",
+      "src/lib/finance.functions.ts": "7dd9e8bf87a5f32ddd79b0188b8eab35",
+      "src/lib/finance.schema.ts": "f4023eb087f5c2d0a0c40d18886679a8",
+      "src/lib/gcal.functions.ts": "c1cb7e829bfab47d96247841a1370f2b",
+      "src/lib/i18n.ts": "38535d08b49b1635de8a7dafd56c0660",
+      "src/lib/insulation-calc.ts": "0adde3c220a16c0d58d8a76824910ef9",
+      "src/lib/integrations-constants.ts": "3e7cb34f17c3d34c4e3d806491bdb9f8",
+      "src/lib/integrations.functions.ts": "3793b084714d4b24735410aa22bdea63",
+      "src/lib/integrations/__tests__/webhook-core.test.ts": "838d210e751d13cfc047900fbad58626",
+      "src/lib/integrations/adapter.server.ts": "93e0877ca21f87261f67c5bb0c376c3a",
+      "src/lib/integrations/binotel-constants.ts": "83f88c2944454164b5c50ec0b4f93943",
+      "src/lib/integrations/binotel-manifest.ts": "fe6c9485d8afcd1b1365bd5e44f91aeb",
+      "src/lib/integrations/binotel/__tests__/calls.test.ts": "4573b4d6a6894e83327b4ceb68a1d763",
+      "src/lib/integrations/binotel/__tests__/fake-db.ts": "d5d225e5f301bcea14bf3ab48a1d3de5",
+      "src/lib/integrations/binotel/__tests__/routes.test.ts": "385052395a241074da67c765eb27a78d",
+      "src/lib/integrations/binotel/__tests__/webhook.test.ts": "f07a9e027d23e32868b3f6b3c336f865",
+      "src/lib/integrations/binotel/adapter.server.ts": "52656bee5d28a15085d66010535262e7",
+      "src/lib/integrations/binotel/calls.server.ts": "dc206f2aaebbc2138a4eac6843c79620",
+      "src/lib/integrations/binotel/client.server.ts": "6ae1913005d8a7a59b0fb0c9b800b17c",
+      "src/lib/integrations/binotel/dashboard.server.ts": "bdec657af3ce82939a8b74c192d81876",
+      "src/lib/integrations/binotel/events.ts": "339e256eeea6baab4be8c2aee24edaa8",
+      "src/lib/integrations/binotel/ops.server.ts": "1cfb0f3df48b8b81a90e25969dcdf730",
+      "src/lib/integrations/binotel/record.server.ts": "293699195ef83583e1025572d7762bd1",
+      "src/lib/integrations/binotel/webhook.server.ts": "94ec5e58c97fdce490a7a5a4280b8686",
+      "src/lib/integrations/contracts.ts": "5e4c3bcace5168b6cbb3b9f3bc41bd88",
+      "src/lib/integrations/conversions.ts": "819d126ad5642396a69cc773066eddf0",
+      "src/lib/integrations/core.server.ts": "82202639289039d4bb021975a0480941",
+      "src/lib/integrations/foundation/adapters.server.ts": "05573374a280e6683024a6d3bec68060",
+      "src/lib/integrations/foundation/finmap.server.ts": "0d812eeb1decf9fcb40a65b8ce089dc4",
+      "src/lib/integrations/foundation/meta-ads.server.ts": "21b84d583e21205c9a640b42cb828bb2",
+      "src/lib/integrations/keycrm-constants.ts": "1094ab7e2a632b4359b1e5e6cb6ab8ba",
+      "src/lib/integrations/keycrm/adapter.server.ts": "cd9a30508f73dcf2a6ef18db9ab952dd",
+      "src/lib/integrations/keycrm/client.server.ts": "dd3f550838372126cd4de5510b8bed83",
+      "src/lib/integrations/keycrm/import.server.ts": "11f9cc1fa2c7f5edf5b2a3f8954ebf4f",
+      "src/lib/integrations/keycrm/sync.server.ts": "70105126c79bd564f1a2d9f452e6025a",
+      "src/lib/integrations/ops.server.ts": "4736cb6bde1177d9f49465bb1f3ad379",
+      "src/lib/integrations/signature.server.ts": "d810dc01a87a194e105a6671fd647a01",
+      "src/lib/integrations/sync-ops.server.ts": "e0b33e9c44ff1c1f62a5e2b38798ad55",
+      "src/lib/integrations/webhook-core.ts": "f68bf2f90d2c5a16365527e3ce830b47",
+      "src/lib/leads/intake.server.ts": "749bc36613e85678b6d77264bb90a51e",
+      "src/lib/marketing.functions.ts": "a2af4f9751a110dfb42cded139d63af8",
+      "src/lib/marketing/adapters.server.ts": "66bff3b5b99508dc336311e71bb3f07a",
+      "src/lib/marketing/attribution-fields.ts": "b5f7c28ed9953215d6ad0e85440670ed",
+      "src/lib/marketing/attribution.server.ts": "cf18ebda463b6f66f9103451d2b7440d",
+      "src/lib/marketing/kpi.ts": "d3ef4250af54dcd728b3ab296c3c0e21",
+      "src/lib/marketing/rules.server.ts": "fae840131b7ecf54d1eaca84d9065f54",
+      "src/lib/mcp/index.ts": "4e61fba1344dfd312e8875a8ca160820",
+      "src/lib/mcp/supabase.ts": "e21deb1252cebbf8d9e172ede3ae50ce",
+      "src/lib/mcp/tools/create-lead.ts": "6e3185ef0f5cf18a239813e86943198c",
+      "src/lib/mcp/tools/list-clients.ts": "9e647bef7dc6869199f727ab34b96135",
+      "src/lib/mcp/tools/list-estimates.ts": "dcc901903c32a1698ed24c6f91434a00",
+      "src/lib/mcp/tools/list-leads.ts": "7ea09481f61438a4688b13744faea9a6",
+      "src/lib/mcp/tools/list-objects.ts": "6fc25ac0a841d562212e85a68ac48319",
+      "src/lib/modules.ts": "d7ff446cc9a0886e5b44007d5040ad28",
+      "src/lib/operations.functions.ts": "dfe4743d50c260ce9966359655c81a75",
+      "src/lib/order-management.ts": "a6c5c7733cc259321efc04975fba173b",
+      "src/lib/orders.constants.ts": "34e130e45738c8151dde881a39fcd958",
+      "src/lib/orders.functions.ts": "b8c765664c822881d30512527326d62a",
+      "src/lib/orders.schema.ts": "9c880b26b5ead174f0840284042a3e2b",
+      "src/lib/pdf.ts": "f48a385fd974829ee032543e06f06002",
+      "src/lib/pdfFonts.ts": "9c0da684dddf5ce98278ba700a958c2b",
+      "src/lib/phone.ts": "6ed2b466581458b66dcb517e48409573",
+      "src/lib/pngExport.ts": "696250276d812f728118cc9c7c061626",
+      "src/lib/price-import.ts": "fb6c1eb4215702e18d03aa1ec42a6de1",
+      "src/lib/price-integrity.ts": "ed55bc645720bd1a6e1ec4ba87ab1040",
+      "src/lib/pvc-calc.ts": "b1104203d15b671ba9a94270b004fc97",
+      "src/lib/registration.functions.ts": "d731816b6e709988074e11b891f424f6",
+      "src/lib/roofing-actuals.functions.ts": "8f135dfe55f44918b98a05169382d8d5",
+      "src/lib/roofing-calc.ts": "1ce82542b476d0d589ea492a1509a6fd",
+      "src/lib/roofing-config.functions.ts": "992bbcbef0b5279ddb0f7d0368d842e4",
+      "src/lib/roofing-knowledge.generated.ts": "7ae121982f7b6c0bb3c166df3f66c38d",
+      "src/lib/roofing-rolls.ts": "db8884e5dad7dc0fb6a971466a369413",
+      "src/lib/roofing/consumables.ts": "cc15b989fe873fe25d74c88c8ae8ae14",
+      "src/lib/roofing/cutting.ts": "5838114eb63c797892a956f20dc3a22c",
+      "src/lib/roofing/geometry.ts": "41fccc4fc44d4f70c7604d2f3cada0d8",
+      "src/lib/roofing/index.ts": "02bda828fb7c6f29d198e4abf154aeeb",
+      "src/lib/roofing/layers.ts": "72cd061dfde5a582f4b3bfbe67838a23",
+      "src/lib/roofing/legacy.ts": "dbbd4c8ab39c0374d409444b95d9b473",
+      "src/lib/roofing/logistics.ts": "487c6e1ef2806889fbaccfd2d4b43ff6",
+      "src/lib/roofing/modes.ts": "0f060fc2ad04ee4e4dbaefb0130e43d0",
+      "src/lib/roofing/nodes.ts": "9efddb1a6fb58123dc6d1ed1cdf8fa75",
+      "src/lib/roofing/norms.ts": "a8299078534d72f9da77c098a2ce25d6",
+      "src/lib/roofing/qty.ts": "73cdcdde4d38e50861b2ba1e0eb971ba",
+      "src/lib/roofing/validation.ts": "068d4dbe1880f9b1678b69eb503b795c",
+      "src/lib/roofing/weight.ts": "464449b331e9e2fb3ca1fa7253d47ef2",
+      "src/lib/screed-calc.ts": "2919ac6280c1b8224aa8ae38defa751a",
+      "src/lib/screed-config.functions.ts": "5a7e183923371a085f557dc67bd90b7d",
+      "src/lib/screed-config.schema.ts": "32bcce1f652310a650ae846e952d46f4",
+      "src/lib/screed-grades.ts": "d1dc1627751b6ac331e99b6f9f61fe06",
+      "src/lib/staff.server.ts": "f4d37256bee083edc100697692dbc44b",
+      "src/lib/store.ts": "fdd24ee92f4aed6846dcaa8dc4b42e4e",
+      "src/lib/target-margin.ts": "f172787304a7449501e35f7d4c25d238",
+      "src/lib/useCanonicalPreview.ts": "f054f4fc49b985a317984480d9737922",
+      "src/lib/useEstimateDraft.ts": "3dc8bf7b22d9251a268dc075e18f406b",
+      "src/lib/useEstimatePrefill.ts": "4284e726d3ceaf272b4236fc86dfb222",
+      "src/lib/useInternalAccess.ts": "473c30044098c8e14d21d5a0569ed75b",
+      "src/lib/usePersistedState.ts": "d41fed06f62d4f3777aef34dcb40ddf6",
+      "src/lib/usePricing.ts": "5052c5d30c1a769986c205d8116f7922",
+      "src/lib/useRoofingNorms.ts": "fe4248196a3a7bae629ec968d8241d3a",
+      "src/lib/useScreedConfig.ts": "41697283789235d74644fd45348cfcf0",
+      "src/lib/utils.ts": "d9837f38cc05303254571985e3164050",
+      "src/lib/warehouse-calc.ts": "85087651d3b7aa84d1d5f1146464663e",
+      "src/lib/warehouse.functions.ts": "f26d9023e278a59fc042c5047e5c8167",
+      "src/lib/warehouse.schema.ts": "3d643dfc55429fe2a990ccb65348afe8",
+      "src/routeTree.gen.ts": "74f885a0b2a7fa3dcd44cecf933e8a38",
+      "src/router.tsx": "ad49a747879b18bc1eacec71d50d4e05",
+      "src/routes/README.md": "7f49cf3bb7558aa775fd62140a37b175",
+      "src/routes/[.]lovable.oauth.consent.tsx": "6be6d615ea785a172db0a1c30ef81014",
+      "src/routes/[.mcp]/invoke-tool/$tool.ts": "2cc296128352d61d70726e7428ef5ca5",
+      "src/routes/[.mcp]/list-tools.ts": "bc1d258eb3237605d066b9a536a63d5d",
+      "src/routes/[.well-known]/oauth-protected-resource.ts": "2dbcc907a7d3ab43955e6dbbb99e7a1d",
+      "src/routes/__root.tsx": "178c96d6ae9d64fb134137ac1d668f98",
+      "src/routes/access.tsx": "3c1293f7d48c7dd88f6fde58657d45bb",
+      "src/routes/api/public/integrations/binotel/call-completed.tsx": "893192a2b8579b02f0e1cb5013862b2e",
+      "src/routes/api/public/integrations/binotel/call-settings.tsx": "9867f39e30ed34b88fcc3c16db1b5731",
+      "src/routes/api/public/integrations/oauth.callback.tsx": "b9287257c792b85e3b7450cf95de0804",
+      "src/routes/api/public/integrations/webhook.$slug.tsx": "b88303030e025ff9ae629f090994b734",
+      "src/routes/api/public/integrations/worker.tsx": "c150db49f9fdd08588ac7d5a1a56e7b5",
+      "src/routes/api/public/leads/intake.tsx": "e7fd09f13660dec931fbf3b0514c82c1",
+      "src/routes/api/public/marketing/sync.tsx": "f204cc621f67a2ddd6cffbeb201f4fa7",
+      "src/routes/branding.tsx": "592cc968c8cb36b72f5bcc1b005c4326",
+      "src/routes/calc.index.tsx": "461485830aaa47c1db864167be848663",
+      "src/routes/clients.$id.tsx": "9bf79168f8c346f47987e37608fd8a1e",
+      "src/routes/clients.index.tsx": "a6bd40bdee2dcaf05080f7f724413836",
+      "src/routes/crm.calls.tsx": "d60150609589cba3cf1be43f359e450a",
+      "src/routes/crm.contacts.tsx": "1564770cde11aa92ed863f8ea4ce6ff7",
+      "src/routes/crm.index.tsx": "d58ef83147b2d31c437e20d56572d25b",
+      "src/routes/crm.intake.tsx": "f0e532b8fca0dc80fcc168f2dcdac3e9",
+      "src/routes/crm.leads.tsx": "23d32f8908d872ec7e68c59b54aba4c5",
+      "src/routes/crm.requests.tsx": "b52ff8cf8adf92d0939b996916b333e0",
+      "src/routes/crm.tasks.tsx": "b7ba477e58927bbd6697ced030695f0f",
+      "src/routes/data-audit.tsx": "f953ddf863e6b6bc9ae6e02e991bd2db",
+      "src/routes/data-exchange.tsx": "ad4e2f3e36931e1a38d0234eef54fa23",
+      "src/routes/demolition.tsx": "7b5a37efbc057c317a3deb63edc28325",
+      "src/routes/directions-editor.tsx": "4f48038f41cb41f15a10afbd3deb8043",
+      "src/routes/equipment.tsx": "3da1619f022695e79263f5ac4f118e5c",
+      "src/routes/finance.tsx": "67d1ed250b95e8253a67b993ff08277e",
+      "src/routes/history.tsx": "d49d742cc40d8330dc1ebbe854b30895",
+      "src/routes/index.tsx": "884d345d8192e8e624fa171490adb1bf",
+      "src/routes/insulation.tsx": "60774016fa6ced0a68773b67cbd89da9",
+      "src/routes/integrations.tsx": "d1ef2a2ddd63932c54d37263e0e89197",
+      "src/routes/invite.$token.tsx": "9ca9c1e02b5c9dad6c3a990383bc8150",
+      "src/routes/login.tsx": "50e6e454a7c01d2999baf78d88eec881",
+      "src/routes/logistics.tsx": "43cf785ef903f06d73d686e47bf22b56",
+      "src/routes/marketing.analytics.tsx": "605e1062b0376b535de0723fbb8a6d8d",
+      "src/routes/marketing.budgets.tsx": "cb4a07bc1ca606eb14ca1d5bbcf5c0f5",
+      "src/routes/marketing.campaigns.tsx": "19f3c100653761ff5de22a68fea1d2f0",
+      "src/routes/marketing.channels.tsx": "7d30fce7e7be9d7e65e90f9598b2d7ec",
+      "src/routes/marketing.creatives.tsx": "034af02bc993c74575bb89fff47f1dbc",
+      "src/routes/marketing.funnels.tsx": "668b3d3b14496387e7e165837fb714ae",
+      "src/routes/marketing.index.tsx": "5258ebbc829b2fb2aec8705ea36ae2f4",
+      "src/routes/marketing.integrations.tsx": "e464eef1976ef31bb791447b247d451c",
+      "src/routes/marketing.landing.tsx": "1f17e72298530a6d04ed13188615d644",
+      "src/routes/marketing.leads.tsx": "3e8a62f16c63d1f27f65431bca02e66a",
+      "src/routes/marketing.recommendations.tsx": "93334be5697d2507e08e56c71ae14538",
+      "src/routes/materials.tsx": "7d144435e2a11807a8437c54441bfab1",
+      "src/routes/mcp.ts": "300ada44271329e833b338d197b2395b",
+      "src/routes/objects.$id.tsx": "b977686ea7351f56b2ec754945a5b786",
+      "src/routes/objects.index.tsx": "869c81ae4db4a42d9b860ccef8be15dc",
+      "src/routes/objects.new.tsx": "1e875454449e0b8842be1e26e11a61a2",
+      "src/routes/operations.tsx": "bd63dd5dec1adf27179c1708de342513",
+      "src/routes/orders.$id.tsx": "d4ae3b05ad932e901e24af5e4ef1f84d",
+      "src/routes/orders.index.tsx": "3d373c11df30ea942f3c05af00d283b8",
+      "src/routes/orders.new.tsx": "46463558596946460bda8db6a28ffc6f",
+      "src/routes/production.$id.tsx": "801ec59404cdf50da0dde170c48f3a7b",
+      "src/routes/production.index.tsx": "e9ba6441d90977c14833d6d8517c2d54",
+      "src/routes/reports.ceo.tsx": "59f4fa313c0176b4def2dd6327ad50bd",
+      "src/routes/reports.tsx": "797026b3870286228db7007a1b158c5b",
+      "src/routes/roofing.tsx": "ae7a23269f602a64673ebf5fee03a4ab",
+      "src/routes/roofing_pvc.tsx": "2e19e9f4739e7f7862c332326ec95a61",
+      "src/routes/roofing_rub.tsx": "9bac9b7362dfb43f1f6271607ea8e692",
+      "src/routes/screed.tsx": "313bab854dfa9296345ffc636bdcfd76",
+      "src/routes/settings.tsx": "0d5b85a740065cfd21627eb4aac1d198",
+      "src/routes/warehouse.tsx": "5725393781af79c402059e9f9f60ede6",
+      "src/routes/works.tsx": "e2a0a0bd8d0bc18ca004b9c9449a9530",
+      "src/server.ts": "fbc6ebe75c2c10edbbe88119737e2f68",
+      "src/start.ts": "5f68ed421b064a9844dbb117e08f614b",
+      "src/styles.css": "9efb597fb856dabfa7e93f821a3300d0",
+      "supabase/config.toml": "99f1c83eed0a4199fe1ca9ff679bdb05",
+      "supabase/migrations/20260528073456_dbad7eb1-6f82-48ef-b0b3-477cccc0a02a.sql": "42bc767d958451355a60c8e128414212",
+      "supabase/migrations/20260528073507_36f4e124-4b4d-4ddd-b715-d802e2bb9370.sql": "a5a69cb76eb73459f1582a6585a16d34",
+      "supabase/migrations/20260606112541_2d2585fa-e081-4cd8-9b26-c47d3ebe76cd.sql": "19708678cedefb04df11a4fdaba50bb7",
+      "supabase/migrations/20260623220931_a6023452-eb6f-4b82-b723-23ffe8a5394b.sql": "51f815cdc26ab940d74035e132288921",
+      "supabase/migrations/20260623220941_1b21bebf-9fdd-4fdb-acb2-5c79fcfa9787.sql": "2a625562fed4c9546074cd14f3f92a69",
+      "supabase/migrations/20260624012510_bf787b5e-4d67-4fea-98d4-5fdc7ea94b09.sql": "067f791a971f60a12b3cb6d462f63a36",
+      "supabase/migrations/20260629101219_90d140a8-c731-4002-b373-89562ae96664.sql": "e36d19b9905a52144e52b9f28273e542",
+      "supabase/migrations/20260629101232_1b5c6b35-09a9-425f-a036-0efc8a645ae8.sql": "accb5821c0cd9f22b6cb6f0dcd1ec454",
+      "supabase/migrations/20260701001719_897835b9-7eec-4245-9ea7-91e03c2b0d19.sql": "9eda005674326651d30342ee34773194",
+      "supabase/migrations/20260709074553_74125580-1035-4221-85a2-9e5fd7a8bd5d.sql": "e05f4406e55ef4345dbf4af40afb04ee",
+      "supabase/migrations/20260724100259_02980db0-06ea-4772-9ea9-1e42d6e64660.sql": "6b5061fe47ece95430ad8e31e7159277",
+      "supabase/migrations/20260725134751_6fd36e66-b1ca-441b-819f-322cebc823d3.sql": "155c0c59390578a6690197a296737119",
+      "supabase/migrations/20260725134824_a68f5469-6f2e-49c0-bedf-9a3cf551d35b.sql": "1c073307d83600525c05d022501e0c65",
+      "supabase/migrations/20260726094727_3423bd9f-ac1f-41ac-8df1-24060c3d51c5.sql": "00017262c2340415b45c02d7713d2d77",
+      "supabase/migrations/20260726101622_5e53a42b-75a6-4306-b568-6362af3fcff5.sql": "fe08d13e8da8026bf348ce00df808d2e",
+      "supabase/migrations/20260726115253_eacb80fd-01ad-4025-b5dc-a44a5b42f3f9.sql": "b33244f42956fe20cf1aeb744abb170c",
+      "supabase/migrations/20260726120555_e701a234-6f17-44a9-93a4-3611dc4b3c0a.sql": "8038898381e3922b5a4366f27d29c743",
+      "supabase/migrations/20260729124114_f54923a7-10f6-4fbb-92fd-70c70f9cf10f.sql": "91ab32220c3f9270d20ad2088f834632",
+      "supabase/migrations/20260729124232_dd530389-77be-4bdf-8d66-f1f882799bcc.sql": "94ab3ad8126aa3216c8ed8cf2f11cb4c",
+      "supabase/migrations/20260729135257_106f0e25-1258-4f4a-ac21-1af4d4a72a6f.sql": "d5823f2679a962b0b163ff22b1885548",
+      "supabase/migrations/20260729230257_5d6d29ed-7681-48fe-ada4-50edd8e91559.sql": "3f8cfa64708e194a8d4160e778460b6e",
+      "supabase/migrations/20260730010705_34cfaee3-c355-4966-b7d5-6f6bca22eb24.sql": "2abddefe61c69709311596b9bba1e8aa",
+      "supabase/migrations/20260730010740_ae1ab5bd-7615-4ad9-bead-ebfdcedc3eeb.sql": "4847ee343746ef7194b2545b71f709a0",
+      "supabase/migrations/20260730010806_ff94329c-6905-460c-9dec-bd57c40a5199.sql": "89c898648ca300a69769559f44309f8f",
+      "supabase/migrations/20260730011208_628a1667-aff6-40df-8f6f-c5a6f38b4113.sql": "fbabae7a094e8826c89a253b959a285b",
+      "supabase/migrations/20260730012310_a6ac41a7-76ef-496d-beb3-9067932f7e46.sql": "833c76bc7fb1053af1a68e57ec4851e4",
+      "supabase/migrations/20260730013417_ba01d399-fac1-4a7b-aa55-d2fd1b450a24.sql": "973bca3de6d8b8e3deb4a809718d259e",
+      "supabase/migrations/20260730022638_6d225adb-7249-4c91-b979-a32bf9bb2fe9.sql": "f1daee982f461d02d9b0fb7e5204e960",
+      "supabase/migrations/20260730025214_b8e3ddce-7f9b-4faa-92ca-540c29e3f783.sql": "67662fd420f5b76748d8721f0e0cc6f6",
+      "supabase/migrations/20260730032341_2586fc92-50ef-4b94-93e6-1d1820ae5c15.sql": "167389d09a2321c365bafc7a05102566",
+      "supabase/migrations/20260731112422_b7ab4790-917f-4362-981b-7d0af89832a5.sql": "fa6168f55fdd65a956060b9817f1fb54",
+      "supabase/migrations/20260731161540_3a815969-ef21-43ec-ae5d-5ac44223be73.sql": "8d017e9128caae5a9fb6bfda890bbac5",
+      "supabase/migrations/20260801001013_e9379241-40bd-4a18-a8e6-07bba86b16ca.sql": "a965f7ec56b5c4915b18c4e2a33b0508",
+      "supabase/migrations/20260801011036_3bf62324-9e3c-4a77-ba53-4fc73bce4cd3.sql": "30cf548eebd0b02ef0773a5666ae28b6",
+      "supabase/migrations/20260801013328_5afb1630-f082-4ba9-9df7-9a64e18857da.sql": "1dee312bc9a0cba46a33e0286337586f",
+      "supabase/migrations/20260801020949_dd250069-b3f6-4e44-8267-dfc169d22c37.sql": "26700ca98de2978587c689ee7fdd3bf8",
+      "supabase/migrations/20260803064543_e4d35be4-02be-475b-9e49-aef49054bd96.sql": "08b14e32fe10f775e06cc318a349ef1c",
+      "supabase/migrations/20260803081355_bee454e5-be4c-449c-be41-7c1fca3f9537.sql": "f420e559c84a16dd84686d89e1ae550e",
+      "supabase/migrations/20260803082144_04d6219e-13fb-44ac-aa0f-586ecca829bb.sql": "8529b77ef5e5e2dbfefb68562727fdcc",
+      "supabase/migrations/20260803091715_12539aff-128c-4566-8a17-55e67dba2230.sql": "841e7c67f57f619b88c07d5956f7457a",
+      "supabase/migrations/20260805214405_33f70ea5-59b1-4108-95a1-8ef5ecd23e54.sql": "520d2896658b19a35dc03d373a035d03",
+      "supabase/migrations/20260805214840_acaa302f-aeda-45d3-8f88-08946fdf29a3.sql": "cfa67f32b1aac7b1211ef355e44c43c1",
+      "supabase/migrations/20260806182859_136a0d8a-8fca-411a-8ee6-573c6d241075.sql": "a557a35c70f81e08762cd3df3090eadb",
+      "supabase/migrations/20260813125302_ddec9283-4040-4a8b-ac31-ea8432cfa835.sql": "0e19d0ee3f0c1b1fb49c0e142e0d1f60",
+      "supabase/migrations/20260818113300_b97a0bf2-6368-45e0-9d4b-59c28b477c6c.sql": "69248e0931879c2fc54ba43423f0c289",
+      "supabase/migrations/20260825075602_8f0b922d-118e-40dd-8edb-70c9cc8deaa3.sql": "c79a444206982d38df18b6205375375d",
+      "supabase/migrations/20260825104444_796d6074-cf75-46c9-a2c2-1d5659ea3d39.sql": "640af0f5da3f8513f00692e61694bcfa",
+      "supabase/migrations/20260825134822_2cd3186c-a9e6-4ecb-973c-b72facc8cfb6.sql": "47359ec9b7e3bb8e09b9d5457e5c99d0",
+      "supabase/migrations/20260825134852_08e4c57a-2242-4b7b-9d8c-5a3e31d828c9.sql": "4a418f40221b3607f6027709ebae11a6",
+      "supabase/migrations/20260825142123_a2bb22c7-8b63-4c2b-b2b6-177a8ed3de45.sql": "59f16a4f1293759beb04d2acc94feed7",
+      "supabase/migrations/20260826181205_84fa2754-d09a-409f-86c1-07e62117cd75.sql": "69eeed85dc31f0c1cf54bdca96638a3b",
+      "supabase/migrations/20260827141357_28602129-b829-4726-8059-7902c94f1db7.sql": "d6b26ec353a8216f904653b77733d9be",
+      "supabase/migrations/20260828062711_9208397f-eb3a-4fb9-8fe5-4a64596f219c.sql": "f8ee671dab6cd7f2be315aa5d534ecb4",
+      "supabase/migrations/20260828102446_1e274555-d765-408e-ba8f-4863fa671af2.sql": "c035de3372a692f6fb9c37184a3492bc",
+      "supabase/migrations/20260828142902_76f8b58e-d99c-4dff-ac3a-f716f09298b4.sql": "f33c281b7b9824c091c6f58a910e36e6",
+      "supabase/migrations/20260828152659_6a71b78e-7c11-44f4-aaa7-a59bf11a8e05.sql": "d4d07d29b149f3d71ed5e62ab2cb47d2",
+      "supabase/migrations/20260831073538_9a7af859-25b8-4133-952e-128a9b40ca17.sql": "4401cc0b5d510f54bb9d31382e2de337",
+      "supabase/migrations/20260831073613_c844b07b-f1e4-4e7e-ad1e-a5ec068503dd.sql": "797baf10c9b1c5f7c5d8e2767c6f81f0",
+      "supabase/migrations/20260831080118_9dfe4e11-723c-437b-8d43-9f592441a516.sql": "d47890f01928a338750f3baf163b8d3d",
+      "supabase/migrations/20260831105638_33c7178b-2655-4a82-b0db-219d5fc2ad51.sql": "def05ead45b0cdeb8c29201ed97efa23",
+      "supabase/migrations/20260831111554_189feb7c-bfe3-4c4c-a15c-1fceb948036f.sql": "cc5aa92d7619efee804a686e1d9663bd",
+      "supabase/seed.sql": "f1ed2342f081b5710113c5fded5bd9a1",
+      "tsconfig.json": "994abf64c2b9f78b568879f80ed0170e",
+      "vite.config.ts": "347d2c56bf01f9ff57d1355fbea8edb1",
+      "vitest.config.ts": "a4d478f52981e028542acbfce9300863"
+    },
+    "pipeline_version": 8
+  },
+  "tokens": {
+    "color": [
+      {
+        "name": "--background",
+        "raw": "oklch(0.965 0.004 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--foreground",
+        "raw": "oklch(0.25 0.025 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--panel",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--panel-foreground",
+        "raw": "oklch(0.25 0.025 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--card",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--card-foreground",
+        "raw": "oklch(0.25 0.025 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--popover",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--popover-foreground",
+        "raw": "oklch(0.25 0.025 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--primary",
+        "raw": "oklch(0.36 0.075 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--primary-foreground",
+        "raw": "oklch(0.99 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--gold",
+        "raw": "oklch(0.735 0.125 78)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--gold-foreground",
+        "raw": "oklch(0.26 0.05 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--secondary",
+        "raw": "oklch(0.955 0.006 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--secondary-foreground",
+        "raw": "oklch(0.30 0.03 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--muted",
+        "raw": "oklch(0.958 0.005 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--muted-foreground",
+        "raw": "oklch(0.52 0.015 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--accent",
+        "raw": "oklch(0.945 0.012 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--accent-foreground",
+        "raw": "oklch(0.30 0.05 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--destructive",
+        "raw": "oklch(0.58 0.20 27)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--destructive-foreground",
+        "raw": "oklch(0.99 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--success",
+        "raw": "oklch(0.60 0.14 152)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--success-foreground",
+        "raw": "oklch(0.99 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--warning",
+        "raw": "oklch(0.75 0.14 75)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--warning-foreground",
+        "raw": "oklch(0.20 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--border",
+        "raw": "oklch(0.905 0.008 250)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--input",
+        "raw": "oklch(1 0 0)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--ring",
+        "raw": "oklch(0.735 0.125 78)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--steel",
+        "raw": "oklch(0.46 0.045 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--concrete",
+        "raw": "oklch(0.72 0.008 248)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar",
+        "raw": "oklch(0.30 0.058 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-foreground",
+        "raw": "oklch(0.94 0.008 90)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-primary",
+        "raw": "oklch(0.735 0.125 78)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-primary-foreground",
+        "raw": "oklch(0.24 0.05 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-accent",
+        "raw": "oklch(0.355 0.062 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-accent-foreground",
+        "raw": "oklch(0.98 0.006 90)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-border",
+        "raw": "oklch(0.38 0.055 252)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--sidebar-ring",
+        "raw": "oklch(0.735 0.125 78)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--color-terzi-midnight",
+        "raw": "#06172b",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--color-terzi-blue",
+        "raw": "#0e314f",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--color-terzi-gold",
+        "raw": "#d89b2b",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--color-terzi-ivory",
+        "raw": "#f6f3ec",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--color-terzi-steel",
+        "raw": "#cbd3db",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--color-terzi-carbon",
+        "raw": "#14171b",
+        "source": "src/styles.css"
+      }
+    ],
+    "typography": [
+      {
+        "name": "--font-sans",
+        "raw": "\"Inter\", system-ui, -apple-system, sans-serif",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--font-display",
+        "raw": "\"Inter\", system-ui, sans-serif",
+        "source": "src/styles.css"
+      }
+    ],
+    "radius": [
+      {
+        "name": "--radius-sm",
+        "raw": "calc(var(--radius) - 4px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-md",
+        "raw": "calc(var(--radius) - 2px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-xl",
+        "raw": "calc(var(--radius) + 4px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius-2xl",
+        "raw": "calc(var(--radius) + 8px)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--radius",
+        "raw": "0.5rem",
+        "source": "src/styles.css"
+      }
+    ],
+    "shadow": [
+      {
+        "name": "--shadow-panel",
+        "raw": "0 1px 2px 0 oklch(0.25 0.05 250 / 0.10), 0 1px 1px 0 oklch(0.25 0.05 250 / 0.04)",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--shadow-glow",
+        "raw": "0 0 24px -6px oklch(0.735 0.125 78 / 0.4)",
+        "source": "src/styles.css"
+      }
+    ],
+    "other": [
+      {
+        "name": "--gradient-orange",
+        "raw": "linear-gradient(135deg, oklch(0.78 0.13 80), oklch(0.70 0.13 70))",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--gradient-blue",
+        "raw": "linear-gradient(135deg, oklch(0.36 0.075 252), oklch(0.28 0.055 254))",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--gradient-panel",
+        "raw": "linear-gradient(180deg, oklch(1 0 0), oklch(1 0 0))",
+        "source": "src/styles.css"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "AmortizationPanel",
+      "file": "src/components/AmortizationPanel",
+      "import_path": ""
+    },
+    {
+      "name": "AppShell",
+      "file": "src/components/AppShell",
+      "import_path": ""
+    },
+    {
+      "name": "CatalogPage",
+      "file": "src/components/CatalogPage",
+      "import_path": ""
+    },
+    {
+      "name": "EstimateDraftControls",
+      "file": "src/components/EstimateDraftControls",
+      "import_path": "",
+      "props": [
+        {
+          "name": "draft",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "onSave",
+          "type": "function",
+          "required": true
+        },
+        {
+          "name": "canAutosave",
+          "type": "boolean",
+          "default": "true"
+        },
+        {
+          "name": "blockReason",
+          "type": "string"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": "w-3 h-3 animate-spin"
+        },
+        {
+          "name": "buttonClass",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "EstimateLinkPicker",
+      "file": "src/components/EstimateLinkPicker",
+      "import_path": ""
+    },
+    {
+      "name": "EstimateView",
+      "file": "src/components/EstimateView",
+      "import_path": "",
+      "props": [
+        {
+          "name": "result",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "client",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "branding",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "module",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "area",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "thicknessCm",
+          "type": "number"
+        },
+        {
+          "name": "estimateNumber",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "isInternal",
+          "type": "boolean",
+          "required": true
+        },
+        {
+          "name": "exportBlockReason",
+          "type": "string"
+        },
+        {
+          "name": "estimateId",
+          "type": "string"
+        },
+        {
+          "name": "editsKey",
+          "type": "string"
+        },
+        {
+          "name": "onEditsChange",
+          "type": "function"
+        },
+        {
+          "name": "techInfo",
+          "type": "object"
+        },
+        {
+          "name": "layers",
+          "type": "number"
+        },
+        {
+          "name": "vat",
+          "type": "object"
+        },
+        {
+          "name": "initialClientViewMode",
+          "type": "enum",
+          "values": [
+            "detailed",
+            "condensed",
+            "turnkey"
+          ]
+        },
+        {
+          "name": "onClientViewModeChange",
+          "type": "function"
+        },
+        {
+          "name": "schedule",
+          "type": "object"
+        }
+      ]
+    },
+    {
+      "name": "ModuleStub",
+      "file": "src/components/ModuleStub",
+      "import_path": ""
+    },
+    {
+      "name": "NumberInput",
+      "file": "src/components/NumberInput",
+      "import_path": "",
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "PriceImportDialog",
+      "file": "src/components/PriceImportDialog",
+      "import_path": "",
+      "props": [
+        {
+          "name": "module",
+          "type": "enum",
+          "values": [
+            "screed",
+            "roofing",
+            "insulation",
+            "demolition"
+          ],
+          "required": true
+        },
+        {
+          "name": "kind",
+          "type": "enum",
+          "values": [
+            "material",
+            "work"
+          ],
+          "required": true
+        },
+        {
+          "name": "onClose",
+          "type": "function",
+          "required": true
+        }
+      ]
+    },
+    {
+      "name": "RoofingNormsAdmin",
+      "file": "src/components/RoofingNormsAdmin",
+      "import_path": ""
+    },
+    {
+      "name": "SchedulePanel",
+      "file": "src/components/SchedulePanel",
+      "import_path": "",
+      "props": [
+        {
+          "name": "estimateId",
+          "type": "string"
+        },
+        {
+          "name": "module",
+          "type": "any",
+          "required": true
+        },
+        {
+          "name": "area",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "layers",
+          "type": "number"
+        },
+        {
+          "name": "initial",
+          "type": "object"
+        }
+      ]
+    },
+    {
+      "name": "ScreedGradesAdmin",
+      "file": "src/components/ScreedGradesAdmin",
+      "import_path": ""
+    },
+    {
+      "name": "TargetMarginPanel",
+      "file": "src/components/TargetMarginPanel",
+      "import_path": "",
+      "props": [
+        {
+          "name": "value",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "onChange",
+          "type": "function",
+          "required": true
+        },
+        {
+          "name": "totalClient",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "pricePerM2",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "grossProfit",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "marginPercent",
+          "type": "number",
+          "required": true
+        },
+        {
+          "name": "totalCost",
+          "type": "number"
+        },
+        {
+          "name": "showInternal",
+          "type": "boolean",
+          "default": "true"
+        },
+        {
+          "name": "perUnitLabel",
+          "type": "string",
+          "default": "грн/м²"
+        },
+        {
+          "name": "className",
+          "type": "string",
+          "default": "text-[10px] uppercase tracking-wider text-muted-foreground"
+        }
+      ]
+    },
+    {
+      "name": "TerziLogo",
+      "file": "src/components/TerziLogo",
+      "import_path": "",
+      "props": [
+        {
+          "name": "size",
+          "type": "number",
+          "default": "36"
+        },
+        {
+          "name": "withText",
+          "type": "boolean",
+          "default": "false"
+        },
+        {
+          "name": "className",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "CalcStepRail",
+      "file": "src/components/calc/CalcStepRail",
+      "import_path": ""
+    },
+    {
+      "name": "CalcViewTabs",
+      "file": "src/components/calc/CalcViewTabs",
+      "import_path": ""
+    },
+    {
+      "name": "GenericProductionCard",
+      "file": "src/components/calc/GenericProductionCard",
+      "import_path": ""
+    },
+    {
+      "name": "UnifiedTimeline",
+      "file": "src/components/crm/UnifiedTimeline",
+      "import_path": ""
+    },
+    {
+      "name": "BinotelCallDialog",
+      "file": "src/components/integrations/BinotelCallDialog",
+      "import_path": ""
+    },
+    {
+      "name": "BinotelCallsPanel",
+      "file": "src/components/integrations/BinotelCallsPanel",
+      "import_path": ""
+    },
+    {
+      "name": "BinotelPanel",
+      "file": "src/components/integrations/BinotelPanel",
+      "import_path": ""
+    },
+    {
+      "name": "ConflictsPanel",
+      "file": "src/components/integrations/ConflictsPanel",
+      "import_path": ""
+    },
+    {
+      "name": "ImportPanel",
+      "file": "src/components/integrations/ImportPanel",
+      "import_path": ""
+    },
+    {
+      "name": "OneWayPanel",
+      "file": "src/components/integrations/OneWayPanel",
+      "import_path": ""
+    },
+    {
+      "name": "SyncPanel",
+      "file": "src/components/integrations/SyncPanel",
+      "import_path": ""
+    },
+    {
+      "name": "CrudPanel",
+      "file": "src/components/marketing/CrudPanel",
+      "import_path": ""
+    },
+    {
+      "name": "MarketingShell",
+      "file": "src/components/marketing/MarketingShell",
+      "import_path": ""
+    },
+    {
+      "name": "Panel",
+      "file": "src/components/marketing/MarketingShell",
+      "import_path": ""
+    },
+    {
+      "name": "EmptyState",
+      "file": "src/components/marketing/MarketingShell",
+      "import_path": ""
+    },
+    {
+      "name": "KpiCard",
+      "file": "src/components/marketing/MarketingShell",
+      "import_path": ""
+    },
+    {
+      "name": "PlanFactPanel",
+      "file": "src/components/roofing/PlanFactPanel",
+      "import_path": ""
+    },
+    {
+      "name": "ProductionCard",
+      "file": "src/components/roofing/ProductionCard",
+      "import_path": ""
+    },
+    {
+      "name": "PurchaseSheet",
+      "file": "src/components/roofing/PurchaseSheet",
+      "import_path": ""
+    },
+    {
+      "name": "Constants",
+      "file": "src/integrations/supabase/types",
+      "import_path": ""
+    },
+    {
+      "name": "AuthProvider",
+      "file": "src/lib/auth",
+      "import_path": ""
+    },
+    {
+      "name": "BinotelError",
+      "file": "src/lib/integrations/binotel/client.server",
+      "import_path": ""
+    },
+    {
+      "name": "KeyCrmError",
+      "file": "src/lib/integrations/keycrm/client.server",
+      "import_path": ""
+    }
+  ],
+  "assets": [
+    {
+      "file": "src/assets/terzi-footer.png",
+      "kind": "image",
+      "format": "png"
+    },
+    {
+      "file": "src/assets/terzi-header.jpg",
+      "kind": "image",
+      "format": "jpg"
+    },
+    {
+      "file": "src/assets/terzi-hero.jpeg.asset.json",
+      "kind": "image",
+      "format": "jpeg",
+      "pointer": true
+    },
+    {
+      "file": "src/assets/terzi-logo-gold.jpeg.asset.json",
+      "kind": "logo",
+      "format": "jpeg",
+      "pointer": true
+    },
+    {
+      "file": "src/assets/terzi-logo.jpeg.asset.json",
+      "kind": "logo",
+      "format": "jpeg",
+      "pointer": true
+    }
+  ]
+}
