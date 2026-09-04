@@ -170,11 +170,13 @@ function CallsPage() {
             <div className="text-sm font-bold mb-3">Дзвінки по співробітниках</div>
             <div className="space-y-2">
               {stats.byStaff.map(([name, count]) => (
-                <div key={name} className="flex items-center justify-between text-sm border-b border-border/60 pb-1.5 last:border-0">
+                <button key={name} onClick={() => setStaff(staff === name ? "all" : name)}
+                  className={`flex w-full items-center justify-between border-b border-border/60 pb-1.5 text-left text-sm last:border-0 ${staff === name ? "text-primary" : ""}`}>
                   <span className="truncate">{name}</span>
                   <span className="font-semibold tabular-nums">{count}</span>
-                </div>
+                </button>
               ))}
+
               {!stats.byStaff.length ? <div className="text-sm text-muted-foreground">Немає даних про співробітників</div> : null}
             </div>
           </div>
