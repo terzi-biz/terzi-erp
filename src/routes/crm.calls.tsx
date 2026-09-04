@@ -54,13 +54,23 @@ function CallsPage() {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"all" | "inbound" | "outbound" | "missed" | "new">("all");
   const [source, setSource] = useState<"all" | CallSourceBucket>("all");
+  const [staff, setStaff] = useState<string>("all");
 
   const { data, isLoading } = useQuery({
     queryKey: ["calls-feed", from, to],
     queryFn: () => feedFn({ data: { from, to } }),
   });
 
-  const all = (data?.rows ?? []) as CallFeedRow[];
+  const feed = (data?.rows ?? []) as CallFeedRow[];
+  /** Перелік співробітників періоду для фільтра «Співробітник». */
+  const staffOptions = useMemo(
+    () => Array.from(new Set(feed.map((c) => c.employee_name).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "uk")),
+    [feed],
+  );
+  const all = useMemo(
+    () => (staff === "all" ? feed : feed.filter((c) => c.employee_name === staff)),
+    [feed, staff],
+  );
 
   const stats = useMemo(() => {
     const answered = all.filter((c) => !c.is_missed);
@@ -98,6 +108,7 @@ function CallsPage() {
     });
   }, [all, q, tab, source]);
 
+
   return (
     <AppShell>
       <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-4">
@@ -106,10 +117,15 @@ function CallsPage() {
             <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-2"><PhoneCall className="w-6 h-6" /> Дзвінки</h1>
             <p className="text-sm text-muted-foreground">Аналітика телефонії: джерела, пропущені, перші звернення, менеджери</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={staff} onChange={(e) => setStaff(e.target.value)} className={inp} title="Співробітник">
+              <option value="all">Усі співробітники</option>
+              {staffOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
           </div>
+
         </div>
 
         {data?.truncated ? (
@@ -154,11 +170,13 @@ function CallsPage() {
             <div className="text-sm font-bold mb-3">Дзвінки по співробітниках</div>
             <div className="space-y-2">
               {stats.byStaff.map(([name, count]) => (
-                <div key={name} className="flex items-center justify-between text-sm border-b border-border/60 pb-1.5 last:border-0">
+                <button key={name} onClick={() => setStaff(staff === name ? "all" : name)}
+                  className={`flex w-full items-center justify-between border-b border-border/60 pb-1.5 text-left text-sm last:border-0 ${staff === name ? "text-primary" : ""}`}>
                   <span className="truncate">{name}</span>
                   <span className="font-semibold tabular-nums">{count}</span>
-                </div>
+                </button>
               ))}
+
               {!stats.byStaff.length ? <div className="text-sm text-muted-foreground">Немає даних про співробітників</div> : null}
             </div>
           </div>
