@@ -52,22 +52,6 @@ export function WarehouseImportWizard() {
     enabled: access.data?.allowed === true,
   });
 
-  if (access.isLoading) return <div className="p-6 text-sm text-muted-foreground">Перевірка прав…</div>;
-  if (!access.data?.allowed) {
-    return (
-      <div className="bg-card border border-border rounded-lg p-6 text-sm flex items-start gap-3">
-        <ShieldAlert className="w-5 h-5 text-warning shrink-0" />
-        <div>
-          <div className="font-bold">Немає доступу до імпорту</div>
-          <div className="text-muted-foreground mt-1">
-            Пакет містить конфіденційні дані постачальника й архівні ціни. Доступ мають лише власник,
-            адміністратор, директор або фінансист.
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   async function onFile(f: File) {
     setPreview(null); setParsed(null); setStaging(null);
     const text = await f.text();
@@ -126,6 +110,22 @@ export function WarehouseImportWizard() {
     onError: (e: any) => toast.error(e?.message ?? "Помилка запису в чергу"),
     onSettled: () => setStaging(null),
   });
+
+  if (access.isLoading) return <div className="p-6 text-sm text-muted-foreground">Перевірка прав…</div>;
+  if (!access.data?.allowed) {
+    return (
+      <div className="bg-card border border-border rounded-lg p-6 text-sm flex items-start gap-3">
+        <ShieldAlert className="w-5 h-5 text-warning shrink-0" />
+        <div>
+          <div className="font-bold">Немає доступу до імпорту</div>
+          <div className="text-muted-foreground mt-1">
+            Пакет містить конфіденційні дані постачальника й архівні ціни. Доступ мають лише власник,
+            адміністратор, директор або фінансист.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const runRows = (runs.data ?? []) as any[];
 
