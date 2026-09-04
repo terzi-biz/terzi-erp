@@ -13,7 +13,7 @@ const STATUS_LABELS: Record<string, string> = {
   verified: "Перевірено",
 };
 
-const moduleLabel = (id: string) => MODULES.find((m) => m.id === id)?.label ?? id;
+const moduleLabel = (id: string) => terziModuleLabel(id) || id;
 
 function attrText(a: any): string {
   if (a.data_type === "number" && a.numeric_value != null) return `${a.numeric_value}${a.unit ? ` ${a.unit}` : ""}`;
