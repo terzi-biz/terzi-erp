@@ -229,8 +229,8 @@ function StockTab({ items, isLoading }: { items: any[]; isLoading: boolean }) {
                     <td className="px-3 py-2 text-right">{Number(i.qty).toFixed(2)} {i.unit}</td>
                     <td className="px-3 py-2 text-right text-warning">{Number(i.reserved_qty).toFixed(2)}</td>
                     <td className="px-3 py-2 text-right font-semibold">{availableQty(i).toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right">{formatUah(Number(i.avg_cost) || 0)}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{formatUah((Number(i.qty) || 0) * (Number(i.avg_cost) || 0))}</td>
+                    <td className="px-3 py-2 text-right">{i.avg_cost == null ? <span className="text-xs text-muted-foreground">немає даних</span> : formatUah(Number(i.avg_cost))}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{i.avg_cost == null ? <span className="text-xs text-muted-foreground">—</span> : formatUah((Number(i.qty) || 0) * Number(i.avg_cost))}</td>
                   </tr>
                 );
               })}

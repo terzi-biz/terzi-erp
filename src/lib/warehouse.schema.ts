@@ -18,7 +18,7 @@ export const lineInput = z.object({
  *  (avg_cost / total_cost / price) закрита на рівні привілеїв БД і
  *  повертається лише через RPC `stock_costs()` для finance/admin. */
 export const ITEM_COLS =
-  "id,name,sku,unit,category,module,catalog_item_id,min_qty,archived,created_at,updated_at";
+  "id,name,sku,unit,category,module,catalog_item_id,min_qty,archived,family_key,variant_label,verification_status,origin_external_key,created_at,updated_at";
 export const DOC_COLS =
   "id,number,doc_type,status,doc_date,warehouse_id,target_warehouse_id,order_id,supplier,note,created_by,posted_at,posted_by,created_at,updated_at";
 export const LINE_COLS = "id,document_id,item_id,qty,note,created_at";
