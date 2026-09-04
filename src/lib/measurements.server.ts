@@ -41,6 +41,10 @@ export interface PlannedMeasurement {
   employee_id: string | null;
   employee_name: string | null;
   order_id: string | null;
+  lead_id: string | null;
+  measurement_id: string | null;
+  /** Подія має підтверджений факт заміру. */
+  has_fact: boolean;
 }
 
 export interface MeasurementFunnel {
@@ -54,6 +58,10 @@ export interface MeasurementFunnel {
   planned: number;
   done: number;
   withoutSurveyor: number;
+  /** Минулі події календаря без зафіксованого факту заміру. */
+  plannedWithoutFact: number;
+  /** Факти замірів без відповідної події календаря. */
+  factsWithoutEvent: number;
 }
 
 export interface MeasurementsPayload {
@@ -128,6 +136,12 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
     };
   });
 
+  const factByOrder = new Set(rows.map((r) => r.order_id).filter(Boolean) as string[]);
+  const factIds = new Set(rows.map((r) => r.id));
+  const eventOrderIds = new Set(events.map((e) => e.order_id).filter(Boolean) as string[]);
+  const eventMeasurementIds = new Set(events.map((e) => e.measurement_id).filter(Boolean) as string[]);
+  const nowTs = Date.now();
+
   const planned: PlannedMeasurement[] = events.map((e) => ({
     id: e.id,
     title: e.title,
@@ -141,6 +155,11 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
     employee_id: e.employee_id ?? null,
     employee_name: e.employee_id ? nameByUser.get(e.employee_id) ?? null : null,
     order_id: e.order_id ?? null,
+    lead_id: (e.metadata as any)?.lead_id ?? null,
+    measurement_id: e.measurement_id ?? null,
+    has_fact: Boolean(
+      (e.measurement_id && factIds.has(e.measurement_id)) || (e.order_id && factByOrder.has(e.order_id)),
+    ),
   }));
 
   const leads = leadsRes.count ?? 0;
@@ -160,6 +179,12 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
       planned: planned.filter((e) => e.status !== "done" && e.status !== "cancelled").length,
       done: rows.filter((r) => r.status === "done").length,
       withoutSurveyor: rows.filter((r) => !r.surveyor_id).length,
+      plannedWithoutFact: planned.filter(
+        (e) => !e.has_fact && e.status !== "cancelled" && new Date(e.starts_at).getTime() < nowTs,
+      ).length,
+      factsWithoutEvent: rows.filter(
+        (r) => !eventMeasurementIds.has(r.id) && !(r.order_id && eventOrderIds.has(r.order_id)),
+      ).length,
     },
   };
 }
