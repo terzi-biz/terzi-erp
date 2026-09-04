@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { CalendarClock, Ruler, Plus, X, CheckCircle2, AlertTriangle, Target } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -91,12 +91,6 @@ function MeasurementsPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["measurements"] }); toast.success("Статус оновлено"); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
-
-  const bySurveyor = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const r of rows) m.set(r.surveyor_name ?? "Без замірника", (m.get(r.surveyor_name ?? "Без замірника") ?? 0) + 1);
-    return Array.from(m entries_placeholder ?? []);
-  }, [rows]);
 
   return (
     <AppShell>
