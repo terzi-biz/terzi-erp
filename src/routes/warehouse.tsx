@@ -3,11 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Package, Plus, Boxes, ArrowLeftRight, ClipboardList, Lock, AlertTriangle, Check, X } from "lucide-react";
+import { Package, Plus, Boxes, ArrowLeftRight, ClipboardList, Lock, AlertTriangle, Check, X, Layers, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUah } from "@/lib/screed-calc";
 import { availableQty, documentTotal, isBelowMin, STOCK_DOC_LABELS, STOCK_STATUS_LABELS, WAREHOUSE_KINDS } from "@/lib/warehouse-calc";
+import { reservedByUnit } from "@/lib/warehouse-import";
+import { MaterialVariantCard } from "@/components/warehouse/MaterialVariantCard";
+import { WarehouseImportWizard } from "@/components/warehouse/WarehouseImportWizard";
 import {
   listWarehouses, saveWarehouse, listStockItems, saveStockItem,
   listStockDocuments, saveStockDocument, postStockDocument, cancelStockDocument,
@@ -34,8 +37,10 @@ export const Route = createFileRoute("/warehouse")({
 
 const TABS = [
   { key: "stock", label: "Залишки", icon: Boxes },
+  { key: "nomenclature", label: "Номенклатура", icon: Layers },
   { key: "docs", label: "Рух матеріалів", icon: ArrowLeftRight },
   { key: "reserve", label: "Резерв", icon: Lock },
+  { key: "import", label: "Імпорт і перевірка", icon: Upload },
   { key: "refs", label: "Склади та номенклатура", icon: ClipboardList },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -68,10 +73,13 @@ function WarehousePage() {
 
   const totals = useMemo(() => {
     const rows = items as any[];
+    const priced = rows.filter((i) => i.avg_cost != null);
     return {
       positions: rows.length,
-      value: rows.reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.avg_cost) || 0), 0),
-      reserved: rows.reduce((s, i) => s + (Number(i.reserved_qty) || 0), 0),
+      /** Вартість лише по позиціях із відомою собівартістю; невідома ≠ нуль. */
+      value: priced.reduce((s, i) => s + (Number(i.qty) || 0) * Number(i.avg_cost), 0),
+      pricedCount: priced.length,
+      reserved: reservedByUnit(rows.map((i) => ({ qty: Number(i.reserved_qty) || 0, unit: i.unit }))).filter((r) => r.qty > 0),
       low: rows.filter((i) => isBelowMin(Number(i.qty) || 0, Number(i.min_qty) || 0)).length,
     };
   }, [items]);
@@ -88,17 +96,18 @@ function WarehousePage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            ["Позицій", String(totals.positions)],
-            ["Вартість запасів", formatUah(totals.value)],
-            ["У резерві (од.)", totals.reserved.toFixed(2)],
-            ["Нижче мінімуму", String(totals.low)],
-          ].map(([l, v]) => (
-            <div key={l as string} className="bg-card border border-border rounded-lg p-4">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{l}</div>
-              <div className="text-xl font-black mt-1 text-primary">{v}</div>
-            </div>
-          ))}
+          <Kpi label="Позицій" value={String(totals.positions)} />
+          <Kpi
+            label="Вартість запасів"
+            value={totals.pricedCount ? formatUah(totals.value) : "немає даних"}
+            hint={totals.pricedCount < totals.positions ? `покриття собівартістю: ${totals.pricedCount} з ${totals.positions}` : undefined}
+          />
+          <Kpi
+            label="У резерві"
+            value={totals.reserved.length ? totals.reserved.map((r) => `${r.qty} ${r.unit}`).join(" · ") : "—"}
+            hint="за одиницями виміру, без змішування"
+          />
+          <Kpi label="Нижче мінімуму" value={String(totals.low)} />
         </div>
 
         <div className="flex gap-1 flex-wrap border-b border-border">
@@ -111,11 +120,75 @@ function WarehousePage() {
         </div>
 
         {tab === "stock" && <StockTab items={items as any[]} isLoading={isLoading} />}
+        {tab === "nomenclature" && <NomenclatureTab items={items as any[]} isLoading={isLoading} />}
         {tab === "docs" && <DocsTab docs={docs as any[]} items={items as any[]} warehouses={warehouses as any[]} orders={orders as any[]} onChange={invalidate} />}
         {tab === "reserve" && <ReserveTab rows={reservations as any[]} onChange={invalidate} />}
+        {tab === "import" && <WarehouseImportWizard />}
         {tab === "refs" && <RefsTab warehouses={warehouses as any[]} items={items as any[]} onChange={() => { qc.invalidateQueries({ queryKey: ["warehouses"] }); invalidate(); }} />}
       </div>
     </AppShell>
+  );
+}
+
+function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) {
+  return (
+    <div className="bg-card border border-border rounded-lg p-4">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="text-xl font-black mt-1 text-primary break-words">{value}</div>
+      {hint && <div className="text-[11px] text-muted-foreground mt-1">{hint}</div>}
+    </div>
+  );
+}
+
+const VERIFICATION_LABELS: Record<string, string> = {
+  unknown: "Невідомо",
+  source_only: "Лише джерело",
+  review_required: "Потребує перевірки",
+  verified: "Перевірено",
+};
+
+/** Номенклатура: сімейства й варіанти з відкриттям картки. */
+function NomenclatureTab({ items, isLoading }: { items: any[]; isLoading: boolean }) {
+  const [q, setQ] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
+  const rows = items.filter((i) => !q || `${i.name} ${i.sku ?? ""} ${i.family_key ?? ""} ${i.variant_label ?? ""}`.toLowerCase().includes(q.toLowerCase()));
+  const families = useMemo(() => {
+    const map = new Map<string, any[]>();
+    for (const i of rows) {
+      const key = i.family_key || i.category || "Без сімейства";
+      map.set(key, [...(map.get(key) ?? []), i]);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], "uk"));
+  }, [rows]);
+
+  return (
+    <div className="space-y-3">
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук по сімействах і варіантах…" className={`${input} max-w-md`} />
+      {isLoading && <div className="text-sm text-muted-foreground">Завантаження…</div>}
+      {!isLoading && families.length === 0 && (
+        <div className="bg-card border border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
+          Номенклатура порожня. Позиції створюються вручну або з черги перевірки у вкладці «Імпорт і перевірка».
+        </div>
+      )}
+      {families.map(([family, list]) => (
+        <div key={family} className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="px-3 py-2 bg-secondary/60 text-xs uppercase tracking-wider font-bold">{family} · {list.length}</div>
+          <div className="divide-y divide-border">
+            {list.map((i) => (
+              <button key={i.id} onClick={() => setOpenId(i.id)} className="w-full text-left px-3 py-2 hover:bg-secondary/30 flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-sm">{i.variant_label || i.name}</span>
+                {i.sku && <span className="text-[11px] font-mono text-muted-foreground">{i.sku}</span>}
+                <span className="text-[11px] text-muted-foreground">{i.unit}</span>
+                <span className="ml-auto text-[11px] rounded px-2 py-0.5 bg-secondary">
+                  {VERIFICATION_LABELS[i.verification_status] ?? "Невідомо"}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      {openId && <MaterialVariantCard itemId={openId} onClose={() => setOpenId(null)} />}
+    </div>
   );
 }
 
@@ -156,8 +229,8 @@ function StockTab({ items, isLoading }: { items: any[]; isLoading: boolean }) {
                     <td className="px-3 py-2 text-right">{Number(i.qty).toFixed(2)} {i.unit}</td>
                     <td className="px-3 py-2 text-right text-warning">{Number(i.reserved_qty).toFixed(2)}</td>
                     <td className="px-3 py-2 text-right font-semibold">{availableQty(i).toFixed(2)}</td>
-                    <td className="px-3 py-2 text-right">{formatUah(Number(i.avg_cost) || 0)}</td>
-                    <td className="px-3 py-2 text-right font-semibold">{formatUah((Number(i.qty) || 0) * (Number(i.avg_cost) || 0))}</td>
+                    <td className="px-3 py-2 text-right">{i.avg_cost == null ? <span className="text-xs text-muted-foreground">немає даних</span> : formatUah(Number(i.avg_cost))}</td>
+                    <td className="px-3 py-2 text-right font-semibold">{i.avg_cost == null ? <span className="text-xs text-muted-foreground">—</span> : formatUah((Number(i.qty) || 0) * Number(i.avg_cost))}</td>
                   </tr>
                 );
               })}

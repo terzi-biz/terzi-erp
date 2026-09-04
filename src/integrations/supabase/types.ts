@@ -6111,6 +6111,188 @@ export type Database = {
           },
         ]
       }
+      stock_item_applications: {
+        Row: {
+          catalog_item_id: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          link_type: string
+          material_item_id: string | null
+          module: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          catalog_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          link_type?: string
+          material_item_id?: string | null
+          module: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          catalog_item_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          link_type?: string
+          material_item_id?: string | null
+          module?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_applications_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_item_applications_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_item_applications_material_item_id_fkey"
+            columns: ["material_item_id"]
+            isOneToOne: false
+            referencedRelation: "material_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_item_attributes: {
+        Row: {
+          attribute_key: string
+          created_at: string
+          data_type: string
+          id: string
+          item_id: string
+          max_value: number | null
+          min_value: number | null
+          numeric_value: number | null
+          source_ref: Json | null
+          source_text: string | null
+          text_value: string | null
+          unit: string | null
+          updated_at: string
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          attribute_key: string
+          created_at?: string
+          data_type?: string
+          id?: string
+          item_id: string
+          max_value?: number | null
+          min_value?: number | null
+          numeric_value?: number | null
+          source_ref?: Json | null
+          source_text?: string | null
+          text_value?: string | null
+          unit?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          attribute_key?: string
+          created_at?: string
+          data_type?: string
+          id?: string
+          item_id?: string
+          max_value?: number | null
+          min_value?: number | null
+          numeric_value?: number | null
+          source_ref?: Json | null
+          source_text?: string | null
+          text_value?: string | null
+          unit?: string | null
+          updated_at?: string
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_attributes_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stock_item_pack_units: {
+        Row: {
+          barcode: string | null
+          base_qty_per_pack: number
+          created_at: string
+          id: string
+          item_id: string
+          source_text: string | null
+          unit_label: string
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          verification_status: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          barcode?: string | null
+          base_qty_per_pack: number
+          created_at?: string
+          id?: string
+          item_id: string
+          source_text?: string | null
+          unit_label: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          barcode?: string | null
+          base_qty_per_pack?: number
+          created_at?: string
+          id?: string
+          item_id?: string
+          source_text?: string | null
+          unit_label?: string
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+          verification_status?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_item_pack_units_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_items: {
         Row: {
           archived: boolean
@@ -6118,13 +6300,18 @@ export type Database = {
           catalog_item_id: string | null
           category: string | null
           created_at: string
+          family_key: string | null
           id: string
           min_qty: number
           module: string | null
           name: string
+          origin_external_key: string | null
           sku: string | null
+          source_ref: Json | null
           unit: string
           updated_at: string
+          variant_label: string | null
+          verification_status: string
         }
         Insert: {
           archived?: boolean
@@ -6132,13 +6319,18 @@ export type Database = {
           catalog_item_id?: string | null
           category?: string | null
           created_at?: string
+          family_key?: string | null
           id?: string
           min_qty?: number
           module?: string | null
           name: string
+          origin_external_key?: string | null
           sku?: string | null
+          source_ref?: Json | null
           unit?: string
           updated_at?: string
+          variant_label?: string | null
+          verification_status?: string
         }
         Update: {
           archived?: boolean
@@ -6146,13 +6338,18 @@ export type Database = {
           catalog_item_id?: string | null
           category?: string | null
           created_at?: string
+          family_key?: string | null
           id?: string
           min_qty?: number
           module?: string | null
           name?: string
+          origin_external_key?: string | null
           sku?: string | null
+          source_ref?: Json | null
           unit?: string
           updated_at?: string
+          variant_label?: string | null
+          verification_status?: string
         }
         Relationships: [
           {
@@ -6442,6 +6639,129 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      warehouse_import_rows: {
+        Row: {
+          conflict: boolean
+          created_at: string
+          decision: string
+          external_key: string
+          id: string
+          issues: Json
+          linked_stock_item_id: string | null
+          normalized_payload: Json
+          previous_payload: Json | null
+          raw_payload: Json
+          reviewed_at: string | null
+          reviewed_by: string | null
+          revision: number
+          run_id: string
+          source_hash: string
+          source_kind: string
+          updated_at: string
+        }
+        Insert: {
+          conflict?: boolean
+          created_at?: string
+          decision?: string
+          external_key: string
+          id?: string
+          issues?: Json
+          linked_stock_item_id?: string | null
+          normalized_payload?: Json
+          previous_payload?: Json | null
+          raw_payload: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          revision?: number
+          run_id: string
+          source_hash: string
+          source_kind: string
+          updated_at?: string
+        }
+        Update: {
+          conflict?: boolean
+          created_at?: string
+          decision?: string
+          external_key?: string
+          id?: string
+          issues?: Json
+          linked_stock_item_id?: string | null
+          normalized_payload?: Json
+          previous_payload?: Json | null
+          raw_payload?: Json
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          revision?: number
+          run_id?: string
+          source_hash?: string
+          source_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "warehouse_import_rows_linked_stock_item_id_fkey"
+            columns: ["linked_stock_item_id"]
+            isOneToOne: false
+            referencedRelation: "stock_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "warehouse_import_rows_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      warehouse_import_runs: {
+        Row: {
+          bundle_id: string
+          counters: Json
+          created_at: string
+          created_by: string | null
+          file_sha256: string
+          id: string
+          notes: string | null
+          production_import_allowed: boolean
+          schema_version: string
+          source_commit: string | null
+          source_name: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          bundle_id: string
+          counters?: Json
+          created_at?: string
+          created_by?: string | null
+          file_sha256: string
+          id?: string
+          notes?: string | null
+          production_import_allowed?: boolean
+          schema_version: string
+          source_commit?: string | null
+          source_name?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          bundle_id?: string
+          counters?: Json
+          created_at?: string
+          created_by?: string | null
+          file_sha256?: string
+          id?: string
+          notes?: string | null
+          production_import_allowed?: boolean
+          schema_version?: string
+          source_commit?: string | null
+          source_name?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
