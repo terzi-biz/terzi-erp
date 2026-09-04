@@ -73,10 +73,13 @@ function WarehousePage() {
 
   const totals = useMemo(() => {
     const rows = items as any[];
+    const priced = rows.filter((i) => i.avg_cost != null);
     return {
       positions: rows.length,
-      value: rows.reduce((s, i) => s + (Number(i.qty) || 0) * (Number(i.avg_cost) || 0), 0),
-      reserved: rows.reduce((s, i) => s + (Number(i.reserved_qty) || 0), 0),
+      /** Вартість лише по позиціях із відомою собівартістю; невідома ≠ нуль. */
+      value: priced.reduce((s, i) => s + (Number(i.qty) || 0) * Number(i.avg_cost), 0),
+      pricedCount: priced.length,
+      reserved: reservedByUnit(rows.map((i) => ({ qty: Number(i.reserved_qty) || 0, unit: i.unit }))).filter((r) => r.qty > 0),
       low: rows.filter((i) => isBelowMin(Number(i.qty) || 0, Number(i.min_qty) || 0)).length,
     };
   }, [items]);
