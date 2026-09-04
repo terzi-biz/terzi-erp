@@ -162,10 +162,22 @@ import { KeyCrmError } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf
 import { KpiCard } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### LeadCardDialog
+
+```ts
+import { LeadCardDialog } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### MarketingShell
 
 ```ts
 import { MarketingShell } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### MaterialVariantCard
+
+```ts
+import { MaterialVariantCard } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
 ### ModuleStub
@@ -304,5 +316,11 @@ import { TerziLogo } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1e
 
 ```ts
 import { UnifiedTimeline } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### WarehouseImportWizard
+
+```ts
+import { WarehouseImportWizard } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
