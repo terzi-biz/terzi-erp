@@ -37,8 +37,10 @@ export const Route = createFileRoute("/warehouse")({
 
 const TABS = [
   { key: "stock", label: "Залишки", icon: Boxes },
+  { key: "nomenclature", label: "Номенклатура", icon: Layers },
   { key: "docs", label: "Рух матеріалів", icon: ArrowLeftRight },
   { key: "reserve", label: "Резерв", icon: Lock },
+  { key: "import", label: "Імпорт і перевірка", icon: Upload },
   { key: "refs", label: "Склади та номенклатура", icon: ClipboardList },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
