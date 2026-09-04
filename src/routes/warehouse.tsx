@@ -96,17 +96,18 @@ function WarehousePage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            ["Позицій", String(totals.positions)],
-            ["Вартість запасів", formatUah(totals.value)],
-            ["У резерві (од.)", totals.reserved.toFixed(2)],
-            ["Нижче мінімуму", String(totals.low)],
-          ].map(([l, v]) => (
-            <div key={l as string} className="bg-card border border-border rounded-lg p-4">
-              <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{l}</div>
-              <div className="text-xl font-black mt-1 text-primary">{v}</div>
-            </div>
-          ))}
+          <Kpi label="Позицій" value={String(totals.positions)} />
+          <Kpi
+            label="Вартість запасів"
+            value={totals.pricedCount ? formatUah(totals.value) : "немає даних"}
+            hint={totals.pricedCount < totals.positions ? `покриття собівартістю: ${totals.pricedCount} з ${totals.positions}` : undefined}
+          />
+          <Kpi
+            label="У резерві"
+            value={totals.reserved.length ? totals.reserved.map((r) => `${r.qty} ${r.unit}`).join(" · ") : "—"}
+            hint="за одиницями виміру, без змішування"
+          />
+          <Kpi label="Нижче мінімуму" value={String(totals.low)} />
         </div>
 
         <div className="flex gap-1 flex-wrap border-b border-border">
