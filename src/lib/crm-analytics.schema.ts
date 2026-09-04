@@ -18,4 +18,14 @@ export const scheduleMeasurementSchema = z.object({
   order_id: z.string().uuid().optional().nullable(),
   client_id: z.string().uuid().optional().nullable(),
   description: z.string().max(2000).optional().nullable(),
+  lead_id: z.string().uuid().optional().nullable(),
+});
+
+export const measurementEventPatchSchema = z.object({
+  id: z.string().uuid(),
+  status: z.string().min(1).max(40),
+});
+
+export const leadSearchSchema = z.object({
+  q: z.string().max(120).default(""),
 });
