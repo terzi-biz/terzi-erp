@@ -2,14 +2,13 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, User, Phone } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  listLeads, listPipelines, listContacts, upsertLead, moveLeadStage, deleteLead,
-  listLeadActivities, addLeadNote,
-} from "@/lib/crm.functions";
+import { listPipelines, listContacts, upsertLead, moveLeadStage } from "@/lib/crm.functions";
+import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
+import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
 
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
@@ -19,9 +18,9 @@ export const Route = createFileRoute("/crm/leads")({
   },
   head: () => ({ meta: [
     { title: "Воронка лідів — CRM TERZI" },
-    { name: "description", content: "Канбан-воронка лідів TERZI: етапи, бюджети, відповідальні та історія змін." },
+    { name: "description", content: "Канбан-воронка лідів TERZI: активні етапи, фільтри, відповідальні менеджери та повна картка клієнта." },
     { property: "og:title", content: "Воронка лідів — CRM TERZI" },
-    { property: "og:description", content: "Керуйте лідами TERZI по етапах воронки продажів." },
+    { property: "og:description", content: "Керуйте лідами TERZI по активних етапах воронки продажів." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ]}),
@@ -30,75 +29,106 @@ export const Route = createFileRoute("/crm/leads")({
 
 const money = (n: number) => new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(n || 0) + " ₴";
 const emptyLead = { title: "", budget: "", area: "", address: "", source: "", direction: "", contact_id: "", notes: "" };
+const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
+const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";
+
+const emptyFilters = {
+  source: "", showLost: false, showWon: true,
+  createdFrom: "", createdTo: "", closedFrom: "", closedTo: "",
+  nextFrom: "", nextTo: "", manager: "", note: "", hasTask: "",
+  utm_source: "", utm_medium: "", utm_campaign: "", utm_term: "", utm_content: "",
+  service_type: "", object_type: "", areaFrom: "", areaTo: "",
+  object_address: "", client_full_name: "", sumFrom: "", sumTo: "", contract_number: "",
+};
 
 function LeadsPage() {
   const qc = useQueryClient();
-  const leadsFn = useServerFn(listLeads);
+  const leadsFn = useServerFn(listBoardLeads);
   const pipeFn = useServerFn(listPipelines);
   const contactsFn = useServerFn(listContacts);
+  const staffFn = useServerFn(listCrmStaff);
   const saveFn = useServerFn(upsertLead);
   const moveFn = useServerFn(moveLeadStage);
-  const delFn = useServerFn(deleteLead);
-  const actFn = useServerFn(listLeadActivities);
-  const noteFn = useServerFn(addLeadNote);
 
   const { data: pipe } = useQuery({ queryKey: ["crm", "pipelines"], queryFn: () => pipeFn() });
-  const { data: leads = [] } = useQuery({ queryKey: ["crm", "leads"], queryFn: () => leadsFn() });
+  const { data: leads = [] } = useQuery({ queryKey: ["crm", "board-leads"], queryFn: () => leadsFn() });
   const { data: contacts = [] } = useQuery({ queryKey: ["crm", "contacts"], queryFn: () => contactsFn() });
+  const { data: staff = [] } = useQuery({ queryKey: ["crm", "staff"], queryFn: () => staffFn() });
 
   const [pipelineId, setPipelineId] = useState<string>("");
-  const activePipeline = pipelineId || (pipe?.pipelines?.[0]?.id ?? "");
-  const stages = useMemo(
-    () => ((pipe?.stages ?? []) as any[]).filter((s) => s.pipeline_id === activePipeline),
-    [pipe, activePipeline],
-  );
-
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [filters, setFilters] = useState({ ...emptyFilters });
+  const [showFilters, setShowFilters] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<any>(emptyLead);
-  const [note, setNote] = useState("");
+  const [openId, setOpenId] = useState<string | null>(null);
 
-  const invalidate = () => qc.invalidateQueries({ queryKey: ["crm"] });
+  const activePipeline = pipelineId || (pipe?.pipelines?.[0]?.id ?? "");
+  const allStages = useMemo(
+    () => ((pipe?.stages ?? []) as any[])
+      .filter((s) => s.pipeline_id === activePipeline)
+      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+    [pipe, activePipeline],
+  );
+  // У воронці — тільки активні робочі етапи та успішний; закриті/нереалізовані приховані.
+  const stages = useMemo(
+    () => allStages.filter((s) => (s.is_active !== false && !s.is_lost) || (filters.showLost && s.is_lost))
+      .filter((s) => (filters.showWon ? true : !s.is_won)),
+    [allStages, filters.showLost, filters.showWon],
+  );
 
-  const save = useMutation({
-    mutationFn: (payload: any) => saveFn({ data: payload }),
-    onSuccess: () => { invalidate(); setCreating(false); setForm(emptyLead); toast.success("Лід збережено"); },
-    onError: (e: any) => toast.error(e?.message ?? "Помилка збереження"),
-  });
+  const set = (k: string, v: any) => setFilters((f) => ({ ...f, [k]: v }));
+  const inRange = (v: any, from: string, to: string) => {
+    const n = Number(v);
+    if (from !== "" && (!Number.isFinite(n) || n < Number(from))) return false;
+    if (to !== "" && (!Number.isFinite(n) || n > Number(to))) return false;
+    return true;
+  };
+  const inDate = (v: string | null, from: string, to: string) => {
+    if (!from && !to) return true;
+    if (!v) return false;
+    const d = v.slice(0, 10);
+    if (from && d < from) return false;
+    if (to && d > to) return false;
+    return true;
+  };
+
+  const filtered = useMemo(() => (leads as any[]).filter((l) => {
+    const f = l.fields ?? {};
+    if (filters.source && !(l.source ?? "").toLowerCase().includes(filters.source.toLowerCase())) return false;
+    if (filters.manager && l.assigned_to !== filters.manager) return false;
+    if (filters.note && !(l.notes ?? "").toLowerCase().includes(filters.note.toLowerCase())) return false;
+    if (!inDate(l.created_at, filters.createdFrom, filters.createdTo)) return false;
+    if (!inDate(l.closed_at, filters.closedFrom, filters.closedTo)) return false;
+    if (!inDate(l.next_action_at, filters.nextFrom, filters.nextTo)) return false;
+    for (const k of ["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content", "object_address", "client_full_name", "contract_number"] as const) {
+      const want = (filters as any)[k];
+      if (want && !String(f[k] ?? "").toLowerCase().includes(String(want).toLowerCase())) return false;
+    }
+    if (filters.service_type && f["service_type"] !== filters.service_type) return false;
+    if (filters.object_type && f["object_type"] !== filters.object_type) return false;
+    if ((filters.areaFrom || filters.areaTo) && !inRange(f["object_area"] ?? l.area, filters.areaFrom, filters.areaTo)) return false;
+    if ((filters.sumFrom || filters.sumTo) && !inRange(f["contract_sum"] ?? l.budget, filters.sumFrom, filters.sumTo)) return false;
+    return true;
+  }), [leads, filters]);
+
   const move = useMutation({
     mutationFn: (p: { id: string; stage_id: string }) => moveFn({ data: p }),
-    onSuccess: () => invalidate(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["crm"] }),
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
-  const remove = useMutation({
-    mutationFn: (id: string) => delFn({ data: { id } }),
-    onSuccess: () => { invalidate(); setOpenId(null); toast.success("Лід видалено"); },
-  });
-  const addNote = useMutation({
-    mutationFn: (p: { lead_id: string; body: string }) => noteFn({ data: p }),
-    onSuccess: () => { setNote(""); qc.invalidateQueries({ queryKey: ["crm", "activities"] }); },
-  });
-
-  const openLead = (leads as any[]).find((l) => l.id === openId) || null;
-  const { data: activities = [] } = useQuery({
-    queryKey: ["crm", "activities", openId],
-    queryFn: () => actFn({ data: { lead_id: openId! } }),
-    enabled: !!openId,
+  const save = useMutation({
+    mutationFn: (payload: any) => saveFn({ data: payload }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["crm"] }); setCreating(false); setForm(emptyLead); toast.success("Лід збережено"); },
+    onError: (e: any) => toast.error(e?.message ?? "Помилка збереження"),
   });
 
   const submitNew = () => {
     if (!form.title.trim()) { toast.error("Вкажіть назву ліда"); return; }
     save.mutate({
-      title: form.title.trim(),
-      pipeline_id: activePipeline || null,
-      stage_id: stages[0]?.id ?? null,
-      contact_id: form.contact_id || null,
-      source: form.source || null,
-      direction: form.direction || null,
-      address: form.address || null,
-      notes: form.notes || null,
-      budget: form.budget ? Number(form.budget) : null,
-      area: form.area ? Number(form.area) : null,
+      title: form.title.trim(), pipeline_id: activePipeline || null, stage_id: stages[0]?.id ?? null,
+      contact_id: form.contact_id || null, source: form.source || null, direction: form.direction || null,
+      address: form.address || null, notes: form.notes || null,
+      budget: form.budget ? Number(form.budget) : null, area: form.area ? Number(form.area) : null,
     });
   };
 
@@ -108,101 +138,161 @@ function LeadsPage() {
     if (next) move.mutate({ id: lead.id, stage_id: next.id });
   };
 
-  const STAGE_PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#fd9b98", "#ccc8f9", "#f9deff"];
+  const PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#a9d8ff", "#ccc8f9", "#f9deff", "#bde0fe", "#c7f9cc"];
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 space-y-4">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+      <div className="space-y-4 p-4 md:p-6">
+        <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Воронка лідів</h1>
-            <p className="text-sm text-muted-foreground">Перетягування замінено кнопками ← → для зручності на мобільному</p>
+            <h1 className="text-2xl font-black tracking-tight md:text-3xl">Воронка лідів</h1>
+            <p className="text-sm text-muted-foreground">
+              Показані активні та успішні етапи · {filtered.length} лідів
+            </p>
           </div>
           <div className="flex items-center gap-2">
-            <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)}
-              className="rounded-md border border-border bg-background px-3 py-2 text-sm">
+            <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"}>
               {((pipe?.pipelines ?? []) as any[]).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
-            <button onClick={() => setCreating(true)} className="flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
-              <Plus className="w-4 h-4" /> Новий лід
+            <button onClick={() => setShowFilters((v) => !v)}
+              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-semibold ${showFilters ? "border-primary text-primary" : "border-border"}`}>
+              <SlidersHorizontal className="h-4 w-4" /> Фільтри
+            </button>
+            <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+              <Plus className="h-4 w-4" /> Новий лід
             </button>
           </div>
         </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-4 -mx-4 px-4 md:mx-0 md:px-0">
+        {showFilters ? (
+          <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+            <FilterGroup title="Воронка">
+              <F label="Джерело"><input className={inp} value={filters.source} onChange={(e) => set("source", e.target.value)} /></F>
+              <F label="Скасовані / нереалізовані">
+                <Toggle on={filters.showLost} onClick={() => set("showLost", !filters.showLost)} labels={["Сховати", "Показати"]} />
+              </F>
+              <F label="Успішні">
+                <Toggle on={filters.showWon} onClick={() => set("showWon", !filters.showWon)} labels={["Сховати", "Показати"]} />
+              </F>
+              <F label="Дата створення"><Range a={filters.createdFrom} b={filters.createdTo} type="date" onA={(v) => set("createdFrom", v)} onB={(v) => set("createdTo", v)} /></F>
+              <F label="Дата закриття"><Range a={filters.closedFrom} b={filters.closedTo} type="date" onA={(v) => set("closedFrom", v)} onB={(v) => set("closedTo", v)} /></F>
+              <F label="Час наступного контакту"><Range a={filters.nextFrom} b={filters.nextTo} type="date" onA={(v) => set("nextFrom", v)} onB={(v) => set("nextTo", v)} /></F>
+              <F label="Менеджер">
+                <select className={inp} value={filters.manager} onChange={(e) => set("manager", e.target.value)}>
+                  <option value="">Виберіть</option>
+                  {(staff as any[]).map((s) => <option key={s.user_id} value={s.user_id}>{s.display_name ?? s.user_id}</option>)}
+                </select>
+              </F>
+              <F label="Замітка"><input className={inp} value={filters.note} onChange={(e) => set("note", e.target.value)} /></F>
+            </FilterGroup>
+
+            <FilterGroup title="Маркетинг">
+              {(["utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content"] as const).map((k) => (
+                <F key={k} label={k.replace("utm_", "UTM ")}>
+                  <input className={inp} value={(filters as any)[k]} onChange={(e) => set(k, e.target.value)} />
+                </F>
+              ))}
+            </FilterGroup>
+
+            <FilterGroup title="Додаткові поля">
+              <F label="Тип послуги">
+                <select className={inp} value={filters.service_type} onChange={(e) => set("service_type", e.target.value)}>
+                  <option value="">Будь-який</option>
+                  {["Стяжка", "ПВХ мембрана", "Руберойд", "Утеплення", "Демонтаж", "Інше"].map((o) => <option key={o}>{o}</option>)}
+                </select>
+              </F>
+              <F label="Тип об'єкта">
+                <select className={inp} value={filters.object_type} onChange={(e) => set("object_type", e.target.value)}>
+                  <option value="">Будь-який</option>
+                  {["Квартира", "Будинок", "Комерція", "Промисловість", "Дах", "Інше"].map((o) => <option key={o}>{o}</option>)}
+                </select>
+              </F>
+              <F label="Площа об'єкта, м²"><Range a={filters.areaFrom} b={filters.areaTo} type="number" onA={(v) => set("areaFrom", v)} onB={(v) => set("areaTo", v)} /></F>
+              <F label="Сума договору, ₴"><Range a={filters.sumFrom} b={filters.sumTo} type="number" onA={(v) => set("sumFrom", v)} onB={(v) => set("sumTo", v)} /></F>
+              <F label="Адреса об'єкта"><input className={inp} value={filters.object_address} onChange={(e) => set("object_address", e.target.value)} /></F>
+              <F label="ПІБ клієнта"><input className={inp} value={filters.client_full_name} onChange={(e) => set("client_full_name", e.target.value)} /></F>
+              <F label="Номер договору"><input className={inp} value={filters.contract_number} onChange={(e) => set("contract_number", e.target.value)} /></F>
+            </FilterGroup>
+
+            <div className="flex justify-end">
+              <button onClick={() => setFilters({ ...emptyFilters })} className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Скинути</button>
+            </div>
+          </div>
+        ) : null}
+
+        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">
           {stages.map((s, si) => {
-            const items = (leads as any[]).filter((l) => l.stage_id === s.id);
+            const items = filtered.filter((l) => l.stage_id === s.id);
             const sum = items.reduce((a, l) => a + Number(l.budget || 0), 0);
-            const color = s.color || STAGE_PALETTE[si % STAGE_PALETTE.length];
+            const color = s.color || PALETTE[si % PALETTE.length];
             return (
-              <div key={s.id} className="w-[272px] shrink-0 rounded-md bg-muted/40">
+              <div key={s.id} className="w-[286px] shrink-0 rounded-md bg-muted/40">
                 <div className="rounded-t-md px-3 py-2" style={{ backgroundColor: color }}>
-                  <div className="text-[12px] font-bold uppercase tracking-wide text-[#22303f] truncate">{s.name}</div>
+                  <div className="truncate text-[12px] font-bold uppercase tracking-wide text-[#22303f]">{s.name}</div>
                   <div className="text-[11px] font-medium text-[#22303f]/70">{items.length} лідів · {money(sum)}</div>
                 </div>
-                <div className="p-2 space-y-2 min-h-[120px]">
+                <div className="min-h-[120px] space-y-2 p-2">
                   {items.map((l) => (
-                    <div key={l.id} className="group rounded-[3px] bg-card px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,.18)] border-l-[3px] hover:shadow-[0_2px_6px_rgba(0,0,0,.28)] transition-shadow"
+                    <div key={l.id} className="group rounded-[3px] border-l-[3px] bg-card px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,.18)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,.28)]"
                       style={{ borderLeftColor: color }}>
-                      <button onClick={() => setOpenId(l.id)} className="block w-full text-left text-[13px] font-semibold leading-snug truncate hover:text-primary">
+                      <button onClick={() => setOpenId(l.id)} className="block w-full truncate text-left text-[13px] font-semibold leading-snug hover:text-primary">
                         {l.title}
                       </button>
-                      <div className="mt-0.5 text-[11px] text-muted-foreground truncate">{l.address || l.direction || "—"}</div>
+                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <User className="h-3 w-3 shrink-0" /><span className="truncate">{l.client_name ?? "Ім'я не вказане"}</span>
+                      </div>
+                      {l.phone ? (
+                        <a href={`tel:${l.phone}`} className="mt-0.5 flex items-center gap-1.5 text-[11px] text-sky-700 hover:underline">
+                          <Phone className="h-3 w-3 shrink-0" />{l.phone}
+                        </a>
+                      ) : null}
+                      <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                        Менеджер: {l.manager_name ?? "не призначений"}
+                      </div>
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-[13px] font-bold">{money(Number(l.budget || 0))}</span>
-                        <span className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button onClick={() => shift(l, -1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronLeft className="w-3 h-3" /></button>
-                          <button onClick={() => shift(l, 1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronRight className="w-3 h-3" /></button>
+                        <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                          <button onClick={() => shift(l, -1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronLeft className="h-3 w-3" /></button>
+                          <button onClick={() => shift(l, 1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronRight className="h-3 w-3" /></button>
                         </span>
                       </div>
-                      {l.source ? (
-                        <span className="mt-2 inline-block rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{l.source}</span>
-                      ) : null}
+                      {l.source ? <span className="mt-2 inline-block rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{l.source}</span> : null}
                     </div>
                   ))}
-                  {!items.length ? <div className="text-[11px] text-muted-foreground px-1 py-3">Порожньо</div> : null}
+                  {!items.length ? <div className="px-1 py-3 text-[11px] text-muted-foreground">Порожньо</div> : null}
                 </div>
               </div>
             );
           })}
-          {!stages.length ? <div className="text-sm text-muted-foreground">Немає етапів у воронці</div> : null}
+          {!stages.length ? <div className="text-sm text-muted-foreground">Немає активних етапів у воронці</div> : null}
         </div>
       </div>
 
-
       {creating ? (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/60 p-0 md:p-4" onClick={() => setCreating(false)}>
-          <div className="w-full md:max-w-lg rounded-t-2xl md:rounded-2xl bg-card border border-border p-4 space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 md:items-center md:p-4" onClick={() => setCreating(false)}>
+          <div className="max-h-[90vh] w-full space-y-3 overflow-y-auto rounded-t-2xl border border-border bg-card p-4 md:max-w-lg md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-black">Новий лід</h2>
-              <button onClick={() => setCreating(false)}><X className="w-5 h-5" /></button>
+              <button onClick={() => setCreating(false)}><X className="h-5 w-5" /></button>
             </div>
-            {[
-              { k: "title", label: "Назва *" },
-              { k: "budget", label: "Бюджет, ₴", type: "number" },
-              { k: "area", label: "Площа, м²", type: "number" },
-              { k: "address", label: "Адреса" },
-              { k: "source", label: "Джерело" },
-              { k: "direction", label: "Напрям робіт" },
-            ].map((f) => (
+            {[{ k: "title", label: "Назва *" }, { k: "budget", label: "Бюджет, ₴", type: "number" },
+              { k: "area", label: "Площа, м²", type: "number" }, { k: "address", label: "Адреса" },
+              { k: "source", label: "Джерело" }, { k: "direction", label: "Напрям робіт" }].map((f) => (
               <label key={f.k} className="block">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">{f.label}</span>
-                <input type={f.type ?? "text"} value={form[f.k]} onChange={(e) => setForm({ ...form, [f.k]: e.target.value })}
-                  className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+                <span className={lbl}>{f.label}</span>
+                <input type={f.type ?? "text"} value={form[f.k]} onChange={(e) => setForm({ ...form, [f.k]: e.target.value })} className={inp + " mt-1"} />
               </label>
             ))}
             <label className="block">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">Контакт</span>
-              <select value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })}
-                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
+              <span className={lbl}>Контакт</span>
+              <select value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })} className={inp + " mt-1"}>
                 <option value="">—</option>
                 {(contacts as any[]).map((c) => <option key={c.id} value={c.id}>{c.full_name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
               </select>
             </label>
             <label className="block">
-              <span className="text-xs uppercase tracking-wider text-muted-foreground">Нотатки</span>
-              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3}
-                className="mt-1 w-full rounded-md border border-border bg-background px-3 py-2 text-sm" />
+              <span className={lbl}>Нотатки</span>
+              <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inp + " mt-1"} />
             </label>
             <button onClick={submitNew} disabled={save.isPending}
               className="w-full rounded-md bg-primary py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
@@ -212,67 +302,38 @@ function LeadsPage() {
         </div>
       ) : null}
 
-      {openLead ? (
-        <div className="fixed inset-0 z-50 flex justify-end bg-black/60" onClick={() => setOpenId(null)}>
-          <div className="h-full w-full max-w-md overflow-y-auto border-l border-border bg-card p-4 space-y-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2 className="text-lg font-black">{openLead.title}</h2>
-                <div className="text-xs text-muted-foreground">{money(Number(openLead.budget || 0))} · {openLead.status}</div>
-              </div>
-              <button onClick={() => setOpenId(null)}><X className="w-5 h-5" /></button>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <Info label="Площа" value={openLead.area ? `${openLead.area} м²` : "—"} />
-              <Info label="Напрям" value={openLead.direction || "—"} />
-              <Info label="Джерело" value={openLead.source || "—"} />
-              <Info label="Адреса" value={openLead.address || "—"} />
-            </div>
-
-            <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Етап</div>
-              <select value={openLead.stage_id ?? ""} onChange={(e) => move.mutate({ id: openLead.id, stage_id: e.target.value })}
-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm">
-                {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-              </select>
-            </div>
-
-            <div>
-              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-1">Історія та нотатки</div>
-              <div className="flex gap-2">
-                <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Додати нотатку…"
-                  className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm" />
-                <button onClick={() => note.trim() && addNote.mutate({ lead_id: openLead.id, body: note.trim() })}
-                  className="rounded-md bg-primary px-3 text-sm font-semibold text-primary-foreground">OK</button>
-              </div>
-              <div className="mt-3 space-y-2">
-                {(activities as any[]).map((a) => (
-                  <div key={a.id} className="rounded-md border border-border px-3 py-2">
-                    <div className="text-sm">{a.body}</div>
-                    <div className="text-[11px] text-muted-foreground">{new Date(a.created_at).toLocaleString("uk-UA")}</div>
-                  </div>
-                ))}
-                {!activities.length ? <div className="text-xs text-muted-foreground">Подій ще немає</div> : null}
-              </div>
-            </div>
-
-            <button onClick={() => { if (confirm("Видалити лід?")) remove.mutate(openLead.id); }}
-              className="flex w-full items-center justify-center gap-1.5 rounded-md border border-destructive/40 py-2 text-sm font-semibold text-destructive">
-              <Trash2 className="w-4 h-4" /> Видалити лід
-            </button>
-          </div>
-        </div>
-      ) : null}
+      {openId ? <LeadCardDialog leadId={openId} stages={allStages} onClose={() => setOpenId(null)} /> : null}
     </AppShell>
   );
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-md border border-border px-3 py-2">
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="text-sm truncate">{value}</div>
+    <div>
+      <div className="mb-2 border-b border-border pb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">{children}</div>
     </div>
+  );
+}
+function F({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="block space-y-1"><span className={lbl}>{label}</span>{children}</label>;
+}
+function Range({ a, b, type, onA, onB }: { a: string; b: string; type: "date" | "number"; onA: (v: string) => void; onB: (v: string) => void }) {
+  return (
+    <div className="flex items-center gap-1">
+      <input type={type} value={a} onChange={(e) => onA(e.target.value)} className={inp} />
+      <span className="text-muted-foreground">—</span>
+      <input type={type} value={b} onChange={(e) => onB(e.target.value)} className={inp} />
+    </div>
+  );
+}
+function Toggle({ on, onClick, labels }: { on: boolean; onClick: () => void; labels: [string, string] }) {
+  return (
+    <button onClick={onClick} className="inline-flex items-center gap-2 text-sm">
+      <span className={`h-5 w-9 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted"}`}>
+        <span className={`block h-4 w-4 translate-y-0.5 rounded-full bg-white transition-transform ${on ? "translate-x-[18px]" : "translate-x-0.5"}`} />
+      </span>
+      <span className="text-xs font-semibold text-muted-foreground">{on ? labels[1] : labels[0]}</span>
+    </button>
   );
 }
