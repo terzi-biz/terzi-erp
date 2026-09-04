@@ -28,10 +28,10 @@ export interface BoardLead {
   created_at: string | null;
   closed_at: string | null;
   next_action_at: string | null;
-  fields: Record<string, unknown>;
+  fields: Record<string, string | number | boolean | null>;
 }
 
-const asFields = (tags: any): Record<string, unknown> =>
+const asFields = (tags: any): Record<string, string | number | boolean | null> =>
   tags && typeof tags === "object" && tags.fields && typeof tags.fields === "object" ? tags.fields : {};
 
 async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
