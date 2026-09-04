@@ -4,7 +4,7 @@ import { Layers, Package2, ShieldCheck, X } from "lucide-react";
 import { formatUah } from "@/lib/screed-calc";
 import { ATTRIBUTE_LABELS } from "@/lib/warehouse-import";
 import { getStockItemCard } from "@/lib/warehouse-variants.functions";
-import { MODULES } from "@/lib/modules";
+import { moduleLabel as terziModuleLabel } from "@/lib/modules";
 
 const STATUS_LABELS: Record<string, string> = {
   unknown: "Невідомо",
