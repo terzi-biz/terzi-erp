@@ -433,8 +433,43 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
     if (error) throw error;
     internalId = (data as any)?.id ?? null;
   }
+  if (internalId) await linkLeadToOrder(ctx, ext, internalId, clientId);
   return { internalId, table: "orders" };
 }
+
+/**
+ * Звʼязок лід → замовлення (договір) для достовірної конверсії.
+ * Пріоритет: явний lead_id у замовленні → лід того самого покупця без замовлення.
+ */
+async function linkLeadToOrder(ctx: AdapterContext, ext: any, orderId: string, clientId: string | null) {
+  const db = await admin();
+  const leadExt = ext.lead_id ?? ext.card_id ?? ext.lead?.id ?? null;
+  let leadId: string | null = null;
+  if (leadExt != null) {
+    const ll = await getLink(ctx.integration.id, "lead_cards", String(leadExt));
+    leadId = ll?.internal_id ?? null;
+  }
+  if (!leadId) {
+    const buyerExt = ext.buyer?.id ?? ext.buyer_id ?? ext.client_id ?? null;
+    if (buyerExt == null) return;
+    const bl = await getLink(ctx.integration.id, "buyers", String(buyerExt));
+    if (!bl?.internal_id) return;
+    const { data } = await db
+      .from("crm_leads")
+      .select("id")
+      .eq("contact_id", bl.internal_id)
+      .is("order_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    leadId = (data as any)?.id ?? null;
+  }
+  if (!leadId) return;
+  const patch: Record<string, unknown> = { order_id: orderId, status: "won" };
+  if (clientId) patch.client_id = clientId;
+  await db.from("crm_leads").update(patch as any).eq("id", leadId);
+}
+
 
 async function applyLeadCard(ctx: AdapterContext, ext: any) {
   const db = await admin();

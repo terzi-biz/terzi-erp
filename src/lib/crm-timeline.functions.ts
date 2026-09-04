@@ -137,7 +137,7 @@ export const getClientTimeline = createServerFn({ method: "GET" })
           id: `request:${r.id}`, kind: "request", at: r.created_at,
           title: r.subject || "Звернення",
           subtitle: r.source ?? (r.message ? String(r.message).slice(0, 80) : null),
-          status: r.status ?? null, href: "/crm/requests",
+          status: r.status ?? null, href: "/crm/leads",
         });
       }
     }

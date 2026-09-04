@@ -43,13 +43,11 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/crm",
     children: [
       { to: "/crm", label: "Панель CRM" },
-      { to: "/crm/requests", label: "Звернення" },
       { to: "/crm/leads", label: "Ліди" },
-      { to: "/crm/intake", label: "Вхідні ліди" },
-      { to: "/clients", label: "Клієнти" },
-      { to: "/crm/contacts", label: "Контакти" },
+      { to: "/crm/measurements", label: "Заміри" },
+      { to: "/crm/tasks", label: "Задачі" },
       { to: "/crm/calls", label: "Дзвінки та повідомлення" },
-      { to: "/crm/tasks", label: "Задачі та замери" },
+      { to: "/clients", label: "Клієнти" },
     ],
   },
   {
@@ -114,6 +112,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: "/directions-editor", label: "Напрямки (конструктор)" },
       { to: "/access", label: "Користувачі та ролі" },
       { to: "/integrations", label: "Інтеграції, API, webhooks" },
+      { to: "/crm/intake", label: "Вхідні ліди (API webhook)" },
+
       { to: "/branding", label: "Брендинг" },
     ],
   },
