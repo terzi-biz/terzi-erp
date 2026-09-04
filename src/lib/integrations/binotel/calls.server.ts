@@ -147,14 +147,16 @@ async function employeeByExtension(internalNumber: string | null) {
   return (data as any) ?? null;
 }
 
-/** Пошук контакту/ліда/клієнта за нормалізованим номером. */
+/** Пошук контакту/ліда/клієнта за номером (E.164 — єдиний ключ звʼязку). */
 async function lookupByPhone(phoneNorm: string | null) {
   const db = await admin();
   if (!phoneNorm) return { contact: null as any, lead: null as any, client: null as any };
+  const e164 = toE164Ua(phoneNorm);
+
   const { data: contact } = await db
     .from("crm_contacts")
     .select("id,full_name,client_id")
-    .eq("phone_norm", phoneNorm)
+    .eq("phone_e164", e164)
     .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -171,6 +173,17 @@ async function lookupByPhone(phoneNorm: string | null) {
       .maybeSingle();
     lead = data ?? null;
   }
+  if (!lead && e164) {
+    const { data } = await db
+      .from("crm_leads")
+      .select("id,title,status,assigned_to,client_id,pipeline_id,stage_id")
+      .eq("phone_e164", e164)
+      .eq("status", "open")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    lead = data ?? null;
+  }
 
   let client: any = null;
   const clientId = (contact as any)?.client_id ?? lead?.client_id ?? null;
@@ -178,8 +191,13 @@ async function lookupByPhone(phoneNorm: string | null) {
     const { data } = await db.from("clients").select("id,name").eq("id", clientId).maybeSingle();
     client = data ?? null;
   }
+  if (!client && e164) {
+    const { data } = await db.from("clients").select("id,name").eq("phone_e164", e164).limit(1).maybeSingle();
+    client = data ?? null;
+  }
   return { contact: (contact as any) ?? null, lead, client };
 }
+
 
 /** Відповідальний менеджер: лід → контакт-клієнт → правило АТС. */
 async function responsibleFor(lead: any, rule: any, routeToAssigned: boolean) {

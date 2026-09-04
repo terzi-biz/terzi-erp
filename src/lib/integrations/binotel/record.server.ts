@@ -34,7 +34,11 @@ export async function fetchCallRecordingUrl(callId: string): Promise<{ url: stri
     .maybeSingle();
 
   if (!call) return { url: null, reason: "Дзвінок не знайдено" };
-  if (call.recording_url) return { url: call.recording_url as string };
+  const cached = (call.recording_url as string | null) ?? null;
+  // Binotel віддає підписане тимчасове посилання (S3, ~1 година), тому кеш
+  // із підписом не можна віддавати повторно — щоразу беремо свіже.
+  const ephemeral = cached ? /X-Amz-|Expires=/i.test(cached) : false;
+  if (cached && !ephemeral) return { url: cached };
   if (call.external_source !== "binotel") return { url: null, reason: "Для цього дзвінка немає запису" };
 
   const payload = (call.payload ?? {}) as Record<string, unknown>;
@@ -62,12 +66,19 @@ export async function fetchCallRecordingUrl(callId: string): Promise<{ url: stri
   }
 
   const url = pickUrl(res);
-  if (!url) return { url: null, reason: "Запис недоступний" };
+  if (!url) {
+    await db
+      .from("crm_calls")
+      .update({ recording_available: false, recording_checked_at: new Date().toISOString() })
+      .eq("id", callId);
+    return { url: null, reason: "Запис недоступний" };
+  }
 
   await db
     .from("crm_calls")
-    .update({ recording_url: url, recording_available: true, recording_checked_at: new Date().toISOString() })
+    .update({ recording_available: true, recording_checked_at: new Date().toISOString() })
     .eq("id", callId);
 
   return { url };
 }
+

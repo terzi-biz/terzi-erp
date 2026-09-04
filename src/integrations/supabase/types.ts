@@ -946,6 +946,7 @@ export type Database = {
           notes: string | null
           owner_id: string
           phone: string | null
+          phone_e164: string | null
           source: string | null
           status: string
           updated_at: string
@@ -963,6 +964,7 @@ export type Database = {
           notes?: string | null
           owner_id: string
           phone?: string | null
+          phone_e164?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -980,6 +982,7 @@ export type Database = {
           notes?: string | null
           owner_id?: string
           phone?: string | null
+          phone_e164?: string | null
           source?: string | null
           status?: string
           updated_at?: string
@@ -6911,6 +6914,7 @@ export type Database = {
           parent_id: string
         }[]
       }
+      terzi_e164: { Args: { raw: string }; Returns: string }
     }
     Enums: {
       access_request_kind:
