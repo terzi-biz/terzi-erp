@@ -54,13 +54,23 @@ function CallsPage() {
   const [q, setQ] = useState("");
   const [tab, setTab] = useState<"all" | "inbound" | "outbound" | "missed" | "new">("all");
   const [source, setSource] = useState<"all" | CallSourceBucket>("all");
+  const [staff, setStaff] = useState<string>("all");
 
   const { data, isLoading } = useQuery({
     queryKey: ["calls-feed", from, to],
     queryFn: () => feedFn({ data: { from, to } }),
   });
 
-  const all = (data?.rows ?? []) as CallFeedRow[];
+  const feed = (data?.rows ?? []) as CallFeedRow[];
+  /** Перелік співробітників періоду для фільтра «Співробітник». */
+  const staffOptions = useMemo(
+    () => Array.from(new Set(feed.map((c) => c.employee_name).filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b, "uk")),
+    [feed],
+  );
+  const all = useMemo(
+    () => (staff === "all" ? feed : feed.filter((c) => c.employee_name === staff)),
+    [feed, staff],
+  );
 
   const stats = useMemo(() => {
     const answered = all.filter((c) => !c.is_missed);
@@ -97,6 +107,7 @@ function CallsPage() {
       return `${c.caller_label ?? ""} ${c.callee_label ?? ""} ${c.client_name ?? ""}`.toLowerCase().includes(text);
     });
   }, [all, q, tab, source]);
+
 
   return (
     <AppShell>
