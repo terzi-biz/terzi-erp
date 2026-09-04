@@ -942,6 +942,60 @@ async function extractLeadComments(ctx: AdapterContext, card: any) {
   }
 }
 
+/** Задачі та файли картки ліда: задачі — у crm_tasks, файли — в активності ліда. */
+export async function extractLeadChildren(ctx: AdapterContext, card: any) {
+  await extractLeadComments(ctx, card);
+  const leadLink = await getLink(ctx.integration.id, "lead_cards", String(card?.id));
+  const leadId = leadLink?.internal_id ?? null;
+  if (!leadId) return;
+  const db = await admin();
+  const owner = await ownerFor(ctx);
+
+  const tasks = Array.isArray(card?.tasks) ? card.tasks : [];
+  for (const t of tasks) {
+    const externalKey = `keycrm:lead-task:${t?.id ?? `${card.id}-${t?.title ?? ""}`}`;
+    const done = Boolean(t?.completed ?? t?.is_completed ?? t?.done);
+    const row: Record<string, unknown> = {
+      lead_id: leadId,
+      title: String(t?.title ?? t?.text ?? "Задача keyCRM"),
+      description: t?.description ?? t?.comment ?? null,
+      kind: "keycrm",
+      status: done ? "done" : "open",
+      due_at: t?.deadline_at ?? t?.due_at ?? t?.deadline ?? null,
+      external_key: externalKey,
+      owner_id: owner,
+    };
+    const { data: exists } = await db.from("crm_tasks").select("id").eq("external_key", externalKey).maybeSingle();
+    if ((exists as any)?.id) await db.from("crm_tasks").update(row as any).eq("id", (exists as any).id);
+    else await db.from("crm_tasks").insert(row as any);
+  }
+
+  const files = [
+    ...(Array.isArray(card?.files) ? card.files : []),
+    ...(Array.isArray(card?.attachments) ? card.attachments : []),
+  ];
+  if (!files.length) return;
+  const { data: existing } = await db
+    .from("crm_lead_activities")
+    .select("meta")
+    .eq("lead_id", leadId)
+    .eq("kind", "file");
+  const seen = new Set((existing ?? []).map((a: any) => String(a?.meta?.url ?? "")));
+  for (const f of files) {
+    const url = String(f?.url ?? f?.link ?? f?.path ?? "").trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    await db.from("crm_lead_activities").insert({
+      lead_id: leadId,
+      actor_name: "keyCRM",
+      kind: "file",
+      body: String(f?.name ?? f?.file_name ?? url),
+      meta: { external_source: "keycrm", url, name: f?.name ?? f?.file_name ?? null },
+    } as any);
+  }
+}
+
+
 /** Повний прогін увімкнених сутностей у правильному порядку. */
 export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: string[]; full?: boolean; dryRun?: boolean } = {}) {
   const modes = await getSyncModes(ctx.integration.id);
