@@ -1,13 +1,17 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Plus, Search, X, PhoneIncoming, PhoneOutgoing, PhoneCall, PlayCircle, Loader2, ExternalLink } from "lucide-react";
+import {
+  Search, PhoneIncoming, PhoneOutgoing, PhoneCall, PhoneMissed, PlayCircle, Loader2,
+  ExternalLink, Sparkles, Globe, Facebook, MessageCircle, PhoneForwarded, Building2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { listCalls, upsertCall, getCallRecording } from "@/lib/crm.functions";
-
+import { getCallRecording } from "@/lib/crm.functions";
+import { listCallsFeed } from "@/lib/calls.functions";
+import type { CallFeedRow, CallSourceBucket } from "@/lib/calls.server";
 
 export const Route = createFileRoute("/crm/calls")({
   ssr: false,
@@ -16,56 +20,83 @@ export const Route = createFileRoute("/crm/calls")({
     if (!data.session) throw redirect({ to: "/login" });
   },
   head: () => ({ meta: [
-    { title: "Дзвінки — CRM TERZI" },
-    { name: "description", content: "Журнал дзвінків TERZI: вхідні та вихідні виклики, тривалість, зв'язок з лідами." },
-    { property: "og:title", content: "Дзвінки — CRM TERZI" },
-    { property: "og:description", content: "Історія телефонних комунікацій з клієнтами TERZI." },
+    { title: "Дзвінки — аналітика телефонії TERZI" },
+    { name: "description", content: "Журнал і аналітика дзвінків TERZI: джерела 0800, сайт, OLX, пропущені, перші звернення, хто телефонував і кому." },
+    { property: "og:title", content: "Дзвінки — аналітика телефонії TERZI" },
+    { property: "og:description", content: "Аналітика телефонії: джерела дзвінків, пропущені, перші звернення, навантаження менеджерів." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ]}),
   component: CallsPage,
 });
 
-const empty = { direction: "inbound", from_number: "", to_number: "", duration_sec: 0, status: "answered", started_at: "" };
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const monthStart = () => { const d = new Date(); d.setDate(1); return iso(d); };
+
+const SOURCE_META: Record<CallSourceBucket, { label: string; icon: any; cls: string }> = {
+  "0800": { label: "0800", icon: PhoneForwarded, cls: "bg-sky-100 text-sky-800 border-sky-200" },
+  olx: { label: "OLX", icon: Building2, cls: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+  site: { label: "Сайт", icon: Globe, cls: "bg-indigo-100 text-indigo-800 border-indigo-200" },
+  google: { label: "Google", icon: Search, cls: "bg-amber-100 text-amber-900 border-amber-200" },
+  meta: { label: "Meta", icon: Facebook, cls: "bg-blue-100 text-blue-800 border-blue-200" },
+  messenger: { label: "Месенджер", icon: MessageCircle, cls: "bg-violet-100 text-violet-800 border-violet-200" },
+  callback: { label: "Callback", icon: PhoneCall, cls: "bg-teal-100 text-teal-800 border-teal-200" },
+  cold: { label: "Холодний", icon: PhoneOutgoing, cls: "bg-slate-100 text-slate-700 border-slate-200" },
+  unknown: { label: "Джерело невідоме", icon: Globe, cls: "bg-muted text-muted-foreground border-border" },
+};
+
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 function CallsPage() {
-  const qc = useQueryClient();
-  const listFn = useServerFn(listCalls);
-  const saveFn = useServerFn(upsertCall);
-  const { data = [] } = useQuery({ queryKey: ["crm", "calls"], queryFn: () => listFn() });
+  const feedFn = useServerFn(listCallsFeed);
+  const [from, setFrom] = useState(monthStart());
+  const [to, setTo] = useState(iso(new Date()));
   const [q, setQ] = useState("");
-  const [dir, setDir] = useState<string>("all");
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState<any>(empty);
+  const [tab, setTab] = useState<"all" | "inbound" | "outbound" | "missed" | "new">("all");
+  const [source, setSource] = useState<"all" | CallSourceBucket>("all");
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["calls-feed", from, to],
+    queryFn: () => feedFn({ data: { from, to } }),
+  });
+
+  const all = (data?.rows ?? []) as CallFeedRow[];
+
+  const stats = useMemo(() => {
+    const answered = all.filter((c) => !c.is_missed);
+    const bySource = new Map<CallSourceBucket, number>();
+    const byStaff = new Map<string, number>();
+    for (const c of all) {
+      bySource.set(c.source, (bySource.get(c.source) ?? 0) + 1);
+      if (c.employee_name) byStaff.set(c.employee_name, (byStaff.get(c.employee_name) ?? 0) + 1);
+    }
+    return {
+      total: all.length,
+      inbound: all.filter((c) => c.direction === "inbound").length,
+      outbound: all.filter((c) => c.direction === "outbound").length,
+      missed: all.filter((c) => c.is_missed).length,
+      first: all.filter((c) => c.is_new_call).length,
+      minutes: Math.round(all.reduce((a, c) => a + c.duration_sec, 0) / 60),
+      answerRate: all.length ? Math.round((answered.length / all.length) * 100) : null,
+      bySource: Array.from(bySource.entries()).sort((a, b) => b[1] - a[1]),
+      byStaff: Array.from(byStaff.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8),
+    };
+  }, [all]);
 
   const rows = useMemo(() => {
     const nn = q.replace(/\D/g, "");
-    return (data as any[]).filter((c) =>
-      (dir === "all" || c.direction === dir) &&
-      (!nn || (c.phone_norm || "").includes(nn)));
-  }, [data, q, dir]);
-
-  const stats = useMemo(() => {
-    const arr = data as any[];
-    return {
-      total: arr.length,
-      inbound: arr.filter((c) => c.direction === "inbound").length,
-      minutes: Math.round(arr.reduce((a, c) => a + Number(c.duration_sec || 0), 0) / 60),
-    };
-  }, [data]);
-
-  const save = useMutation({
-    mutationFn: (p: any) => saveFn({ data: {
-      direction: p.direction,
-      from_number: p.from_number || null,
-      to_number: p.to_number || null,
-      duration_sec: Number(p.duration_sec) || 0,
-      status: p.status || null,
-      started_at: p.started_at ? new Date(p.started_at).toISOString() : new Date().toISOString(),
-    } }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["crm"] }); setOpen(false); setForm(empty); toast.success("Дзвінок збережено"); },
-    onError: (e: any) => toast.error(e?.message ?? "Помилка збереження"),
-  });
+    const text = q.trim().toLowerCase();
+    return all.filter((c) => {
+      if (tab === "inbound" && c.direction !== "inbound") return false;
+      if (tab === "outbound" && c.direction !== "outbound") return false;
+      if (tab === "missed" && !c.is_missed) return false;
+      if (tab === "new" && !c.is_new_call) return false;
+      if (source !== "all" && c.source !== source) return false;
+      if (!text) return true;
+      if (nn && (c.counterparty ?? "").replace(/\D/g, "").includes(nn)) return true;
+      return `${c.caller_label ?? ""} ${c.callee_label ?? ""} ${c.client_name ?? ""}`.toLowerCase().includes(text);
+    });
+  }, [all, q, tab, source]);
 
   return (
     <AppShell>
@@ -73,105 +104,110 @@ function CallsPage() {
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-2"><PhoneCall className="w-6 h-6" /> Дзвінки</h1>
-            <p className="text-sm text-muted-foreground">Журнал викликів (ручний запис до підключення телефонії)</p>
+            <p className="text-sm text-muted-foreground">Аналітика телефонії: джерела, пропущені, перші звернення, менеджери</p>
           </div>
-          <button onClick={() => { setForm(empty); setOpen(true); }}
-            className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground flex items-center gap-2">
-            <Plus className="w-4 h-4" /> Записати дзвінок
-          </button>
+          <div className="flex items-center gap-2">
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
+          </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        {data?.truncated ? (
+          <div className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            Показані не всі дзвінки періоду — звузьте діапазон дат.
+          </div>
+        ) : null}
+
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Kpi label="Усього" value={String(stats.total)} />
           <Kpi label="Вхідні" value={String(stats.inbound)} />
-          <Kpi label="Хвилин" value={String(stats.minutes)} />
+          <Kpi label="Вихідні" value={String(stats.outbound)} />
+          <Kpi label="Пропущені" value={String(stats.missed)} tone={stats.missed ? "warn" : "default"} />
+          <Kpi label="Вперше телефонують" value={String(stats.first)} />
+          <Kpi label="Відповіли" value={stats.answerRate == null ? "немає даних" : `${stats.answerRate}%`} hint={`${stats.minutes} хв розмов`} />
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-md border border-border bg-card p-4">
+            <div className="text-sm font-bold mb-3">Джерела дзвінків</div>
+            <div className="space-y-1.5">
+              {stats.bySource.map(([key, count]) => {
+                const meta = SOURCE_META[key];
+                const max = Math.max(1, ...stats.bySource.map((s) => s[1]));
+                return (
+                  <button key={key} onClick={() => setSource(source === key ? "all" : key)}
+                    className={`w-full flex items-center gap-3 text-left rounded-sm px-1 py-0.5 ${source === key ? "ring-1 ring-primary" : ""}`}>
+                    <span className={`w-36 shrink-0 inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full border px-2 py-0.5 ${meta.cls}`}>
+                      <meta.icon className="w-3 h-3" />{meta.label}
+                    </span>
+                    <span className="flex-1 h-5 rounded-sm bg-muted/50 overflow-hidden">
+                      <span className="block h-full bg-primary/70" style={{ width: `${Math.max(4, (count / max) * 100)}%` }} />
+                    </span>
+                    <span className="w-12 text-right text-[12px] font-semibold tabular-nums">{count}</span>
+                  </button>
+                );
+              })}
+              {!stats.bySource.length ? <div className="text-sm text-muted-foreground">Немає даних</div> : null}
+            </div>
+          </div>
+          <div className="rounded-md border border-border bg-card p-4">
+            <div className="text-sm font-bold mb-3">Дзвінки по співробітниках</div>
+            <div className="space-y-2">
+              {stats.byStaff.map(([name, count]) => (
+                <div key={name} className="flex items-center justify-between text-sm border-b border-border/60 pb-1.5 last:border-0">
+                  <span className="truncate">{name}</span>
+                  <span className="font-semibold tabular-nums">{count}</span>
+                </div>
+              ))}
+              {!stats.byStaff.length ? <div className="text-sm text-muted-foreground">Немає даних про співробітників</div> : null}
+            </div>
+          </div>
         </div>
 
         <div className="flex gap-2 flex-wrap">
-          {[["all", "Усі"], ["inbound", "Вхідні"], ["outbound", "Вихідні"]].map(([k, l]) => (
-            <button key={k} onClick={() => setDir(k)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold border ${dir === k ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>{l}</button>
+          {([["all", "Усі"], ["inbound", "Вхідні"], ["outbound", "Вихідні"], ["missed", "Пропущені"], ["new", "Вперше"]] as const).map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>{l}</button>
           ))}
+          {source !== "all" ? (
+            <button onClick={() => setSource("all")} className="rounded-full px-3 py-1.5 text-xs font-semibold border border-primary text-primary">
+              Джерело: {SOURCE_META[source].label} ✕
+            </button>
+          ) : null}
         </div>
 
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук за номером…"
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук за номером або іменем…"
             className="w-full rounded-md border border-border bg-background pl-9 pr-3 py-2 text-sm" />
         </div>
 
         <div className="rounded-xl border border-border bg-card divide-y divide-border/60">
+          {isLoading ? <div className="px-3 py-6 text-center text-sm text-muted-foreground">Завантаження…</div> : null}
           {rows.map((c) => <CallRow key={c.id} call={c} />)}
-          {!rows.length ? <div className="px-3 py-6 text-center text-sm text-muted-foreground">Дзвінків немає</div> : null}
+          {!isLoading && !rows.length ? <div className="px-3 py-6 text-center text-sm text-muted-foreground">Дзвінків немає</div> : null}
         </div>
-
       </div>
-
-      {open ? (
-        <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-0 md:p-6">
-          <div className="w-full md:max-w-md bg-card rounded-t-2xl md:rounded-2xl border border-border p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="font-bold">Записати дзвінок</div>
-              <button onClick={() => setOpen(false)}><X className="w-5 h-5" /></button>
-            </div>
-            <label className="block space-y-1">
-              <span className="text-xs font-semibold text-muted-foreground">Напрямок</span>
-              <select className={inp} value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value })}>
-                <option value="inbound">Вхідний</option>
-                <option value="outbound">Вихідний</option>
-              </select>
-            </label>
-            <label className="block space-y-1">
-              <span className="text-xs font-semibold text-muted-foreground">Номер</span>
-              <input className={inp} value={form.direction === "inbound" ? form.from_number : form.to_number}
-                onChange={(e) => setForm(form.direction === "inbound" ? { ...form, from_number: e.target.value } : { ...form, to_number: e.target.value })} />
-            </label>
-            <div className="grid grid-cols-2 gap-3">
-              <label className="block space-y-1">
-                <span className="text-xs font-semibold text-muted-foreground">Тривалість, сек</span>
-                <input type="number" min={0} className={inp} value={form.duration_sec}
-                  onChange={(e) => setForm({ ...form, duration_sec: e.target.value.replace(/^0+(?=\d)/, "") })} />
-              </label>
-              <label className="block space-y-1">
-                <span className="text-xs font-semibold text-muted-foreground">Статус</span>
-                <select className={inp} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                  <option value="answered">Відповіли</option>
-                  <option value="missed">Пропущений</option>
-                  <option value="busy">Зайнято</option>
-                </select>
-              </label>
-            </div>
-            <label className="block space-y-1">
-              <span className="text-xs font-semibold text-muted-foreground">Час початку</span>
-              <input type="datetime-local" className={inp} value={form.started_at}
-                onChange={(e) => setForm({ ...form, started_at: e.target.value })} />
-            </label>
-            <div className="flex gap-2 pt-1">
-              <button onClick={() => setOpen(false)} className="flex-1 rounded-md border border-border py-2 text-sm font-semibold">Скасувати</button>
-              <button disabled={save.isPending} onClick={() => save.mutate(form)}
-                className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground">Зберегти</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
     </AppShell>
   );
 }
 
-const inp = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm";
-function Kpi({ label, value }: { label: string; value: string }) {
+const inp = "rounded-md border border-border bg-background px-3 py-2 text-sm";
+
+function Kpi({ label, value, hint, tone = "default" }: { label: string; value: string; hint?: string; tone?: "default" | "warn" }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-3">
-      <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-xl font-black">{value}</div>
+    <div className="rounded-md border border-border bg-card px-4 py-3">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className={`mt-1.5 text-[22px] leading-none font-black tracking-tight ${tone === "warn" ? "text-destructive" : ""}`}>{value}</div>
+      {hint ? <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div> : null}
     </div>
   );
 }
 
-/** Рядок журналу з відтворенням аудіозапису розмови. */
-function CallRow({ call }: { call: any }) {
+/** Рядок журналу: напрямок, джерело, хто кому телефонував, запис розмови. */
+function CallRow({ call }: { call: CallFeedRow }) {
   const recFn = useServerFn(getCallRecording);
-  const [url, setUrl] = useState<string | null>(call.recording_url ?? null);
+  const [url, setUrl] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const load = useMutation({
     mutationFn: () => recFn({ data: { call_id: call.id } }),
@@ -182,31 +218,40 @@ function CallRow({ call }: { call: any }) {
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося отримати запис"),
   });
 
-  const canHaveRecord = call.recording_url || call.recording_available || call.external_source === "binotel";
+  const inbound = call.direction === "inbound";
+  const meta = SOURCE_META[call.source];
+  const Icon = call.is_missed ? PhoneMissed : inbound ? PhoneIncoming : PhoneOutgoing;
+  const iconCls = call.is_missed ? "text-destructive" : inbound ? "text-emerald-600" : "text-sky-600";
 
   return (
     <div className="px-3 py-2.5 text-sm">
       <div className="flex items-center gap-3">
-        {call.direction === "inbound"
-          ? <PhoneIncoming className="w-4 h-4 text-primary shrink-0" />
-          : <PhoneOutgoing className="w-4 h-4 text-muted-foreground shrink-0" />}
+        <Icon className={`w-4 h-4 shrink-0 ${iconCls}`} />
         <div className="min-w-0 flex-1">
-          <div className="font-medium truncate">{call.direction === "inbound" ? call.from_number : call.to_number}</div>
+          <div className="font-medium truncate flex items-center gap-2">
+            <span className="truncate">{call.caller_label ?? call.counterparty ?? "—"}</span>
+            <span className="text-muted-foreground">→</span>
+            <span className="truncate text-muted-foreground">{call.callee_label ?? "—"}</span>
+            {call.is_new_call ? (
+              <span className="shrink-0 inline-flex items-center gap-1 rounded-full bg-amber-100 text-amber-900 border border-amber-200 px-2 py-0.5 text-[10px] font-bold">
+                <Sparkles className="w-3 h-3" />вперше
+              </span>
+            ) : null}
+          </div>
           <div className="text-xs text-muted-foreground truncate">
-            {new Date(call.started_at).toLocaleString("uk-UA")} · {call.status || "—"}
+            {call.started_at ? new Date(call.started_at).toLocaleString("uk-UA") : "—"} · {call.counterparty ?? "номер невідомий"}
+            {call.is_missed ? " · пропущений" : ""}
           </div>
         </div>
-        <div className="text-xs font-semibold whitespace-nowrap tabular-nums">
-          {Math.floor((call.duration_sec || 0) / 60)}:{String((call.duration_sec || 0) % 60).padStart(2, "0")}
-        </div>
-        {canHaveRecord ? (
-          <button
-            onClick={() => (url ? setOpen((v) => !v) : load.mutate())}
-            disabled={load.isPending}
+        <span className={`hidden sm:inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold rounded-full border px-2 py-0.5 ${meta.cls}`}>
+          <meta.icon className="w-3 h-3" />{call.source_raw && call.source !== "unknown" ? meta.label : meta.label}
+        </span>
+        <div className="text-xs font-semibold whitespace-nowrap tabular-nums w-12 text-right">{mmss(call.duration_sec)}</div>
+        {call.recording_available ? (
+          <button onClick={() => (url ? setOpen((v) => !v) : load.mutate())} disabled={load.isPending}
             title="Прослухати запис розмови"
             className={`shrink-0 grid h-8 w-8 place-items-center rounded-lg border transition-colors ${
-              open ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"
-            }`}>
+              open ? "border-primary bg-primary/10 text-primary" : "border-border text-muted-foreground hover:text-foreground"}`}>
             {load.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <PlayCircle className="w-4 h-4" />}
           </button>
         ) : <span className="w-8 shrink-0" />}
@@ -224,4 +269,3 @@ function CallRow({ call }: { call: any }) {
     </div>
   );
 }
-
