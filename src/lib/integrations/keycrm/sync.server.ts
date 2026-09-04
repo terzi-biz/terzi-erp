@@ -810,7 +810,7 @@ export async function pollEntity(
       if (res.skipped) skipped += 1;
       else applied += 1;
       if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
-      if (!res.skipped && entity === "lead_cards") await extractLeadComments(ctx, item);
+      if (!res.skipped && entity === "lead_cards") await extractLeadChildren(ctx, item);
     } catch (e: any) {
       failed += 1;
       await logAttempt({
@@ -835,7 +835,7 @@ export async function pollEntity(
 
 
 /** Оплати всередині замовлення зберігаємо як окремі довідникові звʼязки. */
-async function extractOrderChildren(ctx: AdapterContext, order: any) {
+export async function extractOrderChildren(ctx: AdapterContext, order: any) {
   const payments = Array.isArray(order?.payments) ? order.payments : [];
   for (const p of payments) {
     await applyReference(ctx, "payments", { ...p, order_id: order.id, id: p.id ?? `${order.id}-${p.payment_method_id ?? "p"}` });
