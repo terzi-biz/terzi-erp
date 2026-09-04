@@ -433,8 +433,43 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
     if (error) throw error;
     internalId = (data as any)?.id ?? null;
   }
+  if (internalId) await linkLeadToOrder(ctx, ext, internalId, clientId);
   return { internalId, table: "orders" };
 }
+
+/**
+ * Звʼязок лід → замовлення (договір) для достовірної конверсії.
+ * Пріоритет: явний lead_id у замовленні → лід того самого покупця без замовлення.
+ */
+async function linkLeadToOrder(ctx: AdapterContext, ext: any, orderId: string, clientId: string | null) {
+  const db = await admin();
+  const leadExt = ext.lead_id ?? ext.card_id ?? ext.lead?.id ?? null;
+  let leadId: string | null = null;
+  if (leadExt != null) {
+    const ll = await getLink(ctx.integration.id, "lead_cards", String(leadExt));
+    leadId = ll?.internal_id ?? null;
+  }
+  if (!leadId) {
+    const buyerExt = ext.buyer?.id ?? ext.buyer_id ?? ext.client_id ?? null;
+    if (buyerExt == null) return;
+    const bl = await getLink(ctx.integration.id, "buyers", String(buyerExt));
+    if (!bl?.internal_id) return;
+    const { data } = await db
+      .from("crm_leads")
+      .select("id")
+      .eq("contact_id", bl.internal_id)
+      .is("order_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    leadId = (data as any)?.id ?? null;
+  }
+  if (!leadId) return;
+  const patch: Record<string, unknown> = { order_id: orderId, status: "won" };
+  if (clientId) patch.client_id = clientId;
+  await db.from("crm_leads").update(patch as any).eq("id", leadId);
+}
+
 
 async function applyLeadCard(ctx: AdapterContext, ext: any) {
   const db = await admin();
@@ -775,7 +810,7 @@ export async function pollEntity(
       if (res.skipped) skipped += 1;
       else applied += 1;
       if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
-      if (!res.skipped && entity === "lead_cards") await extractLeadComments(ctx, item);
+      if (!res.skipped && entity === "lead_cards") await extractLeadChildren(ctx, item);
     } catch (e: any) {
       failed += 1;
       await logAttempt({
@@ -800,7 +835,7 @@ export async function pollEntity(
 
 
 /** Оплати всередині замовлення зберігаємо як окремі довідникові звʼязки. */
-async function extractOrderChildren(ctx: AdapterContext, order: any) {
+export async function extractOrderChildren(ctx: AdapterContext, order: any) {
   const payments = Array.isArray(order?.payments) ? order.payments : [];
   for (const p of payments) {
     await applyReference(ctx, "payments", { ...p, order_id: order.id, id: p.id ?? `${order.id}-${p.payment_method_id ?? "p"}` });
@@ -906,6 +941,60 @@ async function extractLeadComments(ctx: AdapterContext, card: any) {
     });
   }
 }
+
+/** Задачі та файли картки ліда: задачі — у crm_tasks, файли — в активності ліда. */
+export async function extractLeadChildren(ctx: AdapterContext, card: any) {
+  await extractLeadComments(ctx, card);
+  const leadLink = await getLink(ctx.integration.id, "lead_cards", String(card?.id));
+  const leadId = leadLink?.internal_id ?? null;
+  if (!leadId) return;
+  const db = await admin();
+  const owner = await ownerFor(ctx);
+
+  const tasks = Array.isArray(card?.tasks) ? card.tasks : [];
+  for (const t of tasks) {
+    const externalKey = `keycrm:lead-task:${t?.id ?? `${card.id}-${t?.title ?? ""}`}`;
+    const done = Boolean(t?.completed ?? t?.is_completed ?? t?.done);
+    const row: Record<string, unknown> = {
+      lead_id: leadId,
+      title: String(t?.title ?? t?.text ?? "Задача keyCRM"),
+      description: t?.description ?? t?.comment ?? null,
+      kind: "keycrm",
+      status: done ? "done" : "open",
+      due_at: t?.deadline_at ?? t?.due_at ?? t?.deadline ?? null,
+      external_key: externalKey,
+      owner_id: owner,
+    };
+    const { data: exists } = await db.from("crm_tasks").select("id").eq("external_key", externalKey).maybeSingle();
+    if ((exists as any)?.id) await db.from("crm_tasks").update(row as any).eq("id", (exists as any).id);
+    else await db.from("crm_tasks").insert(row as any);
+  }
+
+  const files = [
+    ...(Array.isArray(card?.files) ? card.files : []),
+    ...(Array.isArray(card?.attachments) ? card.attachments : []),
+  ];
+  if (!files.length) return;
+  const { data: existing } = await db
+    .from("crm_lead_activities")
+    .select("meta")
+    .eq("lead_id", leadId)
+    .eq("kind", "file");
+  const seen = new Set((existing ?? []).map((a: any) => String(a?.meta?.url ?? "")));
+  for (const f of files) {
+    const url = String(f?.url ?? f?.link ?? f?.path ?? "").trim();
+    if (!url || seen.has(url)) continue;
+    seen.add(url);
+    await db.from("crm_lead_activities").insert({
+      lead_id: leadId,
+      actor_name: "keyCRM",
+      kind: "file",
+      body: String(f?.name ?? f?.file_name ?? url),
+      meta: { external_source: "keycrm", url, name: f?.name ?? f?.file_name ?? null },
+    } as any);
+  }
+}
+
 
 /** Повний прогін увімкнених сутностей у правильному порядку. */
 export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: string[]; full?: boolean; dryRun?: boolean } = {}) {

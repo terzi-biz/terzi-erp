@@ -45,7 +45,6 @@ import { Route as CrmContactsRouteImport } from './routes/crm.contacts'
 import { Route as CrmIntakeRouteImport } from './routes/crm.intake'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmMeasurementsRouteImport } from './routes/crm.measurements'
-import { Route as CrmRequestsRouteImport } from './routes/crm.requests'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
@@ -260,11 +259,6 @@ const CrmMeasurementsRoute = CrmMeasurementsRouteImport.update({
   path: '/crm/measurements',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CrmRequestsRoute = CrmRequestsRouteImport.update({
-  id: '/crm/requests',
-  path: '/crm/requests',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CrmTasksRoute = CrmTasksRouteImport.update({
   id: '/crm/tasks',
   path: '/crm/tasks',
@@ -462,7 +456,6 @@ export interface FileRoutesByFullPath {
   '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
-  '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
@@ -532,7 +525,6 @@ export interface FileRoutesByTo {
   '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
-  '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
@@ -603,7 +595,6 @@ export interface FileRoutesById {
   '/crm/intake': typeof CrmIntakeRoute
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
-  '/crm/requests': typeof CrmRequestsRoute
   '/crm/tasks': typeof CrmTasksRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
@@ -675,7 +666,6 @@ export interface FileRouteTypes {
     | '/crm/intake'
     | '/crm/leads'
     | '/crm/measurements'
-    | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
     | '/marketing/analytics'
@@ -745,7 +735,6 @@ export interface FileRouteTypes {
     | '/crm/intake'
     | '/crm/leads'
     | '/crm/measurements'
-    | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
     | '/marketing/analytics'
@@ -815,7 +804,6 @@ export interface FileRouteTypes {
     | '/crm/intake'
     | '/crm/leads'
     | '/crm/measurements'
-    | '/crm/requests'
     | '/crm/tasks'
     | '/invite/$token'
     | '/marketing/analytics'
@@ -886,7 +874,6 @@ export interface RootRouteChildren {
   CrmIntakeRoute: typeof CrmIntakeRoute
   CrmLeadsRoute: typeof CrmLeadsRoute
   CrmMeasurementsRoute: typeof CrmMeasurementsRoute
-  CrmRequestsRoute: typeof CrmRequestsRoute
   CrmTasksRoute: typeof CrmTasksRoute
   InviteTokenRoute: typeof InviteTokenRoute
   MarketingAnalyticsRoute: typeof MarketingAnalyticsRoute
@@ -1176,13 +1163,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmMeasurementsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/crm/requests': {
-      id: '/crm/requests'
-      path: '/crm/requests'
-      fullPath: '/crm/requests'
-      preLoaderRoute: typeof CrmRequestsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/crm/tasks': {
       id: '/crm/tasks'
       path: '/crm/tasks'
@@ -1449,7 +1429,6 @@ const rootRouteChildren: RootRouteChildren = {
   CrmIntakeRoute: CrmIntakeRoute,
   CrmLeadsRoute: CrmLeadsRoute,
   CrmMeasurementsRoute: CrmMeasurementsRoute,
-  CrmRequestsRoute: CrmRequestsRoute,
   CrmTasksRoute: CrmTasksRoute,
   InviteTokenRoute: InviteTokenRoute,
   MarketingAnalyticsRoute: MarketingAnalyticsRoute,

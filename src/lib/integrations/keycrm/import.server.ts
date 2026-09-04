@@ -8,7 +8,7 @@ import { admin } from "../../access.server";
 import { logAttempt } from "../core.server";
 import type { AdapterContext } from "../adapter.server";
 import { KEYCRM_ENTITIES } from "../keycrm-constants";
-import { apiClient, applyExternal, entityPath, getSyncModes } from "./sync.server";
+import { apiClient, applyExternal, entityPath, extractLeadChildren, extractOrderChildren, getSyncModes } from "./sync.server";
 
 /** Порядок імпорту: довідники → клієнти → ліди → замовлення. */
 export const IMPORT_ORDER = [
@@ -158,6 +158,9 @@ export async function importChunk(
       const res = await applyExternal(ctx, entity, item, mode as any, { force: opts.force });
       if (res.skipped) skipped += 1;
       else applied += 1;
+      // Дочірні сутності (коментарі, файли, задачі, оплати) імпортуємо разом із карткою.
+      if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
+      if (!res.skipped && entity === "lead_cards") await extractLeadChildren(ctx, item);
     } catch (e: any) {
       failed += 1;
       await logAttempt({
