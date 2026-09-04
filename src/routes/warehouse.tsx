@@ -3,11 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Package, Plus, Boxes, ArrowLeftRight, ClipboardList, Lock, AlertTriangle, Check, X } from "lucide-react";
+import { Package, Plus, Boxes, ArrowLeftRight, ClipboardList, Lock, AlertTriangle, Check, X, Layers, Upload } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { formatUah } from "@/lib/screed-calc";
 import { availableQty, documentTotal, isBelowMin, STOCK_DOC_LABELS, STOCK_STATUS_LABELS, WAREHOUSE_KINDS } from "@/lib/warehouse-calc";
+import { reservedByUnit } from "@/lib/warehouse-import";
+import { MaterialVariantCard } from "@/components/warehouse/MaterialVariantCard";
+import { WarehouseImportWizard } from "@/components/warehouse/WarehouseImportWizard";
 import {
   listWarehouses, saveWarehouse, listStockItems, saveStockItem,
   listStockDocuments, saveStockDocument, postStockDocument, cancelStockDocument,
