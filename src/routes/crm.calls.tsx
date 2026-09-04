@@ -117,10 +117,15 @@ function CallsPage() {
             <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-2"><PhoneCall className="w-6 h-6" /> Дзвінки</h1>
             <p className="text-sm text-muted-foreground">Аналітика телефонії: джерела, пропущені, перші звернення, менеджери</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <select value={staff} onChange={(e) => setStaff(e.target.value)} className={inp} title="Співробітник">
+              <option value="all">Усі співробітники</option>
+              {staffOptions.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
           </div>
+
         </div>
 
         {data?.truncated ? (
