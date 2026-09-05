@@ -110,7 +110,44 @@ export const Route = createFileRoute("/api/public/integrations/webhook/$slug")({
           correlation_id: res.correlationId ?? null,
         });
       },
-      GET: async () => new Response("Method not allowed", { status: 405 }),
+      /**
+       * Верифікація підписки провайдера:
+       *  - Meta/Facebook: hub.mode=subscribe + hub.verify_token → повертаємо hub.challenge;
+       *  - keyCRM та інші: перевірка токена ендпойнта (?token=) → 200 OK.
+       * Без збігу токена — 403, нічого не розкриваємо.
+       */
+      GET: async ({ request, params }) => {
+        const url = new URL(request.url);
+        const { admin } = await import("@/lib/access.server");
+        const { loadIntegration, readSecret } = await import("@/lib/integrations/core.server");
+
+        const db = await admin();
+        const { data: hook } = await db
+          .from("integration_webhooks")
+          .select("*")
+          .eq("slug", params.slug)
+          .eq("direction", "inbound")
+          .maybeSingle();
+        if (!hook || !(hook as any).enabled) return new Response("Not found", { status: 404 });
+
+        const integration = await loadIntegration((hook as any).integration_id);
+        if (!integration || !integration.enabled) return new Response("Integration disabled", { status: 409 });
+
+        const expected = readSecret((hook as any).secret_ref) ?? ((hook as any).endpoint_token ?? null);
+        const challenge = url.searchParams.get("hub.challenge");
+        const provided =
+          url.searchParams.get("hub.verify_token") ??
+          url.searchParams.get("token") ??
+          request.headers.get("x-endpoint-token");
+
+        if (!expected || !provided || provided !== expected) {
+          return new Response("Forbidden", { status: 403 });
+        }
+        if (url.searchParams.get("hub.mode") === "subscribe" && challenge) {
+          return new Response(challenge, { status: 200, headers: { "content-type": "text/plain" } });
+        }
+        return Response.json({ ok: true, provider: integration.provider_key });
+      },
     },
   },
 });
