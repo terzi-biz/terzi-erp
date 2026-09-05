@@ -1,11 +1,18 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Panel, EmptyState, KpiCard, fmtMoney, fmtNum, fmtPct } from "@/components/marketing/MarketingShell";
-import { getAnalyticsOverview, getAnalyticsDrilldown } from "@/lib/analytics.functions";
+import {
+  getAnalyticsOverview,
+  getAnalyticsDrilldown,
+  listAnalyticsRefs,
+  saveManualSpend,
+  deleteManualSpend,
+} from "@/lib/analytics.functions";
 
 export const Route = createFileRoute("/reports/ceo")({
   ssr: false,
