@@ -28,10 +28,23 @@ export const keycrmAdapter: IntegrationAdapter = {
     return { ok: true, message: `keyCRM відповідає, доступ до покупців підтверджено (${total})`, httpStatus: 200 };
   },
 
-  /** keyCRM не підписує вебхуки — перевіряємо секретний endpoint token. */
+  /**
+   * keyCRM підписує вебхуки не завжди: приймаємо або HMAC-SHA256 від сирого тіла,
+   * або секретний endpoint token (заголовок чи ?token=). Порівняння — стале за часом.
+   */
   async verifyWebhook(ctx, req) {
     const expected = req.secret ?? ctx.secret("webhook_token");
     if (!expected) return false;
+
+    const signature =
+      req.headers.get("x-keycrm-signature") ??
+      req.headers.get("x-signature") ??
+      req.headers.get("x-hub-signature-256");
+    if (signature) {
+      const { verifyHmacSha256 } = await import("../signature.server");
+      if (await verifyHmacSha256(req.rawBody, signature, expected)) return true;
+    }
+
     const headerToken =
       req.headers.get("x-endpoint-token") ??
       req.headers.get("x-webhook-token") ??
