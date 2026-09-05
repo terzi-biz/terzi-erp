@@ -151,7 +151,7 @@ async function employeeByExtension(internalNumber: string | null) {
 async function lookupByPhone(phoneNorm: string | null) {
   const db = await admin();
   if (!phoneNorm) return { contact: null as any, lead: null as any, client: null as any };
-  const e164 = toE164Ua(phoneNorm);
+  const e164 = toE164Ua(phoneNorm) ?? phoneNorm;
 
   const { data: contact } = await db
     .from("crm_contacts")
