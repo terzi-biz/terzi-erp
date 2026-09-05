@@ -1,11 +1,18 @@
 import { createFileRoute, redirect, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
 import { Panel, EmptyState, KpiCard, fmtMoney, fmtNum, fmtPct } from "@/components/marketing/MarketingShell";
-import { getAnalyticsOverview, getAnalyticsDrilldown } from "@/lib/analytics.functions";
+import {
+  getAnalyticsOverview,
+  getAnalyticsDrilldown,
+  listAnalyticsRefs,
+  saveManualSpend,
+  deleteManualSpend,
+} from "@/lib/analytics.functions";
 
 export const Route = createFileRoute("/reports/ceo")({
   ssr: false,
@@ -301,6 +308,8 @@ function CeoReport() {
               </Panel>
             </div>
 
+            <ManualSpendPanel from={from} to={to} />
+
             {drill ? (
               <Panel title={`Деталізація: ${drill.label}`} action={<button className="text-xs text-muted-foreground" onClick={() => setDrill(null)}>Закрити</button>}>
                 {drillLoading ? <EmptyState text="Завантаження…" /> : rows.length ? (
@@ -326,5 +335,97 @@ function CeoReport() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+/** Ручні витрати на рекламу: щоб прибуток і ROMI рахувалися до підключення рекламних кабінетів. */
+function ManualSpendPanel({ from, to }: { from: string; to: string }) {
+  const qc = useQueryClient();
+  const refsFn = useServerFn(listAnalyticsRefs);
+  const saveFn = useServerFn(saveManualSpend);
+  const delFn = useServerFn(deleteManualSpend);
+  const [form, setForm] = useState({ spend_date: to, source: "", campaign: "", amount: "", comment: "" });
+
+  const { data } = useQuery({
+    queryKey: ["ceo", "refs", from, to],
+    queryFn: () => refsFn({ data: { from, to } }),
+  });
+  const rows = (data?.spend ?? []) as Array<Record<string, any>>;
+  const total = rows.reduce((s, r) => s + Number(r.amount ?? 0), 0);
+
+  const invalidate = () => {
+    void qc.invalidateQueries({ queryKey: ["ceo"] });
+  };
+  const save = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: {
+          spend_date: form.spend_date,
+          source: form.source.trim(),
+          campaign: form.campaign.trim() || null,
+          amount: Number(form.amount) || 0,
+          comment: form.comment.trim() || null,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Витрату збережено");
+      setForm({ spend_date: to, source: "", campaign: "", amount: "", comment: "" });
+      invalidate();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося зберегти"),
+  });
+  const remove = useMutation({
+    mutationFn: (id: string) => delFn({ data: { id } }),
+    onSuccess: () => { toast.success("Витрату видалено"); invalidate(); },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося видалити"),
+  });
+
+  const inp = "h-8 rounded border border-border bg-background px-2 text-xs";
+  const canSave = form.source.trim().length > 0 && Number(form.amount) > 0 && !save.isPending;
+
+  return (
+    <Panel
+      title="Витрати на рекламу (вручну)"
+      action={<span className="text-xs text-muted-foreground">За період: {fmtMoney(total)}</span>}
+    >
+      <div className="flex flex-wrap items-end gap-2 pb-3">
+        <input type="date" className={inp} value={form.spend_date} onChange={(e) => setForm({ ...form, spend_date: e.target.value })} />
+        <input className={`${inp} w-32`} placeholder="Джерело" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
+        <input className={`${inp} w-36`} placeholder="Кампанія" value={form.campaign} onChange={(e) => setForm({ ...form, campaign: e.target.value })} />
+        <input className={`${inp} w-28`} inputMode="decimal" placeholder="Сума, ₴" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
+        <input className={`${inp} w-40`} placeholder="Коментар" value={form.comment} onChange={(e) => setForm({ ...form, comment: e.target.value })} />
+        <button
+          type="button"
+          disabled={!canSave}
+          onClick={() => save.mutate()}
+          className="h-8 rounded bg-primary px-3 text-xs font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          Додати
+        </button>
+      </div>
+      {rows.length ? (
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs">
+            <thead className="text-muted-foreground">
+              <tr><th className="text-left py-1">Дата</th><th className="text-left">Джерело</th><th className="text-left">Кампанія</th><th className="text-left">Коментар</th><th className="text-right">Сума</th><th /></tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={String(r.id)} className="border-t border-border/60">
+                  <td className="py-1.5 tabular-nums">{new Date(`${r.spend_date}T00:00:00Z`).toLocaleDateString("uk-UA", { timeZone: "UTC" })}</td>
+                  <td>{r.source}</td>
+                  <td className="text-muted-foreground">{r.campaign ?? "—"}</td>
+                  <td className="text-muted-foreground">{r.comment ?? "—"}</td>
+                  <td className="text-right tabular-nums">{fmtMoney(Number(r.amount ?? 0))}</td>
+                  <td className="text-right">
+                    <button type="button" className="text-destructive hover:underline" onClick={() => remove.mutate(String(r.id))}>Видалити</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : <EmptyState text="Витрат на рекламу за період ще немає" />}
+    </Panel>
   );
 }

@@ -20,6 +20,7 @@ import { useInternalAccess } from "@/lib/useInternalAccess";
 import { formatUah } from "@/lib/screed-calc";
 import { getOrderPnl } from "@/lib/finance.functions";
 import { listReservations } from "@/lib/warehouse.functions";
+import { getCallRecording } from "@/lib/crm.functions";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/orders/$id")({
@@ -893,35 +894,57 @@ function TasksTab({ o }: { o: any }) {
   );
 }
 
+const callDur = (s: number | null) => {
+  const n = Number(s ?? 0);
+  if (!n) return "—";
+  return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
+};
+
+/** Дзвінок замовлення: посилання на запис запитується на вимогу (воно тимчасове). */
+function OrderCallRow({ c }: { c: any }) {
+  const recFn = useServerFn(getCallRecording);
+  const [url, setUrl] = useState<string | null>(null);
+  const load = useMutation({
+    mutationFn: () => recFn({ data: { call_id: c.id } }),
+    onSuccess: (res: any) => (res?.url ? setUrl(res.url) : toast.info(res?.reason ?? "Запис недоступний")),
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося отримати запис"),
+  });
+  const hasRec = c.recording_available !== false;
+  return (
+    <div className="border border-border rounded p-3 text-sm space-y-1">
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="flex items-center gap-2 font-semibold">
+          {c.is_missed ? <PhoneMissed className="w-3.5 h-3.5 text-destructive" /> : <PhoneCall className="w-3.5 h-3.5 text-success" />}
+          {c.direction === "inbound" ? "Вхідний" : "Вихідний"} · {c.phone_e164 ?? c.from_number ?? c.to_number ?? "—"}
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>{c.started_at ? new Date(c.started_at).toLocaleString("uk-UA") : "—"} · {callDur(c.duration_sec)}</span>
+          {hasRec && !url && (
+            <button
+              type="button"
+              onClick={() => load.mutate()}
+              disabled={load.isPending}
+              className="text-primary hover:underline disabled:opacity-50"
+            >
+              {load.isPending ? "Завантаження…" : "Прослухати"}
+            </button>
+          )}
+        </div>
+      </div>
+      {url && <audio controls autoPlay preload="none" src={url} className="w-full h-8" />}
+    </div>
+  );
+}
+
 function CallsTab({ o }: { o: any }) {
   const calls = (o.calls ?? []) as any[];
-  const dur = (s: number | null) => {
-    const n = Number(s ?? 0);
-    if (!n) return "—";
-    return `${Math.floor(n / 60)}:${String(n % 60).padStart(2, "0")}`;
-  };
   return (
     <div className="space-y-3">
       <div className="text-xs text-muted-foreground">
         Дзвінки клієнта цього замовлення (Binotel). Всього: {calls.length} · пропущених: {calls.filter((c) => c.is_missed).length}
       </div>
       <div className="space-y-2">
-        {calls.map((c) => (
-          <div key={c.id} className="border border-border rounded p-3 text-sm space-y-1">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <div className="flex items-center gap-2 font-semibold">
-                {c.is_missed ? <PhoneMissed className="w-3.5 h-3.5 text-destructive" /> : <PhoneCall className="w-3.5 h-3.5 text-success" />}
-                {c.direction === "inbound" ? "Вхідний" : "Вихідний"} · {c.phone_e164 ?? c.from_number ?? c.to_number ?? "—"}
-              </div>
-              <div className="text-xs text-muted-foreground">
-                {c.started_at ? new Date(c.started_at).toLocaleString("uk-UA") : "—"} · {dur(c.duration_sec)}
-              </div>
-            </div>
-            {c.recording_url && (
-              <audio controls preload="none" src={c.recording_url} className="w-full h-8" />
-            )}
-          </div>
-        ))}
+        {calls.map((c) => <OrderCallRow key={c.id} c={c} />)}
         {calls.length === 0 && <div className="text-xs text-muted-foreground text-center py-6">Дзвінків не знайдено</div>}
       </div>
       <Link to="/crm/calls" className="text-primary text-xs hover:underline">→ Всі дзвінки в CRM</Link>
