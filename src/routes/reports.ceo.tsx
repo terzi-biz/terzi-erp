@@ -308,6 +308,8 @@ function CeoReport() {
               </Panel>
             </div>
 
+            <ManualSpendPanel from={from} to={to} />
+
             {drill ? (
               <Panel title={`Деталізація: ${drill.label}`} action={<button className="text-xs text-muted-foreground" onClick={() => setDrill(null)}>Закрити</button>}>
                 {drillLoading ? <EmptyState text="Завантаження…" /> : rows.length ? (
