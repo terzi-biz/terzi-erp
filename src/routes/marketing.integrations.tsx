@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
-import { updateMarketingIntegration, testMarketingIntegration } from "@/lib/marketing.functions";
+import { updateMarketingIntegration, testMarketingIntegration, syncMetaAds } from "@/lib/marketing.functions";
+import { useState } from "react";
 
 export const Route = createFileRoute("/marketing/integrations")({
   ssr: false,
@@ -41,6 +42,8 @@ function IntegrationsPage() {
   const qc = useQueryClient();
   const saveFn = useServerFn(updateMarketingIntegration);
   const testFn = useServerFn(testMarketingIntegration);
+  const metaSyncFn = useServerFn(syncMetaAds);
+  const [syncing, setSyncing] = useState(false);
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["mkt", "integrations"],
@@ -67,6 +70,19 @@ function IntegrationsPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка"); }
   };
 
+  const syncMeta = async () => {
+    const to = new Date();
+    const from = new Date(to.getTime() - 29 * 864e5);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    setSyncing(true);
+    try {
+      const res = await metaSyncFn({ data: { from: fmt(from), to: fmt(to) } });
+      toast.success(`Meta Ads: ${res.campaigns} кампаній, ${res.days} днів (нових ${res.inserted}, оновлено ${res.updated})`);
+      qc.invalidateQueries({ queryKey: ["mkt"] });
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка синхронізації"); }
+    finally { setSyncing(false); }
+  };
+
   return (
     <MarketingShell title="Інтеграції" subtitle="Джерела даних маркетингу. Статус «підключено» з'являється лише після успішної перевірки">
       <Panel title="Доступні підключення">
@@ -89,6 +105,12 @@ function IntegrationsPage() {
                     {r.connection_status === "disabled" ? "Увімкнути" : "Вимкнути"}
                   </button>
                   <button onClick={() => test(r.provider)} className="rounded-md border border-border px-2 py-1 text-[11px]">Перевірити</button>
+                  {r.provider === "meta_ads" ? (
+                    <button onClick={syncMeta} disabled={syncing}
+                      className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-60">
+                      {syncing ? "Синхронізація…" : "Синхронізувати 30 днів"}
+                    </button>
+                  ) : null}
                 </div>
                 {r.last_error ? <div className="mt-1 text-[11px] text-destructive">{r.last_error}</div> : null}
                 {r.is_read_only ? <div className="mt-1 text-[10px] text-muted-foreground">Режим «тільки читання»</div> : null}
