@@ -39,5 +39,20 @@ export async function testProvider(provider: string): Promise<ProviderTest> {
   if (provider === "binotel") {
     return { ok: true, configured: true, message: "Ключі Binotel знайдено — перевірка з'єднання у розділі «Інтеграції та API»" };
   }
+  if (provider === "meta_ads" || provider === "instagram" || provider === "facebook") {
+    try {
+      const { metaTestConnection } = await import("../integrations/foundation/meta-ads.server");
+      const acc = await metaTestConnection();
+      return {
+        ok: acc.active,
+        configured: true,
+        message: acc.active
+          ? `Кабінет «${acc.name}» (${acc.currency}) доступний`
+          : `Кабінет «${acc.name}» неактивний`,
+      };
+    } catch (e) {
+      return { ok: false, configured: true, message: e instanceof Error ? e.message : "Помилка Meta Ads API" };
+    }
+  }
   return { ok: true, configured: true, message: "Ключі знайдено, синхронізація буде увімкнена на наступному етапі" };
 }
