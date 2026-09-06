@@ -59,11 +59,17 @@ function CeoReport() {
 
   const overviewFn = useServerFn(getAnalyticsOverview);
   const drillFn = useServerFn(getAnalyticsDrilldown);
+  const fxFn = useServerFn(getAdsCurrencyBreakdown);
 
   const { data, isLoading } = useQuery({
     queryKey: ["ceo", from, to],
     queryFn: () => overviewFn({ data: { from, to } }),
   });
+  const { data: fx } = useQuery({
+    queryKey: ["ceo", "fx", from, to],
+    queryFn: () => fxFn({ data: { from, to } }),
+  });
+  const fxNote = currencyNote(fx?.original);
   const { data: rows = [], isFetching: drillLoading } = useQuery({
     queryKey: ["ceo", "drill", drill?.metric, from, to],
     queryFn: () => drillFn({ data: { metric: drill!.metric as never, from, to } }),

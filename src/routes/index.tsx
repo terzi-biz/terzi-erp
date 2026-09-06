@@ -322,7 +322,7 @@ function Dashboard() {
                   ["Витрати", show(k("expenses"), money)],
                   ["Валовий прибуток", show(k("gross_profit"), money)],
                   ["Сума договорів", show(contractValue, money)],
-                  ["Реклама", show(spend, money)],
+                  ["Реклама", show(spend, money) + (spend != null && fxNote ? ` (${fxNote})` : "")],
                   ["ROMI", romi == null ? NO : pct(romi)],
                 ].map(([l, v]) => (
                   <div key={l} className="flex items-center justify-between border-b border-border/60 pb-1.5 last:border-0 last:pb-0">
