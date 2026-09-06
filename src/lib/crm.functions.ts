@@ -351,3 +351,84 @@ export const deleteTask = createServerFn({ method: "POST" })
     if (error) { console.error("deleteTask", error); throw new Error("Не вдалося видалити задачу"); }
     return { ok: true };
   });
+
+/* ---------------- Server-side KPI (не залежить від пагінації) ---------------- */
+
+export const crmKpi = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ from: z.string().min(8).max(10), to: z.string().min(8).max(10) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { data: out, error } = await context.supabase.rpc("crm_kpi", {
+      p_from: `${data.from}T00:00:00.000Z`,
+      p_to: `${data.to}T23:59:59.999Z`,
+    });
+    if (error) { console.error("crmKpi", error); throw new Error("Не вдалося порахувати показники CRM"); }
+    return out as {
+      leads: { total: number; open: number; qualified: number; won: number; lost: number; postponed: number;
+        conversion: number; pipeline_value: number; won_value: number;
+        with_contact: number; with_client: number; with_order: number };
+      calls: { total: number; inbound: number; outbound: number; missed: number; answered: number; duration_sec: number };
+      tasks: { open: number; overdue: number; today: number };
+      measurements: { scheduled: number; completed: number; cancelled: number };
+    };
+  });
+
+/* ---------------- Лід → Замовлення ---------------- */
+
+export const convertLeadToOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ lead_id: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    const sb = context.supabase;
+    const { data: lead, error: le } = await sb.from("crm_leads")
+      .select("id, title, client_id, contact_id, order_id, address, phone_e164, source, assigned_to, budget, area")
+      .eq("id", data.lead_id).maybeSingle();
+    if (le || !lead) throw new Error("Лід не знайдено");
+    if (lead.order_id) return { order_id: lead.order_id as string, created: false };
+    if (!lead.client_id && !lead.contact_id && !lead.phone_e164) {
+      throw new Error("Лід не кваліфікований: немає клієнта, контакту або телефону");
+    }
+
+    let clientId = lead.client_id as string | null;
+    if (!clientId && lead.contact_id) {
+      const { data: ct } = await sb.from("crm_contacts").select("client_id, full_name, phone").eq("id", lead.contact_id).maybeSingle();
+      clientId = (ct?.client_id as string | null) ?? null;
+      if (!clientId && ct) {
+        const { data: created, error: ce } = await sb.from("clients")
+          .insert({ name: ct.full_name || lead.title, phone: ct.phone ?? lead.phone_e164 ?? null, source: lead.source ?? null, owner_id: context.userId } as any)
+          .select("id").single();
+        if (ce) { console.error("convertLeadToOrder client", ce); throw new Error("Не вдалося створити клієнта"); }
+        clientId = created.id as string;
+        await sb.from("crm_contacts").update({ client_id: clientId }).eq("id", lead.contact_id);
+      }
+    }
+    if (!clientId && lead.phone_e164) {
+      const { data: found } = await sb.from("clients").select("id").eq("phone_e164", lead.phone_e164).limit(2);
+      if ((found?.length ?? 0) === 1) clientId = found![0]!.id as string;
+      else if (!found?.length) {
+        const { data: created, error: ce } = await sb.from("clients")
+          .insert({ name: lead.title, phone: lead.phone_e164, source: lead.source ?? null, owner_id: context.userId } as any).select("id").single();
+        if (ce) { console.error("convertLeadToOrder client2", ce); throw new Error("Не вдалося створити клієнта"); }
+        clientId = created.id as string;
+      }
+    }
+    if (!clientId) throw new Error("Неоднозначний клієнт — оберіть його вручну в картці ліда");
+
+    const { data: order, error: oe } = await sb.from("orders").insert({
+      name: lead.title,
+      address: lead.address ?? null,
+      client_id: clientId,
+      manager_id: lead.assigned_to ?? context.userId,
+      source: lead.source ?? null,
+      commercial_status: "qualification",
+    } as any).select("id, number").single();
+    if (oe || !order) { console.error("convertLeadToOrder order", oe); throw new Error("Не вдалося створити замовлення"); }
+
+    await sb.from("crm_leads").update({ order_id: order.id, client_id: clientId }).eq("id", lead.id);
+    await sb.from("crm_lead_activities").insert({
+      lead_id: lead.id, actor_id: context.userId, kind: "converted",
+      body: `Створено замовлення ${order.number ?? ""}`.trim(),
+    });
+    return { order_id: order.id as string, number: order.number as string | null, created: true };
+  });

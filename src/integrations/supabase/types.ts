@@ -1926,6 +1926,42 @@ export type Database = {
         }
         Relationships: []
       }
+      entity_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          entity_id: string
+          entity_type: string
+          field: string
+          id: string
+          meta: Json
+          new_status: string | null
+          old_status: string | null
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          entity_id: string
+          entity_type: string
+          field?: string
+          id?: string
+          meta?: Json
+          new_status?: string | null
+          old_status?: string | null
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          field?: string
+          id?: string
+          meta?: Json
+          new_status?: string | null
+          old_status?: string | null
+        }
+        Relationships: []
+      }
       estimate_audit_log: {
         Row: {
           action: string
@@ -3544,6 +3580,51 @@ export type Database = {
           },
         ]
       }
+      link_conflicts: {
+        Row: {
+          candidate_ids: string[]
+          confidence: number | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          match_type: string
+          reason: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidate_ids?: string[]
+          confidence?: number | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          match_type: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidate_ids?: string[]
+          confidence?: number | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          match_type?: string
+          reason?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       logistics_items: {
         Row: {
           code: string | null
@@ -4893,18 +4974,25 @@ export type Database = {
       }
       order_measurements: {
         Row: {
+          address: string | null
           area: number | null
           base: Json | null
+          client_id: string | null
+          completed_at: string | null
+          confirmed_at: string | null
           contact_on_site: string | null
           created_at: string
+          created_by: string | null
           files: Json | null
           id: string
+          lead_id: string | null
           logistics: Json | null
           measured_at: string | null
           notes: string | null
-          order_id: string
+          order_id: string | null
           perimeter: number | null
           photos: Json | null
+          scheduled_at: string | null
           slopes: Json | null
           status: Database["public"]["Enums"]["object_measurement_status"]
           surveyor_id: string | null
@@ -4914,18 +5002,25 @@ export type Database = {
           weight_kg: number | null
         }
         Insert: {
+          address?: string | null
           area?: number | null
           base?: Json | null
+          client_id?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
           contact_on_site?: string | null
           created_at?: string
+          created_by?: string | null
           files?: Json | null
           id?: string
+          lead_id?: string | null
           logistics?: Json | null
           measured_at?: string | null
           notes?: string | null
-          order_id: string
+          order_id?: string | null
           perimeter?: number | null
           photos?: Json | null
+          scheduled_at?: string | null
           slopes?: Json | null
           status?: Database["public"]["Enums"]["object_measurement_status"]
           surveyor_id?: string | null
@@ -4935,18 +5030,25 @@ export type Database = {
           weight_kg?: number | null
         }
         Update: {
+          address?: string | null
           area?: number | null
           base?: Json | null
+          client_id?: string | null
+          completed_at?: string | null
+          confirmed_at?: string | null
           contact_on_site?: string | null
           created_at?: string
+          created_by?: string | null
           files?: Json | null
           id?: string
+          lead_id?: string | null
           logistics?: Json | null
           measured_at?: string | null
           notes?: string | null
-          order_id?: string
+          order_id?: string | null
           perimeter?: number | null
           photos?: Json | null
+          scheduled_at?: string | null
           slopes?: Json | null
           status?: Database["public"]["Enums"]["object_measurement_status"]
           surveyor_id?: string | null
@@ -4961,6 +5063,20 @@ export type Database = {
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_measurements_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_measurements_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "crm_leads"
             referencedColumns: ["id"]
           },
         ]
@@ -6904,6 +7020,7 @@ export type Database = {
         }
         Returns: Json
       }
+      crm_kpi: { Args: { p_from: string; p_to: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -7013,7 +7130,17 @@ export type Database = {
         | "has_debt"
         | "paid"
         | "financially_closed"
-      object_measurement_status: "draft" | "done" | "cancelled"
+      object_measurement_status:
+        | "draft"
+        | "done"
+        | "cancelled"
+        | "planned"
+        | "assigned"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "canceled"
+        | "rescheduled"
       object_measurement_type: "primary" | "repeat" | "control" | "as_built"
       object_production_status:
         | "not_planned"
@@ -7267,7 +7394,18 @@ export const Constants = {
         "paid",
         "financially_closed",
       ],
-      object_measurement_status: ["draft", "done", "cancelled"],
+      object_measurement_status: [
+        "draft",
+        "done",
+        "cancelled",
+        "planned",
+        "assigned",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "canceled",
+        "rescheduled",
+      ],
       object_measurement_type: ["primary", "repeat", "control", "as_built"],
       object_production_status: [
         "not_planned",

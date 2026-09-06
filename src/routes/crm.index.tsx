@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { Users, Target, PhoneCall, Ruler, AlertTriangle, TrendingUp, ListTodo } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { listLeads, listTasks, listCalls, listPipelines } from "@/lib/crm.functions";
+import { listLeads, listTasks, listCalls, listPipelines, crmKpi } from "@/lib/crm.functions";
 import { listMeasurements } from "@/lib/measurements.functions";
 
 export const Route = createFileRoute("/crm/")({
@@ -52,6 +52,7 @@ function CrmDashboard() {
   const callsFn = useServerFn(listCalls);
   const pipeFn = useServerFn(listPipelines);
   const measFn = useServerFn(listMeasurements);
+  const kpiFn = useServerFn(crmKpi);
 
   const [tab, setTab] = useState<Tab>("funnel");
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return iso(d); });
@@ -66,7 +67,12 @@ function CrmDashboard() {
     queryFn: () => measFn({ data: { from, to } }),
   });
 
-  const stats = useMemo(() => {
+  const { data: kpi } = useQuery({
+    queryKey: ["crm", "kpi", from, to],
+    queryFn: () => kpiFn({ data: { from, to } }),
+  });
+
+  const listStats = useMemo(() => {
     const open = (leads as any[]).filter((l) => l.status === "open");
     const won = (leads as any[]).filter((l) => l.status === "won");
     const lost = (leads as any[]).filter((l) => l.status === "lost");
@@ -82,6 +88,18 @@ function CrmDashboard() {
       calls: (calls as any[]).length,
     };
   }, [leads, tasks, calls]);
+
+  /* KPI рахуються на сервері по всій базі, а не по завантаженій сторінці списку. */
+  const stats = kpi
+    ? {
+        open: kpi.leads.open,
+        pipeline: Number(kpi.leads.pipeline_value || 0),
+        wonSum: Number(kpi.leads.won_value || 0),
+        conversion: Number(kpi.leads.conversion || 0),
+        overdue: kpi.tasks.overdue,
+        calls: kpi.calls.total,
+      }
+    : listStats;
 
   const byStage = useMemo(() => {
     const stages = (pipe?.stages ?? []) as any[];
@@ -115,7 +133,7 @@ function CrmDashboard() {
           <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} />
           <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} />
           <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" />
-          <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті" />
+          <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті за період" />
           <Kpi icon={Ruler} label="Заміри за період" value={funnel ? String(funnel.measurements) : "—"} hint={funnel ? `лід → замір ${pctText(funnel.leadToMeasure)}` : undefined} />
           <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} />
         </div>
@@ -131,7 +149,7 @@ function CrmDashboard() {
               {label}
             </button>
           ))}
-          {tab === "measurements" ? (
+          {true ? (
             <div className="ml-auto flex items-center gap-2 pb-2">
               <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1 text-xs" />
               <span className="text-xs text-muted-foreground">—</span>
