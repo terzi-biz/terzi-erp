@@ -8,10 +8,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save, PlayCircle,
-  Loader2, PhoneMissed, PhoneIncoming, PhoneOutgoing, User, Plus,
+  Loader2, PhoneMissed, PhoneIncoming, PhoneOutgoing, User, Plus, Briefcase,
 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
-import { addLeadNote, upsertTask, getCallRecording } from "@/lib/crm.functions";
+import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
@@ -28,6 +29,8 @@ export function LeadCardDialog({
   const staffFn = useServerFn(listCrmStaff);
   const noteFn = useServerFn(addLeadNote);
   const taskFn = useServerFn(upsertTask);
+  const convertFn = useServerFn(convertLeadToOrder);
+  const navigate = useNavigate();
 
   const { data, isLoading } = useQuery({
     queryKey: ["crm", "lead-card", leadId],
@@ -80,6 +83,16 @@ export function LeadCardDialog({
       qc.invalidateQueries({ queryKey: ["crm"] });
     },
     onError: (e: any) => toast.error(e?.message ?? "Помилка збереження"),
+  });
+
+  const convert = useMutation({
+    mutationFn: () => convertFn({ data: { lead_id: leadId } }),
+    onSuccess: (r: any) => {
+      toast.success(r?.created ? `Замовлення ${r.number ?? ""} створено` : "Лід вже має замовлення");
+      qc.invalidateQueries({ queryKey: ["crm"] });
+      navigate({ to: "/orders/$id", params: { id: r.order_id } });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити замовлення"),
   });
 
   const addNote = useMutation({
