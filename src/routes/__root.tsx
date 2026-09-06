@@ -41,6 +41,15 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const loc = useLocation();
+
+  useEffect(() => {
+    initTags();
+  }, []);
+  useEffect(() => {
+    trackPageView(loc.pathname);
+  }, [loc.pathname]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
