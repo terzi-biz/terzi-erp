@@ -183,13 +183,18 @@ export async function syncMetaInsights(input: { from: string; to: string }): Pro
       campaigns.add(extId);
       const date = String(row.date_start);
       days.add(date);
+      const { toUah } = await import("@/lib/marketing/fx.server");
+      const money = await toUah(Number(row.spend ?? 0), account.currency, date);
       const res = await upsertMetric(db, {
         date,
         channel_id: channelId,
         account_id: acctId,
         campaign_id: campaignId,
-        currency: account.currency,
-        spend: Number(row.spend ?? 0),
+        currency: "UAH",
+        spend: money.uah,
+        spend_original: money.original,
+        currency_original: money.currency,
+        fx_rate: money.rate,
         impressions: Number(row.impressions ?? 0),
         reach: Number(row.reach ?? 0),
         clicks: Number(row.clicks ?? 0),
