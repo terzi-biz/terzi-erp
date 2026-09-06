@@ -355,3 +355,23 @@ export const listDailyMetrics = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+
+/** Синхронізація Meta Ads: кампанії + щоденні метрики за період. */
+export const syncMetaAds = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ from: z.string().min(8), to: z.string().min(8) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { syncMetaInsights } = await import("./integrations/foundation/meta-ads.server");
+    const res = await syncMetaInsights({ from: data.from, to: data.to });
+    await context.supabase.from("marketing_integrations").update({
+      last_attempt_at: new Date().toISOString(),
+      last_success_at: new Date().toISOString(),
+      last_error: null,
+      connection_status: "connected",
+    }).eq("provider", "meta_ads");
+    await context.supabase.from("audit_logs").insert({
+      module: "marketing", action: "meta_ads_sync", entity_type: "marketing_daily_metrics",
+      new_value: res as never, actor_id: context.userId, is_critical: false,
+    });
+    return res;
+  });
