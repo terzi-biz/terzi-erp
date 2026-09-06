@@ -4,7 +4,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth";
 import { usePersistedState } from "@/lib/usePersistedState";
-import { getAnalyticsOverview } from "@/lib/analytics.functions";
+import { getAnalyticsOverview, getAdsCurrencyBreakdown } from "@/lib/analytics.functions";
+import { currencyNote } from "@/lib/marketing/currency";
 import {
   Plus, Target, Users, Ruler, FileText, Handshake, Wallet, PhoneCall, TrendingUp, TrendingDown,
 } from "lucide-react";
@@ -121,11 +122,18 @@ function Dashboard() {
   const { from, to } = useMemo(() => rangeFor(rangeKey), [rangeKey]);
 
   const overviewFn = useServerFn(getAnalyticsOverview);
+  const fxFn = useServerFn(getAdsCurrencyBreakdown);
   const { data, isLoading } = useQuery({
     queryKey: ["dash", "overview", from, to],
     queryFn: () => overviewFn({ data: { from, to } }),
     enabled: !!user,
   });
+  const { data: fx } = useQuery({
+    queryKey: ["dash", "fx", from, to],
+    queryFn: () => fxFn({ data: { from, to } }),
+    enabled: !!user,
+  });
+  const fxNote = currencyNote(fx?.original);
 
   const cur = (data?.current ?? null) as Overview | null;
   const prev = (data?.previous ?? null) as Overview | null;
@@ -314,7 +322,7 @@ function Dashboard() {
                   ["Витрати", show(k("expenses"), money)],
                   ["Валовий прибуток", show(k("gross_profit"), money)],
                   ["Сума договорів", show(contractValue, money)],
-                  ["Реклама", show(spend, money)],
+                  ["Реклама", show(spend, money) + (spend != null && fxNote ? ` (${fxNote})` : "")],
                   ["ROMI", romi == null ? NO : pct(romi)],
                 ].map(([l, v]) => (
                   <div key={l} className="flex items-center justify-between border-b border-border/60 pb-1.5 last:border-0 last:pb-0">

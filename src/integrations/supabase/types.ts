@@ -4163,7 +4163,9 @@ export type Database = {
           created_at: string
           creative_id: string | null
           currency: string
+          currency_original: string | null
           date: string
+          fx_rate: number | null
           id: string
           impressions: number
           link_clicks: number
@@ -4172,6 +4174,7 @@ export type Database = {
           reach: number
           sessions: number
           spend: number
+          spend_original: number | null
           synced_at: string | null
           updated_at: string
           website_leads: number
@@ -4189,7 +4192,9 @@ export type Database = {
           created_at?: string
           creative_id?: string | null
           currency?: string
+          currency_original?: string | null
           date: string
+          fx_rate?: number | null
           id?: string
           impressions?: number
           link_clicks?: number
@@ -4198,6 +4203,7 @@ export type Database = {
           reach?: number
           sessions?: number
           spend?: number
+          spend_original?: number | null
           synced_at?: string | null
           updated_at?: string
           website_leads?: number
@@ -4215,7 +4221,9 @@ export type Database = {
           created_at?: string
           creative_id?: string | null
           currency?: string
+          currency_original?: string | null
           date?: string
+          fx_rate?: number | null
           id?: string
           impressions?: number
           link_clicks?: number
@@ -4224,6 +4232,7 @@ export type Database = {
           reach?: number
           sessions?: number
           spend?: number
+          spend_original?: number | null
           synced_at?: string | null
           updated_at?: string
           website_leads?: number
