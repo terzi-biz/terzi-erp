@@ -153,13 +153,18 @@ async function lookupByPhone(phoneNorm: string | null) {
   if (!phoneNorm) return { contact: null as any, lead: null as any, client: null as any };
   const e164 = toE164Ua(phoneNorm) ?? phoneNorm;
 
-  const { data: contact } = await db
-    .from("crm_contacts")
-    .select("id,full_name,client_id")
-    .eq("phone_e164", e164)
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const findContact = async (column: string, value: string) => {
+    const { data } = await db
+      .from("crm_contacts")
+      .select("id,full_name,client_id")
+      .eq(column, value)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return data ?? null;
+  };
+  // Основний ключ — E.164; для старих записів лишається запасний пошук по phone_norm.
+  const contact = (await findContact("phone_e164", e164)) ?? (await findContact("phone_norm", phoneNorm));
 
   let lead: any = null;
   if (contact) {
