@@ -12,7 +12,9 @@ import {
   listAnalyticsRefs,
   saveManualSpend,
   deleteManualSpend,
+  getAdsCurrencyBreakdown,
 } from "@/lib/analytics.functions";
+import { currencyNote } from "@/lib/marketing/currency";
 
 export const Route = createFileRoute("/reports/ceo")({
   ssr: false,
@@ -147,7 +149,7 @@ function CeoReport() {
         {isLoading ? <EmptyState text="Завантаження…" /> : !cur ? <EmptyState text="Немає даних за період" /> : (
           <>
             <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2 md:gap-3">
-              <KpiCard label="Витрати на рекламу" value={show(spend, fmtMoney)} delta={delta(spend, kp("marketing_spend"))} hint="Ads + офлайн" />
+              <KpiCard label="Витрати на рекламу" value={show(spend, fmtMoney)} delta={delta(spend, kp("marketing_spend"))} hint={fxNote ? `Ads + офлайн · ${fxNote}` : "Ads + офлайн"} />
               <KpiCard label="Заявки" value={show(leads, fmtNum)} delta={delta(leads, kp("leads"))} />
               <KpiCard label="Цільові" value={show(k("qualified"), fmtNum)} delta={delta(k("qualified"), kp("qualified"))} />
               <KpiCard label="Заміри виконано" value={show(k("measurements_completed"), fmtNum)} delta={delta(k("measurements_completed"), kp("measurements_completed"))} />
