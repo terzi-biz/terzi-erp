@@ -133,7 +133,7 @@ function CrmDashboard() {
           <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} />
           <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} />
           <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" />
-          <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті" />
+          <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті за період" />
           <Kpi icon={Ruler} label="Заміри за період" value={funnel ? String(funnel.measurements) : "—"} hint={funnel ? `лід → замір ${pctText(funnel.leadToMeasure)}` : undefined} />
           <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} />
         </div>
@@ -149,7 +149,7 @@ function CrmDashboard() {
               {label}
             </button>
           ))}
-          {tab === "measurements" ? (
+          {true ? (
             <div className="ml-auto flex items-center gap-2 pb-2">
               <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1 text-xs" />
               <span className="text-xs text-muted-foreground">—</span>
