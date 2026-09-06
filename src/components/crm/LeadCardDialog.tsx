@@ -118,10 +118,15 @@ export function LeadCardDialog({
             <option value="">Без етапу</option>
             {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
+          <button onClick={() => convert.mutate()} disabled={convert.isPending}
+            className="inline-flex items-center gap-1.5 rounded-md border border-border px-3 py-1.5 text-sm font-semibold disabled:opacity-60">
+            {convert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />} Створити замовлення
+          </button>
           <button onClick={() => save.mutate()} disabled={save.isPending}
             className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-sm font-semibold text-primary-foreground disabled:opacity-60">
             {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Зберегти
           </button>
+
           <button onClick={onClose}><X className="h-5 w-5" /></button>
         </div>
 
