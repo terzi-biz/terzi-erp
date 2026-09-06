@@ -24,6 +24,29 @@ export const getAnalyticsDrilldown = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => drilldownSchema.parse(d))
   .handler(async ({ context, data }) => drilldown(context.supabase, data));
 
+/** Витрати на рекламу в оригінальних валютах за період (довідково, для показу в дужках). */
+export const getAdsCurrencyBreakdown = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => rangeSchema.parse(d))
+  .handler(async ({ context, data }) => {
+    const { data: rows, error } = await context.supabase
+      .from("marketing_daily_metrics")
+      .select("spend, spend_original, currency_original")
+      .gte("date", data.from)
+      .lte("date", data.to);
+    if (error) throw new Error(error.message);
+    const by = new Map<string, number>();
+    let uah = 0;
+    for (const r of rows ?? []) {
+      uah += Number(r.spend ?? 0);
+      const cur = (r.currency_original ?? "UAH").toUpperCase();
+      if (cur === "UAH" || r.spend_original == null) continue;
+      by.set(cur, (by.get(cur) ?? 0) + Number(r.spend_original));
+    }
+    return { uah, original: [...by.entries()].map(([currency, amount]) => ({ currency, amount })) };
+  });
+
+
 /** Довідники аналітики: мапа джерел, офлайн-витрати, цілі. */
 export const listAnalyticsRefs = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
