@@ -7,7 +7,7 @@ export const GA_MEASUREMENT_ID: string | undefined =
   import.meta.env.VITE_LOVABLE_CONNECTOR_GOOGLE_ANALYTICS_API_KEY;
 
 /** Container ID GTM (GTM-XXXXXXX). Порожньо — тег не вантажиться. */
-export const GTM_CONTAINER_ID = "";
+export const GTM_CONTAINER_ID = "GTM-PL3NB4ZN";
 
 declare global {
   interface Window {
