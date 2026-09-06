@@ -396,7 +396,7 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
       clientId = (ct?.client_id as string | null) ?? null;
       if (!clientId && ct) {
         const { data: created, error: ce } = await sb.from("clients")
-          .insert({ name: ct.full_name || lead.title, phone: ct.phone ?? lead.phone_e164 ?? null, source: lead.source ?? null })
+          .insert({ name: ct.full_name || lead.title, phone: ct.phone ?? lead.phone_e164 ?? null, source: lead.source ?? null, owner_id: context.userId } as any)
           .select("id").single();
         if (ce) { console.error("convertLeadToOrder client", ce); throw new Error("Не вдалося створити клієнта"); }
         clientId = created.id as string;
@@ -408,7 +408,7 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
       if ((found?.length ?? 0) === 1) clientId = found![0]!.id as string;
       else if (!found?.length) {
         const { data: created, error: ce } = await sb.from("clients")
-          .insert({ name: lead.title, phone: lead.phone_e164, source: lead.source ?? null }).select("id").single();
+          .insert({ name: lead.title, phone: lead.phone_e164, source: lead.source ?? null, owner_id: context.userId } as any).select("id").single();
         if (ce) { console.error("convertLeadToOrder client2", ce); throw new Error("Не вдалося створити клієнта"); }
         clientId = created.id as string;
       }
@@ -422,7 +422,7 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
       manager_id: lead.assigned_to ?? context.userId,
       source: lead.source ?? null,
       commercial_status: "qualification",
-    }).select("id, number").single();
+    } as any).select("id, number").single();
     if (oe || !order) { console.error("convertLeadToOrder order", oe); throw new Error("Не вдалося створити замовлення"); }
 
     await sb.from("crm_leads").update({ order_id: order.id, client_id: clientId }).eq("id", lead.id);
