@@ -7129,7 +7129,17 @@ export type Database = {
         | "has_debt"
         | "paid"
         | "financially_closed"
-      object_measurement_status: "draft" | "done" | "cancelled"
+      object_measurement_status:
+        | "draft"
+        | "done"
+        | "cancelled"
+        | "planned"
+        | "assigned"
+        | "confirmed"
+        | "in_progress"
+        | "completed"
+        | "canceled"
+        | "rescheduled"
       object_measurement_type: "primary" | "repeat" | "control" | "as_built"
       object_production_status:
         | "not_planned"
@@ -7383,7 +7393,18 @@ export const Constants = {
         "paid",
         "financially_closed",
       ],
-      object_measurement_status: ["draft", "done", "cancelled"],
+      object_measurement_status: [
+        "draft",
+        "done",
+        "cancelled",
+        "planned",
+        "assigned",
+        "confirmed",
+        "in_progress",
+        "completed",
+        "canceled",
+        "rescheduled",
+      ],
       object_measurement_type: ["primary", "repeat", "control", "as_built"],
       object_production_status: [
         "not_planned",
