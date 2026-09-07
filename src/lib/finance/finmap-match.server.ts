@@ -164,7 +164,13 @@ export async function matchProjects(db: Db): Promise<MatchReport> {
       .filter((c) => c.score >= REVIEW_MIN);
     const rc = best(clientCands);
     if (rc.top && rc.confident) {
-      await db.from("finance_projects").update({ client_id: rc.top.id, match_score: rc.top.score, match_source: "auto" }).eq("id", p.id);
+      // Якщо у клієнта рівно одне замовлення — зв'язок однозначний, тому переносимо і його.
+      const clientOrders = ords.filter((o) => o.client_id === rc.top!.id);
+      const soleOrder = clientOrders.length === 1 ? clientOrders[0].id : null;
+      await db.from("finance_projects").update({
+        client_id: rc.top.id, order_id: p.order_id ?? soleOrder,
+        match_score: rc.top.score, match_source: "auto",
+      }).eq("id", p.id);
       await upsertReview(db, "project", p.finmap_id, p.name, "client", rc.top, "matched");
       linked++;
     } else if (r.top || rc.top) {
