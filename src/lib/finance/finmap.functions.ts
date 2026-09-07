@@ -84,6 +84,24 @@ export const runFinmapSyncNow = createServerFn({ method: "POST" })
     return results;
   });
 
+/** Автозв'язок Finmap ↔ ERP без повторного завантаження даних із Finmap. */
+export const runFinmapMatchNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertFinance(context);
+    const { runFinmapAutoMatch } = await import("./finmap-match.server");
+    const reports = await runFinmapAutoMatch(context.supabase);
+    await context.supabase.from("finmap_sync_log").insert({
+      entity: "match", mode: "match", status: "ok",
+      fetched: reports.reduce((s, r) => s + r.linked + r.review, 0),
+      inserted: reports.reduce((s, r) => s + r.linked, 0),
+      skipped: reports.reduce((s, r) => s + r.review, 0),
+      started_by: context.userId,
+      message: reports.map((r) => `${r.entity}: зв'язано ${r.linked}, на перевірку ${r.review}`).join("; "),
+    });
+    return reports;
+  });
+
 // ---------------- Журнал операцій ----------------
 
 export const listFinanceTransactions = createServerFn({ method: "POST" })

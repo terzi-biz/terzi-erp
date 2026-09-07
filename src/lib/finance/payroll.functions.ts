@@ -234,3 +234,88 @@ export const getEmployeePayrollHistory = createServerFn({ method: "POST" })
     if (error) { console.error("getEmployeePayrollHistory", error); throw new Error("Не вдалося завантажити історію виплат"); }
     return rows ?? [];
   });
+
+/**
+ * Аванс 20-го / остаточний розрахунок 5-го як реальна операція Finmap.
+ *
+ * Ідемпотентність: externalId = terzi:payment:<uuid рядка payroll_payments>.
+ * Сума нарахування не змінюється; фактична оплата, що прийде назад із Finmap
+ * при наступній синхронізації, зменшує залишок (reconcilePayrollPayments).
+ */
+export const pushPayrollPaymentToFinmap = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      calculation_id: uuid,
+      payment_kind: z.enum(["advance", "salary"]).default("advance"),
+      amount: z.number().min(0.01),
+      paid_at: z.string().min(4),
+      account_id: uuid,
+      category_id: uuid.nullish(),
+      note: z.string().max(300).nullish(),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { finmapConfigured, finmap, externalIdFor } = await import("./finmap-client.server");
+    if (!finmapConfigured()) throw new Error("Не додано ключ Finmap (FINMAP_API_KEY)");
+
+    const { data: calc, error: e0 } = await context.supabase
+      .from("payroll_calculations")
+      .select("id,employee_id,period_id,total_payable,paid_amount,employee:employee_id(full_name)")
+      .eq("id", data.calculation_id).single();
+    if (e0 || !calc) throw new Error("Розрахунок не знайдено");
+
+    const [{ data: account }, { data: cp }, { data: category }] = await Promise.all([
+      context.supabase.from("finance_accounts").select("id,name,finmap_id").eq("id", data.account_id).single(),
+      context.supabase.from("finance_counterparties").select("id,finmap_id,finmap_kind").eq("employee_id", calc.employee_id).maybeSingle(),
+      data.category_id
+        ? context.supabase.from("finance_categories").select("id,finmap_id").eq("id", data.category_id).maybeSingle()
+        : Promise.resolve({ data: null } as any),
+    ]);
+    if (!account?.finmap_id) throw new Error("Рахунок не синхронізовано з Finmap");
+
+    // Створюємо запис виплати (план), щоб мати стабільний externalId.
+    const { data: payment, error: e1 } = await context.supabase
+      .from("payroll_payments")
+      .insert({
+        calculation_id: calc.id, employee_id: calc.employee_id, period_id: calc.period_id,
+        payment_kind: data.payment_kind, amount: data.amount, paid_at: data.paid_at,
+        match_status: "pending", note: data.note ?? null, finmap_status: "pending",
+      })
+      .select().single();
+    if (e1 || !payment) { console.error("payroll_payments insert", e1); throw new Error("Не вдалося створити виплату"); }
+
+    const externalId = externalIdFor("payment", payment.id);
+    try {
+      await finmap.createOperation("expense", {
+        externalId,
+        date: Date.parse(`${data.paid_at}T12:00:00Z`),
+        sum: data.amount,
+        accountFromId: account.finmap_id,
+        ...(category?.finmap_id ? { categoryId: category.finmap_id } : {}),
+        ...(cp?.finmap_id ? { counterpartyId: cp.finmap_id } : {}),
+        comment: data.note ?? `${data.payment_kind === "advance" ? "Аванс" : "Остаточний розрахунок"} — ${calc.employee?.full_name ?? ""}`.trim(),
+      });
+    } catch (e: any) {
+      await context.supabase.from("payroll_payments")
+        .update({ finmap_status: "error", note: String(e?.message ?? e).slice(0, 300) }).eq("id", payment.id);
+      throw new Error(`Finmap не прийняв операцію: ${String(e?.message ?? e)}`);
+    }
+
+    await context.supabase.from("payroll_payments")
+      .update({ finmap_external_id: externalId, finmap_status: "sent" }).eq("id", payment.id);
+
+    const paid = (Number(calc.paid_amount) || 0) + data.amount;
+    await context.supabase.from("payroll_calculations").update({
+      paid_amount: paid,
+      status: paid + 0.5 >= (Number(calc.total_payable) || 0) ? "paid" : "partially_paid",
+    }).eq("id", calc.id);
+
+    return {
+      ok: true,
+      payment_id: payment.id,
+      external_id: externalId,
+      rest: Math.max((Number(calc.total_payable) || 0) - paid, 0),
+    };
+  });

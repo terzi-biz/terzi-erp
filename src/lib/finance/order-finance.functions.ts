@@ -8,6 +8,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { payrollScheduleFor } from "./payroll-engine";
+import { costClassOf, COST_CLASS_LABELS, DIRECT_COST_CLASSES, type CostClass } from "./cost-class";
 
 const num = (v: unknown) => Number(v) || 0;
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -32,10 +33,14 @@ export const getOrderFinance = createServerFn({ method: "POST" })
         context.supabase.from("invoices").select("id,number,total,paid,status,issue_date,due_date").eq("order_id", orderId),
         context.supabase.from("payments").select("amount,direction,paid_at").eq("order_id", orderId),
         context.supabase.from("expenses").select("amount,category,name,spent_at,supplier").eq("order_id", orderId),
-        context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date").eq("order_id", orderId),
+        context.supabase
+          .from("finance_transactions")
+          .select("id,kind,amount,amount_uah,op_date,comment,category:category_id(name,cost_class),counterparty:counterparty_id(name),account:account_id(name)")
+          .eq("order_id", orderId)
+          .order("op_date", { ascending: false }),
         context.supabase
           .from("payroll_items")
-          .select("amount,item_type,name,calculation:calculation_id(status,total_payable,paid_amount,advance_amount,period:period_id(period))")
+          .select("amount,item_type,name,calculation:calculation_id(id,status,total_payable,paid_amount,advance_amount,period:period_id(period),payments:payroll_payments(amount,payment_kind,paid_at,transaction_id,finmap_status))")
           .eq("order_id", orderId),
       ]);
 
@@ -61,6 +66,18 @@ export const getOrderFinance = createServerFn({ method: "POST" })
     const txRows = (tx ?? []) as any[];
     const finmapIncome = r2(txRows.filter((t) => t.kind === "income").reduce((s, t) => s + num(t.amount_uah ?? t.amount), 0));
     const finmapExpense = r2(txRows.filter((t) => t.kind === "expense").reduce((s, t) => s + num(t.amount_uah ?? t.amount), 0));
+
+    // Собівартість факт у розрізі статей (матеріали, роботи, логістика, підрядники, обладнання).
+    const byClass = new Map<CostClass, number>();
+    for (const t of txRows) {
+      if (t.kind !== "expense") continue;
+      const cls = costClassOf(t.category);
+      byClass.set(cls, r2((byClass.get(cls) ?? 0) + num(t.amount_uah ?? t.amount)));
+    }
+    const costBreakdown = [...byClass.entries()]
+      .map(([cls, amount]) => ({ cls, label: COST_CLASS_LABELS[cls], amount: r2(amount), direct: DIRECT_COST_CLASSES.includes(cls) }))
+      .sort((a, b) => b.amount - a.amount);
+    const directCost = r2(costBreakdown.filter((c) => c.direct).reduce((s, c) => s + c.amount, 0));
 
     // Факт беремо максимум з ERP-платежів і операцій Finmap, щоб не подвоювати одні й ті самі гроші.
     const revenueFact = r2(Math.max(paymentsIn, finmapIncome));
@@ -98,18 +115,42 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       if (total > 0) cur.advancePercent = (advance / total) * 100;
       byPeriod.set(period, cur);
     }
+    // Фактичні виплати з Finmap/ERP у розрізі періодів (аванс vs остаточний розрахунок).
+    const paidByPeriod = new Map<string, { advance: number; salary: number }>();
+    for (const i of items) {
+      const raw = i.calculation?.period?.period as string | undefined;
+      if (!raw) continue;
+      const period = String(raw).slice(0, 7);
+      const total = num(i.calculation?.total_payable);
+      if (total <= 0) continue;
+      const share = num(i.amount) / total; // частка цього об'єкта у виплаті співробітника
+      const cur = paidByPeriod.get(period) ?? { advance: 0, salary: 0 };
+      for (const pay of (i.calculation?.payments ?? []) as any[]) {
+        const amount = num(pay.amount) * share;
+        if (pay.payment_kind === "advance") cur.advance += amount;
+        else cur.salary += amount;
+      }
+      paidByPeriod.set(period, cur);
+    }
+
     const payrollSchedule = [...byPeriod.values()]
       .sort((a, b) => a.period.localeCompare(b.period))
       .map((p) => {
         const { advanceDate, settlementDate } = payrollScheduleFor(p.period);
         const advanceAmount = r2((p.accrued * p.advancePercent) / 100);
+        const paid = paidByPeriod.get(p.period) ?? { advance: 0, salary: 0 };
+        const settlementAmount = r2(p.accrued - advanceAmount);
         return {
           period: p.period,
           accrued: r2(p.accrued),
           advanceDate,
           advanceAmount,
+          advancePaid: r2(paid.advance),
+          advanceRest: r2(Math.max(advanceAmount - paid.advance, 0)),
           settlementDate,
-          settlementAmount: r2(p.accrued - advanceAmount),
+          settlementAmount,
+          settlementPaid: r2(paid.salary),
+          settlementRest: r2(Math.max(p.accrued - paid.advance - paid.salary, 0)),
         };
       });
 
@@ -137,6 +178,21 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       expenses: expenseRows.map((e) => ({
         name: e.name, category: e.category, amount: num(e.amount), spent_at: e.spent_at, supplier: e.supplier,
       })),
-      finmap: { income: finmapIncome, expense: finmapExpense, transactions: txRows.length },
+      costBreakdown,
+      directCost,
+      finmap: {
+        income: finmapIncome,
+        expense: finmapExpense,
+        transactions: txRows.length,
+        rows: txRows.slice(0, 50).map((t) => ({
+          id: t.id, kind: t.kind, op_date: t.op_date,
+          amount: r2(num(t.amount_uah ?? t.amount)),
+          category: t.category?.name ?? null,
+          cost_class: t.kind === "expense" ? COST_CLASS_LABELS[costClassOf(t.category)] : null,
+          counterparty: t.counterparty?.name ?? null,
+          account: t.account?.name ?? null,
+          comment: t.comment ?? null,
+        })),
+      },
     };
   });
