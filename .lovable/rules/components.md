@@ -601,6 +601,12 @@ import { CrmPage } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb
 import { CrmPanel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### CrmSpec
+
+```ts
+import { CrmSpec } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### CrudPanel
 
 ```ts
@@ -1292,6 +1298,12 @@ import { PaginationPrevious } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-
 
 ```ts
 import { Panel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PayStatus
+
+```ts
+import { PayStatus } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
 ### PayablesSection
