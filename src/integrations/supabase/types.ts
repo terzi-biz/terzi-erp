@@ -2298,33 +2298,548 @@ export type Database = {
       }
       finance_accounts: {
         Row: {
+          actual_balance: number | null
           archived: boolean
+          balance_synced_at: string | null
           created_at: string
           currency: string
+          finmap_id: string | null
           id: string
           kind: string
           name: string
           opening_balance: number
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          actual_balance?: number | null
+          archived?: boolean
+          balance_synced_at?: string | null
+          created_at?: string
+          currency?: string
+          finmap_id?: string | null
+          id?: string
+          kind?: string
+          name: string
+          opening_balance?: number
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          actual_balance?: number | null
+          archived?: boolean
+          balance_synced_at?: string | null
+          created_at?: string
+          currency?: string
+          finmap_id?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          opening_balance?: number
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      finance_categories: {
+        Row: {
+          archived: boolean
+          created_at: string
+          finmap_id: string | null
+          id: string
+          kind: string
+          name: string
+          parent_id: string | null
+          plan_article: string | null
+          source: string
           updated_at: string
         }
         Insert: {
           archived?: boolean
           created_at?: string
-          currency?: string
+          finmap_id?: string | null
           id?: string
           kind?: string
           name: string
-          opening_balance?: number
+          parent_id?: string | null
+          plan_article?: string | null
+          source?: string
           updated_at?: string
         }
         Update: {
           archived?: boolean
           created_at?: string
-          currency?: string
+          finmap_id?: string | null
           id?: string
           kind?: string
           name?: string
-          opening_balance?: number
+          parent_id?: string | null
+          plan_article?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_counterparties: {
+        Row: {
+          archived: boolean
+          client_id: string | null
+          created_at: string
+          email: string | null
+          employee_id: string | null
+          finmap_id: string | null
+          finmap_kind: string | null
+          id: string
+          kind: string
+          name: string
+          phone: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          employee_id?: string | null
+          finmap_id?: string | null
+          finmap_kind?: string | null
+          id?: string
+          kind?: string
+          name: string
+          phone?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          client_id?: string | null
+          created_at?: string
+          email?: string | null
+          employee_id?: string | null
+          finmap_id?: string | null
+          finmap_kind?: string | null
+          id?: string
+          kind?: string
+          name?: string
+          phone?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_counterparties_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_counterparties_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_projects: {
+        Row: {
+          archived: boolean
+          created_at: string
+          finmap_id: string | null
+          id: string
+          name: string
+          order_id: string | null
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          finmap_id?: string | null
+          id?: string
+          name: string
+          order_id?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          finmap_id?: string | null
+          id?: string
+          name?: string
+          order_id?: string | null
+          source?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_projects_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transaction_links: {
+        Row: {
+          amount: number | null
+          confidence: number | null
+          created_at: string
+          created_by: string | null
+          entity_id: string
+          entity_type: string
+          id: string
+          status: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          entity_id: string
+          entity_type: string
+          id?: string
+          status?: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          confidence?: number | null
+          created_at?: string
+          created_by?: string | null
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transaction_links_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_transactions: {
+        Row: {
+          account_id: string | null
+          amount: number
+          amount_uah: number | null
+          category_id: string | null
+          client_id: string | null
+          comment: string | null
+          counterparty_id: string | null
+          created_at: string
+          currency: string
+          external_id: string | null
+          finance_project_id: string | null
+          finmap_id: string | null
+          fx_rate: number | null
+          id: string
+          kind: string
+          match_status: string
+          op_date: string
+          order_id: string | null
+          payload: Json
+          source: string
+          sync_status: string
+          synced_at: string | null
+          to_account_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          amount_uah?: number | null
+          category_id?: string | null
+          client_id?: string | null
+          comment?: string | null
+          counterparty_id?: string | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          finance_project_id?: string | null
+          finmap_id?: string | null
+          fx_rate?: number | null
+          id?: string
+          kind: string
+          match_status?: string
+          op_date: string
+          order_id?: string | null
+          payload?: Json
+          source?: string
+          sync_status?: string
+          synced_at?: string | null
+          to_account_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          amount_uah?: number | null
+          category_id?: string | null
+          client_id?: string | null
+          comment?: string | null
+          counterparty_id?: string | null
+          created_at?: string
+          currency?: string
+          external_id?: string | null
+          finance_project_id?: string | null
+          finmap_id?: string | null
+          fx_rate?: number | null
+          id?: string
+          kind?: string
+          match_status?: string
+          op_date?: string
+          order_id?: string | null
+          payload?: Json
+          source?: string
+          sync_status?: string
+          synced_at?: string | null
+          to_account_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_transactions_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "finance_counterparties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_finance_project_id_fkey"
+            columns: ["finance_project_id"]
+            isOneToOne: false
+            referencedRelation: "finance_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_transactions_to_account_id_fkey"
+            columns: ["to_account_id"]
+            isOneToOne: false
+            referencedRelation: "finance_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finmap_entity_mappings: {
+        Row: {
+          confidence: number | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          erp_entity: string | null
+          erp_id: string | null
+          finmap_id: string
+          finmap_kind: string
+          finmap_name: string | null
+          id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          confidence?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          erp_entity?: string | null
+          erp_id?: string | null
+          finmap_id: string
+          finmap_kind: string
+          finmap_name?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          confidence?: number | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          erp_entity?: string | null
+          erp_id?: string | null
+          finmap_id?: string
+          finmap_kind?: string
+          finmap_name?: string | null
+          id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      finmap_sync_log: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          entity: string
+          fetched: number
+          http_status: number | null
+          id: string
+          inserted: number
+          message: string | null
+          mode: string
+          skipped: number
+          started_by: string | null
+          status: string
+          updated: number
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          entity: string
+          fetched?: number
+          http_status?: number | null
+          id?: string
+          inserted?: number
+          message?: string | null
+          mode?: string
+          skipped?: number
+          started_by?: string | null
+          status?: string
+          updated?: number
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          entity?: string
+          fetched?: number
+          http_status?: number | null
+          id?: string
+          inserted?: number
+          message?: string | null
+          mode?: string
+          skipped?: number
+          started_by?: string | null
+          status?: string
+          updated?: number
+        }
+        Relationships: []
+      }
+      finmap_sync_state: {
+        Row: {
+          created_at: string
+          cursor: string | null
+          entity: string
+          id: string
+          items_total: number
+          last_error: string | null
+          last_success_at: string | null
+          last_sync_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          cursor?: string | null
+          entity: string
+          id?: string
+          items_total?: number
+          last_error?: string | null
+          last_success_at?: string | null
+          last_sync_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          cursor?: string | null
+          entity?: string
+          id?: string
+          items_total?: number
+          last_error?: string | null
+          last_success_at?: string | null
+          last_sync_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      finmap_webhook_events: {
+        Row: {
+          attempts: number
+          created_at: string
+          duplicate_count: number
+          error: string | null
+          event_type: string | null
+          id: string
+          payload: Json
+          payload_hash: string
+          processed_at: string | null
+          provider_event_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          created_at?: string
+          duplicate_count?: number
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          payload_hash: string
+          processed_at?: string | null
+          provider_event_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          created_at?: string
+          duplicate_count?: number
+          error?: string | null
+          event_type?: string | null
+          id?: string
+          payload?: Json
+          payload_hash?: string
+          processed_at?: string | null
+          provider_event_id?: string | null
+          status?: string
           updated_at?: string
         }
         Relationships: []
@@ -5423,6 +5938,148 @@ export type Database = {
           },
         ]
       }
+      payroll_approvals: {
+        Row: {
+          actor_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          calculation_id: string | null
+          comment: string | null
+          created_at: string
+          from_status: string | null
+          id: string
+          period_id: string | null
+          to_status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          calculation_id?: string | null
+          comment?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          period_id?: string | null
+          to_status: string
+        }
+        Update: {
+          actor_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          calculation_id?: string | null
+          comment?: string | null
+          created_at?: string
+          from_status?: string | null
+          id?: string
+          period_id?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_approvals_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_approvals_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_calculations: {
+        Row: {
+          advance_amount: number
+          base_amount: number
+          bonus_amount: number
+          comment: string | null
+          computed_at: string | null
+          created_at: string
+          deduction_amount: number
+          employee_id: string
+          engine_version: string | null
+          id: string
+          kpi_amount: number
+          paid_amount: number
+          payroll_group: string
+          period_id: string
+          profile_id: string | null
+          reimbursement_amount: number
+          status: string
+          total_payable: number
+          updated_at: string
+        }
+        Insert: {
+          advance_amount?: number
+          base_amount?: number
+          bonus_amount?: number
+          comment?: string | null
+          computed_at?: string | null
+          created_at?: string
+          deduction_amount?: number
+          employee_id: string
+          engine_version?: string | null
+          id?: string
+          kpi_amount?: number
+          paid_amount?: number
+          payroll_group?: string
+          period_id: string
+          profile_id?: string | null
+          reimbursement_amount?: number
+          status?: string
+          total_payable?: number
+          updated_at?: string
+        }
+        Update: {
+          advance_amount?: number
+          base_amount?: number
+          bonus_amount?: number
+          comment?: string | null
+          computed_at?: string | null
+          created_at?: string
+          deduction_amount?: number
+          employee_id?: string
+          engine_version?: string | null
+          id?: string
+          kpi_amount?: number
+          paid_amount?: number
+          payroll_group?: string
+          period_id?: string
+          profile_id?: string | null
+          reimbursement_amount?: number
+          status?: string
+          total_payable?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_calculations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculations_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_calculations_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_employees: {
         Row: {
           active: boolean
@@ -5533,6 +6190,66 @@ export type Database = {
           },
         ]
       }
+      payroll_items: {
+        Row: {
+          amount: number
+          calculation_id: string
+          created_at: string
+          id: string
+          item_type: string
+          name: string
+          order_id: string | null
+          qty: number | null
+          rate: number | null
+          source: string
+          source_data: Json
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          calculation_id: string
+          created_at?: string
+          id?: string
+          item_type: string
+          name: string
+          order_id?: string | null
+          qty?: number | null
+          rate?: number | null
+          source?: string
+          source_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          calculation_id?: string
+          created_at?: string
+          id?: string
+          item_type?: string
+          name?: string
+          order_id?: string | null
+          qty?: number | null
+          rate?: number | null
+          source?: string
+          source_data?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_items_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payroll_kpi_templates: {
         Row: {
           active: boolean
@@ -5582,6 +6299,148 @@ export type Database = {
             columns: ["position_id"]
             isOneToOne: false
             referencedRelation: "payroll_positions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_kpis: {
+        Row: {
+          actual: number | null
+          approved_at: string | null
+          approved_by: string | null
+          bonus: number
+          calculation_id: string
+          code: string
+          created_at: string
+          id: string
+          kpi_type: string
+          result: number | null
+          rule: Json
+          source_data: Json
+          status: string
+          target: number | null
+          title: string
+          updated_at: string
+          weight: number | null
+        }
+        Insert: {
+          actual?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bonus?: number
+          calculation_id: string
+          code: string
+          created_at?: string
+          id?: string
+          kpi_type?: string
+          result?: number | null
+          rule?: Json
+          source_data?: Json
+          status?: string
+          target?: number | null
+          title: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Update: {
+          actual?: number | null
+          approved_at?: string | null
+          approved_by?: string | null
+          bonus?: number
+          calculation_id?: string
+          code?: string
+          created_at?: string
+          id?: string
+          kpi_type?: string
+          result?: number | null
+          rule?: Json
+          source_data?: Json
+          status?: string
+          target?: number | null
+          title?: string
+          updated_at?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_kpis_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_payments: {
+        Row: {
+          amount: number
+          calculation_id: string | null
+          created_at: string
+          employee_id: string | null
+          id: string
+          match_status: string
+          note: string | null
+          paid_at: string | null
+          payment_kind: string
+          period_id: string | null
+          transaction_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          calculation_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          match_status?: string
+          note?: string | null
+          paid_at?: string | null
+          payment_kind?: string
+          period_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          calculation_id?: string | null
+          created_at?: string
+          employee_id?: string | null
+          id?: string
+          match_status?: string
+          note?: string | null
+          paid_at?: string | null
+          payment_kind?: string
+          period_id?: string | null
+          transaction_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_payments_calculation_id_fkey"
+            columns: ["calculation_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_calculations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_payments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_payments_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_periods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_payments_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
             referencedColumns: ["id"]
           },
         ]
@@ -5660,6 +6519,65 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      payroll_profiles: {
+        Row: {
+          advance_percent: number
+          base_salary: number
+          bonus_rules: Json
+          created_at: string
+          created_by: string | null
+          employee_id: string
+          id: string
+          kpi_scheme: Json
+          payment_rules: Json
+          payroll_group: string
+          role_key: string | null
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+        }
+        Insert: {
+          advance_percent?: number
+          base_salary?: number
+          bonus_rules?: Json
+          created_at?: string
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          kpi_scheme?: Json
+          payment_rules?: Json
+          payroll_group?: string
+          role_key?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Update: {
+          advance_percent?: number
+          base_salary?: number
+          bonus_rules?: Json
+          created_at?: string
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          kpi_scheme?: Json
+          payment_rules?: Json
+          payroll_group?: string
+          role_key?: string | null
+          updated_at?: string
+          valid_from?: string
+          valid_to?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_profiles_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_history: {
         Row: {
@@ -7028,6 +7946,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_finance_user: { Args: { _uid: string }; Returns: boolean }
       normalize_marketing_source: { Args: { _raw: string }; Returns: string }
       post_stock_count: { Args: { _count_id: string }; Returns: Json }
       post_stock_document: { Args: { _doc_id: string }; Returns: Json }
