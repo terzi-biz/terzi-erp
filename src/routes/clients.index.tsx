@@ -1,12 +1,16 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Phone, Mail, MapPin, Package, Banknote, Clock, User, Search, LayoutGrid, Table2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Pagination } from "@/components/Pagination";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { listClients, upsertClient, listClientManagers, type ClientListRow } from "@/lib/clients.functions";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/clients/")({
   ssr: false,
