@@ -19,6 +19,8 @@ import { computeOrderKpi, readManagement, crmUrl, type ManagementData } from "@/
 import { useInternalAccess } from "@/lib/useInternalAccess";
 import { formatUah } from "@/lib/screed-calc";
 import { getOrderPnl } from "@/lib/finance.functions";
+import { getOrderFinance } from "@/lib/finance/order-finance.functions";
+
 import { listReservations } from "@/lib/warehouse.functions";
 import { getCallRecording } from "@/lib/crm.functions";
 import { toast } from "sonner";
