@@ -267,7 +267,7 @@ export const pushPayrollPaymentToFinmap = createServerFn({ method: "POST" })
     if (e0 || !calc) throw new Error("Розрахунок не знайдено");
 
     const [{ data: account }, { data: cp }, { data: category }] = await Promise.all([
-      context.supabase.from("finance_accounts").select("id,name,finmap_id").eq("id", data.account_id).single(),
+      context.supabase.from("finance_accounts").select("id,name,finmap_id,actual_balance,opening_balance").eq("id", data.account_id).single(),
       context.supabase.from("finance_counterparties").select("id,finmap_id,finmap_kind").eq("employee_id", calc.employee_id).maybeSingle(),
       data.category_id
         ? context.supabase.from("finance_categories").select("id,finmap_id").eq("id", data.category_id).maybeSingle()
