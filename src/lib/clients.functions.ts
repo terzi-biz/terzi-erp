@@ -7,6 +7,8 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { toE164 } from "./phone";
 import { clientInput, clientIdInput } from "./clients.schema";
+import { digits, likeTerm, pageQuerySchema, pageRange } from "./pagination";
+
 
 export type ClientListRow = {
   id: string;
