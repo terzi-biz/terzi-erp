@@ -7,7 +7,14 @@ export type ProviderTest = { ok: boolean; configured: boolean; message: string }
 
 const ENV_BY_PROVIDER: Record<string, string[]> = {
   ga4: ["GA4_PROPERTY_ID", "GOOGLE_ANALYTICS_API_KEY"],
-  google_ads: ["GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID"],
+  google_ads: [
+    "GOOGLE_OAUTH_CLIENT_ID",
+    "GOOGLE_OAUTH_CLIENT_SECRET",
+    "GOOGLE_ADS_REFRESH_TOKEN",
+    "GOOGLE_ADS_DEVELOPER_TOKEN",
+    "GOOGLE_ADS_CUSTOMER_ID",
+  ],
+
   meta_ads: ["META_ADS_ACCESS_TOKEN", "META_ADS_ACCOUNT_ID"],
   tiktok_ads: ["TIKTOK_ADS_ACCESS_TOKEN"],
   site_forms: ["ERP_PUBLIC_BASE_URL"],
