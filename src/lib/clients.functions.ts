@@ -89,7 +89,7 @@ export const listClients = createServerFn({ method: "GET" })
       if (!prev || new Date(call.created_at) > new Date(prev)) callActivity.set(cid, call.created_at);
     }
 
-    return clients.map((c) => {
+    return wrap(clients.map((c) => {
       const own = orders.filter((o) => o.client_id === c.id);
       const ordersTotal = own.reduce((s, o) => s + Number(o.amount_total ?? 0), 0);
       const paidTotal = own.reduce((s, o) => s + Number(o.paid_total ?? 0), 0);
@@ -113,8 +113,9 @@ export const listClients = createServerFn({ method: "GET" })
         active_orders: active,
         last_activity_at: last,
       } as ClientListRow;
-    });
+    })) as any;
   });
+
 
 /** Повна картка клієнта: базові поля, замовлення, кошториси, фінанси, задачі, коментарі, дзвінки. */
 export const getClientDetail = createServerFn({ method: "POST" })
