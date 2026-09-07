@@ -1,11 +1,15 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Building2, MapPin, Phone, ExternalLink, CalendarDays, User } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Pagination } from "@/components/Pagination";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { supabase } from "@/integrations/supabase/client";
 import { listOrders } from "@/lib/orders.functions";
+
 import {
   COMMERCIAL_LABELS, PRODUCTION_LABELS, FINANCIAL_LABELS, SERVICE_LABELS,
   COMMERCIAL_STATUSES, PRODUCTION_STATUSES, ORDER_SERVICES, RISK_LABELS,
