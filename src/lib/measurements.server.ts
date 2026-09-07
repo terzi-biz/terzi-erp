@@ -1,8 +1,10 @@
 /**
- * Заміри як окремий блок CRM: факт замірів, планові події календаря і воронка
- * лід → замір → договір. Тільки читання під RLS користувача.
+ * Заміри як окремий блок CRM. Канонічна сутність — order_measurements;
+ * calendar_events — лише проєкція планування (посилається на measurement_id).
+ * Тільки читання під RLS користувача.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { canonicalMeasurementStatus, isOpenMeasurement } from "./measurement-status";
 
 type Sb = SupabaseClient<any, any, any>;
 
@@ -11,92 +13,80 @@ const CONTRACT_STATUSES = ["contract", "awaiting_prepayment", "sold"];
 export interface MeasurementRow {
   id: string;
   measured_at: string | null;
+  scheduled_at: string | null;
   created_at: string | null;
   type: string | null;
-  status: string | null;
+  /** Канонічний статус (legacy значення відображені на нові). */
+  status: string;
+  raw_status: string | null;
   area: number | null;
   perimeter: number | null;
   notes: string | null;
+  address: string | null;
   surveyor_id: string | null;
   surveyor_name: string | null;
+  lead_id: string | null;
+  client_id: string | null;
   order_id: string | null;
   order_number: string | null;
   order_name: string | null;
   order_address: string | null;
   order_commercial_status: string | null;
+  event_id: string | null;
   /** Замір призвів до договору/продажу. */
   converted: boolean;
-}
-
-export interface PlannedMeasurement {
-  id: string;
-  title: string;
-  starts_at: string;
-  ends_at: string | null;
-  status: string | null;
-  event_type: string | null;
-  address: string | null;
-  client_name: string | null;
-  area: number | null;
-  employee_id: string | null;
-  employee_name: string | null;
-  order_id: string | null;
-  lead_id: string | null;
-  measurement_id: string | null;
-  /** Подія має підтверджений факт заміру. */
-  has_fact: boolean;
 }
 
 export interface MeasurementFunnel {
   leads: number;
   measurements: number;
   contracts: number;
-  /** null — коли база періоду порожня і відсоток порахувати неможливо. */
   leadToMeasure: number | null;
   measureToContract: number | null;
   leadToContract: number | null;
   planned: number;
   done: number;
+  canceled: number;
+  rescheduled: number;
   withoutSurveyor: number;
-  /** Минулі події календаря без зафіксованого факту заміру. */
-  plannedWithoutFact: number;
-  /** Факти замірів без відповідної події календаря. */
-  factsWithoutEvent: number;
+  /** Минулі заплановані заміри без зафіксованого результату. */
+  overduePlanned: number;
+  /** Заміри без події в календарі. */
+  withoutEvent: number;
 }
 
 export interface MeasurementsPayload {
   rows: MeasurementRow[];
-  planned: PlannedMeasurement[];
+  planned: MeasurementRow[];
   funnel: MeasurementFunnel;
 }
 
 const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 1000) / 10 : null);
 
+/** from/to — ISO-мітки UTC, вже перераховані з київського дня. */
 export async function measurementsPayload(sb: Sb, p: { from: string; to: string }): Promise<MeasurementsPayload> {
-  const fromTs = `${p.from}T00:00:00.000Z`;
-  const toTs = `${p.to}T23:59:59.999Z`;
+  const fromTs = p.from;
+  const toTs = p.to;
 
-  const [mRes, leadsRes, contractsRes, eventsRes] = await Promise.all([
-    sb.from("order_measurements").select("*").gte("created_at", fromTs).lte("created_at", toTs)
+  const [mRes, leadsRes, contractsRes] = await Promise.all([
+    sb.from("order_measurements").select("*")
+      .or(`and(scheduled_at.gte.${fromTs},scheduled_at.lte.${toTs}),and(scheduled_at.is.null,created_at.gte.${fromTs},created_at.lte.${toTs})`)
       .order("created_at", { ascending: false }).limit(1000),
     sb.from("crm_leads").select("id", { count: "exact", head: true }).gte("created_at", fromTs).lte("created_at", toTs),
     sb.from("orders").select("id", { count: "exact", head: true }).in("commercial_status", CONTRACT_STATUSES)
       .gte("created_at", fromTs).lte("created_at", toTs),
-    sb.from("calendar_events").select("*").eq("category", "measure")
-      .gte("starts_at", fromTs).lte("starts_at", toTs).order("starts_at").limit(500),
   ]);
 
   const measurements = (mRes.data ?? []) as any[];
-  const events = (eventsRes.data ?? []) as any[];
+  if (mRes.error) console.error("measurementsPayload", mRes.error);
 
+  const ids = measurements.map((m) => m.id);
   const orderIds = Array.from(new Set(measurements.map((m) => m.order_id).filter(Boolean))) as string[];
-  const userIds = Array.from(new Set([
-    ...measurements.map((m) => m.surveyor_id),
-    ...events.map((e) => e.employee_id),
-  ].filter(Boolean))) as string[];
+  const userIds = Array.from(new Set(measurements.map((m) => m.surveyor_id).filter(Boolean))) as string[];
 
   const orderById = new Map<string, any>();
   const nameByUser = new Map<string, string>();
+  const eventByMeasurement = new Map<string, string>();
 
   await Promise.all([
     orderIds.length
@@ -112,6 +102,10 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
             }
           })
       : Promise.resolve(),
+    ids.length
+      ? sb.from("calendar_events").select("id, measurement_id").in("measurement_id", ids)
+          .then(({ data }) => { for (const e of data ?? []) if ((e as any).measurement_id) eventByMeasurement.set((e as any).measurement_id, (e as any).id); })
+      : Promise.resolve(),
   ]);
 
   const rows: MeasurementRow[] = measurements.map((m) => {
@@ -119,72 +113,53 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
     return {
       id: m.id,
       measured_at: m.measured_at ?? null,
+      scheduled_at: m.scheduled_at ?? null,
       created_at: m.created_at ?? null,
       type: m.type ?? null,
-      status: m.status ?? null,
+      status: canonicalMeasurementStatus(m.status),
+      raw_status: m.status ?? null,
       area: m.area == null ? null : Number(m.area),
       perimeter: m.perimeter == null ? null : Number(m.perimeter),
       notes: m.notes ?? null,
+      address: m.address ?? null,
       surveyor_id: m.surveyor_id ?? null,
       surveyor_name: m.surveyor_id ? nameByUser.get(m.surveyor_id) ?? null : null,
+      lead_id: m.lead_id ?? null,
+      client_id: m.client_id ?? null,
       order_id: m.order_id ?? null,
       order_number: o?.number ?? null,
       order_name: o?.name ?? null,
       order_address: o?.address ?? null,
       order_commercial_status: o?.commercial_status ?? null,
+      event_id: eventByMeasurement.get(m.id) ?? null,
       converted: Boolean(o && CONTRACT_STATUSES.includes(o.commercial_status)),
     };
   });
 
-  const factByOrder = new Set(rows.map((r) => r.order_id).filter(Boolean) as string[]);
-  const factIds = new Set(rows.map((r) => r.id));
-  const eventOrderIds = new Set(events.map((e) => e.order_id).filter(Boolean) as string[]);
-  const eventMeasurementIds = new Set(events.map((e) => e.measurement_id).filter(Boolean) as string[]);
-  const nowTs = Date.now();
-
-  const planned: PlannedMeasurement[] = events.map((e) => ({
-    id: e.id,
-    title: e.title,
-    starts_at: e.starts_at,
-    ends_at: e.ends_at ?? null,
-    status: e.status ?? null,
-    event_type: e.event_type ?? null,
-    address: e.address ?? null,
-    client_name: e.client_name ?? null,
-    area: e.area == null ? null : Number(e.area),
-    employee_id: e.employee_id ?? null,
-    employee_name: e.employee_id ? nameByUser.get(e.employee_id) ?? null : null,
-    order_id: e.order_id ?? null,
-    lead_id: (e.metadata as any)?.lead_id ?? null,
-    measurement_id: e.measurement_id ?? null,
-    has_fact: Boolean(
-      (e.measurement_id && factIds.has(e.measurement_id)) || (e.order_id && factByOrder.has(e.order_id)),
-    ),
-  }));
-
   const leads = leadsRes.count ?? 0;
   const contracts = contractsRes.count ?? 0;
-  const converted = rows.filter((r) => r.converted).length;
+  const completed = rows.filter((r) => r.status === "completed");
+  const converted = completed.filter((r) => r.converted).length;
+  const nowTs = Date.now();
+  const planned = rows.filter((r) => isOpenMeasurement(r.status));
 
   return {
     rows,
     planned,
     funnel: {
       leads,
-      measurements: rows.length,
+      measurements: completed.length,
       contracts,
-      leadToMeasure: pct(rows.length, leads),
-      measureToContract: pct(converted, rows.length),
+      leadToMeasure: pct(completed.length, leads),
+      measureToContract: pct(converted, completed.length),
       leadToContract: pct(contracts, leads),
-      planned: planned.filter((e) => e.status !== "done" && e.status !== "cancelled").length,
-      done: rows.filter((r) => r.status === "done").length,
-      withoutSurveyor: rows.filter((r) => !r.surveyor_id).length,
-      plannedWithoutFact: planned.filter(
-        (e) => !e.has_fact && e.status !== "cancelled" && new Date(e.starts_at).getTime() < nowTs,
-      ).length,
-      factsWithoutEvent: rows.filter(
-        (r) => !eventMeasurementIds.has(r.id) && !(r.order_id && eventOrderIds.has(r.order_id)),
-      ).length,
+      planned: planned.length,
+      done: completed.length,
+      canceled: rows.filter((r) => r.status === "canceled").length,
+      rescheduled: rows.filter((r) => r.status === "rescheduled").length,
+      withoutSurveyor: planned.filter((r) => !r.surveyor_id).length,
+      overduePlanned: planned.filter((r) => r.scheduled_at && new Date(r.scheduled_at).getTime() < nowTs).length,
+      withoutEvent: rows.filter((r) => !r.event_id).length,
     },
   };
 }

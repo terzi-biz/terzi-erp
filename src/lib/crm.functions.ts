@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { digits, likeTerm, pageQuerySchema, pageRange } from "./pagination";
+
 
 /* ---------------- Pipelines & stages ---------------- */
 
@@ -28,14 +30,30 @@ const contactInput = z.object({
   notes: z.string().max(2000).optional().nullable(),
 });
 
+/** Контакти. Без параметрів — масив; з `{ page }` — серверна пагінація й пошук. */
 export const listContacts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_contacts").select("*").order("created_at", { ascending: false }).limit(500);
-    if (error) { console.error("listContacts", error); throw new Error("Не вдалося завантажити контакти"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_contacts").select("*", paged ? { count: "exact" } : {})
+      .order("created_at", { ascending: false });
+    const term = likeTerm(p.q);
+    if (term) {
+      const num = digits(p.q);
+      const parts = [`full_name.ilike.*${term}*`, `phone.ilike.*${term}*`, `company.ilike.*${term}*`, `email.ilike.*${term}*`];
+      if (num.length >= 4) parts.push(`phone_norm.ilike.*${num}*`);
+      q = q.or(parts.join(","));
+    }
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
+    const res = await (q as any);
+    if (res.error) { console.error("listContacts", res.error); throw new Error("Не вдалося завантажити контакти"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 export const findContactDuplicates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
@@ -91,14 +109,31 @@ const leadInput = z.object({
   notes: z.string().max(4000).optional().nullable(),
 });
 
+/** Ліди. Без параметрів — масив для канбану; з `{ page }` — серверна пагінація й пошук. */
 export const listLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_leads").select("*").order("updated_at", { ascending: false }).limit(500);
-    if (error) { console.error("listLeads", error); throw new Error("Не вдалося завантажити ліди"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_leads").select("*", paged ? { count: "exact" } : {})
+      .order("updated_at", { ascending: false });
+    const term = likeTerm(p.q);
+    if (term) {
+      const num = digits(p.q);
+      const parts = [`title.ilike.*${term}*`, `contact_name.ilike.*${term}*`, `phone.ilike.*${term}*`, `address.ilike.*${term}*`];
+      if (num.length >= 4) parts.push(`phone_e164.ilike.*${num}*`);
+      q = q.or(parts.join(","));
+    }
+    if (p.status) q = q.eq("status", p.status as any);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
+    const res = await (q as any);
+    if (res.error) { console.error("listLeads", res.error); throw new Error("Не вдалося завантажити ліди"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 export const upsertLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -174,14 +209,26 @@ export const addLeadNote = createServerFn({ method: "POST" })
 
 /* ---------------- Tasks ---------------- */
 
+/** Задачі. Без параметрів — масив; з `{ page }` — серверна пагінація, пошук і фільтр статусу. */
 export const listTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_tasks").select("*").order("due_at", { ascending: true }).limit(300);
-    if (error) { console.error("listTasks", error); throw new Error("Не вдалося завантажити задачі"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_tasks").select("*", paged ? { count: "exact" } : {})
+      .order("due_at", { ascending: true });
+    const term = likeTerm(p.q);
+    if (term) q = q.or(`title.ilike.*${term}*,description.ilike.*${term}*`);
+    if (p.status) q = q.eq("status", p.status as any);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(300); }
+    const res = await (q as any);
+    if (res.error) { console.error("listTasks", res.error); throw new Error("Не вдалося завантажити задачі"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 export const upsertTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -216,14 +263,26 @@ export const listRequests = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+/** Дзвінки. Без параметрів — масив; з `{ page }` — серверна пагінація й пошук по номеру. */
 export const listCalls = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_calls").select("*").order("started_at", { ascending: false }).limit(500);
-    if (error) { console.error("listCalls", error); throw new Error("Не вдалося завантажити дзвінки"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_calls").select("*", paged ? { count: "exact" } : {})
+      .order("started_at", { ascending: false });
+    const num = digits(p.q);
+    if (num.length >= 3) q = q.or(`phone_e164.ilike.*${num}*,from_number.ilike.*${num}*,to_number.ilike.*${num}*`);
+    if (p.status) q = q.eq("status", p.status);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
+    const res = await (q as any);
+    if (res.error) { console.error("listCalls", res.error); throw new Error("Не вдалося завантажити дзвінки"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 /** Посилання на аудіозапис розмови (Binotel). Запитується на вимогу і кешується. */
 export const getCallRecording = createServerFn({ method: "POST" })
@@ -382,8 +441,9 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const { data: lead, error: le } = await sb.from("crm_leads")
-      .select("id, title, client_id, contact_id, order_id, address, phone_e164, source, assigned_to, budget, area")
+      .select("id, title, client_id, contact_id, order_id, address, district, phone_e164, source, assigned_to, budget, area, notes, utm, direction, campaign, external_source, external_id, marketing_channel_id, marketing_campaign_id")
       .eq("id", data.lead_id).maybeSingle();
+
     if (le || !lead) throw new Error("Лід не знайдено");
     if (lead.order_id) return { order_id: lead.order_id as string, created: false };
     if (!lead.client_id && !lead.contact_id && !lead.phone_e164) {
@@ -415,17 +475,38 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
     }
     if (!clientId) throw new Error("Неоднозначний клієнт — оберіть його вручну в картці ліда");
 
+    // Переносимо в замовлення все, що вже відоме з ліда: адресу, район, UTM,
+    // джерело, бюджет і площу (як ручні управлінські дані) та нотатки.
+    const management: Record<string, unknown> = {};
+    if (lead.budget != null) management['budget_plan'] = Number(lead.budget);
+    if (lead.area != null) management['area_plan'] = Number(lead.area);
+    if (lead.direction) management['direction'] = lead.direction;
+    if (lead.campaign) management['campaign'] = lead.campaign;
+
     const { data: order, error: oe } = await sb.from("orders").insert({
       name: lead.title,
       address: lead.address ?? null,
+      district: lead.district ?? null,
       client_id: clientId,
       manager_id: lead.assigned_to ?? context.userId,
       source: lead.source ?? null,
+      utm: lead.utm ?? null,
+      external_source: lead.external_source ?? null,
+      external_id: lead.external_id ?? null,
+      notes: lead.notes ?? null,
+      crm_link: `/crm/leads?lead=${lead.id}`,
+      management_data: Object.keys(management).length ? management : null,
       commercial_status: "qualification",
+      owner_id: context.userId,
     } as any).select("id, number").single();
     if (oe || !order) { console.error("convertLeadToOrder order", oe); throw new Error("Не вдалося створити замовлення"); }
 
+    // Заміри ліда стають замірами замовлення.
+    await sb.from("order_measurements").update({ order_id: order.id, client_id: clientId } as any)
+      .eq("lead_id", lead.id).is("order_id", null);
+
     await sb.from("crm_leads").update({ order_id: order.id, client_id: clientId }).eq("id", lead.id);
+
     await sb.from("crm_lead_activities").insert({
       lead_id: lead.id, actor_id: context.userId, kind: "converted",
       body: `Створено замовлення ${order.number ?? ""}`.trim(),

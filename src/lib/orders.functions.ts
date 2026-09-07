@@ -6,6 +6,8 @@ import { orderManagementInput } from "./orders.schema";
 import {
   COMMERCIAL_STATUSES, PRODUCTION_STATUSES, FINANCIAL_STATUSES, ORDER_SERVICES, RISK_LEVELS,
 } from "./orders.constants";
+import { likeTerm, pageQuerySchema, pageRange } from "./pagination";
+
 
 
 const orderInput = z.object({
@@ -34,14 +36,31 @@ const orderInput = z.object({
   services: z.array(z.enum(ORDER_SERVICES)).optional(),
 });
 
+/**
+ * Реєстр замовлень. Без параметрів повертає масив (пікери, фінанси, склад).
+ * З `{ page }` — серверна пагінація: { rows, total, page, page_size }.
+ */
 export const listOrders = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("orders").select("*").order("created_at", { ascending: false });
-    if (error) { console.error("listOrders", error); throw new Error("Не вдалося завантажити об'єкти"); }
-    const rows = data ?? [];
-    if (!rows.length) return [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data }) => {
+    const paged = Boolean(data && data.page);
+    const p = pageQuerySchema.parse({ ...(data ?? {}), page: data?.page ?? 1 });
+    let q = context.supabase
+      .from("orders").select("*", paged ? { count: "exact" } : {})
+      .order("created_at", { ascending: false });
+    const term = likeTerm(p.q);
+    if (term) q = q.or(`name.ilike.*${term}*,number.ilike.*${term}*,address.ilike.*${term}*,district.ilike.*${term}*`);
+    if (p.status) q = q.eq("commercial_status", p.status as any);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); }
+    const res = await (q as any);
+    if (res.error) { console.error("listOrders", res.error); throw new Error("Не вдалося завантажити об'єкти"); }
+    const count = res.count as number | null;
+    const rows = (res.data ?? []) as any[];
+
+    const wrap = (list: any[]) => (paged ? { rows: list, total: count ?? list.length, page: p.page, page_size: p.page_size } : list);
+    if (!rows.length) return wrap([]) as any;
+
     const ids = rows.map((r: any) => r.id);
     const clientIds = Array.from(new Set(rows.map((r: any) => r.client_id).filter(Boolean)));
     const managerIds = Array.from(new Set(rows.map((r: any) => r.manager_id).filter(Boolean)));
@@ -63,13 +82,14 @@ export const listOrders = createServerFn({ method: "GET" })
     void profs;
     const { staffNameMap } = await import("./staff.server");
     const mgrMap = await staffNameMap(managerIds as string[]);
-    return rows.map((r: any) => ({
+    return wrap(rows.map((r: any) => ({
       ...r,
       services: svcMap.get(r.id) ?? [],
       client: r.client_id ? cliMap.get(r.client_id) ?? null : null,
       manager_display: r.manager_id ? mgrMap.get(r.manager_id) ?? null : null,
-    }));
+    }))) as any;
   });
+
 
 export const getOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])

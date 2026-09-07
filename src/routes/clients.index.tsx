@@ -1,12 +1,16 @@
 import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, Phone, Mail, MapPin, Package, Banknote, Clock, User, Search, LayoutGrid, Table2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { Pagination } from "@/components/Pagination";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { listClients, upsertClient, listClientManagers, type ClientListRow } from "@/lib/clients.functions";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
+
 
 export const Route = createFileRoute("/clients/")({
   ssr: false,
@@ -48,6 +52,8 @@ function ClientsPage() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"cards" | "table">("cards");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [fStatus, setFStatus] = useState("");
   const [fSource, setFSource] = useState("");
   const [fManager, setFManager] = useState("");
@@ -56,7 +62,15 @@ function ClientsPage() {
     status: "lead" as "lead" | "active" | "done" | "archived",
   });
 
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => list() });
+  // Пошук іде на сервер (з дебаунсом), тому реєстр не тягне всю базу в браузер.
+  const dq = useDebouncedValue(q, 350);
+  useEffect(() => { setPage(1); }, [dq, pageSize]);
+
+  const { data: clientsPage } = useQuery({
+    queryKey: ["clients", page, pageSize, dq],
+    queryFn: () => list({ data: { page, page_size: pageSize, q: dq } }) as Promise<any>,
+    placeholderData: (prev) => prev,
+  });
   const { data: managers = [] } = useQuery({ queryKey: ["client-managers"], queryFn: () => managersFn(), retry: false });
 
   const saveMut = useMutation({
@@ -74,21 +88,19 @@ function ClientsPage() {
     },
   });
 
-  const rows = clients as ClientListRow[];
+  const rows = ((clientsPage?.rows ?? []) as ClientListRow[]);
+  const total = (clientsPage?.total ?? 0) as number;
   const sources = useMemo(
     () => Array.from(new Set(rows.map((c) => c.source).filter(Boolean))) as string[],
     [rows],
   );
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return rows.filter((c) => {
-      if (fStatus && c.status !== fStatus) return false;
-      if (fSource && c.source !== fSource) return false;
-      if (fManager && c.manager_id !== fManager) return false;
-      if (!needle) return true;
-      return [c.name, c.phone, c.email, c.address].some((v) => (v ?? "").toLowerCase().includes(needle));
-    });
-  }, [rows, q, fStatus, fSource, fManager]);
+  const filtered = useMemo(() => rows.filter((c) => {
+    if (fStatus && c.status !== fStatus) return false;
+    if (fSource && c.source !== fSource) return false;
+    if (fManager && c.manager_id !== fManager) return false;
+    return true;
+  }), [rows, fStatus, fSource, fManager]);
+
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
@@ -175,7 +187,7 @@ function ClientsPage() {
         </div>
       )}
 
-      <div className="mb-3 text-xs text-muted-foreground">Знайдено: <span className="font-semibold text-foreground">{filtered.length}</span> із {rows.length}</div>
+      <div className="mb-3 text-xs text-muted-foreground">Показано: <span className="font-semibold text-foreground">{filtered.length}</span> · знайдено всього {total}</div>
 
       {view === "table" ? (
         <div className="rounded-md border border-border bg-card overflow-x-auto shadow-[0_1px_2px_rgba(0,0,0,.12)]">
@@ -268,7 +280,10 @@ function ClientsPage() {
         )}
       </div>
       )}
+
+      <Pagination page={page} pageSize={pageSize} total={total} onPage={setPage} onPageSize={setPageSize} />
     </div>
+
     </AppShell>
   );
 
