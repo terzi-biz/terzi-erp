@@ -159,7 +159,7 @@ function OrdersPage() {
           <div className="text-[11px] text-muted-foreground">Період — за датою створення в KeyCRM (якщо її немає, за датою створення в ERP).</div>
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <button onClick={resetFilters} className="hover:text-foreground underline">Скинути фільтри</button>
-            <span>Знайдено: <b className="text-foreground">{rows.length}</b> з {(data as any[]).length}</span>
+            <span>Показано: <b className="text-foreground">{rows.length}</b> · знайдено всього {total}</span>
           </div>
         </div>
 
@@ -175,7 +175,10 @@ function OrdersPage() {
             {rows.map((r: any) => <OrderCard key={r.id} r={r} />)}
           </div>
         )}
+
+        <Pagination page={page} pageSize={pageSize} total={total} onPage={setPage} onPageSize={setPageSize} />
       </div>
+
     </AppShell>
   );
 }
