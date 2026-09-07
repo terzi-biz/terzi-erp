@@ -137,10 +137,70 @@ function HistoryPage() {
   const [logFor, setLogFor] = useState<EstimateRow | null>(null);
   const [versionsFor, setVersionsFor] = useState<EstimateRow | null>(null);
 
+  // Пошук і фільтри по історії кошторисів (номер, клієнт, адреса, менеджер).
+  const [q, setQ] = useState("");
+  const [fModule, setFModule] = useState("all");
+  const [fStatus, setFStatus] = useState("all");
+  const [fManager, setFManager] = useState("all");
+  const [fFrom, setFFrom] = useState("");
+  const [fTo, setFTo] = useState("");
+
+  const allRows = rows as EstimateRow[];
+  const managerOptions = Array.from(
+    new Set(allRows.map((r) => r.manager_display).filter(Boolean) as string[]),
+  ).sort((a, b) => a.localeCompare(b, "uk"));
+  const moduleOptions = Array.from(new Set(allRows.map((r) => r.module))).sort();
+
+  const term = q.trim().toLowerCase();
+  const filtered = allRows.filter((e) => {
+    if (fModule !== "all" && e.module !== fModule) return false;
+    if (fStatus !== "all" && e.status !== fStatus) return false;
+    if (fManager !== "all" && (e.manager_display ?? "") !== fManager) return false;
+    if (fFrom && new Date(e.created_at) < new Date(`${fFrom}T00:00:00`)) return false;
+    if (fTo && new Date(e.created_at) > new Date(`${fTo}T23:59:59`)) return false;
+    if (!term) return true;
+    return [e.number, e.client_name, e.address, e.manager_display, MODULE_LABEL[e.module] ?? e.module]
+      .some((v) => (v ?? "").toString().toLowerCase().includes(term));
+  });
+  const hasFilters = !!term || fModule !== "all" || fStatus !== "all" || fManager !== "all" || !!fFrom || !!fTo;
+  const totalSum = filtered.reduce((s, e) => s + (Number(e.total_client) || 0), 0);
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto">
       <div className="hatch-accent h-1 w-16 mb-3 rounded" />
       <h1 className="text-2xl md:text-3xl font-black mb-4 md:mb-6">{t("history")}</h1>
+
+      <div className="panel p-3 mb-3 flex flex-wrap items-center gap-2">
+        <input
+          value={q} onChange={(e) => setQ(e.target.value)}
+          placeholder="Пошук: номер, клієнт, адреса, менеджер"
+          className="flex-1 min-w-[220px] rounded border border-border bg-background px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        <select value={fModule} onChange={(e) => setFModule(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm">
+          <option value="all">Всі модулі</option>
+          {moduleOptions.map((m) => <option key={m} value={m}>{MODULE_LABEL[m] ?? m}</option>)}
+        </select>
+        <select value={fStatus} onChange={(e) => setFStatus(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm">
+          <option value="all">Всі статуси</option>
+          {ESTIMATE_STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>)}
+        </select>
+        <select value={fManager} onChange={(e) => setFManager(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm">
+          <option value="all">Всі менеджери</option>
+          {managerOptions.map((m) => <option key={m} value={m}>{m}</option>)}
+        </select>
+        <input type="date" value={fFrom} onChange={(e) => setFFrom(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm" />
+        <input type="date" value={fTo} onChange={(e) => setFTo(e.target.value)} className="rounded border border-border bg-background px-2 py-2 text-sm" />
+        {hasFilters ? (
+          <button
+            onClick={() => { setQ(""); setFModule("all"); setFStatus("all"); setFManager("all"); setFFrom(""); setFTo(""); }}
+            className="rounded border border-border px-3 py-2 text-xs font-semibold hover:bg-muted"
+          >Скинути</button>
+        ) : null}
+        <div className="ml-auto text-xs text-muted-foreground whitespace-nowrap">
+          Знайдено: <b className="text-foreground">{filtered.length}</b> із {allRows.length} · сума <b className="text-foreground">{formatUah(totalSum)}</b>
+        </div>
+      </div>
+
       <div className="panel scroll-x max-h-[calc(100vh-180px)] overflow-y-auto">
         <table className="w-full text-sm min-w-[1100px] sticky-thead">
           <thead className="bg-secondary text-secondary-foreground text-xs uppercase tracking-wider">
@@ -164,10 +224,12 @@ function HistoryPage() {
             {isLoading && (
               <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">Завантаження…</td></tr>
             )}
-            {!isLoading && rows.length === 0 && (
-              <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">Поки немає кошторисів</td></tr>
+            {!isLoading && filtered.length === 0 && (
+              <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">
+                {allRows.length === 0 ? "Поки немає кошторисів" : "Нічого не знайдено за фільтрами"}
+              </td></tr>
             )}
-            {(rows as EstimateRow[]).map((e) => {
+            {filtered.map((e) => {
               const cls = STATUS_CLS[e.status] ?? "bg-secondary";
               return (
                 <tr key={e.id} className="border-t border-border">

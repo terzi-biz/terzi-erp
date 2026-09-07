@@ -98,6 +98,17 @@ export async function binotelRequest<T = any>(
     }
     if (!res.ok) throw new BinotelError(`Binotel HTTP ${res.status}`, res.status, false);
 
+    // Binotel іноді віддає HTTP 200 із текстом замість JSON
+    // (наприклад «Something went wrong (exception)») — це помилка, не успіх.
+    if (json && typeof json === "object" && typeof json.raw === "string") {
+      const raw = json.raw.trim();
+      throw new BinotelError(
+        raw ? `Binotel: ${raw.slice(0, 200)}` : "Binotel повернув порожню відповідь",
+        res.status,
+        false,
+      );
+    }
+
     const status = String(json?.status ?? "").toLowerCase();
     if (status && status !== "success") {
       const code = Number(json?.code ?? 0);
