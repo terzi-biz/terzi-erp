@@ -34,8 +34,6 @@ export { MaterialVariantCard } from "./components/warehouse/MaterialVariantCard"
 export { WarehouseImportWizard } from "./components/warehouse/WarehouseImportWizard"
 export { Constants } from "./integrations/supabase/types"
 export { AuthProvider, useAuth } from "./lib/auth"
-export { BinotelError } from "./lib/integrations/binotel/client.server"
-export { KeyCrmError } from "./lib/integrations/keycrm/client.server"
 
 export * from "./components/ui/accordion";
 export * from "./components/ui/alert-dialog";
