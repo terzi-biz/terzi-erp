@@ -145,12 +145,17 @@ function Dashboard() {
     queryKey: ["dash", "overview", from, to],
     queryFn: () => overviewFn({ data: { from, to } }),
     enabled: !!user,
+    retry: 1,
+    throwOnError: false,
   });
   const { data: fx } = useQuery({
     queryKey: ["dash", "fx", from, to],
     queryFn: () => fxFn({ data: { from, to } }),
     enabled: !!user,
+    retry: 1,
+    throwOnError: false,
   });
+
   const fxNote = currencyNote(fx?.original);
 
   const cur = (data?.current ?? null) as Overview | null;
