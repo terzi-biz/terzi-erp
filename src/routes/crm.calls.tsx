@@ -293,6 +293,13 @@ function CallRow({ call }: { call: CallFeedRow }) {
           </a>
         </div>
       ) : null}
+      {open && !url && err ? (
+        <div className="mt-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+          {err}
+          <button onClick={() => load.mutate()} disabled={load.isPending}
+            className="ml-2 underline font-semibold">Спробувати ще раз</button>
+        </div>
+      ) : null}
     </div>
   );
 }
