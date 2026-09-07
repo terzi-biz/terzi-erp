@@ -107,14 +107,31 @@ const leadInput = z.object({
   notes: z.string().max(4000).optional().nullable(),
 });
 
+/** Ліди. Без параметрів — масив для канбану; з `{ page }` — серверна пагінація й пошук. */
 export const listLeads = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_leads").select("*").order("updated_at", { ascending: false }).limit(500);
-    if (error) { console.error("listLeads", error); throw new Error("Не вдалося завантажити ліди"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_leads").select("*", paged ? { count: "exact" } : {})
+      .order("updated_at", { ascending: false });
+    const term = likeTerm(p.q);
+    if (term) {
+      const num = digits(p.q);
+      const parts = [`title.ilike.*${term}*`, `contact_name.ilike.*${term}*`, `phone.ilike.*${term}*`, `address.ilike.*${term}*`];
+      if (num.length >= 4) parts.push(`phone_e164.ilike.*${num}*`);
+      q = q.or(parts.join(","));
+    }
+    if (p.status) q = q.eq("status", p.status);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
+    const res = await (q as any);
+    if (res.error) { console.error("listLeads", res.error); throw new Error("Не вдалося завантажити ліди"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 export const upsertLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
