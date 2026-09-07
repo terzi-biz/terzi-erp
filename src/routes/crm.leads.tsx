@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { listPipelines, listContacts, upsertLead, moveLeadStage } from "@/lib/crm.functions";
 import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
-import { CrmEyebrow, CrmPage, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
+import { CrmEyebrow, CrmPage, CrmSpec, PayStatus, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
@@ -252,8 +252,15 @@ function LeadsPage() {
                       <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
                         <User className="h-3 w-3 shrink-0" /><span className="truncate">{l.client_name ?? "Ім'я не вказане"}</span>
                       </div>
+                      {(l.area || l.direction || l.fields?.["object_type"]) ? (
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {l.area ? <CrmSpec label="S" value={`${Number(l.area)} м²`} tone="primary" /> : null}
+                          {l.direction ? <CrmSpec value={l.direction} tone="gold" /> : null}
+                          {l.fields?.["object_type"] ? <CrmSpec value={String(l.fields["object_type"])} /> : null}
+                        </div>
+                      ) : null}
                       {l.phone ? (
-                        <a href={`tel:${l.phone}`} className="mt-0.5 flex items-center gap-1.5 text-[11px] text-sky-700 hover:underline">
+                        <a href={`tel:${l.phone}`} className="mt-1 flex items-center gap-1.5 text-[11px] text-sky-700 hover:underline">
                           <Phone className="h-3 w-3 shrink-0" />{l.phone}
                         </a>
                       ) : null}
@@ -262,6 +269,10 @@ function LeadsPage() {
                       </div>
                       {l.address ? <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3 w-3"/><span className="truncate">{l.address}</span></div> : null}
                       {l.next_action_at ? <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-warning"><CalendarClock className="h-3 w-3"/>{new Date(l.next_action_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</div> : null}
+                      <div className="mt-2">
+                        <PayStatus total={Number(l.fields?.["contract_sum"] ?? l.budget ?? 0)} paid={Number(l.fields?.["paid_sum"] ?? 0)} />
+                      </div>
+
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-[13px] font-bold">{money(Number(l.budget || 0))}</span>
                         <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">

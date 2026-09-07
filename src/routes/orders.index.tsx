@@ -16,7 +16,7 @@ import {
 } from "@/lib/orders.constants";
 import { computeOrderKpi, crmUrl } from "@/lib/order-management";
 import { formatUah } from "@/lib/screed-calc";
-import { CrmEyebrow, CrmPage, CrmPanel, crmButton, crmInput } from "@/components/crm/CrmUi";
+import { CrmEyebrow, CrmPage, CrmPanel, CrmSpec, PayStatus, crmButton, crmInput } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/orders/")({
   ssr: false,
@@ -211,7 +211,8 @@ function OrderCard({ r }: { r: any }) {
           </span>
         </div>
 
-        <div className="flex flex-wrap gap-1">
+        <div className="flex flex-wrap items-center gap-1">
+          {r.total_area ? <CrmSpec label="S" value={`${Math.round(Number(r.total_area))} м²`} tone="primary" /> : null}
           {(r.services ?? []).map((s: string) => (
             <span key={s} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary">{SERVICE_LABELS[s] ?? s}</span>
           ))}
@@ -220,11 +221,14 @@ function OrderCard({ r }: { r: any }) {
           ))}
         </div>
 
+        <PayStatus total={Number(r.amount_total ?? kpi.plan.revenue ?? 0)} paid={Number(r.paid_total ?? 0)} />
+
         <div className="grid grid-cols-3 gap-2 rounded-lg bg-secondary/40 p-2 text-center">
           <Metric label="Договір" value={fmtMoney(kpi.plan.revenue)} />
           <Metric label="План витрат" value={fmtMoney(kpi.plan.cost)} />
           <Metric label="Маржа план" value={fmtPct(kpi.plan.margin)} />
         </div>
+
 
         <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           <span className="flex items-center gap-1 truncate"><User className="w-3 h-3 shrink-0" />{r.manager_display ?? "—"}</span>

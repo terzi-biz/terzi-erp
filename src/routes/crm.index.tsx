@@ -99,10 +99,25 @@ function CrmDashboard() {
       ...s,
       count: (leads as any[]).filter((l) => l.stage_id === s.id).length,
       sum: (leads as any[]).filter((l) => l.stage_id === s.id).reduce((a, l) => a + Number(l.budget || 0), 0),
+      area: (leads as any[]).filter((l) => l.stage_id === s.id).reduce((a, l) => a + Number(l.area || 0), 0),
     }));
   }, [pipe, leads]);
 
+  /* Будівельні акценти: площа в роботі та розподіл за напрямами робіт. */
+  const openLeads = useMemo(() => (leads as any[]).filter((l) => l.status === "open"), [leads]);
+  const areaInWork = useMemo(() => openLeads.reduce((s, l) => s + (Number(l.area) || 0), 0), [openLeads]);
+  const byDirection = useMemo(() => {
+    const map = new Map<string, { count: number; area: number; sum: number }>();
+    for (const l of openLeads) {
+      const key = String(l.direction || "Не вказано");
+      const cur = map.get(key) ?? { count: 0, area: 0, sum: 0 };
+      map.set(key, { count: cur.count + 1, area: cur.area + (Number(l.area) || 0), sum: cur.sum + (Number(l.budget) || 0) });
+    }
+    return [...map.entries()].map(([name, v]) => ({ name, ...v })).sort((a, b) => b.count - a.count);
+  }, [openLeads]);
+
   const funnel = meas?.funnel ?? null;
+
 
   return (
     <AppShell>
@@ -123,12 +138,13 @@ function CrmDashboard() {
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} />
+          <Kpi icon={Ruler} label="Площа в роботі" value={`${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(areaInWork)} м²`} hint="Сума площ активних лідів" />
           <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} />
           <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" />
           <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті за період" />
-          <Kpi icon={Ruler} label="Заміри за період" value={funnel ? String(funnel.measurements) : "—"} hint={funnel ? `лід → замір ${pctText(funnel.leadToMeasure)}` : undefined} />
           <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} />
         </div>
+
 
         <div className="flex items-center gap-2 flex-wrap border-b border-border">
           {([["funnel", "Воронка"], ["measurements", "Заміри і конверсія"], ["activity", "Активність"]] as [Tab, string][]).map(([k, label]) => (
@@ -151,29 +167,50 @@ function CrmDashboard() {
         </div>
 
         {tab === "funnel" ? (
-          <CrmPanel className="p-4">
-            <div className="mb-4 flex items-center justify-between"><div><CrmEyebrow>Pipeline control</CrmEyebrow><div className="mt-1 text-base font-bold">Воронка по етапах</div></div><span className="font-mono text-xs text-muted-foreground">{stats.open} активних</span></div>
-            <div className="space-y-1.5">
-              {byStage.map((s, i) => {
-                const max = Math.max(1, ...byStage.map((x) => x.count));
-                const color = s.color || STAGE_PALETTE[i % STAGE_PALETTE.length];
-                return (
-                  <div key={s.id} className="flex items-center gap-3">
-                    <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{s.name}</div>
-                    <div className="flex-1 h-7 rounded-sm bg-muted/50 overflow-hidden">
-                      <div className="h-full flex items-center px-2 text-[11px] font-bold text-[#22303f] transition-all"
-                        style={{ width: `${Math.max(6, (s.count / max) * 100)}%`, backgroundColor: color }}>
-                        {s.count}
+          <div className="grid gap-4 lg:grid-cols-3">
+            <CrmPanel className="p-4 lg:col-span-2">
+              <div className="mb-4 flex items-center justify-between"><div><CrmEyebrow>Pipeline control</CrmEyebrow><div className="mt-1 text-base font-bold">Воронка по етапах</div></div><span className="font-mono text-xs text-muted-foreground">{stats.open} активних</span></div>
+              <div className="space-y-1.5">
+                {byStage.map((s, i) => {
+                  const max = Math.max(1, ...byStage.map((x) => x.count));
+                  const color = s.color || STAGE_PALETTE[i % STAGE_PALETTE.length];
+                  return (
+                    <div key={s.id} className="flex items-center gap-3">
+                      <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{s.name}</div>
+                      <div className="flex-1 h-7 rounded-sm bg-muted/50 overflow-hidden">
+                        <div className="h-full flex items-center px-2 text-[11px] font-bold text-[#22303f] transition-all"
+                          style={{ width: `${Math.max(6, (s.count / max) * 100)}%`, backgroundColor: color }}>
+                          {s.count}
+                        </div>
                       </div>
+                      <div className="w-20 shrink-0 text-right font-mono text-[11px] text-muted-foreground">{Math.round(s.area)} м²</div>
+                      <div className="w-28 shrink-0 text-right text-[12px] font-semibold">{money(s.sum)}</div>
                     </div>
-                    <div className="w-28 shrink-0 text-right text-[12px] font-semibold">{money(s.sum)}</div>
+                  );
+                })}
+                {!byStage.length ? <div className="text-sm text-muted-foreground">Немає етапів</div> : null}
+              </div>
+            </CrmPanel>
+
+            <CrmPanel className="p-4">
+              <CrmEyebrow>Напрями робіт</CrmEyebrow>
+              <div className="mt-1 mb-3 text-base font-bold">Активні ліди по напрямах</div>
+              <div className="space-y-2">
+                {byDirection.map((d) => (
+                  <div key={d.name} className="flex items-center justify-between gap-2 border-b border-border/60 pb-2 last:border-0">
+                    <div className="min-w-0">
+                      <div className="truncate text-[13px] font-semibold">{d.name}</div>
+                      <div className="font-mono text-[11px] text-muted-foreground">{Math.round(d.area)} м² · {d.count} лідів</div>
+                    </div>
+                    <div className="shrink-0 text-[12px] font-bold tabular-nums">{money(d.sum)}</div>
                   </div>
-                );
-              })}
-              {!byStage.length ? <div className="text-sm text-muted-foreground">Немає етапів</div> : null}
-            </div>
-          </CrmPanel>
+                ))}
+                {!byDirection.length ? <div className="text-sm text-muted-foreground">Немає активних лідів</div> : null}
+              </div>
+            </CrmPanel>
+          </div>
         ) : null}
+
 
         {tab === "measurements" ? (
           <div className="grid gap-4 lg:grid-cols-3">
