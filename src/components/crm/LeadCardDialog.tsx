@@ -14,7 +14,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
 import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
-import { CrmEyebrow, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
+import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
 const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";
@@ -127,6 +127,15 @@ export function LeadCardDialog({
               {lead?.created_at ? new Date(lead.created_at).toLocaleString("uk-UA") : "—"}
               {lead?.status ? ` · ${lead.status}` : ""}
             </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+              {form.area ? <CrmSpec label="S" value={`${Number(form.area)} м²`} tone="primary" /> : null}
+              {form.direction ? <CrmSpec value={form.direction} tone="gold" /> : null}
+              {fields["object_type"] ? <CrmSpec value={String(fields["object_type"])} /> : null}
+              <span className="min-w-[140px]">
+                <PayStatus total={Number(fields["contract_sum"] ?? form.budget ?? 0)} paid={Number(fields["paid_sum"] ?? 0)} />
+              </span>
+            </div>
+
           </div>
           <select value={form.stage_id ?? ""} onChange={(e) => setForm({ ...form, stage_id: e.target.value })}
             className="rounded-md border border-border bg-background px-2.5 py-1.5 text-sm">
