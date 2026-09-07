@@ -27,7 +27,9 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
   }
 });
 
-/** Помилки серверних функцій повертаємо як JSON (401 для сесії), а не як HTML-сторінку. */
+/** Помилки серверних функцій віддаємо як звичайну помилку з текстом.
+ *  Кидати Response не можна: на клієнті це перетворюється на «[object Response]»
+ *  і порожній екран. JSON-відповідь формує src/server.ts. */
 const serverFnErrorMiddleware = createMiddleware({ type: "function" }).server(async ({ next }) => {
   try {
     return await next();
@@ -35,14 +37,12 @@ const serverFnErrorMiddleware = createMiddleware({ type: "function" }).server(as
     if (error instanceof Response) throw error;
     const message = error instanceof Error ? error.message : String(error);
     if (message.startsWith("Unauthorized")) {
-      throw new Response(JSON.stringify({ error: message }), {
-        status: 401,
-        headers: { "content-type": "application/json" },
-      });
+      console.warn(`[serverFn] ${message}`);
     }
     throw error;
   }
 });
+
 
 export const startInstance = createStart(() => ({
   functionMiddleware: [serverFnErrorMiddleware, attachSupabaseAuth],
