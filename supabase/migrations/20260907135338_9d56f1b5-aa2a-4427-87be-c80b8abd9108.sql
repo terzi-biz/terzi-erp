@@ -1,0 +1,10 @@
+DROP INDEX IF EXISTS public.finance_accounts_finmap_id_key;
+DROP INDEX IF EXISTS public.finance_categories_finmap_id_key;
+DROP INDEX IF EXISTS public.finance_projects_finmap_id_key;
+DROP INDEX IF EXISTS public.finance_counterparties_finmap_key;
+DROP INDEX IF EXISTS public.finance_transactions_finmap_id_key;
+CREATE UNIQUE INDEX finance_accounts_finmap_id_key ON public.finance_accounts (finmap_id);
+CREATE UNIQUE INDEX finance_categories_finmap_id_key ON public.finance_categories (finmap_id);
+CREATE UNIQUE INDEX finance_projects_finmap_id_key ON public.finance_projects (finmap_id);
+CREATE UNIQUE INDEX finance_counterparties_finmap_key ON public.finance_counterparties (finmap_kind, finmap_id);
+CREATE UNIQUE INDEX finance_transactions_finmap_id_key ON public.finance_transactions (finmap_id);

@@ -100,7 +100,8 @@ export async function syncCounterparties(db: Db): Promise<SyncResult> {
   let fetched = 0, inserted = 0, updated = 0;
   for (const k of kinds) {
     let rows: FinmapRef[] = [];
-    try { rows = await k.load(); } catch (e) { if ((e as FinmapError).status !== 404) throw e; }
+    // 404 — довідник відсутній; 400 — метод визнано застарілим у Finmap. Обидва не блокують синхронізацію.
+    try { rows = await k.load(); } catch (e) { const s = (e as FinmapError).status; if (s !== 404 && s !== 400) throw e; }
     if (!rows?.length) continue;
     fetched += rows.length;
     const payload = rows.map((r) => ({
@@ -119,8 +120,8 @@ export async function syncCounterparties(db: Db): Promise<SyncResult> {
 
 /** Операції: інкрементально від останнього курсора (або від fromDate при initial sync). */
 export async function syncOperations(db: Db, opts: { from?: string; to?: string; pageSize?: number; maxPages?: number } = {}): Promise<SyncResult> {
-  const pageSize = opts.pageSize ?? 500;
-  const maxPages = opts.maxPages ?? 40;
+  const pageSize = Math.min(opts.pageSize ?? 100, 100);
+  const maxPages = opts.maxPages ?? 300;
 
   let startDate: number | undefined;
   if (opts.from) startDate = Date.parse(`${opts.from}T00:00:00Z`);
