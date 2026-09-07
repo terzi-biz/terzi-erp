@@ -207,14 +207,26 @@ export const addLeadNote = createServerFn({ method: "POST" })
 
 /* ---------------- Tasks ---------------- */
 
+/** Задачі. Без параметрів — масив; з `{ page }` — серверна пагінація, пошук і фільтр статусу. */
 export const listTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_tasks").select("*").order("due_at", { ascending: true }).limit(300);
-    if (error) { console.error("listTasks", error); throw new Error("Не вдалося завантажити задачі"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_tasks").select("*", paged ? { count: "exact" } : {})
+      .order("due_at", { ascending: true });
+    const term = likeTerm(p.q);
+    if (term) q = q.or(`title.ilike.*${term}*,description.ilike.*${term}*`);
+    if (p.status) q = q.eq("status", p.status);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(300); }
+    const res = await (q as any);
+    if (res.error) { console.error("listTasks", res.error); throw new Error("Не вдалося завантажити задачі"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 export const upsertTask = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
