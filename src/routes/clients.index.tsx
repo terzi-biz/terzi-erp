@@ -48,6 +48,8 @@ function ClientsPage() {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState<"cards" | "table">("cards");
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [fStatus, setFStatus] = useState("");
   const [fSource, setFSource] = useState("");
   const [fManager, setFManager] = useState("");
@@ -56,7 +58,15 @@ function ClientsPage() {
     status: "lead" as "lead" | "active" | "done" | "archived",
   });
 
-  const { data: clients = [] } = useQuery({ queryKey: ["clients"], queryFn: () => list() });
+  // Пошук іде на сервер (з дебаунсом), тому реєстр не тягне всю базу в браузер.
+  const dq = useDebouncedValue(q, 350);
+  useEffect(() => { setPage(1); }, [dq, pageSize]);
+
+  const { data: clientsPage } = useQuery({
+    queryKey: ["clients", page, pageSize, dq],
+    queryFn: () => list({ data: { page, page_size: pageSize, q: dq } }) as Promise<any>,
+    placeholderData: (prev) => prev,
+  });
   const { data: managers = [] } = useQuery({ queryKey: ["client-managers"], queryFn: () => managersFn(), retry: false });
 
   const saveMut = useMutation({
@@ -74,21 +84,19 @@ function ClientsPage() {
     },
   });
 
-  const rows = clients as ClientListRow[];
+  const rows = ((clientsPage?.rows ?? []) as ClientListRow[]);
+  const total = (clientsPage?.total ?? 0) as number;
   const sources = useMemo(
     () => Array.from(new Set(rows.map((c) => c.source).filter(Boolean))) as string[],
     [rows],
   );
-  const filtered = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    return rows.filter((c) => {
-      if (fStatus && c.status !== fStatus) return false;
-      if (fSource && c.source !== fSource) return false;
-      if (fManager && c.manager_id !== fManager) return false;
-      if (!needle) return true;
-      return [c.name, c.phone, c.email, c.address].some((v) => (v ?? "").toLowerCase().includes(needle));
-    });
-  }, [rows, q, fStatus, fSource, fManager]);
+  const filtered = useMemo(() => rows.filter((c) => {
+    if (fStatus && c.status !== fStatus) return false;
+    if (fSource && c.source !== fSource) return false;
+    if (fManager && c.manager_id !== fManager) return false;
+    return true;
+  }), [rows, fStatus, fSource, fManager]);
+
 
   const inp = "w-full bg-input border border-border rounded-md px-3 py-2 text-sm focus:border-primary outline-none";
 
