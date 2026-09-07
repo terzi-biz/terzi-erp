@@ -475,17 +475,38 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
     }
     if (!clientId) throw new Error("Неоднозначний клієнт — оберіть його вручну в картці ліда");
 
+    // Переносимо в замовлення все, що вже відоме з ліда: адресу, район, UTM,
+    // джерело, бюджет і площу (як ручні управлінські дані) та нотатки.
+    const management: Record<string, unknown> = {};
+    if (lead.budget != null) management['budget_plan'] = Number(lead.budget);
+    if (lead.area != null) management['area_plan'] = Number(lead.area);
+    if (lead.direction) management['direction'] = lead.direction;
+    if (lead.campaign) management['campaign'] = lead.campaign;
+
     const { data: order, error: oe } = await sb.from("orders").insert({
       name: lead.title,
       address: lead.address ?? null,
+      district: lead.district ?? null,
       client_id: clientId,
       manager_id: lead.assigned_to ?? context.userId,
       source: lead.source ?? null,
+      utm: lead.utm ?? null,
+      external_source: lead.external_source ?? null,
+      external_id: lead.external_id ?? null,
+      notes: lead.notes ?? null,
+      crm_link: `/crm/leads?lead=${lead.id}`,
+      management_data: Object.keys(management).length ? management : null,
       commercial_status: "qualification",
+      owner_id: context.userId,
     } as any).select("id, number").single();
     if (oe || !order) { console.error("convertLeadToOrder order", oe); throw new Error("Не вдалося створити замовлення"); }
 
+    // Заміри ліда стають замірами замовлення.
+    await sb.from("order_measurements").update({ order_id: order.id, client_id: clientId } as any)
+      .eq("lead_id", lead.id).is("order_id", null);
+
     await sb.from("crm_leads").update({ order_id: order.id, client_id: clientId }).eq("id", lead.id);
+
     await sb.from("crm_lead_activities").insert({
       lead_id: lead.id, actor_id: context.userId, kind: "converted",
       body: `Створено замовлення ${order.number ?? ""}`.trim(),
