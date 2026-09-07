@@ -48,8 +48,9 @@ const fmtPct = (v: number | null) => (v == null ? "—" : `${(v * 100).toFixed(1
 
 function OrdersPage() {
   const listFn = useServerFn(listOrders);
-  const { data = [], isLoading } = useQuery({ queryKey: ["orders"], queryFn: () => listFn() });
   const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const [status, setStatus] = useState("all");
   const [prod, setProd] = useState("all");
   const [service, setService] = useState("all");
@@ -59,38 +60,45 @@ function OrdersPage() {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
 
+  // Пошук і статус — на сервері; решта фільтрів уточнює поточну сторінку.
+  const dq = useDebouncedValue(q, 350);
+  useEffect(() => { setPage(1); }, [dq, status, pageSize]);
+
+  const { data: pageData, isLoading } = useQuery({
+    queryKey: ["orders", page, pageSize, dq, status],
+    queryFn: () => listFn({ data: { page, page_size: pageSize, q: dq, status: status === "all" ? null : status } }) as Promise<any>,
+    placeholderData: (prev) => prev,
+  });
+  const data = (pageData?.rows ?? []) as any[];
+  const total = (pageData?.total ?? 0) as number;
+
   const managers = useMemo(
-    () => Array.from(new Set((data as any[]).map((r) => r.manager_display).filter(Boolean))).sort(),
+    () => Array.from(new Set(data.map((r) => r.manager_display).filter(Boolean))).sort(),
     [data],
   );
 
   const tags = useMemo(
-    () => Array.from(new Set((data as any[]).flatMap((r) => r.work_tags ?? []))).sort(),
+    () => Array.from(new Set(data.flatMap((r) => r.work_tags ?? []))).sort(),
     [data],
   );
 
-  const rows = useMemo(() => {
-    const nq = q.trim().toLowerCase();
-    return (data as any[]).filter((r) => {
-      if (status !== "all" && r.commercial_status !== status) return false;
-      if (prod !== "all" && r.production_status !== prod) return false;
-      if (risk !== "all" && r.risk_level !== risk) return false;
-      if (manager !== "all" && r.manager_display !== manager) return false;
-      if (service !== "all" && !(r.services ?? []).includes(service)) return false;
-      if (tag !== "all" && !(r.work_tags ?? []).includes(tag)) return false;
-      const created = r.ordered_at ?? r.created_at;
-      if (from && (!created || created.slice(0, 10) < from)) return false;
-      if (to && (!created || created.slice(0, 10) > to)) return false;
-      if (!nq) return true;
-      return [r.number, r.name, r.address, r.client?.name, r.client?.phone, r.manager_display]
-        .filter(Boolean).join(" ").toLowerCase().includes(nq);
-    });
-  }, [data, q, status, prod, service, manager, risk, tag, from, to]);
+  const rows = useMemo(() => data.filter((r) => {
+    if (prod !== "all" && r.production_status !== prod) return false;
+    if (risk !== "all" && r.risk_level !== risk) return false;
+    if (manager !== "all" && r.manager_display !== manager) return false;
+    if (service !== "all" && !(r.services ?? []).includes(service)) return false;
+    if (tag !== "all" && !(r.work_tags ?? []).includes(tag)) return false;
+    const created = r.ordered_at ?? r.created_at;
+    if (from && (!created || created.slice(0, 10) < from)) return false;
+    if (to && (!created || created.slice(0, 10) > to)) return false;
+    return true;
+  }), [data, prod, service, manager, risk, tag, from, to]);
 
   const resetFilters = () => {
     setQ(""); setStatus("all"); setProd("all"); setService("all");
     setManager("all"); setRisk("all"); setTag("all"); setFrom(""); setTo("");
   };
+
   const selectCls = "rounded-md border border-input bg-background text-xs px-2.5 py-2";
 
   return (
