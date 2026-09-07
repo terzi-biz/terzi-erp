@@ -282,7 +282,7 @@ export const getPlanFact = createServerFn({ method: "POST" })
     const [{ data: tx }, { data: cats }, { data: estimates }] = await Promise.all([
       context.supabase.from("finance_transactions").select("kind,amount,amount_uah,category_id,order_id").gte("op_date", data.from).lte("op_date", data.to),
       context.supabase.from("finance_categories").select("id,name,kind,plan_article"),
-      context.supabase.from("estimates").select("id,order_id,total,materials_total,works_total,logistics_total,created_at").gte("created_at", `${data.from}T00:00:00Z`).lte("created_at", `${data.to}T23:59:59Z`),
+      context.supabase.from("estimates").select("id,order_id,total_client,total_cost,internal_lines,created_at").gte("created_at", `${data.from}T00:00:00Z`).lte("created_at", `${data.to}T23:59:59Z`),
     ]);
     const catMap = new Map((cats ?? []).map((c: any) => [c.id, c]));
     const ARTICLES = ["revenue", "materials", "labour", "logistics", "equipment", "subcontract", "marketing", "administration", "other"] as const;
