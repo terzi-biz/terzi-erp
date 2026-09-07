@@ -261,14 +261,26 @@ export const listRequests = createServerFn({ method: "GET" })
     return data ?? [];
   });
 
+/** Дзвінки. Без параметрів — масив; з `{ page }` — серверна пагінація й пошук по номеру. */
 export const listCalls = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_calls").select("*").order("started_at", { ascending: false }).limit(500);
-    if (error) { console.error("listCalls", error); throw new Error("Не вдалося завантажити дзвінки"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_calls").select("*", paged ? { count: "exact" } : {})
+      .order("started_at", { ascending: false });
+    const num = digits(p.q);
+    if (num.length >= 3) q = q.or(`phone_e164.ilike.*${num}*,from_number.ilike.*${num}*,to_number.ilike.*${num}*`);
+    if (p.status) q = q.eq("status", p.status);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
+    const res = await (q as any);
+    if (res.error) { console.error("listCalls", res.error); throw new Error("Не вдалося завантажити дзвінки"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 /** Посилання на аудіозапис розмови (Binotel). Запитується на вимогу і кешується. */
 export const getCallRecording = createServerFn({ method: "POST" })
