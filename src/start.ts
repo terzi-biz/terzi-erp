@@ -10,6 +10,15 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     if (error != null && typeof error === "object" && "statusCode" in error) {
       throw error;
     }
+    const message = error instanceof Error ? error.message : String(error);
+    // Прострочена/відсутня сесія — це 401, а не аварія сервера:
+    // інакше клієнт отримує HTML-сторінку помилки замість зрозумілої відповіді.
+    if (message.startsWith("Unauthorized")) {
+      return new Response(JSON.stringify({ error: message }), {
+        status: 401,
+        headers: { "content-type": "application/json" },
+      });
+    }
     console.error(error);
     return new Response(renderErrorPage(), {
       status: 500,
@@ -17,6 +26,7 @@ const errorMiddleware = createMiddleware().server(async ({ next }) => {
     });
   }
 });
+
 
 export const startInstance = createStart(() => ({
   functionMiddleware: [attachSupabaseAuth],
