@@ -28,14 +28,30 @@ const contactInput = z.object({
   notes: z.string().max(2000).optional().nullable(),
 });
 
+/** Контакти. Без параметрів — масив; з `{ page }` — серверна пагінація й пошук. */
 export const listContacts = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
-    const { data, error } = await context.supabase
-      .from("crm_contacts").select("*").order("created_at", { ascending: false }).limit(500);
-    if (error) { console.error("listContacts", error); throw new Error("Не вдалося завантажити контакти"); }
-    return data ?? [];
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = context.supabase
+      .from("crm_contacts").select("*", paged ? { count: "exact" } : {})
+      .order("created_at", { ascending: false });
+    const term = likeTerm(p.q);
+    if (term) {
+      const num = digits(p.q);
+      const parts = [`full_name.ilike.*${term}*`, `phone.ilike.*${term}*`, `company.ilike.*${term}*`, `email.ilike.*${term}*`];
+      if (num.length >= 4) parts.push(`phone_norm.ilike.*${num}*`);
+      q = q.or(parts.join(","));
+    }
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
+    const res = await (q as any);
+    if (res.error) { console.error("listContacts", res.error); throw new Error("Не вдалося завантажити контакти"); }
+    const rows = (res.data ?? []) as any[];
+    return (paged ? { rows, total: (res.count as number | null) ?? rows.length, page: p.page, page_size: p.page_size } : rows) as any;
   });
+
 
 export const findContactDuplicates = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
