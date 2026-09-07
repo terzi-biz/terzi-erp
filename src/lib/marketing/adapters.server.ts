@@ -7,7 +7,14 @@ export type ProviderTest = { ok: boolean; configured: boolean; message: string }
 
 const ENV_BY_PROVIDER: Record<string, string[]> = {
   ga4: ["GA4_PROPERTY_ID", "GOOGLE_ANALYTICS_API_KEY"],
-  google_ads: ["GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID"],
+  google_ads: [
+    "GOOGLE_OAUTH_CLIENT_ID",
+    "GOOGLE_OAUTH_CLIENT_SECRET",
+    "GOOGLE_ADS_REFRESH_TOKEN",
+    "GOOGLE_ADS_DEVELOPER_TOKEN",
+    "GOOGLE_ADS_CUSTOMER_ID",
+  ],
+
   meta_ads: ["META_ADS_ACCESS_TOKEN", "META_ADS_ACCOUNT_ID"],
   tiktok_ads: ["TIKTOK_ADS_ACCESS_TOKEN"],
   site_forms: ["ERP_PUBLIC_BASE_URL"],
@@ -36,9 +43,25 @@ export async function testProvider(provider: string): Promise<ProviderTest> {
   if (missing.length) {
     return { ok: false, configured: false, message: `Не задано: ${missing.join(", ")}` };
   }
+  if (provider === "google_ads") {
+    try {
+      const { googleAdsTestConnection } = await import("../integrations/foundation/google-ads.server");
+      const acc = await googleAdsTestConnection();
+      return {
+        ok: acc.active,
+        configured: true,
+        message: acc.active
+          ? `Кабінет «${acc.name}» (${acc.currency}) доступний`
+          : `Кабінет «${acc.name}» неактивний`,
+      };
+    } catch (e) {
+      return { ok: false, configured: true, message: e instanceof Error ? e.message : "Помилка Google Ads API" };
+    }
+  }
   if (provider === "binotel") {
     return { ok: true, configured: true, message: "Ключі Binotel знайдено — перевірка з'єднання у розділі «Інтеграції та API»" };
   }
+
   if (provider === "meta_ads" || provider === "instagram" || provider === "facebook") {
     try {
       const { metaTestConnection } = await import("../integrations/foundation/meta-ads.server");

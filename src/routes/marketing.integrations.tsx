@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
-import { updateMarketingIntegration, testMarketingIntegration, syncMetaAds } from "@/lib/marketing.functions";
+import { updateMarketingIntegration, testMarketingIntegration, syncMetaAds, syncGoogleAds } from "@/lib/marketing.functions";
 import { useState } from "react";
 
 export const Route = createFileRoute("/marketing/integrations")({
@@ -43,7 +43,9 @@ function IntegrationsPage() {
   const saveFn = useServerFn(updateMarketingIntegration);
   const testFn = useServerFn(testMarketingIntegration);
   const metaSyncFn = useServerFn(syncMetaAds);
-  const [syncing, setSyncing] = useState(false);
+  const googleSyncFn = useServerFn(syncGoogleAds);
+  const [syncing, setSyncing] = useState<string | null>(null);
+
 
   const { data: rows = [], isLoading } = useQuery({
     queryKey: ["mkt", "integrations"],
@@ -70,18 +72,21 @@ function IntegrationsPage() {
     } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка"); }
   };
 
-  const syncMeta = async () => {
+  const syncAds = async (provider: "meta_ads" | "google_ads") => {
     const to = new Date();
     const from = new Date(to.getTime() - 29 * 864e5);
     const fmt = (d: Date) => d.toISOString().slice(0, 10);
-    setSyncing(true);
+    setSyncing(provider);
     try {
-      const res = await metaSyncFn({ data: { from: fmt(from), to: fmt(to) } });
-      toast.success(`Meta Ads: ${res.campaigns} кампаній, ${res.days} днів (нових ${res.inserted}, оновлено ${res.updated})`);
+      const fn = provider === "meta_ads" ? metaSyncFn : googleSyncFn;
+      const res = await fn({ data: { from: fmt(from), to: fmt(to) } });
+      const label = provider === "meta_ads" ? "Meta Ads" : "Google Ads";
+      toast.success(`${label}: ${res.campaigns} кампаній, ${res.days} днів (нових ${res.inserted}, оновлено ${res.updated})`);
       qc.invalidateQueries({ queryKey: ["mkt"] });
     } catch (e) { toast.error(e instanceof Error ? e.message : "Помилка синхронізації"); }
-    finally { setSyncing(false); }
+    finally { setSyncing(null); }
   };
+
 
   return (
     <MarketingShell title="Інтеграції" subtitle="Джерела даних маркетингу. Статус «підключено» з'являється лише після успішної перевірки">
@@ -105,12 +110,17 @@ function IntegrationsPage() {
                     {r.connection_status === "disabled" ? "Увімкнути" : "Вимкнути"}
                   </button>
                   <button onClick={() => test(r.provider)} className="rounded-md border border-border px-2 py-1 text-[11px]">Перевірити</button>
-                  {r.provider === "meta_ads" ? (
-                    <button onClick={syncMeta} disabled={syncing}
+                  {r.provider === "meta_ads" || r.provider === "google_ads" ? (
+                    <button onClick={() => syncAds(r.provider as "meta_ads" | "google_ads")} disabled={syncing !== null}
                       className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-60">
-                      {syncing ? "Синхронізація…" : "Синхронізувати 30 днів"}
+                      {syncing === r.provider ? "Синхронізація…" : "Синхронізувати 30 днів"}
                     </button>
                   ) : null}
+                  {r.provider === "google_ads" ? (
+                    <a href="/api/public/integrations/google-ads/start"
+                      className="rounded-md border border-border px-2 py-1 text-[11px]">Авторизувати Google</a>
+                  ) : null}
+
                 </div>
                 {r.last_error ? <div className="mt-1 text-[11px] text-destructive">{r.last_error}</div> : null}
                 {r.is_read_only ? <div className="mt-1 text-[10px] text-muted-foreground">Режим «тільки читання»</div> : null}

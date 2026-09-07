@@ -75,6 +75,8 @@ import { Route as ApiPublicMarketingSyncRouteImport } from './routes/api/public/
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
 import { Route as ApiPublicIntegrationsFinmapWebhookRouteImport } from './routes/api/public/integrations/finmap/webhook'
+import { Route as ApiPublicIntegrationsGoogleAdsCallbackRouteImport } from './routes/api/public/integrations/google-ads/callback'
+import { Route as ApiPublicIntegrationsGoogleAdsStartRouteImport } from './routes/api/public/integrations/google-ads/start'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
@@ -416,6 +418,18 @@ const ApiPublicIntegrationsFinmapWebhookRoute =
     path: '/api/public/integrations/finmap/webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsGoogleAdsCallbackRoute =
+  ApiPublicIntegrationsGoogleAdsCallbackRouteImport.update({
+    id: '/api/public/integrations/google-ads/callback',
+    path: '/api/public/integrations/google-ads/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsGoogleAdsStartRoute =
+  ApiPublicIntegrationsGoogleAdsStartRouteImport.update({
+    id: '/api/public/integrations/google-ads/start',
+    path: '/api/public/integrations/google-ads/start',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsOauthCallbackRoute =
   ApiPublicIntegrationsOauthCallbackRouteImport.update({
     id: '/api/public/integrations/oauth/callback',
@@ -496,6 +510,8 @@ export interface FileRoutesByFullPath {
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
+  '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
+  '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -566,6 +582,8 @@ export interface FileRoutesByTo {
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
+  '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
+  '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -637,6 +655,8 @@ export interface FileRoutesById {
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
+  '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
+  '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -709,6 +729,8 @@ export interface FileRouteTypes {
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/finmap/webhook'
+    | '/api/public/integrations/google-ads/callback'
+    | '/api/public/integrations/google-ads/start'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -779,6 +801,8 @@ export interface FileRouteTypes {
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/finmap/webhook'
+    | '/api/public/integrations/google-ads/callback'
+    | '/api/public/integrations/google-ads/start'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -849,6 +873,8 @@ export interface FileRouteTypes {
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
     | '/api/public/integrations/finmap/webhook'
+    | '/api/public/integrations/google-ads/callback'
+    | '/api/public/integrations/google-ads/start'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -919,6 +945,8 @@ export interface RootRouteChildren {
   ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
   ApiPublicIntegrationsFinmapWebhookRoute: typeof ApiPublicIntegrationsFinmapWebhookRoute
+  ApiPublicIntegrationsGoogleAdsCallbackRoute: typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
+  ApiPublicIntegrationsGoogleAdsStartRoute: typeof ApiPublicIntegrationsGoogleAdsStartRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -1387,6 +1415,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsFinmapWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/google-ads/callback': {
+      id: '/api/public/integrations/google-ads/callback'
+      path: '/api/public/integrations/google-ads/callback'
+      fullPath: '/api/public/integrations/google-ads/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsGoogleAdsCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/google-ads/start': {
+      id: '/api/public/integrations/google-ads/start'
+      path: '/api/public/integrations/google-ads/start'
+      fullPath: '/api/public/integrations/google-ads/start'
+      preLoaderRoute: typeof ApiPublicIntegrationsGoogleAdsStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/oauth/callback': {
       id: '/api/public/integrations/oauth/callback'
       path: '/api/public/integrations/oauth/callback'
@@ -1485,6 +1527,10 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsBinotelCallSettingsRoute,
   ApiPublicIntegrationsFinmapWebhookRoute:
     ApiPublicIntegrationsFinmapWebhookRoute,
+  ApiPublicIntegrationsGoogleAdsCallbackRoute:
+    ApiPublicIntegrationsGoogleAdsCallbackRoute,
+  ApiPublicIntegrationsGoogleAdsStartRoute:
+    ApiPublicIntegrationsGoogleAdsStartRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,

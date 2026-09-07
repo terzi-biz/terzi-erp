@@ -375,3 +375,23 @@ export const syncMetaAds = createServerFn({ method: "POST" })
     });
     return res;
   });
+
+/** Синхронізація Google Ads: кампанії + щоденні метрики за період. */
+export const syncGoogleAds = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ from: z.string().min(8), to: z.string().min(8) }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { syncGoogleAdsMetrics } = await import("./integrations/foundation/google-ads.server");
+    const res = await syncGoogleAdsMetrics({ from: data.from, to: data.to });
+    await context.supabase.from("marketing_integrations").update({
+      last_attempt_at: new Date().toISOString(),
+      last_success_at: new Date().toISOString(),
+      last_error: null,
+      connection_status: "connected",
+    }).eq("provider", "google_ads");
+    await context.supabase.from("audit_logs").insert({
+      module: "marketing", action: "google_ads_sync", entity_type: "marketing_daily_metrics",
+      new_value: res as never, actor_id: context.userId, is_critical: false,
+    });
+    return res;
+  });
