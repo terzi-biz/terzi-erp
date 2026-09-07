@@ -32,14 +32,34 @@ export type ClientListRow = {
   last_activity_at: string | null;
 };
 
+/**
+ * Реєстр клієнтів. Без параметрів — масив (пікери, фінанси).
+ * З `{ page }` — серверна пагінація й пошук: { rows, total, page, page_size }.
+ */
 export const listClients = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .handler(async ({ context, data: input }) => {
     const db = context.supabase;
-    const { data, error } = await db.from("clients").select("*").order("created_at", { ascending: false });
-    if (error) { console.error("listClients", error); throw new Error("Не вдалося завантажити клієнтів"); }
-    const clients = (data ?? []) as any[];
-    if (!clients.length) return [] as ClientListRow[];
+    const paged = Boolean(input && input.page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    let q = db.from("clients").select("*", paged ? { count: "exact" } : {})
+      .order("created_at", { ascending: false });
+    const term = likeTerm(p.q);
+    if (term) {
+      const num = digits(p.q);
+      const parts = [`name.ilike.*${term}*`, `phone.ilike.*${term}*`, `email.ilike.*${term}*`];
+      if (num.length >= 4) parts.push(`phone.ilike.*${num}*`);
+      q = q.or(parts.join(","));
+    }
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); }
+    const res = await (q as any);
+    if (res.error) { console.error("listClients", res.error); throw new Error("Не вдалося завантажити клієнтів"); }
+    const clients = (res.data ?? []) as any[];
+    const wrap = (list: ClientListRow[]) =>
+      (paged ? { rows: list, total: (res.count as number | null) ?? list.length, page: p.page, page_size: p.page_size } : list);
+    if (!clients.length) return wrap([]) as any;
+
 
     const ids = clients.map((c) => c.id);
     const [ordersRes, callsRes] = await Promise.all([
