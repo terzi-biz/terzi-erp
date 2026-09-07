@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -6,7 +6,14 @@ import { toast } from "sonner";
 import {
   Wallet, Plus, Receipt, ArrowDownCircle, PieChart, Landmark, X,
   Layers, TrendingUp, TrendingDown, CircleDollarSign, Search, ArrowRight,
+  Gauge, ListChecks, Scale, ShieldCheck, PlugZap, Users, Tags,
 } from "lucide-react";
+import {
+  OverviewSection, OperationsSection, PlanFactSection, ReconcileSection,
+  FinmapSection, PayrollSection, ReceivablesSection, PayablesSection, CategoriesSection,
+  type Period,
+} from "@/components/finance/sections";
+
 
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,6 +34,7 @@ import { listClients } from "@/lib/clients.functions";
 
 export const Route = createFileRoute("/finance")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => ({ tab: typeof s.tab === "string" ? s.tab : undefined }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
@@ -43,6 +51,15 @@ export const Route = createFileRoute("/finance")({
 });
 
 const TABS = [
+  { key: "overview", label: "Огляд", icon: Gauge },
+  { key: "operations", label: "Операції", icon: ListChecks },
+  { key: "planfact", label: "План/факт", icon: Scale },
+  { key: "reconcile", label: "Звірка", icon: ShieldCheck },
+  { key: "finmap", label: "Finmap", icon: PlugZap },
+  { key: "payroll", label: "ФОТ і KPI", icon: Users },
+  { key: "receivables", label: "Дебіторка", icon: TrendingUp },
+  { key: "payables", label: "Кредиторка", icon: TrendingDown },
+  { key: "categories", label: "Статті", icon: Tags },
   { key: "projects", label: "Каса по проєктах", icon: Layers },
   { key: "invoices", label: "Рахунки", icon: Receipt },
   { key: "payments", label: "Платежі", icon: Wallet },
@@ -51,14 +68,22 @@ const TABS = [
   { key: "accounts", label: "Каса та рахунки", icon: Landmark },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
+const TAB_KEYS = TABS.map((t) => t.key) as readonly string[];
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 const label = "text-[11px] uppercase tracking-wider text-muted-foreground";
 const btn = "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors";
 const today = () => new Date().toISOString().slice(0, 10);
+const monthStart = () => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().slice(0, 10); };
 
 function FinancePage() {
-  const [tab, setTab] = useState<TabKey>("projects");
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/finance" });
+  const tab: TabKey = (TAB_KEYS.includes(search.tab ?? "") ? search.tab : "overview") as TabKey;
+  const setTab = (key: TabKey) => navigate({ search: { tab: key } });
+  const [period, setPeriod] = useState<Period>({ from: monthStart(), to: today() });
+  const [opsKind, setOpsKind] = useState<"all" | "income" | "expense" | "transfer">("all");
+
 
   const qc = useQueryClient();
 
@@ -113,8 +138,20 @@ function FinancePage() {
           <KpiCard label="Грошовий результат" value={formatUah(kpi.profit)} icon={CircleDollarSign} tone={kpi.profit >= 0 ? "good" : "bad"} />
         </div>
 
+        <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3">
+          <div>
+            <div className={label}>Період з</div>
+            <input type="date" className={input} value={period.from} onChange={(e) => setPeriod({ ...period, from: e.target.value })} />
+          </div>
+          <div>
+            <div className={label}>по</div>
+            <input type="date" className={input} value={period.to} onChange={(e) => setPeriod({ ...period, to: e.target.value })} />
+          </div>
+          <span className="text-[11px] text-muted-foreground">Період впливає на Огляд, Операції, План/факт і Звірку</span>
+        </div>
+
         <div className="scroll-x -mx-4 px-4 md:mx-0 md:px-0">
-          <div className="flex gap-2 w-max md:w-full">
+          <div className="flex gap-2 w-max md:w-full md:flex-wrap">
             {TABS.map((t) => (
               <button key={t.key} onClick={() => setTab(t.key)}
                 className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold border whitespace-nowrap transition-colors ${
@@ -128,7 +165,17 @@ function FinancePage() {
           </div>
         </div>
 
+        {tab === "overview" && <OverviewSection period={period} onDrill={(k) => { setOpsKind(k); setTab("operations"); }} />}
+        {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
+        {tab === "planfact" && <PlanFactSection period={period} />}
+        {tab === "reconcile" && <ReconcileSection period={period} />}
+        {tab === "finmap" && <FinmapSection />}
+        {tab === "payroll" && <PayrollSection />}
+        {tab === "receivables" && <ReceivablesSection invoices={invoices as any[]} payments={payments as any[]} />}
+        {tab === "payables" && <PayablesSection expenses={expenses as any[]} />}
+        {tab === "categories" && <CategoriesSection />}
         {tab === "projects" && <ProjectsTab />}
+
         {tab === "invoices" && <InvoicesTab invoices={invoices as any[]} orders={orders as any[]} clients={clients as any[]} onChange={invalidate} />}
         {tab === "payments" && <PaymentsTab rows={payments as any[]} invoices={invoices as any[]} orders={orders as any[]} accounts={accounts as any[]} onChange={invalidate} />}
         {tab === "expenses" && <ExpensesTab rows={expenses as any[]} orders={orders as any[]} accounts={accounts as any[]} onChange={invalidate} />}

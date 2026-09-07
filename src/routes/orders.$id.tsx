@@ -703,12 +703,23 @@ function ProductionTab({ o }: { o: any }) {
 function FinanceTab({ o }: { o: any }) {
   const pnlFn = useServerFn(getOrderPnl);
   const resFn = useServerFn(listReservations);
+  const finFn = useServerFn(getOrderFinance);
   const { data: pnl } = useQuery({ queryKey: ["order-pnl", o.id], queryFn: () => pnlFn({ data: { order_id: o.id } }), enabled: !!o?.id, retry: false });
   const { data: reservations = [] } = useQuery({ queryKey: ["order-reservations", o.id], queryFn: () => resFn({ data: { order_id: o.id } }), enabled: !!o?.id, retry: false });
+  const fin = useQuery({ queryKey: ["order-finance", o.id], queryFn: () => finFn({ data: { order_id: o.id } }), enabled: !!o?.id, retry: false });
+  const f = fin.data;
 
+  const row = (title: string, plan: number, fact: number) => (
+    <div key={title} className="grid grid-cols-4 gap-2 border-b border-border/50 py-1.5 text-sm">
+      <span className="text-muted-foreground">{title}</span>
+      <span className="text-right tabular-nums">{formatUah(plan)}</span>
+      <span className="text-right tabular-nums">{formatUah(fact)}</span>
+      <span className={`text-right tabular-nums ${fact - plan >= 0 ? "text-success" : "text-destructive"}`}>{formatUah(fact - plan)}</span>
+    </div>
+  );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       <div className="grid md:grid-cols-3 gap-3">
         <StatBox label="Виручка (план)" value={formatUah(pnl?.revenuePlan ?? 0)} />
         <StatBox label="Оплачено (факт)" value={formatUah(pnl?.revenueFact ?? 0)} />
@@ -717,6 +728,70 @@ function FinanceTab({ o }: { o: any }) {
         <StatBox label="Витрати (факт)" value={formatUah(pnl?.costFact ?? 0)} />
         <StatBox label="Прибуток факт / план" value={`${formatUah(pnl?.profitFact ?? 0)} / ${formatUah(pnl?.profitPlan ?? 0)}`} />
       </div>
+
+      {fin.error && (
+        <div className="rounded-lg border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+          Фінансовий контур доступний лише для ролей адміністратор, директор і фінансист.
+        </div>
+      )}
+
+      {f && (
+        <>
+          <div className="grid md:grid-cols-4 gap-3">
+            <StatBox label="Дебіторка" value={formatUah(f.receivable)} />
+            <StatBox label="З них прострочено" value={formatUah(f.receivableOverdue)} />
+            <StatBox label="Кредиторка" value={formatUah(f.payable)} />
+            <StatBox label="Маржа факт / план" value={`${f.fact.margin.toFixed(1)} % / ${f.plan.margin.toFixed(1)} %`} />
+          </div>
+
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">План / факт по об'єкту</div>
+            <div className="grid grid-cols-4 gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
+              <span>Показник</span><span className="text-right">План</span><span className="text-right">Факт</span><span className="text-right">Відхилення</span>
+            </div>
+            {row("Виручка", f.plan.revenue, f.fact.revenue)}
+            {row("Собівартість", f.plan.cost, f.fact.cost)}
+            {row("Прибуток", f.plan.profit, f.fact.profit)}
+          </div>
+
+          <div>
+            <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+              ФОТ по об'єкту · нараховано {formatUah(f.payroll.accrued)} · до виплати {formatUah(f.payroll.due)}
+            </div>
+            {f.payroll.schedule.length === 0 && (
+              <div className="text-xs text-muted-foreground">Нарахувань ФОТ на це замовлення ще немає.</div>
+            )}
+            <div className="space-y-1">
+              {f.payroll.schedule.map((s) => (
+                <div key={s.period} className="rounded-lg border border-border p-2.5 text-sm">
+                  <div className="flex justify-between font-semibold">
+                    <span>Період {s.period}</span>
+                    <span className="tabular-nums">{formatUah(s.accrued)}</span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                    <span>Аванс {s.advanceDate.split("-").reverse().join(".")}: <b className="text-foreground tabular-nums">{formatUah(s.advanceAmount)}</b></span>
+                    <span>Остаток {s.settlementDate.split("-").reverse().join(".")}: <b className="text-foreground tabular-nums">{formatUah(s.settlementAmount)}</b></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {f.invoices.length > 0 && (
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Рахунки та залишок до оплати</div>
+              <div className="space-y-1">
+                {f.invoices.map((i) => (
+                  <div key={i.id} className="flex justify-between border-b border-border/50 py-1.5 text-sm">
+                    <span>№{i.number ?? "—"} · {i.status}{i.due_date ? ` · до ${String(i.due_date).split("-").reverse().join(".")}` : ""}</span>
+                    <span className="tabular-nums">{formatUah(i.paid)} / {formatUah(i.total)} · залишок {formatUah(i.rest)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       <div>
         <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">Резерв матеріалів на складі</div>
@@ -732,12 +807,13 @@ function FinanceTab({ o }: { o: any }) {
       </div>
 
       <div className="flex gap-3 text-xs">
-        <Link to="/finance" className="text-primary font-semibold hover:underline">Відкрити Фінанси</Link>
+        <Link to="/finance" search={{ tab: "overview" }} className="text-primary font-semibold hover:underline">Відкрити Фінанси</Link>
         <Link to="/warehouse" className="text-primary font-semibold hover:underline">Відкрити Склад</Link>
       </div>
     </div>
   );
 }
+
 
 function CommentsTab({ o }: { o: any }) {
   const qc = useQueryClient();
