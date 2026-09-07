@@ -80,13 +80,14 @@ export const listOrders = createServerFn({ method: "GET" })
     void profs;
     const { staffNameMap } = await import("./staff.server");
     const mgrMap = await staffNameMap(managerIds as string[]);
-    return rows.map((r: any) => ({
+    return wrap(rows.map((r: any) => ({
       ...r,
       services: svcMap.get(r.id) ?? [],
       client: r.client_id ? cliMap.get(r.client_id) ?? null : null,
       manager_display: r.manager_id ? mgrMap.get(r.manager_id) ?? null : null,
-    }));
+    }))) as any;
   });
+
 
 export const getOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
