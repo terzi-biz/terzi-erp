@@ -183,7 +183,7 @@ function ClientsPage() {
         </div>
       )}
 
-      <div className="mb-3 text-xs text-muted-foreground">Знайдено: <span className="font-semibold text-foreground">{filtered.length}</span> із {rows.length}</div>
+      <div className="mb-3 text-xs text-muted-foreground">Показано: <span className="font-semibold text-foreground">{filtered.length}</span> · знайдено всього {total}</div>
 
       {view === "table" ? (
         <div className="rounded-md border border-border bg-card overflow-x-auto shadow-[0_1px_2px_rgba(0,0,0,.12)]">
