@@ -43,9 +43,25 @@ export async function testProvider(provider: string): Promise<ProviderTest> {
   if (missing.length) {
     return { ok: false, configured: false, message: `Не задано: ${missing.join(", ")}` };
   }
+  if (provider === "google_ads") {
+    try {
+      const { googleAdsTestConnection } = await import("../integrations/foundation/google-ads.server");
+      const acc = await googleAdsTestConnection();
+      return {
+        ok: acc.active,
+        configured: true,
+        message: acc.active
+          ? `Кабінет «${acc.name}» (${acc.currency}) доступний`
+          : `Кабінет «${acc.name}» неактивний`,
+      };
+    } catch (e) {
+      return { ok: false, configured: true, message: e instanceof Error ? e.message : "Помилка Google Ads API" };
+    }
+  }
   if (provider === "binotel") {
     return { ok: true, configured: true, message: "Ключі Binotel знайдено — перевірка з'єднання у розділі «Інтеграції та API»" };
   }
+
   if (provider === "meta_ads" || provider === "instagram" || provider === "facebook") {
     try {
       const { metaTestConnection } = await import("../integrations/foundation/meta-ads.server");
