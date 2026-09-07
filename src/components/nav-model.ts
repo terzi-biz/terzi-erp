@@ -74,10 +74,18 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/orders",
     children: [
       { to: "/orders", label: "Замовлення" },
-      { to: "/operations", label: "Планування і бригади" },
       { to: "/production", label: "Виробництво, план/факт" },
       { to: "/warehouse", label: "Склад і закупівлі" },
       { to: "/equipment", label: "Обладнання" },
+    ],
+  },
+  {
+    key: "calendar",
+    label: "Календар",
+    to: "/operations",
+    children: [
+      { to: "/operations", label: "Календар робіт і замірів" },
+      { to: "/crm/measurements", label: "Заміри: список і статуси" },
     ],
   },
   {
