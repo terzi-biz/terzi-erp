@@ -441,8 +441,9 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const { data: lead, error: le } = await sb.from("crm_leads")
-      .select("id, title, client_id, contact_id, order_id, address, phone_e164, source, assigned_to, budget, area")
+      .select("id, title, client_id, contact_id, order_id, address, district, phone_e164, source, assigned_to, budget, area, notes, utm, direction, campaign, external_source, external_id, marketing_channel_id, marketing_campaign_id")
       .eq("id", data.lead_id).maybeSingle();
+
     if (le || !lead) throw new Error("Лід не знайдено");
     if (lead.order_id) return { order_id: lead.order_id as string, created: false };
     if (!lead.client_id && !lead.contact_id && !lead.phone_e164) {
