@@ -10,13 +10,14 @@ import {
 import { formatUah } from "@/lib/screed-calc";
 import {
   getFinanceOverview, listFinanceTransactions, getFinmapStatus, testFinmapConnection,
-  runFinmapSyncNow, listFinmapMappings, saveFinmapMapping, suggestTransactionLinks,
+  runFinmapSyncNow, runFinmapMatchNow, listFinmapMappings, saveFinmapMapping, suggestTransactionLinks,
   linkFinanceTransaction, getPlanFact,
 } from "@/lib/finance/finmap.functions";
 import {
   listPayrollProfiles, savePayrollProfile, calculatePayrollPeriod, listPayrollCalculations,
-  setPayrollKpiFact, setPayrollStatus, reconcilePayrollPayments,
+  setPayrollKpiFact, setPayrollStatus, reconcilePayrollPayments, pushPayrollPaymentToFinmap,
 } from "@/lib/finance/payroll.functions";
+import { listAccounts } from "@/lib/finance.functions";
 import { payrollScheduleFor } from "@/lib/finance/payroll-engine";
 
 export const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
@@ -334,6 +335,20 @@ export function FinmapSection() {
     onError: (e: any) => toast.error(e?.message ?? "Помилка синхронізації"),
   });
 
+  const matchFn = useServerFn(runFinmapMatchNow);
+  const match = useMutation({
+    mutationFn: () => matchFn(),
+    onSuccess: (reports: any[]) => {
+      const linked = reports.reduce((a, r) => a + r.linked, 0);
+      const review = reports.reduce((a, r) => a + r.review, 0);
+      toast.success(`Автозв'язок: зв'язано ${linked}, на перевірку ${review}`);
+      qc.invalidateQueries({ queryKey: ["finmap-status"] });
+      qc.invalidateQueries({ queryKey: ["finmap-mappings"] });
+      qc.invalidateQueries({ queryKey: ["fin-tx"] });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Помилка автозв'язку"),
+  });
+
   const lastSuccess = useMemo(() => {
     const dates = ((data?.state ?? []) as any[]).map((s) => s.last_success_at).filter(Boolean).sort();
     return dates.length ? new Date(dates[dates.length - 1]).toLocaleString("uk-UA") : null;
@@ -366,6 +381,10 @@ export function FinmapSection() {
             <button className={`${btn} border border-border`} disabled={sync.isPending || !data?.configured}
               onClick={() => sync.mutate("initial")}>
               Повна синхронізація
+            </button>
+            <button className={`${btn} border border-border`} disabled={match.isPending || !data?.configured}
+              onClick={() => match.mutate()} title="Прив'язати проєкти, контрагентів і операції до об'єктів та клієнтів">
+              Автозв'язок з об'єктами
             </button>
           </div>
         </div>
@@ -461,6 +480,10 @@ export function PayrollSection() {
   const reconcileFn = useServerFn(reconcilePayrollPayments);
   const profilesFn = useServerFn(listPayrollProfiles);
   const saveProfileFn = useServerFn(savePayrollProfile);
+  const pushFn = useServerFn(pushPayrollPaymentToFinmap);
+  const accountsFn = useServerFn(listAccounts);
+  const { data: accounts = [] } = useQuery({ queryKey: ["fin-accounts"], queryFn: () => accountsFn() });
+  const [payAccount, setPayAccount] = useState("");
 
   const { data } = useQuery({ queryKey: ["payroll", period], queryFn: () => listFn({ data: { period } }) });
   const { data: profiles } = useQuery({ queryKey: ["payroll-profiles"], queryFn: () => profilesFn() });
@@ -492,6 +515,13 @@ export function PayrollSection() {
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
 
+  const push = useMutation({
+    mutationFn: (v: { calculation_id: string; payment_kind: "advance" | "salary"; amount: number; paid_at: string }) =>
+      pushFn({ data: { ...v, account_id: payAccount } }),
+    onSuccess: (r: any) => { toast.success(`Операцію створено у Finmap · залишок ${formatUah(r.rest)}`); refresh(); },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити операцію"),
+  });
+
   const schedule = payrollScheduleFor(period);
   const rows = (data?.rows ?? []) as any[];
   const totals = rows.reduce((a, r) => ({
@@ -512,6 +542,10 @@ export function PayrollSection() {
         <button className={`${btn} border border-border`} disabled={rec.isPending} onClick={() => rec.mutate()}>
           <RefreshCw className="w-4 h-4" /> Звірити з фактичними виплатами
         </button>
+        <select className={`${input} max-w-[220px]`} value={payAccount} onChange={(e) => setPayAccount(e.target.value)}>
+          <option value="">Рахунок виплати…</option>
+          {(accounts as any[]).map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+        </select>
         <span className="text-xs text-muted-foreground">
           Аванс 50% — {schedule.advanceDate} · остаточний розрахунок — {schedule.settlementDate}
         </span>
@@ -564,6 +598,19 @@ export function PayrollSection() {
                     {r.status === "awaiting_verification" && <button className="text-xs text-primary font-semibold" onClick={() => st.mutate({ calculation_id: r.id, to_status: "verified" })}>Перевірено</button>}
                     {r.status === "verified" && <button className="text-xs text-primary font-semibold" onClick={() => st.mutate({ calculation_id: r.id, to_status: "approved" })}>Затвердити</button>}
                     {["approved", "partially_paid"].includes(r.status) && <button className="text-xs text-primary font-semibold" onClick={() => st.mutate({ calculation_id: r.id, to_status: "scheduled" })}>До виплати</button>}
+                    {["approved", "scheduled", "partially_paid"].includes(r.status) && (
+                      <div className="flex flex-col items-end gap-0.5">
+                        <button className="text-xs font-semibold text-primary disabled:opacity-50" disabled={push.isPending || !payAccount}
+                          title={payAccount ? "Створити операцію авансу у Finmap" : "Спершу оберіть рахунок виплати"}
+                          onClick={() => push.mutate({ calculation_id: r.id, payment_kind: "advance", amount: Number(r.advance_amount) || 0, paid_at: schedule.advanceDate })}>
+                          Аванс → Finmap
+                        </button>
+                        <button className="text-xs font-semibold text-primary disabled:opacity-50" disabled={push.isPending || !payAccount}
+                          onClick={() => push.mutate({ calculation_id: r.id, payment_kind: "salary", amount: Math.max((Number(r.total_payable) || 0) - (Number(r.paid_amount) || 0), 0), paid_at: schedule.settlementDate })}>
+                          Остаток → Finmap
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

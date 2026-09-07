@@ -2344,6 +2344,7 @@ export type Database = {
       finance_categories: {
         Row: {
           archived: boolean
+          cost_class: string | null
           created_at: string
           finmap_id: string | null
           id: string
@@ -2356,6 +2357,7 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          cost_class?: string | null
           created_at?: string
           finmap_id?: string | null
           id?: string
@@ -2368,6 +2370,7 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          cost_class?: string | null
           created_at?: string
           finmap_id?: string | null
           id?: string
@@ -2399,6 +2402,8 @@ export type Database = {
           finmap_kind: string | null
           id: string
           kind: string
+          match_score: number | null
+          match_source: string | null
           name: string
           phone: string | null
           source: string
@@ -2414,6 +2419,8 @@ export type Database = {
           finmap_kind?: string | null
           id?: string
           kind?: string
+          match_score?: number | null
+          match_source?: string | null
           name: string
           phone?: string | null
           source?: string
@@ -2429,6 +2436,8 @@ export type Database = {
           finmap_kind?: string | null
           id?: string
           kind?: string
+          match_score?: number | null
+          match_source?: string | null
           name?: string
           phone?: string | null
           source?: string
@@ -2454,9 +2463,12 @@ export type Database = {
       finance_projects: {
         Row: {
           archived: boolean
+          client_id: string | null
           created_at: string
           finmap_id: string | null
           id: string
+          match_score: number | null
+          match_source: string | null
           name: string
           order_id: string | null
           source: string
@@ -2464,9 +2476,12 @@ export type Database = {
         }
         Insert: {
           archived?: boolean
+          client_id?: string | null
           created_at?: string
           finmap_id?: string | null
           id?: string
+          match_score?: number | null
+          match_source?: string | null
           name: string
           order_id?: string | null
           source?: string
@@ -2474,15 +2489,25 @@ export type Database = {
         }
         Update: {
           archived?: boolean
+          client_id?: string | null
           created_at?: string
           finmap_id?: string | null
           id?: string
+          match_score?: number | null
+          match_source?: string | null
           name?: string
           order_id?: string | null
           source?: string
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "finance_projects_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "finance_projects_order_id_fkey"
             columns: ["order_id"]
@@ -6377,6 +6402,8 @@ export type Database = {
           calculation_id: string | null
           created_at: string
           employee_id: string | null
+          finmap_external_id: string | null
+          finmap_status: string | null
           id: string
           match_status: string
           note: string | null
@@ -6391,6 +6418,8 @@ export type Database = {
           calculation_id?: string | null
           created_at?: string
           employee_id?: string | null
+          finmap_external_id?: string | null
+          finmap_status?: string | null
           id?: string
           match_status?: string
           note?: string | null
@@ -6405,6 +6434,8 @@ export type Database = {
           calculation_id?: string | null
           created_at?: string
           employee_id?: string | null
+          finmap_external_id?: string | null
+          finmap_status?: string | null
           id?: string
           match_status?: string
           note?: string | null

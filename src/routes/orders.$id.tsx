@@ -756,6 +756,46 @@ function FinanceTab({ o }: { o: any }) {
             {row("Прибуток", f.plan.profit, f.fact.profit)}
           </div>
 
+          {f.costBreakdown.length > 0 && (
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Собівартість факт по статтях · прямі витрати {formatUah(f.directCost)}
+              </div>
+              <div className="space-y-1">
+                {f.costBreakdown.map((c) => (
+                  <div key={c.cls} className="flex justify-between border-b border-border/50 py-1.5 text-sm">
+                    <span>{c.label}{c.direct ? "" : " · непрямі"}</span>
+                    <span className="tabular-nums font-semibold">{formatUah(c.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {f.finmap.rows.length > 0 && (
+            <div>
+              <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
+                Операції Finmap по об'єкту · надходження {formatUah(f.finmap.income)} · витрати {formatUah(f.finmap.expense)}
+              </div>
+              <div className="space-y-1 max-h-72 overflow-y-auto">
+                {f.finmap.rows.map((t) => (
+                  <div key={t.id} className="flex justify-between gap-3 border-b border-border/50 py-1.5 text-xs">
+                    <span className="min-w-0">
+                      <b className="block truncate">{t.category ?? t.comment ?? "—"}</b>
+                      <span className="text-muted-foreground">
+                        {String(t.op_date).split("-").reverse().join(".")}
+                        {t.counterparty ? ` · ${t.counterparty}` : ""}{t.cost_class ? ` · ${t.cost_class}` : ""}
+                      </span>
+                    </span>
+                    <span className={`shrink-0 tabular-nums font-semibold ${t.kind === "income" ? "text-success" : ""}`}>
+                      {t.kind === "income" ? "+" : "−"}{formatUah(t.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">
               ФОТ по об'єкту · нараховано {formatUah(f.payroll.accrued)} · до виплати {formatUah(f.payroll.due)}
@@ -771,8 +811,16 @@ function FinanceTab({ o }: { o: any }) {
                     <span className="tabular-nums">{formatUah(s.accrued)}</span>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
-                    <span>Аванс {s.advanceDate.split("-").reverse().join(".")}: <b className="text-foreground tabular-nums">{formatUah(s.advanceAmount)}</b></span>
-                    <span>Остаток {s.settlementDate.split("-").reverse().join(".")}: <b className="text-foreground tabular-nums">{formatUah(s.settlementAmount)}</b></span>
+                    <span>
+                      Аванс {s.advanceDate.split("-").reverse().join(".")}: <b className="text-foreground tabular-nums">{formatUah(s.advanceAmount)}</b>
+                      {" · сплачено "}<b className="text-foreground tabular-nums">{formatUah(s.advancePaid)}</b>
+                      {s.advanceRest > 0 ? <> · залишок <b className="text-destructive tabular-nums">{formatUah(s.advanceRest)}</b></> : null}
+                    </span>
+                    <span>
+                      Остаток {s.settlementDate.split("-").reverse().join(".")}: <b className="text-foreground tabular-nums">{formatUah(s.settlementAmount)}</b>
+                      {" · сплачено "}<b className="text-foreground tabular-nums">{formatUah(s.settlementPaid)}</b>
+                      {s.settlementRest > 0 ? <> · залишок <b className="text-destructive tabular-nums">{formatUah(s.settlementRest)}</b></> : null}
+                    </span>
                   </div>
                 </div>
               ))}

@@ -8,7 +8,7 @@ type Db = any;
 
 export type SyncEntity =
   | "health" | "currencies" | "accounts" | "categories" | "projects"
-  | "counterparties" | "operations" | "invoices";
+  | "counterparties" | "operations" | "invoices" | "match";
 
 export type SyncResult = {
   entity: SyncEntity;
@@ -214,6 +214,20 @@ export async function runFinmapSync(
     { entity: "projects", run: () => syncProjects(db) },
     { entity: "counterparties", run: () => syncCounterparties(db) },
     { entity: "operations", run: () => syncOperations(db, { from: opts.mode === "initial" ? opts.from ?? "2024-01-01" : opts.from, to: opts.to }) },
+    {
+      entity: "match" as SyncEntity,
+      run: async () => {
+        const { runFinmapAutoMatch } = await import("./finmap-match.server");
+        const reports = await runFinmapAutoMatch(db);
+        const linked = reports.reduce((s, r) => s + r.linked, 0);
+        const review = reports.reduce((s, r) => s + r.review, 0);
+        return {
+          entity: "match" as SyncEntity, status: "ok" as const,
+          fetched: linked + review, inserted: linked, updated: 0, skipped: review,
+          message: reports.map((r) => `${r.entity}: зв'язано ${r.linked}, на перевірку ${r.review}`).join("; "),
+        };
+      },
+    },
   ];
 
   for (const step of steps) {

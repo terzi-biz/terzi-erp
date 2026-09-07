@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { usePersistedState } from "@/lib/usePersistedState";
 import { getAnalyticsOverview, getAdsCurrencyBreakdown } from "@/lib/analytics.functions";
+import { getFinanceOverview } from "@/lib/finance/finmap.functions";
 import { currencyNote } from "@/lib/marketing/currency";
 import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } from "@/components/dashboard/panels";
 import {
@@ -153,6 +154,16 @@ function Dashboard() {
     queryFn: () => fxFn({ data: { from, to } }),
     enabled: !!user,
     retry: 1,
+    throwOnError: false,
+  });
+
+  const finFn = useServerFn(getFinanceOverview);
+  // Фінансовий контур доступний лише ролям admin/director/finance — помилка доступу просто ховає блок.
+  const { data: fin } = useQuery({
+    queryKey: ["dash", "finance", from, to],
+    queryFn: () => finFn({ data: { from, to, kind: "all", match_status: "all", limit: 1, offset: 0 } }),
+    enabled: !!user,
+    retry: false,
     throwOnError: false,
   });
 
@@ -392,9 +403,13 @@ function Dashboard() {
             <Panel title="Фінанси періоду" action={<Link to="/finance" search={{ tab: "overview" }} className="text-[11px] font-semibold text-primary">Фінанси</Link>}>
               <div className="space-y-2.5 text-[12px]">
                 {[
-                  ["Оплати (надходження)", show(k("payments"), money)],
-                  ["Витрати", show(k("expenses"), money)],
-                  ["Валовий прибуток", show(k("gross_profit"), money)],
+                  ["Замовлень у періоді", show(k("orders"), num)],
+                  ["Доходи (Finmap)", fin ? money(fin.income) : show(k("payments"), money)],
+                  ["Витрати (Finmap)", fin ? money(fin.expense) : show(k("expenses"), money)],
+                  ["Прибуток", fin ? money(fin.grossProfit) : show(k("gross_profit"), money)],
+                  ["Маржа", fin ? pct(fin.margin) : NO],
+                  ["Дебіторка", fin ? money(fin.receivable) : NO],
+                  ["Гроші на рахунках", fin ? money(fin.cashOnAccounts) : NO],
                   ["Сума договорів", show(contractValue, money)],
                   ["Реклама", show(spend, money) + (spend != null && fxNote ? ` (${fxNote})` : "")],
                   ["ROMI", romi == null ? NO : pct(romi)],
