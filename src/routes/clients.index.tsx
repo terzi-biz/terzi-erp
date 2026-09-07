@@ -276,7 +276,10 @@ function ClientsPage() {
         )}
       </div>
       )}
+
+      <Pagination page={page} pageSize={pageSize} total={total} onPage={setPage} onPageSize={setPageSize} />
     </div>
+
     </AppShell>
   );
 
