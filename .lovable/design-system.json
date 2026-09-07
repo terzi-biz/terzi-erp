@@ -2,7 +2,7 @@
   "meta": {
     "name": "TERZI ERP system ",
     "package": "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e",
-    "version": "6.0.0",
+    "version": "7.0.0",
     "framework": "react",
     "css_framework": "tailwind",
     "starter_template": "custom_design_system_tailwind",
@@ -11,7 +11,7 @@
     ],
     "source_type": "local",
     "source_manifest": {
-      "#enrichment": "88ce124dae6c7fbc88ccad47019d7944771267b0e097a72f8e7365c3b90fa52e",
+      "#enrichment": "734616504a09ca6a10540f48166623c92b923d75847d9e082774a3c7c180482b",
       ".dsignore": "fec09abd04add4db204ac068ff5a7642",
       ".github/workflows/ci.yml": "b1cb15df455c5abe55919354db71fdcb",
       ".gitignore": "6d9e901a692b46a83707c245fb03bc91",
@@ -100,7 +100,7 @@
       "src/assets/terzi-logo-gold.jpeg.asset.json": "4d38574e5674830474dac073f7fd623e",
       "src/assets/terzi-logo.jpeg.asset.json": "8ed37b52253011b03e10651731070ded",
       "src/components/AmortizationPanel.tsx": "0840fe9a7ca2d280c409429d0d9ba5c8",
-      "src/components/AppShell.tsx": "313554dc9aa732a3e621904c15907228",
+      "src/components/AppShell.tsx": "fabce572eb1a722d160bd277ccefa9c5",
       "src/components/CatalogPage.tsx": "ee0b471de45b535b25090dd5061022f3",
       "src/components/EstimateDraftControls.tsx": "fc9cb6b312e22e406c04d1204dea9a25",
       "src/components/EstimateLinkPicker.tsx": "9c8126b11eb44f165ce48357849a817a",
@@ -121,6 +121,7 @@
       "src/components/crm/LeadCardDialog.tsx": "8fbbe8ad942e6003461b0dd14931df1e",
       "src/components/crm/UnifiedTimeline.tsx": "0dc4055f6e6b293b9545a457abdf3f50",
       "src/components/dashboard/panels.tsx": "c9638321cdf66b37591fd4fef29edc50",
+      "src/components/finance/sections.tsx": "6f9d5ef85ab1acd1eb6f4433eb463950",
       "src/components/integrations/BinotelCallDialog.tsx": "0018ed57bd06b13e24d54ee0751ba70c",
       "src/components/integrations/BinotelCallsPanel.tsx": "7ffe8421a53b4d34ec72e9c4a6af894d",
       "src/components/integrations/BinotelPanel.tsx": "699608ff0aa78be3cca25cd11107f56d",
@@ -131,7 +132,7 @@
       "src/components/marketing/CrudPanel.tsx": "90a963c1a4910cbc22f1ab4a5e229a25",
       "src/components/marketing/MarketingShell.tsx": "309a074a4d1a9a24082bb426d48edde7",
       "src/components/marketing/nav.ts": "19c002ad954e7ded9cebe76644e9cd1f",
-      "src/components/nav-model.ts": "855924fc2191eb9743b9a3be8313494f",
+      "src/components/nav-model.ts": "701e6ba3855141c4c6af29d2b115e3ae",
       "src/components/roofing/PlanFactPanel.tsx": "0886ce38e240eae39c20a293c14b042e",
       "src/components/roofing/ProductionCard.tsx": "b7cb9eee59f0422e588db06ab27b9e37",
       "src/components/roofing/PurchaseSheet.tsx": "b0f32452b55dc3afb2e12e178e952cc5",
@@ -185,14 +186,14 @@
       "src/components/warehouse/WarehouseImportWizard.tsx": "c70e4578ed36b373dafdca8c895cd1d5",
       "src/hooks/use-mobile.tsx": "c0a0bdd4638c391a1dd06ac82074e60b",
       "src/hooks/useDebouncedValue.ts": "0ef272d3eebfbdf2c6f5184724113a01",
-      "src/index.ts": "152fde106e652fee6cbfbfa89e60b803",
+      "src/index.ts": "378b4816a87f3c61dc421ebb5224ed81",
       "src/integrations/lovable/index.ts": "2b281422ef62231e654f8668addb90a5",
       "src/integrations/supabase/auth-attacher.ts": "dad043cda134d909e52de0346c16625e",
       "src/integrations/supabase/auth-middleware.ts": "07a7c39fd62f38075d67d5aa0cb189ae",
       "src/integrations/supabase/client.server.ts": "24c2f9d3dadbb91e13970a31918bc153",
       "src/integrations/supabase/client.ts": "3a64714432051d16e6cacf8c69945f67",
       "src/integrations/supabase/previewAuthStorage.ts": "bc45a76c9242c4b85d6d4345625c46e9",
-      "src/integrations/supabase/types.ts": "46f7e8820d4754c316a32965d4100d03",
+      "src/integrations/supabase/types.ts": "7904bf69dc7658da1f37971e4ef18c52",
       "src/lib/__tests__/approved-business-rules.test.ts": "c743308b6a52c0587244ab6e219265ce",
       "src/lib/__tests__/core-wave-a.test.ts": "de6f9b021d3e3b2cb409ed921b03a4a1",
       "src/lib/__tests__/data-audit-apply.test.ts": "cc35fc4a2813837be0c924edede2110c",
@@ -285,6 +286,13 @@
       "src/lib/finance-calc.ts": "b6976bda5425fb9fd696578ae4d69751",
       "src/lib/finance.functions.ts": "7dd9e8bf87a5f32ddd79b0188b8eab35",
       "src/lib/finance.schema.ts": "f4023eb087f5c2d0a0c40d18886679a8",
+      "src/lib/finance/finance.schema.ts": "630efb91adac64d931bbf5cf613c28c2",
+      "src/lib/finance/finmap-client.server.ts": "ce496d90f5e0277f404bcc716acc8729",
+      "src/lib/finance/finmap-sync.server.ts": "528eece2b0dcfe75615fa3ff0f9213d6",
+      "src/lib/finance/finmap.functions.ts": "e977d10eb7471b8063808cebefdb9764",
+      "src/lib/finance/order-finance.functions.ts": "f9e3fabffd49d63fb8e6eb5a26e5f1d8",
+      "src/lib/finance/payroll-engine.ts": "b7112052d43c16fa9cfdea16ad8a4f7f",
+      "src/lib/finance/payroll.functions.ts": "fcc62c0527dd6023bf731833f7daccdb",
       "src/lib/gcal.functions.ts": "c1cb7e829bfab47d96247841a1370f2b",
       "src/lib/i18n.ts": "38535d08b49b1635de8a7dafd56c0660",
       "src/lib/insulation-calc.ts": "0adde3c220a16c0d58d8a76824910ef9",
@@ -311,6 +319,7 @@
       "src/lib/integrations/core.server.ts": "82202639289039d4bb021975a0480941",
       "src/lib/integrations/foundation/adapters.server.ts": "05573374a280e6683024a6d3bec68060",
       "src/lib/integrations/foundation/finmap.server.ts": "0d812eeb1decf9fcb40a65b8ce089dc4",
+      "src/lib/integrations/foundation/google-ads.server.ts": "b4407a268cd4282d18bb81b8cb41ab43",
       "src/lib/integrations/foundation/meta-ads.server.ts": "678199e6c015362194318080bf0b2db2",
       "src/lib/integrations/keycrm-constants.ts": "1094ab7e2a632b4359b1e5e6cb6ab8ba",
       "src/lib/integrations/keycrm/adapter.server.ts": "e5fb6ea2026640be90e97fd320816797",
@@ -400,7 +409,7 @@
       "src/lib/warehouse-variants.functions.ts": "8628a31a93017885b056b8d9606d5a8d",
       "src/lib/warehouse.functions.ts": "f26d9023e278a59fc042c5047e5c8167",
       "src/lib/warehouse.schema.ts": "6003fb483e6c20d2efec68a5c17c7611",
-      "src/routeTree.gen.ts": "cbab58cffae1c5f972824d61f4160355",
+      "src/routeTree.gen.ts": "215b04f63348a81b94c7989e7aac57ed",
       "src/router.tsx": "ad49a747879b18bc1eacec71d50d4e05",
       "src/routes/README.md": "7f49cf3bb7558aa775fd62140a37b175",
       "src/routes/[.]lovable.oauth.consent.tsx": "6be6d615ea785a172db0a1c30ef81014",
@@ -411,6 +420,7 @@
       "src/routes/access.tsx": "3c1293f7d48c7dd88f6fde58657d45bb",
       "src/routes/api/public/integrations/binotel/call-completed.tsx": "893192a2b8579b02f0e1cb5013862b2e",
       "src/routes/api/public/integrations/binotel/call-settings.tsx": "9867f39e30ed34b88fcc3c16db1b5731",
+      "src/routes/api/public/integrations/finmap/webhook.tsx": "a5b20cd0fb933644b36fc28ca8fe86e3",
       "src/routes/api/public/integrations/oauth.callback.tsx": "b9287257c792b85e3b7450cf95de0804",
       "src/routes/api/public/integrations/webhook.$slug.tsx": "12a4c1f63230118c1067a61932e27e95",
       "src/routes/api/public/integrations/worker.tsx": "c150db49f9fdd08588ac7d5a1a56e7b5",
@@ -432,9 +442,9 @@
       "src/routes/demolition.tsx": "7b5a37efbc057c317a3deb63edc28325",
       "src/routes/directions-editor.tsx": "4f48038f41cb41f15a10afbd3deb8043",
       "src/routes/equipment.tsx": "3da1619f022695e79263f5ac4f118e5c",
-      "src/routes/finance.tsx": "67d1ed250b95e8253a67b993ff08277e",
+      "src/routes/finance.tsx": "65a285d7df5df6408ff34d0566f4f943",
       "src/routes/history.tsx": "49771f2e85f7f90366bdceff4b40393e",
-      "src/routes/index.tsx": "e19c65f4210cc35acac704d2dc0559ef",
+      "src/routes/index.tsx": "6287579d069eda29ecb0a45045a59e13",
       "src/routes/insulation.tsx": "60774016fa6ced0a68773b67cbd89da9",
       "src/routes/integrations.tsx": "d1ef2a2ddd63932c54d37263e0e89197",
       "src/routes/invite.$token.tsx": "9ca9c1e02b5c9dad6c3a990383bc8150",
@@ -457,7 +467,7 @@
       "src/routes/objects.index.tsx": "869c81ae4db4a42d9b860ccef8be15dc",
       "src/routes/objects.new.tsx": "1e875454449e0b8842be1e26e11a61a2",
       "src/routes/operations.tsx": "bd63dd5dec1adf27179c1708de342513",
-      "src/routes/orders.$id.tsx": "25d6915425b155813707172291a4b185",
+      "src/routes/orders.$id.tsx": "0afaa8259981a7a6ffe0b8b0f15741f5",
       "src/routes/orders.index.tsx": "832369f2fc3230df577da6712ded8797",
       "src/routes/orders.new.tsx": "46463558596946460bda8db6a28ffc6f",
       "src/routes/production.$id.tsx": "801ec59404cdf50da0dde170c48f3a7b",
@@ -471,8 +481,8 @@
       "src/routes/settings.tsx": "0d5b85a740065cfd21627eb4aac1d198",
       "src/routes/warehouse.tsx": "8d97f6938f29bfcfcf760928a54e657c",
       "src/routes/works.tsx": "e2a0a0bd8d0bc18ca004b9c9449a9530",
-      "src/server.ts": "fbc6ebe75c2c10edbbe88119737e2f68",
-      "src/start.ts": "5f68ed421b064a9844dbb117e08f614b",
+      "src/server.ts": "07b68f9ab65bbc26123a9bf5e56912a9",
+      "src/start.ts": "81e6a07954f49f5f982e69de77f34db7",
       "src/styles.css": "26746676d993ff8b4459b0988894d110",
       "supabase/config.toml": "99f1c83eed0a4199fe1ca9ff679bdb05",
       "supabase/migrations/20260528073456_dbad7eb1-6f82-48ef-b0b3-477cccc0a02a.sql": "42bc767d958451355a60c8e128414212",
@@ -546,6 +556,8 @@
       "supabase/migrations/20260906233745_b8ddc0ee-d61e-4211-aa7e-74ada49e4bf8.sql": "bfb5e49dd3659042d26c9850ec748a34",
       "supabase/migrations/20260906233830_b35aa1eb-f6d8-4073-b7ce-88fd28fdd8bc.sql": "4892d08eca4147a8035892687f919336",
       "supabase/migrations/20260906235516_4d4a0a41-bc51-4d39-a866-47486b44815d.sql": "feecda5d67cd992e229f118ce5b9ae22",
+      "supabase/migrations/20260907092100_1ec610ca-880d-45c9-abc5-e881ad980102.sql": "9c2bfb69a9b50150a0b680d66fc18249",
+      "supabase/migrations/20260907092643_1910b011-3f54-429d-9753-3b2289b1a03d.sql": "38f8ba085e61c25ad84abe62b0fc1ad5",
       "supabase/seed.sql": "f1ed2342f081b5710113c5fded5bd9a1",
       "tsconfig.json": "994abf64c2b9f78b568879f80ed0170e",
       "vite.config.ts": "347d2c56bf01f9ff57d1355fbea8edb1",
@@ -1252,6 +1264,61 @@
     {
       "name": "LeadMatchDialog",
       "file": "src/components/dashboard/panels",
+      "import_path": ""
+    },
+    {
+      "name": "Metric",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "OverviewSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "OperationsSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "PlanFactSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "ReconcileSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "FinmapSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "PayrollSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "ReceivablesSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "PayablesSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "CategoriesSection",
+      "file": "src/components/finance/sections",
+      "import_path": ""
+    },
+    {
+      "name": "FinanceLinkIcon",
+      "file": "src/components/finance/sections",
       "import_path": ""
     },
     {
@@ -2173,6 +2240,42 @@
       "import_path": ""
     },
     {
+      "name": "PaginationContent",
+      "file": "src/components/ui/pagination",
+      "import_path": ""
+    },
+    {
+      "name": "PaginationLink",
+      "file": "src/components/ui/pagination",
+      "import_path": "",
+      "props": [
+        {
+          "name": "isActive",
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "name": "PaginationItem",
+      "file": "src/components/ui/pagination",
+      "import_path": ""
+    },
+    {
+      "name": "PaginationPrevious",
+      "file": "src/components/ui/pagination",
+      "import_path": ""
+    },
+    {
+      "name": "PaginationNext",
+      "file": "src/components/ui/pagination",
+      "import_path": ""
+    },
+    {
+      "name": "PaginationEllipsis",
+      "file": "src/components/ui/pagination",
+      "import_path": ""
+    },
+    {
       "name": "Popover",
       "file": "src/components/ui/popover",
       "import_path": ""
@@ -2645,6 +2748,11 @@
     {
       "name": "AuthProvider",
       "file": "src/lib/auth",
+      "import_path": ""
+    },
+    {
+      "name": "FinmapError",
+      "file": "src/lib/finance/finmap-client.server",
       "import_path": ""
     },
     {

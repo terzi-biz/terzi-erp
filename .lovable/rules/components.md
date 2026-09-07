@@ -355,6 +355,12 @@ import { CarouselPrevious } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f
 import { CatalogPage } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### CategoriesSection
+
+```ts
+import { CategoriesSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### ChartContainer
 
 ```ts
@@ -875,6 +881,24 @@ import { EstimateView } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-c
 | `onClientViewModeChange` | function | `—` |
 | `schedule` | object | `—` |
 
+### FinanceLinkIcon
+
+```ts
+import { FinanceLinkIcon } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### FinmapError
+
+```ts
+import { FinmapError } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### FinmapSection
+
+```ts
+import { FinmapSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### Form
 
 ```ts
@@ -1115,6 +1139,12 @@ import { MenubarSubTrigger } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9
 import { MenubarTrigger } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### Metric
+
+```ts
+import { Metric } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### ModuleStub
 
 ```ts
@@ -1188,6 +1218,18 @@ import { NumberInput } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf
 import { OneWayPanel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### OperationsSection
+
+```ts
+import { OperationsSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### OverviewSection
+
+```ts
+import { OverviewSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### Pagination
 
 ```ts
@@ -1204,16 +1246,76 @@ import { Pagination } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1
 | `onPage` | function | `—` |
 | `onPageSize` | function | `—` |
 
+### PaginationContent
+
+```ts
+import { PaginationContent } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PaginationEllipsis
+
+```ts
+import { PaginationEllipsis } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PaginationItem
+
+```ts
+import { PaginationItem } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PaginationLink
+
+```ts
+import { PaginationLink } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+**Props:**
+
+| Prop | Type | Default |
+|---|---|---|
+| `isActive` | boolean | `—` |
+
+### PaginationNext
+
+```ts
+import { PaginationNext } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PaginationPrevious
+
+```ts
+import { PaginationPrevious } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### Panel
 
 ```ts
 import { Panel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### PayablesSection
+
+```ts
+import { PayablesSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PayrollSection
+
+```ts
+import { PayrollSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### PlanFactPanel
 
 ```ts
 import { PlanFactPanel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### PlanFactSection
+
+```ts
+import { PlanFactSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
 ### Popover
@@ -1282,6 +1384,18 @@ import { RadioGroup } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1
 
 ```ts
 import { RadioGroupItem } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### ReceivablesSection
+
+```ts
+import { ReceivablesSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### ReconcileSection
+
+```ts
+import { ReconcileSection } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
 ### ResizableHandle
