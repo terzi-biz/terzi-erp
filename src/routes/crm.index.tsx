@@ -193,8 +193,9 @@ function CrmDashboard() {
                   <Kpi icon={Ruler} label="Заміри" value={String(funnel.measurements)} hint={`лід → замір ${pctText(funnel.leadToMeasure)}`} />
                   <Kpi icon={TrendingUp} label="Договори" value={String(funnel.contracts)} hint={`замір → договір ${pctText(funnel.measureToContract)}`} tone="good" />
                   <Kpi icon={Users} label="Лід → договір" value={pctText(funnel.leadToContract)} />
-                  <Kpi icon={AlertTriangle} label="План без факту" value={String(funnel.plannedWithoutFact)} tone={funnel.plannedWithoutFact ? "warn" : "default"} />
-                  <Kpi icon={AlertTriangle} label="Факт без події" value={String(funnel.factsWithoutEvent)} tone={funnel.factsWithoutEvent ? "warn" : "default"} />
+                  <Kpi icon={AlertTriangle} label="Прострочені заміри" value={String(funnel.overduePlanned)} tone={funnel.overduePlanned ? "warn" : "default"} />
+                  <Kpi icon={AlertTriangle} label="Без замірника" value={String(funnel.withoutSurveyor)} tone={funnel.withoutSurveyor ? "warn" : "default"} />
+
                 </div>
               ) : (
                 <div className="text-sm text-muted-foreground">Немає даних за період</div>
