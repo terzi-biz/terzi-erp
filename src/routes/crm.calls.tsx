@@ -227,13 +227,22 @@ function CallRow({ call }: { call: CallFeedRow }) {
   const recFn = useServerFn(getCallRecording);
   const [url, setUrl] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const load = useMutation({
     mutationFn: () => recFn({ data: { call_id: call.id } }),
     onSuccess: (res: any) => {
-      if (res?.url) { setUrl(res.url); setOpen(true); }
-      else toast.info(res?.reason ?? "Запис недоступний");
+      if (res?.url) { setUrl(res.url); setOpen(true); setErr(null); }
+      else {
+        const reason = res?.reason ?? "Запис недоступний";
+        setErr(reason); setOpen(true);
+        toast.info(reason);
+      }
     },
-    onError: (e: any) => toast.error(e?.message ?? "Не вдалося отримати запис"),
+    onError: (e: any) => {
+      const msg = e?.message ?? "Не вдалося отримати запис";
+      setErr(msg); setOpen(true);
+      toast.error(msg);
+    },
   });
 
   const inbound = call.direction === "inbound";
