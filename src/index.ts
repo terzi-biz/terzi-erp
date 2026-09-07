@@ -36,7 +36,7 @@ export { ProductionCard } from "./components/roofing/ProductionCard"
 export { PurchaseSheet } from "./components/roofing/PurchaseSheet"
 export { MaterialVariantCard } from "./components/warehouse/MaterialVariantCard"
 export { WarehouseImportWizard } from "./components/warehouse/WarehouseImportWizard"
-export { Constants } from "./integrations/supabase/types"
+export { Constants, type Database } from "./integrations/supabase/types"
 export { AuthProvider, useAuth } from "./lib/auth"
 
 export * from "./components/ui/accordion";
