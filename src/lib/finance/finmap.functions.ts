@@ -298,10 +298,27 @@ export const getPlanFact = createServerFn({ method: "POST" })
 
     const est = (estimates ?? []) as any[];
     const plan: Record<string, number> = Object.fromEntries(ARTICLES.map((a) => [a, 0]));
-    plan.revenue = est.reduce((s, e) => s + (Number(e.total) || 0), 0);
-    plan.materials = est.reduce((s, e) => s + (Number(e.materials_total) || 0), 0);
-    plan.labour = est.reduce((s, e) => s + (Number(e.works_total) || 0), 0);
-    plan.logistics = est.reduce((s, e) => s + (Number(e.logistics_total) || 0), 0);
+    plan.revenue = est.reduce((s, e) => s + (Number(e.total_client) || 0), 0);
+    // Плановий кошик витрат — із незмінного знімка кошторису (internal_lines).
+    const ARTICLE_BY_KIND: Record<string, string> = {
+      material: "materials", materials: "materials",
+      work: "labour", works: "labour", labor: "labour", labour: "labour",
+      logistics: "logistics", delivery: "logistics",
+      equipment: "equipment", amortization: "equipment",
+      subcontract: "subcontract", other: "other",
+    };
+    let classified = 0;
+    for (const e of est) {
+      const lines = Array.isArray(e.internal_lines) ? e.internal_lines : [];
+      for (const l of lines as any[]) {
+        const art = ARTICLE_BY_KIND[String(l?.kind ?? l?.type ?? "other").toLowerCase()] ?? "other";
+        const v = Number(l?.cost ?? l?.total_cost ?? l?.amount) || 0;
+        plan[art] += v;
+        classified += v;
+      }
+    }
+    const totalCost = est.reduce((s, e) => s + (Number(e.total_cost) || 0), 0);
+    if (classified <= 0 && totalCost > 0) plan.other = totalCost;
 
     return ARTICLES.map((a) => {
       const p = plan[a] ?? 0, f = actual[a] ?? 0;
