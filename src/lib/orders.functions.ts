@@ -64,12 +64,13 @@ export const listOrders = createServerFn({ method: "GET" })
     const ids = rows.map((r: any) => r.id);
     const clientIds = Array.from(new Set(rows.map((r: any) => r.client_id).filter(Boolean)));
     const managerIds = Array.from(new Set(rows.map((r: any) => r.manager_id).filter(Boolean)));
-    const [{ data: services }, { data: clients }, { data: profs }] = await Promise.all([
+    const [{ data: services }, { data: clients }, { data: profs }, { data: zones }] = await Promise.all([
       context.supabase.from("order_services").select("order_id,service").in("order_id", ids),
       clientIds.length
         ? context.supabase.from("clients").select("id,name,phone").in("id", clientIds)
         : Promise.resolve({ data: [] as any[] }),
       Promise.resolve({ data: [] as any[] }),
+      context.supabase.from("order_zones").select("order_id,area").in("order_id", ids).eq("archived", false),
     ]);
     const svcMap = new Map<string, string[]>();
     (services ?? []).forEach((s: any) => {
@@ -77,6 +78,9 @@ export const listOrders = createServerFn({ method: "GET" })
       arr.push(s.service);
       svcMap.set(s.order_id, arr);
     });
+    // Площа об'єкта — сума площ незаархівованих зон; окремого поля в orders немає.
+    const areaMap = new Map<string, number>();
+    (zones ?? []).forEach((z: any) => areaMap.set(z.order_id, (areaMap.get(z.order_id) ?? 0) + (Number(z.area) || 0)));
     const cliMap = new Map<string, any>();
     (clients ?? []).forEach((c: any) => cliMap.set(c.id, c));
     void profs;
@@ -85,10 +89,12 @@ export const listOrders = createServerFn({ method: "GET" })
     return wrap(rows.map((r: any) => ({
       ...r,
       services: svcMap.get(r.id) ?? [],
+      total_area: areaMap.get(r.id) ?? null,
       client: r.client_id ? cliMap.get(r.client_id) ?? null : null,
       manager_display: r.manager_id ? mgrMap.get(r.manager_id) ?? null : null,
     }))) as any;
   });
+
 
 
 export const getOrder = createServerFn({ method: "POST" })

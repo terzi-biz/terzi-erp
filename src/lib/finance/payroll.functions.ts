@@ -267,7 +267,7 @@ export const pushPayrollPaymentToFinmap = createServerFn({ method: "POST" })
     if (e0 || !calc) throw new Error("Розрахунок не знайдено");
 
     const [{ data: account }, { data: cp }, { data: category }] = await Promise.all([
-      context.supabase.from("finance_accounts").select("id,name,finmap_id").eq("id", data.account_id).single(),
+      context.supabase.from("finance_accounts").select("id,name,finmap_id,actual_balance,opening_balance").eq("id", data.account_id).single(),
       context.supabase.from("finance_counterparties").select("id,finmap_id,finmap_kind").eq("employee_id", calc.employee_id).maybeSingle(),
       data.category_id
         ? context.supabase.from("finance_categories").select("id,finmap_id").eq("id", data.category_id).maybeSingle()
@@ -306,6 +306,24 @@ export const pushPayrollPaymentToFinmap = createServerFn({ method: "POST" })
     await context.supabase.from("payroll_payments")
       .update({ finmap_external_id: externalId, finmap_status: "sent" }).eq("id", payment.id);
 
+    // Локальне відображення факту: операція у витратах + зменшення залишку на рахунку.
+    // Ідемпотентність — за external_id; наступна синхронізація Finmap оновить цей же рядок.
+    const { data: txExists } = await context.supabase
+      .from("finance_transactions").select("id").eq("external_id", externalId).maybeSingle();
+    if (!txExists) {
+      await context.supabase.from("finance_transactions").insert({
+        kind: "expense", op_date: data.paid_at, amount: data.amount, amount_uah: data.amount,
+        currency: "UAH", account_id: account.id,
+        ...(data.category_id ? { category_id: data.category_id } : {}),
+        ...(cp?.id ? { counterparty_id: cp.id } : {}),
+        comment: data.note ?? `${data.payment_kind === "advance" ? "Аванс" : "Остаточний розрахунок"} — ${calc.employee?.full_name ?? ""}`.trim(),
+        source: "payroll", external_id: externalId, sync_status: "sent", match_status: "matched",
+      });
+      const balance = Number(account.actual_balance ?? account.opening_balance) || 0;
+      await context.supabase.from("finance_accounts")
+        .update({ actual_balance: balance - data.amount }).eq("id", account.id);
+    }
+
     const paid = (Number(calc.paid_amount) || 0) + data.amount;
     await context.supabase.from("payroll_calculations").update({
       paid_amount: paid,
@@ -319,3 +337,4 @@ export const pushPayrollPaymentToFinmap = createServerFn({ method: "POST" })
       rest: Math.max((Number(calc.total_payable) || 0) - paid, 0),
     };
   });
+
