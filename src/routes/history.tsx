@@ -224,10 +224,12 @@ function HistoryPage() {
             {isLoading && (
               <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">Завантаження…</td></tr>
             )}
-            {!isLoading && rows.length === 0 && (
-              <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">Поки немає кошторисів</td></tr>
+            {!isLoading && filtered.length === 0 && (
+              <tr><td colSpan={12} className="p-10 text-center text-muted-foreground">
+                {allRows.length === 0 ? "Поки немає кошторисів" : "Нічого не знайдено за фільтрами"}
+              </td></tr>
             )}
-            {(rows as EstimateRow[]).map((e) => {
+            {filtered.map((e) => {
               const cls = STATUS_CLS[e.status] ?? "bg-secondary";
               return (
                 <tr key={e.id} className="border-t border-border">
