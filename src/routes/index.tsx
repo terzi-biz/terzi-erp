@@ -1,14 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { usePersistedState } from "@/lib/usePersistedState";
 import { getAnalyticsOverview, getAdsCurrencyBreakdown } from "@/lib/analytics.functions";
 import { currencyNote } from "@/lib/marketing/currency";
+import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } from "@/components/dashboard/panels";
 import {
-  Plus, Target, Users, Ruler, FileText, Handshake, Wallet, PhoneCall, TrendingUp, TrendingDown,
+  Plus, Target, Users, Ruler, FileText, Handshake, Wallet, PhoneCall, TrendingUp, TrendingDown, ListChecks, Link2,
 } from "lucide-react";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -48,7 +50,7 @@ interface Overview {
   data_quality: Record<string, number>;
 }
 
-type RangeKey = "d7" | "d30" | "month" | "prev_month" | "quarter";
+type RangeKey = "d7" | "d30" | "month" | "prev_month" | "quarter" | "custom";
 
 const RANGES: Array<{ key: RangeKey; label: string }> = [
   { key: "d7", label: "7 днів" },
@@ -56,6 +58,7 @@ const RANGES: Array<{ key: RangeKey; label: string }> = [
   { key: "month", label: "Цей місяць" },
   { key: "prev_month", label: "Минулий місяць" },
   { key: "quarter", label: "Квартал" },
+  { key: "custom", label: "Свій період" },
 ];
 
 function rangeFor(key: RangeKey): { from: string; to: string } {
@@ -69,18 +72,25 @@ function rangeFor(key: RangeKey): { from: string; to: string } {
     case "month": return { from: iso(new Date(Date.UTC(y, m, 1))), to: iso(now) };
     case "prev_month": return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 0))) };
     case "quarter": return { from: iso(new Date(Date.UTC(y, m - 2, 1))), to: iso(now) };
+    case "custom": return { from: iso(back(89)), to: iso(now) };
   }
 }
 
+
 /* ---------- primitives ---------- */
 
-function Kpi({ icon: Icon, label, value, sub, d, tone = "navy" }: {
-  icon: any; label: string; value: string; sub?: string; d?: number | null; tone?: "navy" | "gold" | "green" | "red";
+function Kpi({ icon: Icon, label, value, sub, d, tone = "navy", onClick }: {
+  icon: any; label: string; value: string; sub?: string; d?: number | null; tone?: "navy" | "gold" | "green" | "red"; onClick?: () => void;
 }) {
   const bar = tone === "gold" ? "var(--color-gold)" : tone === "green" ? "var(--color-success)" : tone === "red" ? "var(--color-destructive)" : "var(--color-primary)";
   const up = d != null && d >= 0;
   return (
-    <div className="relative overflow-hidden rounded-lg border border-border bg-card p-3.5 shadow-[0_1px_2px_rgba(16,32,56,.07)]">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={`relative overflow-hidden rounded-lg border border-border bg-card p-3.5 text-left shadow-[0_1px_2px_rgba(16,32,56,.07)] transition-shadow ${onClick ? "cursor-pointer hover:border-primary hover:shadow-md" : ""}`}
+    >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: bar }} />
       <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">
         <Icon className="h-3.5 w-3.5" style={{ color: bar }} /> <span className="truncate">{label}</span>
@@ -94,9 +104,10 @@ function Kpi({ icon: Icon, label, value, sub, d, tone = "navy" }: {
         ) : null}
         {sub ? <span className="text-muted-foreground truncate">{sub}</span> : null}
       </div>
-    </div>
+    </button>
   );
 }
+
 
 function Panel({ title, action, children, className = "" }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
@@ -119,7 +130,14 @@ const Empty = ({ text = NO }: { text?: string }) => (
 function Dashboard() {
   const { user, profile } = useAuth();
   const [rangeKey, setRangeKey] = usePersistedState<RangeKey>("terzi:dash:range", "month");
-  const { from, to } = useMemo(() => rangeFor(rangeKey), [rangeKey]);
+  const [custom, setCustom] = usePersistedState<{ from: string; to: string }>("terzi:dash:custom", rangeFor("custom"));
+  const [drill, setDrill] = useState<{ metric: DrilldownMetric; title: string } | null>(null);
+  const [matchOpen, setMatchOpen] = useState(false);
+  const { from, to } = useMemo(
+    () => (rangeKey === "custom" ? custom : rangeFor(rangeKey)),
+    [rangeKey, custom],
+  );
+
 
   const overviewFn = useServerFn(getAnalyticsOverview);
   const fxFn = useServerFn(getAdsCurrencyBreakdown);
@@ -204,6 +222,25 @@ function Dashboard() {
         </div>
       </div>
 
+      {rangeKey === "custom" ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ручний період</span>
+          <input type="date" value={custom.from} max={custom.to}
+            onChange={(e) => setCustom({ ...custom, from: e.target.value })}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs" />
+          <span className="text-xs text-muted-foreground">—</span>
+          <input type="date" value={custom.to} min={custom.from}
+            onChange={(e) => setCustom({ ...custom, to: e.target.value })}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs" />
+          <button
+            onClick={() => setCustom({ from: "2026-06-01", to: "2026-09-07" })}
+            className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+          >
+            01.06 — 07.09
+          </button>
+        </div>
+      ) : null}
+
       {isLoading ? (
         <Empty text="Завантаження…" />
       ) : !cur ? (
@@ -211,21 +248,52 @@ function Dashboard() {
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-8">
-            <Kpi icon={Target} label="Заявки" value={show(leads, num)} d={delta(leads, kp("leads"))} />
-            <Kpi icon={Users} label="Цільові" value={show(k("qualified"), num)} d={delta(k("qualified"), kp("qualified"))} />
-            <Kpi icon={Ruler} label="Заміри" value={show(k("measurements_completed"), num)} sub={`призначено ${show(k("measurements_scheduled"), num)}`} d={delta(k("measurements_completed"), kp("measurements_completed"))} />
-            <Kpi icon={FileText} label="Кошториси" value={show(k("estimates"), num)} d={delta(k("estimates"), kp("estimates"))} />
-            <Kpi icon={Handshake} label="Договори" value={show(contracts, num)} d={delta(contracts, kp("contracts"))} tone="gold" />
-            <Kpi icon={Wallet} label="Сума договорів" value={show(contractValue, money)} d={delta(contractValue, kp("contract_value"))} tone="gold" />
-            <Kpi icon={Wallet} label="Оплати" value={show(k("payments"), money)} d={delta(k("payments"), kp("payments"))} tone="green" />
-            <Kpi icon={TrendingUp} label="Валовий прибуток" value={show(k("gross_profit"), money)} d={delta(k("gross_profit"), kp("gross_profit"))} tone={(k("gross_profit") ?? 0) < 0 ? "red" : "green"} />
+            <Kpi icon={Target} label="Заявки" value={show(leads, num)} d={delta(leads, kp("leads"))} onClick={() => setDrill({ metric: "leads", title: "Заявки (ліди)" })} />
+            <Kpi icon={Users} label="Цільові" value={show(k("qualified"), num)} d={delta(k("qualified"), kp("qualified"))} onClick={() => setDrill({ metric: "qualified", title: "Цільові ліди" })} />
+            <Kpi icon={Ruler} label="Заміри" value={show(k("measurements_completed"), num)} sub={`призначено ${show(k("measurements_scheduled"), num)}`} d={delta(k("measurements_completed"), kp("measurements_completed"))} onClick={() => setDrill({ metric: "measurements", title: "Заміри" })} />
+            <Kpi icon={FileText} label="Кошториси" value={show(k("estimates"), num)} d={delta(k("estimates"), kp("estimates"))} onClick={() => setDrill({ metric: "estimates", title: "Кошториси" })} />
+            <Kpi icon={Handshake} label="Договори" value={show(contracts, num)} d={delta(contracts, kp("contracts"))} tone="gold" onClick={() => setDrill({ metric: "contracts", title: "Договори" })} />
+            <Kpi icon={Wallet} label="Сума договорів" value={show(contractValue, money)} d={delta(contractValue, kp("contract_value"))} tone="gold" onClick={() => setDrill({ metric: "contracts", title: "Сума договорів" })} />
+            <Kpi icon={Wallet} label="Оплати" value={show(k("payments"), money)} d={delta(k("payments"), kp("payments"))} tone="green" onClick={() => setDrill({ metric: "payments", title: "Оплати" })} />
+            <Kpi icon={TrendingUp} label="Валовий прибуток" value={show(k("gross_profit"), money)} d={delta(k("gross_profit"), kp("gross_profit"))} tone={(k("gross_profit") ?? 0) < 0 ? "red" : "green"} onClick={() => setDrill({ metric: "payments", title: "Валовий прибуток: оплати періоду" })} />
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">
+            <Panel title="Задачі: сьогодні та прострочені" action={<Link to="/crm/tasks" className="text-[11px] font-semibold text-primary">Усі задачі</Link>}>
+              <TasksPanel />
+            </Panel>
+            <Panel
+              title="Автопідбір зв'язку лідів"
+              className="lg:col-span-2"
+              action={
+                <button onClick={() => setMatchOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[11px] font-semibold text-primary">
+                  <Link2 className="h-3 w-3" /> Показати кандидатів
+                </button>
+              }
+            >
+              <p className="text-[12px] text-muted-foreground">
+                Система порівнює ім'я, телефон, адресу й напрямок ліда з картками клієнтів і показує кандидатів із поясненням збігу.
+                Прив'язка виконується лише після вашого підтвердження.
+              </p>
+              <div className="mt-2 flex items-center gap-2 text-[12px]">
+                <ListChecks className="h-4 w-4 text-primary" />
+                <span className="text-muted-foreground">Лідів без клієнта за весь час:</span>
+                <b>{num(Number(cur.data_quality?.["leads_no_client"] ?? cur.data_quality?.["leads_no_manager"] ?? 0))}</b>
+              </div>
+            </Panel>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+
             <Panel title="Воронка: від заявки до договору" className="lg:col-span-2">
               <div className="space-y-2">
                 {funnel.map((f, i) => (
-                  <div key={f.label} className="flex items-center gap-3">
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => setDrill({ metric: (["leads", "qualified", "measurements", "measurements", "estimates", "contracts"] as DrilldownMetric[])[i], title: f.label })}
+                    className="flex w-full items-center gap-3 rounded-sm text-left hover:opacity-90"
+                  >
                     <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{f.label}</div>
                     <div className="h-8 flex-1 overflow-hidden rounded-sm bg-muted/60">
                       <div
@@ -238,8 +306,9 @@ function Dashboard() {
                     <div className="w-24 shrink-0 text-right text-[11px] text-muted-foreground">
                       {i === 0 ? "100%" : `${pct(f.ofPrev)} з поп.`}
                     </div>
-                  </div>
+                  </button>
                 ))}
+
                 {!funnel.length ? <Empty /> : null}
               </div>
               <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 text-[11px] md:grid-cols-4">
@@ -402,28 +471,38 @@ function Dashboard() {
 
           <Panel title="Якість даних" action={<Link to="/data-audit" className="text-[11px] font-semibold text-primary">Аудит даних</Link>}>
             <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-              {[
-                ["Ліди без джерела", "leads_no_source"],
-                ["Ліди без менеджера", "leads_no_manager"],
-                ["Дзвінки без зв'язку", "calls_unlinked"],
-                ["Заміри без замірника", "measurements_no_surveyor"],
-                ["Кошториси без замовлення", "estimates_no_order"],
-                ["Замовлення без джерела", "orders_no_source"],
-                ["Замовлення без суми", "orders_no_amount"],
-                ["Оплати без замовлення", "payments_no_order"],
-              ].map(([label, key]) => {
+              {([
+                ["Ліди без джерела", "leads_no_source", "dq_leads_no_source"],
+                ["Ліди без менеджера", "leads_no_manager", "dq_leads_no_manager"],
+                ["Дзвінки без зв'язку", "calls_unlinked", "dq_calls_unlinked"],
+                ["Заміри без замірника", "measurements_no_surveyor", "dq_measurements_no_surveyor"],
+                ["Кошториси без замовлення", "estimates_no_order", "dq_estimates_no_order"],
+                ["Замовлення без джерела", "orders_no_source", null],
+                ["Замовлення без суми", "orders_no_amount", "dq_orders_no_amount"],
+                ["Оплати без замовлення", "payments_no_order", null],
+              ] as Array<[string, string, DrilldownMetric | null]>).map(([label, key, metric]) => {
                 const v = Number(cur.data_quality?.[key] ?? 0);
                 return (
-                  <div key={key} className={`rounded-md border px-2.5 py-2 ${v ? "border-warning/50 bg-warning/10" : "border-border"}`}>
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!metric}
+                    onClick={() => metric && setDrill({ metric, title: label })}
+                    className={`rounded-md border px-2.5 py-2 text-left ${v ? "border-warning/50 bg-warning/10" : "border-border"} ${metric ? "hover:border-primary" : ""}`}
+                  >
                     <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
                     <div className={`mt-1 text-lg font-black ${v ? "text-warning" : "text-success"}`}>{num(v)}</div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
           </Panel>
         </>
       )}
+
+      <DrilldownDialog metric={drill?.metric ?? null} title={drill?.title ?? ""} from={from} to={to} onClose={() => setDrill(null)} />
+      <LeadMatchDialog open={matchOpen} onClose={() => setMatchOpen(false)} />
     </div>
+
   );
 }
