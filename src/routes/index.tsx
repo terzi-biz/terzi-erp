@@ -389,7 +389,7 @@ function Dashboard() {
               )}
             </Panel>
 
-            <Panel title="Фінанси періоду" action={<Link to="/finance" className="text-[11px] font-semibold text-primary">Фінанси</Link>}>
+            <Panel title="Фінанси періоду" action={<Link to="/finance" search={{ tab: "overview" }} className="text-[11px] font-semibold text-primary">Фінанси</Link>}>
               <div className="space-y-2.5 text-[12px]">
                 {[
                   ["Оплати (надходження)", show(k("payments"), money)],
