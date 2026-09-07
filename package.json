@@ -1,7 +1,7 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
-  "sideEffects": false,
+  "sideEffects": ["**/*.css"],
   "type": "module",
   "scripts": {
     "setup": "bun install && node -e \"const f=require('fs');if(!f.existsSync('.env'))f.copyFileSync('.env.example','.env')\"",

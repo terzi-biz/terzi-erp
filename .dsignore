@@ -1,0 +1,5 @@
+src/router.tsx
+src/routeTree.gen.ts
+src/start.ts
+src/server.ts
+src/main.tsx
