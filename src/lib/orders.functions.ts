@@ -51,9 +51,11 @@ export const listOrders = createServerFn({ method: "GET" })
     if (term) q = q.or(`name.ilike.*${term}*,number.ilike.*${term}*,address.ilike.*${term}*,district.ilike.*${term}*`);
     if (p.status) q = q.eq("commercial_status", p.status);
     if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); }
-    const { data, error, count } = await q as any;
-    if (error) { console.error("listOrders", error); throw new Error("Не вдалося завантажити об'єкти"); }
-    const rows = data ?? [];
+    const res = await (q as any);
+    if (res.error) { console.error("listOrders", res.error); throw new Error("Не вдалося завантажити об'єкти"); }
+    const count = res.count as number | null;
+    const rows = (res.data ?? []) as any[];
+
     const wrap = (list: any[]) => (paged ? { rows: list, total: count ?? list.length, page: p.page, page_size: p.page_size } : list);
     if (!rows.length) return wrap([]) as any;
 
