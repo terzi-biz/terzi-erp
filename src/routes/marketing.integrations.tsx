@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState } from "@/components/marketing/MarketingShell";
-import { updateMarketingIntegration, testMarketingIntegration, syncMetaAds } from "@/lib/marketing.functions";
+import { updateMarketingIntegration, testMarketingIntegration, syncMetaAds, syncGoogleAds } from "@/lib/marketing.functions";
 import { useState } from "react";
 
 export const Route = createFileRoute("/marketing/integrations")({
