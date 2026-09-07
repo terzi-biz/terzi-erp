@@ -374,7 +374,19 @@ export function FinmapSection() {
             {testResult.message}
           </div>
         )}
+        {data && !data.configured && (
+          <div className="mt-3 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm space-y-1">
+            <div className="font-semibold">Потрібен ключ доступу Finmap</div>
+            <ol className="list-decimal pl-5 text-muted-foreground space-y-0.5">
+              <li>У Finmap відкрийте «Налаштування → API» і створіть ключ Public API v2.2.</li>
+              <li>Збережіть його в ERP як секрет <code className="font-mono">FINMAP_API_KEY</code> (форма в чаті або Налаштування → Секрети).</li>
+              <li>Поверніться сюди, натисніть «Перевірити зв'язок», далі «Повна синхронізація».</li>
+            </ol>
+            <div className="text-[11px] text-muted-foreground">Ключ зберігається лише на сервері й ніколи не потрапляє у браузер.</div>
+          </div>
+        )}
       </div>
+
 
       <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         <Metric title="Рахунки" value={String(data?.counts.accounts ?? 0)} />
