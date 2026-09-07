@@ -92,8 +92,20 @@ export const NAV_SECTIONS: NavSection[] = [
     key: "finance",
     label: "Фінанси",
     to: "/finance",
-    children: [{ to: "/finance", label: "Оплати, витрати, борги, прибутковість" }],
+    children: [
+      { to: "/finance", label: "Огляд і cash flow", search: { tab: "overview" } },
+      { to: "/finance", label: "Операції", search: { tab: "operations" } },
+      { to: "/finance", label: "План/факт", search: { tab: "planfact" } },
+      { to: "/finance", label: "Звірка", search: { tab: "reconcile" } },
+      { to: "/finance", label: "Finmap", search: { tab: "finmap" } },
+      { to: "/finance", label: "ФОТ і KPI", search: { tab: "payroll" } },
+      { to: "/finance", label: "Дебіторка", search: { tab: "receivables" } },
+      { to: "/finance", label: "Кредиторка", search: { tab: "payables" } },
+      { to: "/finance", label: "Каса по проєктах", search: { tab: "projects" } },
+      { to: "/finance", label: "Рахунки, платежі, витрати", search: { tab: "invoices" } },
+    ],
   },
+
   {
     key: "analytics",
     label: "Аналітика",

@@ -65,9 +65,13 @@ function AppShellLayout({ children }: { children: ReactNode }) {
   const sections: NavSection[] = navForRoles(roles);
   const active = activeSectionKey(loc.pathname);
   const activeSection = sections.find((s) => s.key === active);
-  const activeChild = activeSection?.children.find((c) => c.to === loc.pathname);
+  const currentTab = (loc.search as Record<string, unknown> | undefined)?.tab;
+  const isChildActive = (c: { to: string; search?: Record<string, string> }) =>
+    loc.pathname === c.to && (!c.search?.tab || c.search.tab === currentTab);
+  const activeChild = activeSection?.children.find(isChildActive) ?? activeSection?.children.find((c) => c.to === loc.pathname);
   const [openKey, setOpenKey] = useState<string | null>(active);
   useEffect(() => { if (active) setOpenKey(active); }, [active]);
+
 
   const linkCls = (isActive: boolean) =>
     `flex items-center gap-3 px-4 py-2.5 text-[13px] font-semibold rounded-md mx-2 transition-colors ${
@@ -128,15 +132,17 @@ function AppShellLayout({ children }: { children: ReactNode }) {
                 <div className="mt-0.5 mb-1.5 ml-6 mr-2 border-l border-white/12 pl-3 space-y-0.5">
                   {s.children.map((c) => (
                     <Link
-                      key={`${s.key}:${c.to}`}
+                      key={`${s.key}:${c.to}:${c.search?.tab ?? ""}`}
                       to={c.to}
+                      search={(c.search ?? {}) as never}
                       className={`block rounded px-2 py-1.5 text-[12px] transition-colors ${
-                        loc.pathname === c.to ? "bg-white/10 text-[var(--color-gold)] font-bold" : "text-white/60 hover:text-white hover:bg-white/6"
+                        isChildActive(c) ? "bg-white/10 text-[var(--color-gold)] font-bold" : "text-white/60 hover:text-white hover:bg-white/6"
                       }`}
                     >
                       {c.label}
                     </Link>
                   ))}
+
                 </div>
               )}
             </div>
