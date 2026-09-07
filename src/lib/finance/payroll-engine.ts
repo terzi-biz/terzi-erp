@@ -139,6 +139,7 @@ export function computePayroll(input: PayrollInput): PayrollResult {
     reimbursement_amount: r2(reimbursements),
     total_payable: r2(total),
     settlement_amount: r2(total - advancePaid),
+    kpis,
   };
 }
 

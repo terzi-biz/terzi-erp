@@ -423,7 +423,7 @@ export function FinmapSection() {
             </tbody>
           </table>
         </div>
-        <button className={`${btn} mt-2 border border-border`} onClick={() => saveMapFn && qc.invalidateQueries({ queryKey: ["finmap-mappings"] })}>
+        <button className={`${btn} mt-2 border border-border`} onClick={() => { void qc.invalidateQueries({ queryKey: ["finmap-mappings"] }); }}>
           Оновити список
         </button>
       </div>

@@ -263,11 +263,11 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = { match_status: status };
     for (const [k, v] of Object.entries(fields)) if (v !== undefined) patch[k] = v;
     const { data: out, error } = await context.supabase
-      .from("finance_transactions").update(patch).eq("id", transaction_id).select().single();
+      .from("finance_transactions").update(patch as never).eq("id", transaction_id).select().single();
     if (error) { console.error("linkFinanceTransaction", error); throw new Error("Не вдалося зберегти зв'язок"); }
     await context.supabase.from("finance_transaction_links").insert({
       transaction_id, entity_type: fields.order_id ? "order" : fields.client_id ? "client" : "counterparty",
-      entity_id: fields.order_id ?? fields.client_id ?? fields.counterparty_id ?? null,
+      entity_id: (fields.order_id ?? fields.client_id ?? fields.counterparty_id ?? null) as string,
       amount: out.amount, confidence: 1, status: "manual", created_by: context.userId,
     });
     return out;

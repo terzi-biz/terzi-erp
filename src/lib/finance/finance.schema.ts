@@ -62,8 +62,8 @@ export const payrollProfileInput = z.object({
     rate: z.number().optional(),
     percent: z.number().optional(),
   })).default([]),
-  bonus_rules: z.record(z.any()).default({}),
-  payment_rules: z.record(z.any()).default({}),
+  bonus_rules: z.record(z.string(), z.any()).default({}),
+  payment_rules: z.record(z.string(), z.any()).default({}),
   valid_from: z.string().min(4),
   valid_to: z.string().min(4).nullish(),
 });
