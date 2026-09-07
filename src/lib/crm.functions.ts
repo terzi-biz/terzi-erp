@@ -126,7 +126,7 @@ export const listLeads = createServerFn({ method: "GET" })
       if (num.length >= 4) parts.push(`phone_e164.ilike.*${num}*`);
       q = q.or(parts.join(","));
     }
-    if (p.status) q = q.eq("status", p.status);
+    if (p.status) q = q.eq("status", p.status as any);
     if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
     const res = await (q as any);
     if (res.error) { console.error("listLeads", res.error); throw new Error("Не вдалося завантажити ліди"); }
@@ -221,7 +221,7 @@ export const listTasks = createServerFn({ method: "GET" })
       .order("due_at", { ascending: true });
     const term = likeTerm(p.q);
     if (term) q = q.or(`title.ilike.*${term}*,description.ilike.*${term}*`);
-    if (p.status) q = q.eq("status", p.status);
+    if (p.status) q = q.eq("status", p.status as any);
     if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(300); }
     const res = await (q as any);
     if (res.error) { console.error("listTasks", res.error); throw new Error("Не вдалося завантажити задачі"); }

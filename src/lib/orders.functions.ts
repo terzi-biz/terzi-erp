@@ -51,7 +51,7 @@ export const listOrders = createServerFn({ method: "GET" })
       .order("created_at", { ascending: false });
     const term = likeTerm(p.q);
     if (term) q = q.or(`name.ilike.*${term}*,number.ilike.*${term}*,address.ilike.*${term}*,district.ilike.*${term}*`);
-    if (p.status) q = q.eq("commercial_status", p.status);
+    if (p.status) q = q.eq("commercial_status", p.status as any);
     if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); }
     const res = await (q as any);
     if (res.error) { console.error("listOrders", res.error); throw new Error("Не вдалося завантажити об'єкти"); }
