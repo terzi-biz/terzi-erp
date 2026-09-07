@@ -60,6 +60,7 @@ Typography classes (`font-*` for families, `text-*` for sizes):
 |---|---|
 | `font-sans` | `--font-sans` |
 | `font-display` | `--font-display` |
+| `font-mono` | `--font-mono` |
 
 ## Border Radius
 

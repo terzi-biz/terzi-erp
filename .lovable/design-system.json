@@ -2,7 +2,7 @@
   "meta": {
     "name": "TERZI ERP system ",
     "package": "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e",
-    "version": "5.0.0",
+    "version": "6.0.0",
     "framework": "react",
     "css_framework": "tailwind",
     "starter_template": "custom_design_system_tailwind",
@@ -11,7 +11,7 @@
     ],
     "source_type": "local",
     "source_manifest": {
-      "#enrichment": "8ddfee46389c4c5a46f142183b1a5cfd8d867aaec54aae03130182ceef61010f",
+      "#enrichment": "88ce124dae6c7fbc88ccad47019d7944771267b0e097a72f8e7365c3b90fa52e",
       ".dsignore": "fec09abd04add4db204ac068ff5a7642",
       ".github/workflows/ci.yml": "b1cb15df455c5abe55919354db71fdcb",
       ".gitignore": "6d9e901a692b46a83707c245fb03bc91",
@@ -117,8 +117,10 @@
       "src/components/calc/CalcStepRail.tsx": "5c5bd625d1cb773b2c3a08c95f20e74b",
       "src/components/calc/CalcViewTabs.tsx": "388dff79b32d24f00024fb3889abaf00",
       "src/components/calc/GenericProductionCard.tsx": "bb9c960dae95e8142f315b6d181a5105",
-      "src/components/crm/LeadCardDialog.tsx": "cc66f311bc9656258053ca17accc33be",
+      "src/components/crm/CrmUi.tsx": "283fa3ba948c7a72945ddeb9f094a99c",
+      "src/components/crm/LeadCardDialog.tsx": "8fbbe8ad942e6003461b0dd14931df1e",
       "src/components/crm/UnifiedTimeline.tsx": "0dc4055f6e6b293b9545a457abdf3f50",
+      "src/components/dashboard/panels.tsx": "c9638321cdf66b37591fd4fef29edc50",
       "src/components/integrations/BinotelCallDialog.tsx": "0018ed57bd06b13e24d54ee0751ba70c",
       "src/components/integrations/BinotelCallsPanel.tsx": "7ffe8421a53b4d34ec72e9c4a6af894d",
       "src/components/integrations/BinotelPanel.tsx": "699608ff0aa78be3cca25cd11107f56d",
@@ -183,7 +185,7 @@
       "src/components/warehouse/WarehouseImportWizard.tsx": "c70e4578ed36b373dafdca8c895cd1d5",
       "src/hooks/use-mobile.tsx": "c0a0bdd4638c391a1dd06ac82074e60b",
       "src/hooks/useDebouncedValue.ts": "0ef272d3eebfbdf2c6f5184724113a01",
-      "src/index.ts": "d32ee9079dba4e16dcf65ce9d5e2b2f9",
+      "src/index.ts": "152fde106e652fee6cbfbfa89e60b803",
       "src/integrations/lovable/index.ts": "2b281422ef62231e654f8668addb90a5",
       "src/integrations/supabase/auth-attacher.ts": "dad043cda134d909e52de0346c16625e",
       "src/integrations/supabase/auth-middleware.ts": "07a7c39fd62f38075d67d5aa0cb189ae",
@@ -320,6 +322,8 @@
       "src/lib/integrations/sync-ops.server.ts": "e0b33e9c44ff1c1f62a5e2b38798ad55",
       "src/lib/integrations/webhook-core.ts": "f68bf2f90d2c5a16365527e3ce830b47",
       "src/lib/kyiv-time.ts": "dd854329a694b78d239b748c4e0b907c",
+      "src/lib/lead-match.functions.ts": "aecb32f6f4593400fef50ef1c0abecfe",
+      "src/lib/lead-match.server.ts": "6f10e0172e965f461253bd96b7bc1092",
       "src/lib/leads/intake.server.ts": "749bc36613e85678b6d77264bb90a51e",
       "src/lib/marketing.functions.ts": "e0ece8b09e387f518726b0cacd5b6e3f",
       "src/lib/marketing/adapters.server.ts": "e6b55c3f16c76a679490dc84c6e27336",
@@ -403,7 +407,7 @@
       "src/routes/[.mcp]/invoke-tool/$tool.ts": "2cc296128352d61d70726e7428ef5ca5",
       "src/routes/[.mcp]/list-tools.ts": "bc1d258eb3237605d066b9a536a63d5d",
       "src/routes/[.well-known]/oauth-protected-resource.ts": "2dbcc907a7d3ab43955e6dbbb99e7a1d",
-      "src/routes/__root.tsx": "0c04340b526b30b78e0b54956bc55a80",
+      "src/routes/__root.tsx": "1d932d8d639d7fca523f1084a4c59e90",
       "src/routes/access.tsx": "3c1293f7d48c7dd88f6fde58657d45bb",
       "src/routes/api/public/integrations/binotel/call-completed.tsx": "893192a2b8579b02f0e1cb5013862b2e",
       "src/routes/api/public/integrations/binotel/call-settings.tsx": "9867f39e30ed34b88fcc3c16db1b5731",
@@ -418,10 +422,10 @@
       "src/routes/clients.index.tsx": "55b82ad0531dcb485e8d60604c6056d9",
       "src/routes/crm.calls.tsx": "f6741a6bb99b0c48aca999fe71412668",
       "src/routes/crm.contacts.tsx": "1564770cde11aa92ed863f8ea4ce6ff7",
-      "src/routes/crm.index.tsx": "b08c33a13695e0dd902ce2001ed4ac82",
+      "src/routes/crm.index.tsx": "bd3a1b7ae58fe78f5813f4dccc346bd3",
       "src/routes/crm.intake.tsx": "f0e532b8fca0dc80fcc168f2dcdac3e9",
-      "src/routes/crm.leads.tsx": "48e862339e4268c2dc3de5e88dfe0378",
-      "src/routes/crm.measurements.tsx": "cbf165d82c63436909af6efc11f9847b",
+      "src/routes/crm.leads.tsx": "627b7a4dcf126c8860112a80df593779",
+      "src/routes/crm.measurements.tsx": "41234122a04923d7ca30ef748244913d",
       "src/routes/crm.tasks.tsx": "b7ba477e58927bbd6697ced030695f0f",
       "src/routes/data-audit.tsx": "f953ddf863e6b6bc9ae6e02e991bd2db",
       "src/routes/data-exchange.tsx": "ad4e2f3e36931e1a38d0234eef54fa23",
@@ -430,7 +434,7 @@
       "src/routes/equipment.tsx": "3da1619f022695e79263f5ac4f118e5c",
       "src/routes/finance.tsx": "67d1ed250b95e8253a67b993ff08277e",
       "src/routes/history.tsx": "49771f2e85f7f90366bdceff4b40393e",
-      "src/routes/index.tsx": "3d60e6721449157cd67858257d3ba84f",
+      "src/routes/index.tsx": "e19c65f4210cc35acac704d2dc0559ef",
       "src/routes/insulation.tsx": "60774016fa6ced0a68773b67cbd89da9",
       "src/routes/integrations.tsx": "d1ef2a2ddd63932c54d37263e0e89197",
       "src/routes/invite.$token.tsx": "9ca9c1e02b5c9dad6c3a990383bc8150",
@@ -454,7 +458,7 @@
       "src/routes/objects.new.tsx": "1e875454449e0b8842be1e26e11a61a2",
       "src/routes/operations.tsx": "bd63dd5dec1adf27179c1708de342513",
       "src/routes/orders.$id.tsx": "25d6915425b155813707172291a4b185",
-      "src/routes/orders.index.tsx": "9d71497052b181cbd01c7c2a31321f12",
+      "src/routes/orders.index.tsx": "832369f2fc3230df577da6712ded8797",
       "src/routes/orders.new.tsx": "46463558596946460bda8db6a28ffc6f",
       "src/routes/production.$id.tsx": "801ec59404cdf50da0dde170c48f3a7b",
       "src/routes/production.index.tsx": "e9ba6441d90977c14833d6d8517c2d54",
@@ -469,7 +473,7 @@
       "src/routes/works.tsx": "e2a0a0bd8d0bc18ca004b9c9449a9530",
       "src/server.ts": "fbc6ebe75c2c10edbbe88119737e2f68",
       "src/start.ts": "5f68ed421b064a9844dbb117e08f614b",
-      "src/styles.css": "cbfa19555118c9b369319a3e2f4f0cd6",
+      "src/styles.css": "26746676d993ff8b4459b0988894d110",
       "supabase/config.toml": "99f1c83eed0a4199fe1ca9ff679bdb05",
       "supabase/migrations/20260528073456_dbad7eb1-6f82-48ef-b0b3-477cccc0a02a.sql": "42bc767d958451355a60c8e128414212",
       "supabase/migrations/20260528073507_36f4e124-4b4d-4ddd-b715-d802e2bb9370.sql": "a5a69cb76eb73459f1582a6585a16d34",
@@ -770,12 +774,17 @@
     "typography": [
       {
         "name": "--font-sans",
-        "raw": "\"Inter\", system-ui, -apple-system, sans-serif",
+        "raw": "\"Manrope\", system-ui, -apple-system, sans-serif",
         "source": "src/styles.css"
       },
       {
         "name": "--font-display",
-        "raw": "\"Inter\", system-ui, sans-serif",
+        "raw": "\"Sora\", \"Manrope\", system-ui, sans-serif",
+        "source": "src/styles.css"
+      },
+      {
+        "name": "--font-mono",
+        "raw": "\"JetBrains Mono\", ui-monospace, monospace",
         "source": "src/styles.css"
       }
     ],
@@ -1201,6 +1210,26 @@
       "import_path": ""
     },
     {
+      "name": "CrmPage",
+      "file": "src/components/crm/CrmUi",
+      "import_path": ""
+    },
+    {
+      "name": "CrmEyebrow",
+      "file": "src/components/crm/CrmUi",
+      "import_path": ""
+    },
+    {
+      "name": "CrmKpi",
+      "file": "src/components/crm/CrmUi",
+      "import_path": ""
+    },
+    {
+      "name": "CrmPanel",
+      "file": "src/components/crm/CrmUi",
+      "import_path": ""
+    },
+    {
       "name": "LeadCardDialog",
       "file": "src/components/crm/LeadCardDialog",
       "import_path": ""
@@ -1208,6 +1237,21 @@
     {
       "name": "UnifiedTimeline",
       "file": "src/components/crm/UnifiedTimeline",
+      "import_path": ""
+    },
+    {
+      "name": "DrilldownDialog",
+      "file": "src/components/dashboard/panels",
+      "import_path": ""
+    },
+    {
+      "name": "TasksPanel",
+      "file": "src/components/dashboard/panels",
+      "import_path": ""
+    },
+    {
+      "name": "LeadMatchDialog",
+      "file": "src/components/dashboard/panels",
       "import_path": ""
     },
     {

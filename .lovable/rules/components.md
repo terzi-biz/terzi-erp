@@ -571,6 +571,30 @@ import { ContextMenuSubTrigger } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d
 import { ContextMenuTrigger } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
+### CrmEyebrow
+
+```ts
+import { CrmEyebrow } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### CrmKpi
+
+```ts
+import { CrmKpi } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### CrmPage
+
+```ts
+import { CrmPage } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### CrmPanel
+
+```ts
+import { CrmPanel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
 ### CrudPanel
 
 ```ts
@@ -695,6 +719,12 @@ import { DrawerTitle } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf
 
 ```ts
 import { DrawerTrigger } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### DrilldownDialog
+
+```ts
+import { DrilldownDialog } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
 ### DropdownMenu
@@ -969,6 +999,12 @@ import { Label } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45
 
 ```ts
 import { LeadCardDialog } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
+
+### LeadMatchDialog
+
+```ts
+import { LeadMatchDialog } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
 ```
 
 ### MarketingShell
@@ -1699,6 +1735,12 @@ import { TargetMarginPanel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9
 | `showInternal` | boolean | `true` |
 | `perUnitLabel` | string | `грн/м²` |
 | `className` | string | `text-[10px] uppercase tracking-wider text-muted-foreground` |
+
+### TasksPanel
+
+```ts
+import { TasksPanel } from "@ws-hoz2m0djtsah5idxd0aa/66607c05-a230-4d05-9f46-cf1edb45a91e"
+```
 
 ### TerziLogo
 
