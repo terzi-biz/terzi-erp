@@ -16,6 +16,7 @@ import {
 } from "@/lib/orders.constants";
 import { computeOrderKpi, crmUrl } from "@/lib/order-management";
 import { formatUah } from "@/lib/screed-calc";
+import { CrmEyebrow, CrmPage, CrmPanel, crmButton, crmInput } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/orders/")({
   ssr: false,
@@ -107,22 +108,23 @@ function OrdersPage() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-4">
+      <CrmPage className="mx-auto max-w-[1500px] space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">Замовлення</h1>
+            <CrmEyebrow>Commercial → Production</CrmEyebrow>
+            <h1 className="mt-1 text-2xl font-bold md:text-3xl">Замовлення</h1>
             <p className="text-sm text-muted-foreground mt-1">Замір → розрахунок → кошторис → договір → виробництво</p>
           </div>
-          <Link to="/orders/new" className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-semibold hover:opacity-90">
+          <Link to="/orders/new" className={crmButton}>
             <Plus className="w-4 h-4" /> Створити замовлення
           </Link>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-3 space-y-2">
+        <CrmPanel className="sticky top-14 z-20 space-y-2 p-3 backdrop-blur md:top-16">
           <div className="relative">
             <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук: номер, назва, адреса, клієнт, телефон…"
-              className="w-full pl-9 pr-3 py-2 rounded-md border border-input bg-background text-sm" />
+              className={`${crmInput} pl-9`} />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2">
             <select value={service} onChange={(e) => setService(e.target.value)} className={selectCls}>
@@ -165,7 +167,7 @@ function OrdersPage() {
             <button onClick={resetFilters} className="hover:text-foreground underline">Скинути фільтри</button>
             <span>Показано: <b className="text-foreground">{rows.length}</b> · знайдено всього {total}</span>
           </div>
-        </div>
+        </CrmPanel>
 
         {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Завантаження…</div>
@@ -175,13 +177,13 @@ function OrdersPage() {
             Замовлень за цими умовами немає.
           </div>
         ) : (
-          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-4">
             {rows.map((r: any) => <OrderCard key={r.id} r={r} />)}
           </div>
         )}
 
         <Pagination page={page} pageSize={pageSize} total={total} onPage={setPage} onPageSize={setPageSize} />
-      </div>
+      </CrmPage>
 
     </AppShell>
   );
@@ -191,7 +193,7 @@ function OrderCard({ r }: { r: any }) {
   const kpi = computeOrderKpi(r);
   const crm = crmUrl(r);
   return (
-    <div className="relative group bg-card border border-border rounded-xl overflow-hidden hover:border-primary/60 transition-colors">
+    <article className="relative group overflow-hidden rounded-md border border-border bg-card shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/60 hover:shadow-lg">
       <span className={`absolute left-0 top-0 h-full w-1 ${riskBar[r.risk_level] ?? "bg-muted"}`} />
       <Link to="/orders/$id" params={{ id: r.id }} className="block p-4 pl-5 space-y-3">
         <div className="flex items-start justify-between gap-2">
@@ -259,7 +261,7 @@ function OrderCard({ r }: { r: any }) {
           </a>
         )}
       </div>
-    </div>
+    </article>
   );
 }
 

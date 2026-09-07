@@ -2,13 +2,14 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, User, Phone } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, User, Phone, Search, CalendarClock, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listPipelines, listContacts, upsertLead, moveLeadStage } from "@/lib/crm.functions";
 import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
+import { CrmEyebrow, CrmPage, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
@@ -39,6 +40,7 @@ const emptyFilters = {
   utm_source: "", utm_medium: "", utm_campaign: "", utm_term: "", utm_content: "",
   service_type: "", object_type: "", areaFrom: "", areaTo: "",
   object_address: "", client_full_name: "", sumFrom: "", sumTo: "", contract_number: "",
+  query: "",
 };
 
 function LeadsPage() {
@@ -94,6 +96,7 @@ function LeadsPage() {
 
   const filtered = useMemo(() => (leads as any[]).filter((l) => {
     const f = l.fields ?? {};
+    if (filters.query && ![l.title, l.phone, l.client_name, l.address, l.source].some((v) => String(v ?? "").toLowerCase().includes(filters.query.toLowerCase()))) return false;
     if (filters.source && !(l.source ?? "").toLowerCase().includes(filters.source.toLowerCase())) return false;
     if (filters.manager && l.assigned_to !== filters.manager) return false;
     if (filters.note && !(l.notes ?? "").toLowerCase().includes(filters.note.toLowerCase())) return false;
@@ -142,25 +145,33 @@ function LeadsPage() {
 
   return (
     <AppShell>
-      <div className="space-y-4 p-4 md:p-6">
+      <CrmPage className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-black tracking-tight md:text-3xl">Воронка лідів</h1>
+            <CrmEyebrow>Продажі / Pipeline</CrmEyebrow>
+            <h1 className="mt-1 text-2xl font-bold md:text-3xl">Воронка лідів</h1>
             <p className="text-sm text-muted-foreground">
               Показані активні та успішні етапи · {filtered.length} лідів
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"}>
               {((pipe?.pipelines ?? []) as any[]).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
             </select>
             <button onClick={() => setShowFilters((v) => !v)}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-2 text-sm font-semibold ${showFilters ? "border-primary text-primary" : "border-border"}`}>
+              className={`${crmButtonOutline} ${showFilters ? "border-primary text-primary" : ""}`}>
               <SlidersHorizontal className="h-4 w-4" /> Фільтри
             </button>
-            <button onClick={() => setCreating(true)} className="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+            <button onClick={() => setCreating(true)} className={crmButton}>
               <Plus className="h-4 w-4" /> Новий лід
             </button>
+          </div>
+        </div>
+
+        <div className="sticky top-14 z-20 rounded-md border border-border bg-card/95 p-3 shadow-sm backdrop-blur md:top-16">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <input className={`${crmInput} pl-9`} value={filters.query} onChange={(e) => set("query", e.target.value)} placeholder="Пошук за лідом, клієнтом, телефоном, адресою або джерелом…" />
           </div>
         </div>
 
@@ -220,20 +231,20 @@ function LeadsPage() {
           </div>
         ) : null}
 
-        <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">
+          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">
           {stages.map((s, si) => {
             const items = filtered.filter((l) => l.stage_id === s.id);
             const sum = items.reduce((a, l) => a + Number(l.budget || 0), 0);
             const color = s.color || PALETTE[si % PALETTE.length];
             return (
-              <div key={s.id} className="w-[286px] shrink-0 rounded-md bg-muted/40">
-                <div className="rounded-t-md px-3 py-2" style={{ backgroundColor: color }}>
-                  <div className="truncate text-[12px] font-bold uppercase tracking-wide text-[#22303f]">{s.name}</div>
-                  <div className="text-[11px] font-medium text-[#22303f]/70">{items.length} лідів · {money(sum)}</div>
+              <div key={s.id} className="crm-stage-column w-[310px] shrink-0" style={{ borderTopColor: color }}>
+                <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-3">
+                  <div><div className="truncate text-[11px] font-extrabold uppercase text-foreground">{s.name}</div><div className="mt-1 font-mono text-[11px] text-muted-foreground">{money(sum)}</div></div>
+                  <span className="grid min-w-7 place-items-center rounded bg-secondary px-1.5 py-1 text-[11px] font-bold">{items.length}</span>
                 </div>
                 <div className="min-h-[120px] space-y-2 p-2">
                   {items.map((l) => (
-                    <div key={l.id} className="group rounded-[3px] border-l-[3px] bg-card px-3 py-2.5 shadow-[0_1px_2px_rgba(0,0,0,.18)] transition-shadow hover:shadow-[0_2px_6px_rgba(0,0,0,.28)]"
+                    <article key={l.id} className="crm-lead-card group px-3 py-3"
                       style={{ borderLeftColor: color }}>
                       <button onClick={() => setOpenId(l.id)} className="block w-full truncate text-left text-[13px] font-semibold leading-snug hover:text-primary">
                         {l.title}
@@ -246,9 +257,11 @@ function LeadsPage() {
                           <Phone className="h-3 w-3 shrink-0" />{l.phone}
                         </a>
                       ) : null}
-                      <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                      <div className="mt-1 truncate text-xs text-muted-foreground">
                         Менеджер: {l.manager_name ?? "не призначений"}
                       </div>
+                      {l.address ? <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3 w-3"/><span className="truncate">{l.address}</span></div> : null}
+                      {l.next_action_at ? <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-warning"><CalendarClock className="h-3 w-3"/>{new Date(l.next_action_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</div> : null}
                       <div className="mt-2 flex items-center justify-between">
                         <span className="text-[13px] font-bold">{money(Number(l.budget || 0))}</span>
                         <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -257,7 +270,7 @@ function LeadsPage() {
                         </span>
                       </div>
                       {l.source ? <span className="mt-2 inline-block rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{l.source}</span> : null}
-                    </div>
+                    </article>
                   ))}
                   {!items.length ? <div className="px-1 py-3 text-[11px] text-muted-foreground">Порожньо</div> : null}
                 </div>
@@ -266,7 +279,7 @@ function LeadsPage() {
           })}
           {!stages.length ? <div className="text-sm text-muted-foreground">Немає активних етапів у воронці</div> : null}
         </div>
-      </div>
+      </CrmPage>
 
       {creating ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 md:items-center md:p-4" onClick={() => setCreating(false)}>

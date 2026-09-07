@@ -19,6 +19,7 @@ import {
   MEASUREMENT_STATUS_LABELS,
   type MeasurementStatus,
 } from "@/lib/measurement-status";
+import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButton } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/measurements")({
   ssr: false,
@@ -148,29 +149,30 @@ function MeasurementsPage() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-4">
+      <CrmPage className="mx-auto max-w-[1500px] space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight flex items-center gap-2"><Ruler className="w-6 h-6" /> Заміри</h1>
+            <CrmEyebrow>Польові роботи / Measurement</CrmEyebrow>
+            <h1 className="mt-1 flex items-center gap-2 text-2xl font-bold md:text-3xl"><Ruler className="w-6 h-6" /> Заміри</h1>
             <p className="text-sm text-muted-foreground">Життєвий цикл заміру, факт замірів і конверсія лід → замір → договір</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
             <button onClick={() => { setForm(emptyForm); setOpen(true); }}
-              className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground flex items-center gap-2">
+              className={crmButton}>
               <Plus className="w-4 h-4" /> Запланувати замір
             </button>
           </div>
         </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Kpi label="Ліди" value={String(f?.leads ?? 0)} />
-          <Kpi label="Заміри (факт)" value={String(f?.measurements ?? 0)} />
-          <Kpi label="Договори" value={String(f?.contracts ?? 0)} />
-          <Kpi label="Лід → замір" value={pctText(f?.leadToMeasure ?? null)} />
-          <Kpi label="Замір → договір" value={pctText(f?.measureToContract ?? null)} />
-          <Kpi label="Лід → договір" value={pctText(f?.leadToContract ?? null)} />
+          <CrmKpi label="Ліди" value={String(f?.leads ?? 0)} />
+          <CrmKpi label="Заміри (факт)" value={String(f?.measurements ?? 0)} tone="gold" />
+          <CrmKpi label="Договори" value={String(f?.contracts ?? 0)} tone="success" />
+          <CrmKpi label="Лід → замір" value={pctText(f?.leadToMeasure ?? null)} />
+          <CrmKpi label="Замір → договір" value={pctText(f?.measureToContract ?? null)} />
+          <CrmKpi label="Лід → договір" value={pctText(f?.leadToContract ?? null)} />
         </div>
 
         {f && (f.overduePlanned > 0 || f.withoutSurveyor > 0) ? (
@@ -193,7 +195,7 @@ function MeasurementsPage() {
         {isLoading ? <div className="text-sm text-muted-foreground">Завантаження…</div> : null}
 
         {tab === "plan" ? (
-          <div className="rounded-xl border border-border bg-card divide-y divide-border/60">
+          <CrmPanel className="divide-y divide-border/60">
             {planned.map((e) => (
               <div key={e.id} className="px-3 py-2.5 flex items-center gap-3 text-sm flex-wrap">
                 <CalendarClock className="w-4 h-4 shrink-0 text-primary" />
@@ -218,7 +220,7 @@ function MeasurementsPage() {
               </div>
             ))}
             {!planned.length && !isLoading ? <div className="px-3 py-6 text-center text-sm text-muted-foreground">Запланованих замірів немає</div> : null}
-          </div>
+          </CrmPanel>
         ) : (
           <div className="rounded-xl border border-border bg-card overflow-x-auto">
             <table className="w-full text-sm">
@@ -267,7 +269,7 @@ function MeasurementsPage() {
             </table>
           </div>
         )}
-      </div>
+      </CrmPage>
 
       {open ? (
         <Modal title="Запланувати замір" onClose={() => setOpen(false)}>
@@ -397,11 +399,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border bg-card px-4 py-3">
-      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="mt-1.5 text-[22px] leading-none font-black tracking-tight">{value}</div>
-    </div>
-  );
-}

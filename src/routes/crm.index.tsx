@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listLeads, listTasks, listCalls, listPipelines, crmKpi } from "@/lib/crm.functions";
 import { listMeasurements } from "@/lib/measurements.functions";
+import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButtonOutline } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/")({
   ssr: false,
@@ -31,17 +32,8 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 const STAGE_PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#fd9b98", "#ccc8f9", "#f9deff"];
 
-function Kpi({ icon: Icon, label, value, hint, tone = "default" }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good" }) {
-  const toneCls = tone === "warn" ? "text-destructive" : tone === "good" ? "text-success" : "text-primary";
-  return (
-    <div className="rounded-md border border-border bg-card px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,.12)]">
-      <div className="flex items-center gap-2 text-[11px] uppercase tracking-wider text-muted-foreground">
-        <Icon className={`w-3.5 h-3.5 ${toneCls}`} /> {label}
-      </div>
-      <div className="mt-2 text-[26px] leading-none font-black tracking-tight">{value}</div>
-      {hint ? <div className="text-[11px] text-muted-foreground mt-1.5">{hint}</div> : null}
-    </div>
-  );
+function Kpi({ icon, label, value, hint, tone = "default" }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good" }) {
+  return <CrmKpi icon={icon} label={label} value={value} hint={hint} tone={tone === "warn" ? "danger" : tone === "good" ? "success" : "primary"} />;
 }
 
 type Tab = "funnel" | "measurements" | "activity";
@@ -114,18 +106,18 @@ function CrmDashboard() {
 
   return (
     <AppShell>
-      <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-5">
+      <CrmPage className="mx-auto max-w-[1500px] space-y-5">
         <div className="flex items-start justify-between gap-3 flex-wrap">
           <div>
-            <h1 className="text-2xl md:text-3xl font-black tracking-tight">CRM</h1>
-            <p className="text-sm text-muted-foreground">Воронка продажів, заміри, дзвінки та задачі</p>
+            <CrmEyebrow>Центр продажів</CrmEyebrow>
+            <h1 className="mt-1 text-2xl font-bold md:text-3xl">Командна панель CRM</h1>
+            <p className="mt-1 text-sm text-muted-foreground">Лід → замір → замовлення → кошторис</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link to="/crm/leads" className="rounded-md bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Воронка лідів</Link>
-            <Link to="/crm/measurements" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Заміри</Link>
-            <Link to="/crm/calls" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Дзвінки</Link>
-            <Link to="/crm/tasks" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Задачі</Link>
-            <Link to="/clients" className="rounded-md border border-border px-4 py-2 text-sm font-semibold">Клієнти</Link>
+            <Link to="/crm/leads" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground">Воронка лідів</Link>
+            <Link to="/crm/measurements" className={crmButtonOutline}>Заміри</Link>
+            <Link to="/crm/calls" className={crmButtonOutline}>Дзвінки</Link>
+            <Link to="/crm/tasks" className={crmButtonOutline}>Задачі</Link>
           </div>
         </div>
 
@@ -159,8 +151,8 @@ function CrmDashboard() {
         </div>
 
         {tab === "funnel" ? (
-          <div className="rounded-md border border-border bg-card p-4 shadow-[0_1px_2px_rgba(0,0,0,.12)]">
-            <div className="text-sm font-bold mb-3">Воронка по етапах</div>
+          <CrmPanel className="p-4">
+            <div className="mb-4 flex items-center justify-between"><div><CrmEyebrow>Pipeline control</CrmEyebrow><div className="mt-1 text-base font-bold">Воронка по етапах</div></div><span className="font-mono text-xs text-muted-foreground">{stats.open} активних</span></div>
             <div className="space-y-1.5">
               {byStage.map((s, i) => {
                 const max = Math.max(1, ...byStage.map((x) => x.count));
@@ -180,7 +172,7 @@ function CrmDashboard() {
               })}
               {!byStage.length ? <div className="text-sm text-muted-foreground">Немає етапів</div> : null}
             </div>
-          </div>
+          </CrmPanel>
         ) : null}
 
         {tab === "measurements" ? (
@@ -252,7 +244,7 @@ function CrmDashboard() {
             </div>
           </div>
         ) : null}
-      </div>
+      </CrmPage>
     </AppShell>
   );
 }
