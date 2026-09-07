@@ -46,8 +46,9 @@
   --color-concrete: var(--concrete);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
-  --font-sans: "Inter", system-ui, -apple-system, sans-serif;
-  --font-display: "Inter", system-ui, sans-serif;
+  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
+  --font-display: "Sora", "Manrope", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 :root {
@@ -136,7 +137,7 @@
     background-image: none;
   }
 
-  h1, h2, h3, h4 { font-weight: 700; letter-spacing: -0.02em; color: var(--foreground); }
+  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: 0; color: var(--foreground); }
 
   .hatch-accent {
     background-image: repeating-linear-gradient(
@@ -159,6 +160,63 @@
 
   .brand-watermark::before { content: none; }
 
+}
+
+@layer components {
+  .crm-workspace {
+    background-color: color-mix(in oklab, var(--background) 92%, var(--primary));
+    background-image:
+      linear-gradient(color-mix(in oklab, var(--border) 34%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in oklab, var(--border) 34%, transparent) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+  .crm-panel {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: color-mix(in oklab, var(--card) 97%, transparent);
+    box-shadow: var(--shadow-panel);
+  }
+  .crm-eyebrow {
+    color: var(--muted-foreground);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    line-height: 1rem;
+    text-transform: uppercase;
+  }
+  .crm-kpi {
+    position: relative;
+    overflow: hidden;
+    min-height: 118px;
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: var(--radius-md);
+    background: var(--card);
+    padding: 1rem;
+    box-shadow: var(--shadow-panel);
+  }
+  .crm-kpi--primary { border-left-color: var(--primary); }
+  .crm-kpi--gold { border-left-color: var(--gold); }
+  .crm-kpi--success { border-left-color: var(--success); }
+  .crm-kpi--danger { border-left-color: var(--destructive); }
+  .crm-stage-column {
+    border: 1px solid var(--border);
+    border-top-width: 3px;
+    border-radius: var(--radius-md);
+    background: color-mix(in oklab, var(--secondary) 78%, transparent);
+  }
+  .crm-lead-card {
+    border: 1px solid var(--border);
+    border-left-width: 3px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    box-shadow: var(--shadow-panel);
+    transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+  }
+  .crm-lead-card:hover {
+    border-color: color-mix(in oklab, var(--primary) 55%, var(--border));
+    box-shadow: 0 8px 22px -16px var(--foreground);
+    transform: translateY(-1px);
+  }
 }
 
 /* -------- Mobile / iOS optimizations ---------- */
