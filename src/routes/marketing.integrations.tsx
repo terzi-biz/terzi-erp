@@ -110,12 +110,17 @@ function IntegrationsPage() {
                     {r.connection_status === "disabled" ? "Увімкнути" : "Вимкнути"}
                   </button>
                   <button onClick={() => test(r.provider)} className="rounded-md border border-border px-2 py-1 text-[11px]">Перевірити</button>
-                  {r.provider === "meta_ads" ? (
-                    <button onClick={syncMeta} disabled={syncing}
+                  {r.provider === "meta_ads" || r.provider === "google_ads" ? (
+                    <button onClick={() => syncAds(r.provider as "meta_ads" | "google_ads")} disabled={syncing !== null}
                       className="rounded-md bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground disabled:opacity-60">
-                      {syncing ? "Синхронізація…" : "Синхронізувати 30 днів"}
+                      {syncing === r.provider ? "Синхронізація…" : "Синхронізувати 30 днів"}
                     </button>
                   ) : null}
+                  {r.provider === "google_ads" ? (
+                    <a href="/api/public/integrations/google-ads/start"
+                      className="rounded-md border border-border px-2 py-1 text-[11px]">Авторизувати Google</a>
+                  ) : null}
+
                 </div>
                 {r.last_error ? <div className="mt-1 text-[11px] text-destructive">{r.last_error}</div> : null}
                 {r.is_read_only ? <div className="mt-1 text-[10px] text-muted-foreground">Режим «тільки читання»</div> : null}
