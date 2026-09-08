@@ -56,12 +56,23 @@ export const payrollProfileInput = z.object({
     kpi_type: z.enum([
       "FIXED_SALARY", "FIXED_KPI", "PERCENT_KPI", "SALES_MARGIN_PERCENT", "OBJECT_PROFIT_PERCENT",
       "PER_M2", "PER_LM", "PER_OBJECT", "QUALITY_BONUS", "MANUAL_BONUS", "DEDUCTION", "REIMBURSEMENT",
+      "SCALE_ABS", "SCALE_PLAN", "MARGIN_PERCENT_BY_PLAN", "CHECKLIST", "PER_M2_MIN_FIXED",
     ]),
     target: z.number().optional(),
     weight: z.number().optional(),
     rate: z.number().optional(),
     percent: z.number().optional(),
+    min_amount: z.number().optional(),
+    items: z.number().optional(),
+    note: z.string().max(500).optional(),
+    tiers: z.array(z.object({
+      from: z.number(),
+      bonus: z.number().optional(),
+      percent: z.number().optional(),
+      label: z.string().max(120).optional(),
+    })).optional(),
   })).default([]),
+
   bonus_rules: z.record(z.string(), z.any()).default({}),
   payment_rules: z.record(z.string(), z.any()).default({}),
   valid_from: z.string().min(4),
