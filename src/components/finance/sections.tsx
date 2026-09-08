@@ -4,7 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { Link } from "@tanstack/react-router";
 import {
-  RefreshCw, PlugZap, CheckCircle2, AlertTriangle, Link2, ArrowRight, Calculator, ShieldCheck,
+  RefreshCw, PlugZap, CheckCircle2, AlertTriangle, Link2, ArrowRight, Calculator, ShieldCheck, Wallet,
 } from "lucide-react";
 
 import { formatUah } from "@/lib/screed-calc";
@@ -18,6 +18,7 @@ import {
   setPayrollKpiFact, setPayrollStatus, reconcilePayrollPayments, pushPayrollPaymentToFinmap,
 } from "@/lib/finance/payroll.functions";
 import { listAccounts } from "@/lib/finance.functions";
+import { listOrdersFinance, listAdvancePayments } from "@/lib/finance/order-finance.functions";
 import { payrollScheduleFor } from "@/lib/finance/payroll-engine";
 
 export const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
@@ -831,3 +832,183 @@ export function CategoriesSection() {
 }
 
 export const FinanceLinkIcon = ArrowRight;
+
+/* --------------------- Виручка та прибуток по об'єктах --------------------- */
+
+export function OrdersFinanceSection({ period }: { period: Period }) {
+  const fn = useServerFn(listOrdersFinance);
+  const payFn = useServerFn(listAdvancePayments);
+  const [wholePeriod, setWholePeriod] = useState(true); // за весь час vs обраний період
+  const [onlyMoney, setOnlyMoney] = useState(false);
+  const [q, setQ] = useState("");
+
+  const range = wholePeriod ? {} : { from: period.from, to: period.to };
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["orders-finance", wholePeriod, period.from, period.to, onlyMoney],
+    queryFn: () => fn({ data: { ...range, only_with_money: onlyMoney } }),
+  });
+  const pays = useQuery({
+    queryKey: ["advance-payments", wholePeriod, period.from, period.to],
+    queryFn: () => payFn({ data: range }),
+  });
+
+  const rows = useMemo(() => {
+    const list = data?.rows ?? [];
+    const needle = q.trim().toLowerCase();
+    if (!needle) return list;
+    return list.filter((r) =>
+      [r.number, r.name, r.address, r.client].some((v) => String(v ?? "").toLowerCase().includes(needle)));
+  }, [data, q]);
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <button type="button" onClick={() => setWholePeriod((v) => !v)}
+          className={`${btn} border border-border ${wholePeriod ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+          {wholePeriod ? "За весь час" : `Період ${period.from} – ${period.to}`}
+        </button>
+        <button type="button" onClick={() => setOnlyMoney((v) => !v)}
+          className={`${btn} border border-border ${onlyMoney ? "bg-primary text-primary-foreground" : "bg-card"}`}>
+          Тільки з рухом грошей
+        </button>
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук: номер, адреса, клієнт"
+          className={`${input} max-w-xs`} />
+      </div>
+
+      {error && <div className={`${card} text-sm text-destructive`}>{(error as any)?.message ?? "Помилка"}</div>}
+      {isLoading && <div className="p-8 text-center text-sm text-muted-foreground">Рахуємо виручку по об'єктах…</div>}
+
+      {data && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            <Metric title="План виручки" value={formatUah(data.totals.planRevenue)} hint="Кошториси об'єктів" />
+            <Metric title="Факт виручки (Finmap)" value={formatUah(data.totals.factRevenue)} tone="good" />
+            <Metric title="Факт витрат (Finmap)" value={formatUah(data.totals.factCost)} tone="bad" />
+            <Metric title="Прибуток факт" value={formatUah(data.totals.profitFact)}
+              tone={data.totals.profitFact >= 0 ? "good" : "bad"} hint={`План ${formatUah(data.totals.profitPlan)}`} />
+            <Metric title="Маржа факт" value={`${data.totals.marginFact.toFixed(1)}%`} tone="warn" />
+          </div>
+
+          <div className={`${card} overflow-x-auto p-0`}>
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-3 py-2 text-left">Об'єкт</th>
+                  <th className="px-3 py-2 text-right">План виручки</th>
+                  <th className="px-3 py-2 text-right">Факт виручки</th>
+                  <th className="px-3 py-2 text-right">Отримано</th>
+                  <th className="px-3 py-2 text-right">Витрати факт</th>
+                  <th className="px-3 py-2 text-right">Прибуток план</th>
+                  <th className="px-3 py-2 text-right">Прибуток факт</th>
+                  <th className="px-3 py-2 text-right">Маржа факт</th>
+                  <th className="px-3 py-2 text-right">Операцій</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={r.order_id} className="border-t border-border/70 hover:bg-muted/30">
+                    <td className="px-3 py-2">
+                      <Link to="/orders/$id" params={{ id: r.order_id }} search={{ tab: "finance" } as any}
+                        className="font-semibold text-primary hover:underline">
+                        {r.number ?? r.name ?? "Без номера"}
+                      </Link>
+                      <div className="text-[11px] text-muted-foreground">{r.client ?? "—"}{r.address ? ` · ${r.address}` : ""}</div>
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatUah(r.planRevenue)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums font-semibold">{formatUah(r.factRevenue)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">
+                      {r.collected == null ? "—" : `${r.collected.toFixed(0)}%`}
+                      {r.revenueGap > 0 && <div className="text-[11px] text-muted-foreground">борг {formatUah(r.revenueGap)}</div>}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatUah(r.factCost)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatUah(r.profitPlan)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums font-semibold ${r.profitFact >= 0 ? "text-success" : "text-destructive"}`}>
+                      {formatUah(r.profitFact)}
+                    </td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.factRevenue > 0 ? `${r.marginFact.toFixed(1)}%` : "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{r.operations}</td>
+                  </tr>
+                ))}
+                {!rows.length && (
+                  <tr><td colSpan={9} className="px-3 py-8 text-center text-sm text-muted-foreground">Немає об'єктів за цим фільтром</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {/* Виплати авансів і зарплат по рахунках */}
+      <div className={card}>
+        <div className="flex items-center gap-2 text-sm font-bold"><Wallet className="h-4 w-4" /> Виплати авансу та зарплати по рахунках</div>
+        {pays.isLoading && <div className="py-6 text-center text-sm text-muted-foreground">Завантаження виплат…</div>}
+        {pays.data && (
+          <div className="mt-3 space-y-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              <Metric title="Аванси (20-го)" value={formatUah(pays.data.totals.advance)} />
+              <Metric title="Остаточний розрахунок (5-го)" value={formatUah(pays.data.totals.salary)} />
+              <Metric title="Гроші на рахунках" value={formatUah(pays.data.accounts.reduce((s, a) => s + a.balance, 0))} tone="good" />
+              <Metric title="Виплат у списку" value={String(pays.data.rows.length)} />
+            </div>
+
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-border p-3">
+                <div className={label}>Залишки рахунків Finmap</div>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {pays.data.accounts.map((a) => (
+                    <li key={a.id} className="flex justify-between gap-3">
+                      <span className="truncate">{a.name}</span>
+                      <span className="tabular-nums font-semibold">{formatUah(a.balance)}</span>
+                    </li>
+                  ))}
+                  {!pays.data.accounts.length && <li className="text-muted-foreground">Рахунків немає</li>}
+                </ul>
+              </div>
+              <div className="rounded-xl border border-border p-3">
+                <div className={label}>Виплачено з рахунків</div>
+                <ul className="mt-2 space-y-1 text-sm">
+                  {pays.data.byAccount.map((a) => (
+                    <li key={a.account} className="flex justify-between gap-3">
+                      <span className="truncate">{a.account}</span>
+                      <span className="tabular-nums">аванс {formatUah(a.advance)} · зарплата {formatUah(a.salary)}</span>
+                    </li>
+                  ))}
+                  {!pays.data.byAccount.length && <li className="text-muted-foreground">Виплат ще не було</li>}
+                </ul>
+              </div>
+            </div>
+
+            {!!pays.data.rows.length && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Дата</th>
+                      <th className="px-3 py-2 text-left">Співробітник</th>
+                      <th className="px-3 py-2 text-left">Тип</th>
+                      <th className="px-3 py-2 text-left">Рахунок</th>
+                      <th className="px-3 py-2 text-right">Сума</th>
+                      <th className="px-3 py-2 text-left">Finmap</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pays.data.rows.slice(0, 100).map((p) => (
+                      <tr key={p.id} className="border-t border-border/70">
+                        <td className="px-3 py-2 tabular-nums">{p.paid_at}</td>
+                        <td className="px-3 py-2">{p.employee ?? "—"}</td>
+                        <td className="px-3 py-2">{p.kind === "advance" ? "Аванс" : "Розрахунок"}</td>
+                        <td className="px-3 py-2">{p.account ?? "—"}</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-semibold">{formatUah(p.amount)}</td>
+                        <td className="px-3 py-2 text-[11px] text-muted-foreground">{p.synced ? (p.finmap_status ?? "проведено") : "локально"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

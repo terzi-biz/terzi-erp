@@ -80,23 +80,36 @@ export type MatchReport = {
   skipped: number;
 };
 
-/** Контрагенти Finmap (дебітори) → клієнти ERP за назвою та телефоном. */
+/** Останні 9 цифр номера — стабільний ключ зіставлення (0XX / +380XX / 380XX). */
+export function phoneKey(raw: string | null | undefined): string | null {
+  const digits = String(raw ?? "").replace(/\D/g, "");
+  return digits.length >= 9 ? digits.slice(-9) : null;
+}
+
+/** Контрагенти Finmap → клієнти ERP за телефоном і назвою.
+ *  Finmap віддає частину клієнтів у довіднику постачальників, тому фільтруємо
+ *  лише свідомо «не клієнтські» типи (співробітники, власники, інвестори). */
+const NON_CLIENT_KINDS = new Set(["employee", "owner", "investor"]);
+
 export async function matchCounterparties(db: Db): Promise<MatchReport> {
   const [{ data: cps }, { data: clients }] = await Promise.all([
     db.from("finance_counterparties").select("id,finmap_id,finmap_kind,name,phone,client_id,match_source").is("client_id", null),
-    db.from("clients").select("id,name,phone").limit(5000),
+    db.from("clients").select("id,name,phone,phone_e164").limit(5000),
   ]);
   const list = (clients ?? []) as any[];
   const byPhone = new Map<string, any>();
-  for (const c of list) { const p = String(c.phone ?? "").replace(/\D/g, "").slice(-9); if (p.length === 9) byPhone.set(p, c); }
+  for (const c of list) {
+    for (const p of [c.phone_e164, c.phone]) { const k = phoneKey(p); if (k && !byPhone.has(k)) byPhone.set(k, c); }
+  }
 
   let linked = 0, review = 0, skipped = 0;
   for (const cp of ((cps ?? []) as any[])) {
     if (cp.match_source === "manual") { skipped++; continue; }
-    if (!["debitor", "client"].includes(cp.finmap_kind)) { skipped++; continue; }
+    if (NON_CLIENT_KINDS.has(cp.finmap_kind)) { skipped++; continue; }
 
-    const phone = String(cp.phone ?? "").replace(/\D/g, "").slice(-9);
-    const byPhoneHit = phone.length === 9 ? byPhone.get(phone) : null;
+    // Телефон може бути у полі phone або бути самою назвою контрагента (Finmap так зберігає роздріб).
+    const key = phoneKey(cp.phone) ?? (/^[\d+()\s-]+$/.test(String(cp.name ?? "")) ? phoneKey(cp.name) : null);
+    const byPhoneHit = key ? byPhone.get(key) : null;
     let chosen: Candidate | null = byPhoneHit ? { id: byPhoneHit.id, label: byPhoneHit.name, score: 100 } : null;
     let confident = !!chosen;
 
@@ -120,6 +133,7 @@ export async function matchCounterparties(db: Db): Promise<MatchReport> {
   }
   return { entity: "counterparties", linked, review, skipped };
 }
+
 
 /** Проєкти Finmap → замовлення ERP (за номером, назвою, адресою) або клієнт. */
 export async function matchProjects(db: Db): Promise<MatchReport> {
@@ -181,23 +195,44 @@ export async function matchProjects(db: Db): Promise<MatchReport> {
   return { entity: "projects", linked, review, skipped };
 }
 
-/** Операції: переносимо зв'язки з проєкту/контрагента, плюс номер замовлення з коментаря. */
+/** Операції: зв'язки з проєкту/контрагента, номер замовлення з коментаря,
+ *  а далі — розкладання грошей клієнта на конкретний об'єкт (замовлення). */
 export async function backfillTransactionLinks(db: Db): Promise<MatchReport> {
   const [{ data: projects }, { data: cps }, { data: orders }] = await Promise.all([
     db.from("finance_projects").select("id,order_id,client_id"),
     db.from("finance_counterparties").select("id,client_id"),
-    db.from("orders").select("id,number,client_id").limit(5000),
+    db.from("orders").select("id,number,client_id,created_at").limit(5000),
   ]);
   const pr = new Map(((projects ?? []) as any[]).map((p) => [p.id, p]));
   const cp = new Map(((cps ?? []) as any[]).map((c) => [c.id, c]));
-  const ordByNumber = new Map(((orders ?? []) as any[]).map((o) => [normalizeName(o.number), o]));
+  const ordList = (orders ?? []) as any[];
+  const ordByNumber = new Map(ordList.map((o) => [normalizeName(o.number), o]));
+  const ordByClient = new Map<string, any[]>();
+  for (const o of ordList) {
+    if (!o.client_id) continue;
+    const arr = ordByClient.get(o.client_id) ?? [];
+    arr.push(o);
+    ordByClient.set(o.client_id, arr);
+  }
+
+  /** Об'єкт клієнта для операції: єдиний — беремо його; кілька — той, що вже стартував на дату операції. */
+  function orderForClient(clientId: string, opDate: string | null): string | null {
+    const arr = ordByClient.get(clientId);
+    if (!arr?.length) return null;
+    if (arr.length === 1) return arr[0].id;
+    if (!opDate) return null;
+    const started = arr
+      .filter((o) => o.created_at && String(o.created_at).slice(0, 10) <= opDate)
+      .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)));
+    return started[0]?.id ?? null;
+  }
 
   let linked = 0, review = 0, skipped = 0, from = 0;
   const PAGE = 1000;
   for (;;) {
     const { data: rows } = await db
       .from("finance_transactions")
-      .select("id,order_id,client_id,finance_project_id,counterparty_id,comment,match_status")
+      .select("id,order_id,client_id,finance_project_id,counterparty_id,comment,op_date,match_status")
       .or("order_id.is.null,client_id.is.null")
       .range(from, from + PAGE - 1);
     const list = (rows ?? []) as any[];
@@ -215,6 +250,10 @@ export async function backfillTransactionLinks(db: Db): Promise<MatchReport> {
           if (num && norm.includes(num)) { orderId = o.id; clientId = clientId ?? o.client_id; break; }
         }
       }
+      // Гроші клієнта мають потрапляти на об'єкт, а не «зависати» на клієнті.
+      if (!orderId && clientId) orderId = orderForClient(clientId, t.op_date ?? null);
+      if (orderId && !clientId) clientId = ordList.find((o) => o.id === orderId)?.client_id ?? null;
+
       if (orderId === t.order_id && clientId === t.client_id) { skipped++; continue; }
 
       await db.from("finance_transactions").update({
@@ -228,6 +267,7 @@ export async function backfillTransactionLinks(db: Db): Promise<MatchReport> {
   }
   return { entity: "transactions", linked, review, skipped };
 }
+
 
 /** Повний прохід автозв'язування після синхронізації. */
 export async function runFinmapAutoMatch(db: Db): Promise<MatchReport[]> {
