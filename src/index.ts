@@ -66,6 +66,7 @@ export * from "./components/ui/label";
 export * from "./components/ui/menubar";
 export * from "./components/ui/navigation-menu";
 export {
+  Pagination as PaginationRoot,
   PaginationContent,
   PaginationEllipsis,
   PaginationItem,
@@ -93,6 +94,6 @@ export * from "./components/ui/toggle-group";
 export * from "./components/ui/toggle";
 export * from "./components/ui/tooltip";
 
-export { Pagination } from "./components/Pagination";
+export { Pagination as DataTablePagination } from "./components/Pagination";
 export { usePersistedState } from "./lib/usePersistedState";
 export { useI18n, useT, dict } from "./lib/i18n";
