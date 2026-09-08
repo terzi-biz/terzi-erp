@@ -112,6 +112,38 @@ function kpiBonus(rule: KpiRule, fact: KpiFact | undefined): { result: number; b
     case "PER_LM":
     case "PER_OBJECT":
       return { result: actual, bonus: actual * (rule.rate ?? 0) };
+    case "PER_M2_MIN_FIXED": {
+      // Ставка за м², але не менше фіксованої суми за об'єкт (актуально для малих об'єктів).
+      const byArea = actual * (rule.rate ?? 0);
+      const min = rule.min_amount ?? 0;
+      return { result: actual, bonus: actual > 0 ? Math.max(byArea, min) : 0 };
+    }
+    case "SCALE_ABS": {
+      // Шкала за абсолютним фактом (напр. валова маржа компанії за місяць).
+      const tier = pickTier(rule.tiers, actual);
+      return { result: actual, bonus: tier?.bonus ?? 0 };
+    }
+    case "SCALE_PLAN": {
+      // Шкала за відсотком виконання плану.
+      const pct = target > 0 ? (actual / target) * 100 : 0;
+      const tier = pickTier(rule.tiers, pct);
+      return { result: r2(pct), bonus: tier?.bonus ?? 0 };
+    }
+    case "MARGIN_PERCENT_BY_PLAN": {
+      // Відсоток від валової маржі; ставка % залежить від виконання плану.
+      const base = fact?.base ?? actual;
+      const pct = target > 0 ? (base / target) * 100 : 0;
+      const tier = pickTier(rule.tiers, pct);
+      const percent = tier?.percent ?? rule.percent ?? 0;
+      return { result: r2(pct), bonus: (base * percent) / 100 };
+    }
+    case "CHECKLIST": {
+      // actual = кількість виконаних пунктів чек-ліста.
+      const items = rule.items && rule.items > 0 ? rule.items : 1;
+      const ratio = Math.min(Math.max(actual, 0) / items, 1);
+      return { result: r2(ratio), bonus: (rule.rate ?? 0) * ratio };
+    }
+
     case "QUALITY_BONUS":
     case "MANUAL_BONUS":
       return { result: actual, bonus: actual || rule.rate || 0 };
