@@ -50,10 +50,10 @@ describe("KPI-шкали TERZI", () => {
   it("непідтверджений KPI не потрапляє в нарахування", () => {
     const t = KPI_TEMPLATE_BY_KEY["surveyor"]!;
     const res = computePayroll({
-      baseSalary: 25000, advancePercent: 50, kpiRules: t.kpi_scheme,
+      baseSalary: t.base_salary, advancePercent: t.advance_percent, kpiRules: t.kpi_scheme,
       facts: [{ code: "MEASUREMENTS_DONE", actual: 20, approved: false }],
     });
     expect(res.kpi_amount).toBe(0);
-    expect(res.total_payable).toBe(25000);
+    expect(res.total_payable).toBe(35000);
   });
 });
