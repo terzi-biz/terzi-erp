@@ -20,6 +20,8 @@ import {
 import { listAccounts } from "@/lib/finance.functions";
 import { listOrdersFinance, listAdvancePayments } from "@/lib/finance/order-finance.functions";
 import { payrollScheduleFor } from "@/lib/finance/payroll-engine";
+import { KPI_TEMPLATES, KPI_TEMPLATE_BY_KEY, KPI_TYPE_LABELS } from "@/lib/finance/kpi-templates";
+
 
 export const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 export const label = "text-[11px] uppercase tracking-wider text-muted-foreground";
@@ -651,7 +653,7 @@ export function PayrollSection() {
 
       <div className={card}>
         <div className="flex items-center justify-between">
-          <h3 className="font-bold">Схеми оплати співробітників</h3>
+          <h3 className="font-bold">Схеми оплати та KPI співробітників</h3>
           <button className={`${btn} border border-border`} onClick={() => setNewProfile({
             employee_id: (profiles?.employees ?? [])[0]?.id ?? "",
             payroll_group: "administrative", base_salary: 0, advance_percent: 50,
@@ -659,28 +661,87 @@ export function PayrollSection() {
           })}>Додати схему</button>
         </div>
         {newProfile && (
-          <div className="mt-3 grid gap-2 md:grid-cols-5 items-end">
-            <div><div className={label}>Співробітник</div>
-              <select className={input} value={newProfile.employee_id} onChange={(e) => setNewProfile({ ...newProfile, employee_id: e.target.value })}>
-                {((profiles?.employees ?? []) as any[]).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
-              </select>
+          <div className="mt-3 space-y-3">
+            <div className="grid gap-2 md:grid-cols-5 items-end">
+              <div><div className={label}>Співробітник</div>
+                <select className={input} value={newProfile.employee_id} onChange={(e) => setNewProfile({ ...newProfile, employee_id: e.target.value })}>
+                  {((profiles?.employees ?? []) as any[]).map((e) => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                </select>
+              </div>
+              <div><div className={label}>Шаблон посади (KPI TERZI)</div>
+                <select className={input} value={newProfile.template ?? ""} onChange={(e) => {
+                  const t = KPI_TEMPLATE_BY_KEY[e.target.value];
+                  setNewProfile(t
+                    ? { ...newProfile, template: t.key, role_key: t.key, payroll_group: t.group, base_salary: t.base_salary, advance_percent: t.advance_percent, kpi_scheme: t.kpi_scheme }
+                    : { ...newProfile, template: "", kpi_scheme: [] });
+                }}>
+                  <option value="">Без шаблону</option>
+                  {KPI_TEMPLATES.map((t) => <option key={t.key} value={t.key}>{t.position}</option>)}
+                </select>
+              </div>
+              <div><div className={label}>Група ФОП</div>
+                <select className={input} value={newProfile.payroll_group} onChange={(e) => setNewProfile({ ...newProfile, payroll_group: e.target.value })}>
+                  <option value="administrative">Адміністративний</option>
+                  <option value="commercial">Комерційний</option>
+                  <option value="production">Виробничий</option>
+                </select>
+              </div>
+              <div><div className={label}>Ставка, грн</div>
+                <input type="number" className={input} value={newProfile.base_salary} onChange={(e) => setNewProfile({ ...newProfile, base_salary: Number(e.target.value) })} />
+              </div>
+              <div><div className={label}>Аванс, %</div>
+                <input type="number" className={input} value={newProfile.advance_percent} onChange={(e) => setNewProfile({ ...newProfile, advance_percent: Number(e.target.value) })} />
+              </div>
             </div>
-            <div><div className={label}>Група ФОП</div>
-              <select className={input} value={newProfile.payroll_group} onChange={(e) => setNewProfile({ ...newProfile, payroll_group: e.target.value })}>
-                <option value="administrative">Адміністративний</option>
-                <option value="commercial">Комерційний</option>
-                <option value="production">Виробничий</option>
-              </select>
-            </div>
-            <div><div className={label}>Ставка, грн</div>
-              <input type="number" className={input} value={newProfile.base_salary} onChange={(e) => setNewProfile({ ...newProfile, base_salary: Number(e.target.value) })} />
-            </div>
-            <div><div className={label}>Аванс, %</div>
-              <input type="number" className={input} value={newProfile.advance_percent} onChange={(e) => setNewProfile({ ...newProfile, advance_percent: Number(e.target.value) })} />
-            </div>
+
+            {((newProfile.kpi_scheme ?? []) as any[]).length > 0 && (
+              <div className="rounded-xl border border-border p-3">
+                <div className={label}>KPI схеми ({newProfile.kpi_scheme.length})</div>
+                <ul className="mt-2 space-y-2">
+                  {(newProfile.kpi_scheme as any[]).map((k, i) => (
+                    <li key={k.code} className="text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-semibold">{k.title}</span>
+                        <span className="text-muted-foreground shrink-0">{KPI_TYPE_LABELS[k.kpi_type] ?? k.kpi_type}</span>
+                      </div>
+                      {k.note && <div className="text-[11px] text-muted-foreground">{k.note}</div>}
+                      <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                        {k.rate !== undefined && (
+                          <label className="flex items-center gap-1">ставка
+                            <input type="number" className={`${input} h-7 w-24 py-0`} value={k.rate}
+                              onChange={(e) => {
+                                const next = [...newProfile.kpi_scheme];
+                                next[i] = { ...k, rate: Number(e.target.value) };
+                                setNewProfile({ ...newProfile, kpi_scheme: next });
+                              }} />
+                          </label>
+                        )}
+                        {k.target !== undefined && (
+                          <label className="flex items-center gap-1">ціль
+                            <input type="number" className={`${input} h-7 w-28 py-0`} value={k.target}
+                              onChange={(e) => {
+                                const next = [...newProfile.kpi_scheme];
+                                next[i] = { ...k, target: Number(e.target.value) };
+                                setNewProfile({ ...newProfile, kpi_scheme: next });
+                              }} />
+                          </label>
+                        )}
+                        {k.percent !== undefined && <span>{k.percent}% від бази</span>}
+                        {(k.tiers ?? []).map((t: any) => (
+                          <span key={t.from} className="rounded bg-secondary px-1.5 py-0.5">
+                            {t.label ?? `від ${t.from}`}: {t.percent !== undefined ? `${t.percent}%` : formatUah(Number(t.bonus) || 0)}
+                          </span>
+                        ))}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button className={`${btn} bg-primary text-primary-foreground`} disabled={!newProfile.employee_id || saveProfile.isPending}
-                onClick={() => saveProfile.mutate(newProfile)}>Зберегти</button>
+                onClick={() => { const { template, ...payload } = newProfile; void template; saveProfile.mutate(payload); }}>Зберегти</button>
               <button className={`${btn} border border-border`} onClick={() => setNewProfile(null)}>Скасувати</button>
             </div>
           </div>
@@ -688,18 +749,30 @@ export function PayrollSection() {
         <div className="mt-3 divide-y divide-border/60">
           {!((profiles?.profiles ?? []) as any[]).length && <div className="py-3 text-sm text-muted-foreground">Схем оплати ще немає.</div>}
           {((profiles?.profiles ?? []) as any[]).map((p) => (
-            <div key={p.id} className="flex items-center justify-between py-2 text-sm">
-              <div>
-                <div className="font-semibold">{p.employee?.full_name ?? "—"}</div>
-                <div className="text-[11px] text-muted-foreground">
-                  діє з {p.valid_from}{p.valid_to ? ` до ${p.valid_to}` : ""} · аванс {p.advance_percent}% · KPI: {(p.kpi_scheme ?? []).length}
+            <div key={p.id} className="py-2 text-sm">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="font-semibold">{p.employee?.full_name ?? "—"}</div>
+                  <div className="text-[11px] text-muted-foreground">
+                    діє з {p.valid_from}{p.valid_to ? ` до ${p.valid_to}` : ""} · аванс {p.advance_percent}% · KPI: {(p.kpi_scheme ?? []).length}
+                  </div>
                 </div>
+                <div className="tabular-nums font-black">{formatUah(Number(p.base_salary) || 0)}</div>
               </div>
-              <div className="tabular-nums font-black">{formatUah(Number(p.base_salary) || 0)}</div>
+              {((p.kpi_scheme ?? []) as any[]).length > 0 && (
+                <ul className="mt-1 flex flex-wrap gap-1">
+                  {((p.kpi_scheme ?? []) as any[]).map((k: any) => (
+                    <li key={k.code} className="rounded bg-secondary px-1.5 py-0.5 text-[11px] text-muted-foreground">
+                      {k.title} · {KPI_TYPE_LABELS[k.kpi_type] ?? k.kpi_type}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
           ))}
         </div>
       </div>
+
 
       <div className="rounded-2xl border border-dashed border-border p-3 text-xs text-muted-foreground flex gap-2">
         <AlertTriangle className="w-4 h-4 shrink-0 text-primary" />

@@ -7,12 +7,21 @@
  *   до 5-го числа наступного місяця — залишок ставки + підтверджені KPI + бонуси − утримання.
  */
 
-export const PAYROLL_ENGINE_VERSION = "payroll-1.0.0";
+export const PAYROLL_ENGINE_VERSION = "payroll-1.1.0";
 
 export type KpiType =
   | "FIXED_SALARY" | "FIXED_KPI" | "PERCENT_KPI" | "SALES_MARGIN_PERCENT"
   | "OBJECT_PROFIT_PERCENT" | "PER_M2" | "PER_LM" | "PER_OBJECT"
-  | "QUALITY_BONUS" | "MANUAL_BONUS" | "DEDUCTION" | "REIMBURSEMENT";
+  | "QUALITY_BONUS" | "MANUAL_BONUS" | "DEDUCTION" | "REIMBURSEMENT"
+  // Розширення під затверджену матрицю KPI TERZI:
+  | "SCALE_ABS"            // шкала за абсолютним значенням (валова маржа компанії → фікс. бонус)
+  | "SCALE_PLAN"           // шкала за % виконання плану → фікс. бонус
+  | "MARGIN_PERCENT_BY_PLAN" // % від валової маржі, ставка % залежить від % виконання плану
+  | "CHECKLIST"            // чек-ліст умов: бонус повністю або пропорційно частці виконаних пунктів
+  | "PER_M2_MIN_FIXED";    // ставка за м², але не менше фіксованої суми за об'єкт
+
+/** Поріг шкали. `from` — нижня межа (абсолют або % виконання плану). */
+export type KpiTier = { from: number; bonus?: number; percent?: number; label?: string };
 
 export type KpiRule = {
   code: string;
@@ -26,9 +35,26 @@ export type KpiRule = {
   rate?: number;
   /** Відсоток від бази (маржа, прибуток об'єкта, продажі). */
   percent?: number;
+  /** Пороги шкали для SCALE_* та MARGIN_PERCENT_BY_PLAN. */
+  tiers?: KpiTier[];
+  /** Мінімальна виплата за об'єкт для PER_M2_MIN_FIXED. */
+  min_amount?: number;
+  /** Кількість пунктів чек-ліста для CHECKLIST (за замовчуванням 1). */
+  items?: number;
+  /** Пояснення умов — показується у формі підтвердження KPI. */
+  note?: string;
 };
 
 export type KpiFact = { code: string; actual: number; approved?: boolean; base?: number };
+
+/** Пошук порогу шкали: найвищий поріг, який не перевищує значення. */
+export function pickTier(tiers: KpiTier[] | undefined, value: number): KpiTier | undefined {
+  if (!tiers?.length) return undefined;
+  return [...tiers].sort((a, b) => a.from - b.from).reduce<KpiTier | undefined>(
+    (acc, t) => (value >= t.from ? t : acc), undefined,
+  );
+}
+
 
 export type PayrollInput = {
   baseSalary: number;
@@ -86,6 +112,38 @@ function kpiBonus(rule: KpiRule, fact: KpiFact | undefined): { result: number; b
     case "PER_LM":
     case "PER_OBJECT":
       return { result: actual, bonus: actual * (rule.rate ?? 0) };
+    case "PER_M2_MIN_FIXED": {
+      // Ставка за м², але не менше фіксованої суми за об'єкт (актуально для малих об'єктів).
+      const byArea = actual * (rule.rate ?? 0);
+      const min = rule.min_amount ?? 0;
+      return { result: actual, bonus: actual > 0 ? Math.max(byArea, min) : 0 };
+    }
+    case "SCALE_ABS": {
+      // Шкала за абсолютним фактом (напр. валова маржа компанії за місяць).
+      const tier = pickTier(rule.tiers, actual);
+      return { result: actual, bonus: tier?.bonus ?? 0 };
+    }
+    case "SCALE_PLAN": {
+      // Шкала за відсотком виконання плану.
+      const pct = target > 0 ? (actual / target) * 100 : 0;
+      const tier = pickTier(rule.tiers, pct);
+      return { result: r2(pct), bonus: tier?.bonus ?? 0 };
+    }
+    case "MARGIN_PERCENT_BY_PLAN": {
+      // Відсоток від валової маржі; ставка % залежить від виконання плану.
+      const base = fact?.base ?? actual;
+      const pct = target > 0 ? (base / target) * 100 : 0;
+      const tier = pickTier(rule.tiers, pct);
+      const percent = tier?.percent ?? rule.percent ?? 0;
+      return { result: r2(pct), bonus: (base * percent) / 100 };
+    }
+    case "CHECKLIST": {
+      // actual = кількість виконаних пунктів чек-ліста.
+      const items = rule.items && rule.items > 0 ? rule.items : 1;
+      const ratio = Math.min(Math.max(actual, 0) / items, 1);
+      return { result: r2(ratio), bonus: (rule.rate ?? 0) * ratio };
+    }
+
     case "QUALITY_BONUS":
     case "MANUAL_BONUS":
       return { result: actual, bonus: actual || rule.rate || 0 };
