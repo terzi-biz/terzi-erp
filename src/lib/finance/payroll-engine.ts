@@ -7,12 +7,21 @@
  *   до 5-го числа наступного місяця — залишок ставки + підтверджені KPI + бонуси − утримання.
  */
 
-export const PAYROLL_ENGINE_VERSION = "payroll-1.0.0";
+export const PAYROLL_ENGINE_VERSION = "payroll-1.1.0";
 
 export type KpiType =
   | "FIXED_SALARY" | "FIXED_KPI" | "PERCENT_KPI" | "SALES_MARGIN_PERCENT"
   | "OBJECT_PROFIT_PERCENT" | "PER_M2" | "PER_LM" | "PER_OBJECT"
-  | "QUALITY_BONUS" | "MANUAL_BONUS" | "DEDUCTION" | "REIMBURSEMENT";
+  | "QUALITY_BONUS" | "MANUAL_BONUS" | "DEDUCTION" | "REIMBURSEMENT"
+  // Розширення під затверджену матрицю KPI TERZI:
+  | "SCALE_ABS"            // шкала за абсолютним значенням (валова маржа компанії → фікс. бонус)
+  | "SCALE_PLAN"           // шкала за % виконання плану → фікс. бонус
+  | "MARGIN_PERCENT_BY_PLAN" // % від валової маржі, ставка % залежить від % виконання плану
+  | "CHECKLIST"            // чек-ліст умов: бонус повністю або пропорційно частці виконаних пунктів
+  | "PER_M2_MIN_FIXED";    // ставка за м², але не менше фіксованої суми за об'єкт
+
+/** Поріг шкали. `from` — нижня межа (абсолют або % виконання плану). */
+export type KpiTier = { from: number; bonus?: number; percent?: number; label?: string };
 
 export type KpiRule = {
   code: string;
@@ -26,9 +35,26 @@ export type KpiRule = {
   rate?: number;
   /** Відсоток від бази (маржа, прибуток об'єкта, продажі). */
   percent?: number;
+  /** Пороги шкали для SCALE_* та MARGIN_PERCENT_BY_PLAN. */
+  tiers?: KpiTier[];
+  /** Мінімальна виплата за об'єкт для PER_M2_MIN_FIXED. */
+  min_amount?: number;
+  /** Кількість пунктів чек-ліста для CHECKLIST (за замовчуванням 1). */
+  items?: number;
+  /** Пояснення умов — показується у формі підтвердження KPI. */
+  note?: string;
 };
 
 export type KpiFact = { code: string; actual: number; approved?: boolean; base?: number };
+
+/** Пошук порогу шкали: найвищий поріг, який не перевищує значення. */
+export function pickTier(tiers: KpiTier[] | undefined, value: number): KpiTier | undefined {
+  if (!tiers?.length) return undefined;
+  return [...tiers].sort((a, b) => a.from - b.from).reduce<KpiTier | undefined>(
+    (acc, t) => (value >= t.from ? t : acc), undefined,
+  );
+}
+
 
 export type PayrollInput = {
   baseSalary: number;
