@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import {
   OverviewSection, OperationsSection, PlanFactSection, ReconcileSection,
-  FinmapSection, PayrollSection, ReceivablesSection, PayablesSection, CategoriesSection,
+  FinmapSection, OrdersFinanceSection, PayrollSection, ReceivablesSection, PayablesSection, CategoriesSection,
   type Period,
 } from "@/components/finance/sections";
 
@@ -53,6 +53,7 @@ export const Route = createFileRoute("/finance")({
 const TABS = [
   { key: "overview", label: "Огляд", icon: Gauge },
   { key: "operations", label: "Операції", icon: ListChecks },
+  { key: "objects", label: "Об'єкти", icon: Layers },
   { key: "planfact", label: "План/факт", icon: Scale },
   { key: "reconcile", label: "Звірка", icon: ShieldCheck },
   { key: "finmap", label: "Finmap", icon: PlugZap },
@@ -169,6 +170,7 @@ function FinancePage() {
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
         {tab === "planfact" && <PlanFactSection period={period} />}
         {tab === "reconcile" && <ReconcileSection period={period} />}
+        {tab === "objects" && <OrdersFinanceSection period={period} />}
         {tab === "finmap" && <FinmapSection />}
         {tab === "payroll" && <PayrollSection />}
         {tab === "receivables" && <ReceivablesSection invoices={invoices as any[]} payments={payments as any[]} />}

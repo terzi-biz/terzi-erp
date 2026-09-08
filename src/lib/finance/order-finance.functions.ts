@@ -196,3 +196,159 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       },
     };
   });
+
+/** Виручка по об'єктах: план із кошторисів проти факту Finmap + прибуток і маржа по кожному проєкту. */
+export const listOrdersFinance = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      from: z.string().min(4).optional(),
+      to: z.string().min(4).optional(),
+      only_with_money: z.boolean().default(false),
+    }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+
+    let txq = context.supabase
+      .from("finance_transactions")
+      .select("order_id,kind,amount,amount_uah,op_date")
+      .not("order_id", "is", null)
+      .limit(20000);
+    if (data.from) txq = txq.gte("op_date", data.from);
+    if (data.to) txq = txq.lte("op_date", data.to);
+
+    const [{ data: orders }, { data: estimates }, { data: tx }] = await Promise.all([
+      context.supabase
+        .from("orders")
+        .select("id,number,name,address,commercial_status,production_status,client_id,client:client_id(name)")
+        .limit(5000),
+      context.supabase.from("estimates").select("order_id,total_client,total_cost,status").not("order_id", "is", null).limit(20000),
+      txq,
+    ]);
+
+    const plan = new Map<string, { revenue: number; cost: number }>();
+    for (const e of ((estimates ?? []) as any[])) {
+      const cur = plan.get(e.order_id) ?? { revenue: 0, cost: 0 };
+      cur.revenue += num(e.total_client);
+      cur.cost += num(e.total_cost);
+      plan.set(e.order_id, cur);
+    }
+
+    const fact = new Map<string, { income: number; expense: number; ops: number; last: string | null }>();
+    for (const t of ((tx ?? []) as any[])) {
+      if (t.kind === "transfer") continue;
+      const cur = fact.get(t.order_id) ?? { income: 0, expense: 0, ops: 0, last: null };
+      const v = num(t.amount_uah ?? t.amount);
+      if (t.kind === "income") cur.income += v; else cur.expense += v;
+      cur.ops += 1;
+      if (!cur.last || String(t.op_date) > cur.last) cur.last = t.op_date;
+      fact.set(t.order_id, cur);
+    }
+
+    const rows = ((orders ?? []) as any[])
+      .map((o) => {
+        const p = plan.get(o.id) ?? { revenue: 0, cost: 0 };
+        const f = fact.get(o.id) ?? { income: 0, expense: 0, ops: 0, last: null };
+        const planRevenue = r2(p.revenue), planCost = r2(p.cost);
+        const factRevenue = r2(f.income), factCost = r2(f.expense);
+        const profitPlan = r2(planRevenue - planCost);
+        const profitFact = r2(factRevenue - factCost);
+        return {
+          order_id: o.id,
+          number: o.number,
+          name: o.name,
+          address: o.address,
+          client: o.client?.name ?? null,
+          commercial_status: o.commercial_status,
+          production_status: o.production_status,
+          planRevenue, planCost, profitPlan,
+          marginPlan: planRevenue > 0 ? r2((profitPlan / planRevenue) * 100) : 0,
+          factRevenue, factCost, profitFact,
+          marginFact: factRevenue > 0 ? r2((profitFact / factRevenue) * 100) : 0,
+          collected: planRevenue > 0 ? r2((factRevenue / planRevenue) * 100) : null,
+          revenueGap: r2(planRevenue - factRevenue),
+          operations: f.ops,
+          lastOperation: f.last,
+        };
+      })
+      .filter((r) => (data.only_with_money ? r.factRevenue > 0 || r.factCost > 0 : r.planRevenue > 0 || r.factRevenue > 0 || r.factCost > 0))
+      .sort((a, b) => b.factRevenue + b.planRevenue - (a.factRevenue + a.planRevenue));
+
+    const totals = rows.reduce(
+      (s, r) => ({
+        planRevenue: r2(s.planRevenue + r.planRevenue),
+        planCost: r2(s.planCost + r.planCost),
+        factRevenue: r2(s.factRevenue + r.factRevenue),
+        factCost: r2(s.factCost + r.factCost),
+      }),
+      { planRevenue: 0, planCost: 0, factRevenue: 0, factCost: 0 },
+    );
+
+    return {
+      rows,
+      totals: {
+        ...totals,
+        profitPlan: r2(totals.planRevenue - totals.planCost),
+        profitFact: r2(totals.factRevenue - totals.factCost),
+        marginFact: totals.factRevenue > 0 ? r2(((totals.factRevenue - totals.factCost) / totals.factRevenue) * 100) : 0,
+      },
+    };
+  });
+
+/** Виплати авансів і зарплат у розрізі рахунків (факт із Finmap-операцій). */
+export const listAdvancePayments = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ from: z.string().min(4).optional(), to: z.string().min(4).optional() }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+
+    let q = context.supabase
+      .from("payroll_payments")
+      .select("id,payment_kind,amount,paid_at,finmap_status,employee:employee_id(full_name),transaction:transaction_id(id,op_date,amount,amount_uah,account:account_id(id,name))")
+      .order("paid_at", { ascending: false })
+      .limit(500);
+    if (data.from) q = q.gte("paid_at", data.from);
+    if (data.to) q = q.lte("paid_at", data.to);
+
+    const [{ data: pays }, { data: accounts }] = await Promise.all([
+      q,
+      context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance,balance_synced_at").eq("archived", false).order("name"),
+    ]);
+
+    const rows = ((pays ?? []) as any[]).map((p) => ({
+      id: p.id,
+      kind: p.payment_kind as string,
+      amount: r2(num(p.amount)),
+      paid_at: p.paid_at,
+      employee: p.employee?.full_name ?? null,
+      account: p.transaction?.account?.name ?? null,
+      account_id: p.transaction?.account?.id ?? null,
+      finmap_status: p.finmap_status ?? null,
+      synced: !!p.transaction?.id,
+    }));
+
+    const byAccount = new Map<string, { account: string; advance: number; salary: number; count: number }>();
+    for (const r of rows) {
+      const key = r.account ?? "Без рахунку";
+      const cur = byAccount.get(key) ?? { account: key, advance: 0, salary: 0, count: 0 };
+      if (r.kind === "advance") cur.advance = r2(cur.advance + r.amount);
+      else cur.salary = r2(cur.salary + r.amount);
+      cur.count += 1;
+      byAccount.set(key, cur);
+    }
+
+    return {
+      rows,
+      byAccount: [...byAccount.values()].sort((a, b) => b.advance + b.salary - (a.advance + a.salary)),
+      accounts: (accounts ?? []).map((a: any) => ({
+        id: a.id, name: a.name, currency: a.currency,
+        balance: r2(num(a.actual_balance ?? a.opening_balance)),
+        synced_at: a.balance_synced_at,
+      })),
+      totals: {
+        advance: r2(rows.filter((r) => r.kind === "advance").reduce((s, r) => s + r.amount, 0)),
+        salary: r2(rows.filter((r) => r.kind !== "advance").reduce((s, r) => s + r.amount, 0)),
+      },
+    };
+  });
