@@ -971,7 +971,9 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
                   <th className="px-3 py-2 text-right">Факт виручки</th>
                   <th className="px-3 py-2 text-right">Отримано</th>
                   <th className="px-3 py-2 text-right">Витрати факт</th>
+                  <th className="px-3 py-2 text-right">ФОТ</th>
                   <th className="px-3 py-2 text-right">Прибуток план</th>
+
                   <th className="px-3 py-2 text-right">Прибуток факт</th>
                   <th className="px-3 py-2 text-right">Маржа факт</th>
                   <th className="px-3 py-2 text-right">Операцій</th>
