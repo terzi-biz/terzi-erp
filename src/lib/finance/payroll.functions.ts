@@ -55,12 +55,14 @@ export const calculatePayrollPeriod = createServerFn({ method: "POST" })
     const monthStart = `${period}-01`;
     const monthEnd = new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0).toISOString().slice(0, 10);
 
-    let { data: pRow } = await context.supabase.from("payroll_periods").select("*").eq("period", period).maybeSingle();
+    // Колонка period має тип date — зберігаємо перше число місяця, а не «2026-09».
+    let { data: pRow } = await context.supabase.from("payroll_periods").select("*").eq("period", monthStart).maybeSingle();
     if (!pRow) {
-      const { data: created, error } = await context.supabase.from("payroll_periods").insert({ period, status: "open" }).select().single();
+      const { data: created, error } = await context.supabase.from("payroll_periods").insert({ period: monthStart, status: "open" }).select().single();
       if (error) { console.error("createPeriod", error); throw new Error("Не вдалося створити період"); }
       pRow = created;
     }
+
     if (["approved", "closed"].includes(pRow.status)) throw new Error("Період закрито — розрахунок не змінюється");
 
     const { data: profiles } = await context.supabase
