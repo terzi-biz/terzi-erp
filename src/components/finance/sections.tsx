@@ -959,7 +959,9 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
             <Metric title="Факт витрат (Finmap)" value={formatUah(data.totals.factCost)} tone="bad" />
             <Metric title="Прибуток факт" value={formatUah(data.totals.profitFact)}
               tone={data.totals.profitFact >= 0 ? "good" : "bad"} hint={`План ${formatUah(data.totals.profitPlan)}`} />
-            <Metric title="Маржа факт" value={`${data.totals.marginFact.toFixed(1)}%`} tone="warn" />
+            <Metric title="Маржа факт" value={`${data.totals.marginFact.toFixed(1)}%`} tone="warn"
+              hint={`ФОТ по об'єктах ${formatUah(data.totals.payrollCost)}`} />
+
           </div>
 
           <div className={`${card} overflow-x-auto p-0`}>
@@ -971,7 +973,9 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
                   <th className="px-3 py-2 text-right">Факт виручки</th>
                   <th className="px-3 py-2 text-right">Отримано</th>
                   <th className="px-3 py-2 text-right">Витрати факт</th>
+                  <th className="px-3 py-2 text-right">ФОТ</th>
                   <th className="px-3 py-2 text-right">Прибуток план</th>
+
                   <th className="px-3 py-2 text-right">Прибуток факт</th>
                   <th className="px-3 py-2 text-right">Маржа факт</th>
                   <th className="px-3 py-2 text-right">Операцій</th>
@@ -994,6 +998,7 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
                       {r.revenueGap > 0 && <div className="text-[11px] text-muted-foreground">борг {formatUah(r.revenueGap)}</div>}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatUah(r.factCost)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatUah(r.payrollCost)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatUah(r.profitPlan)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums font-semibold ${r.profitFact >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatUah(r.profitFact)}
@@ -1003,8 +1008,9 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
                   </tr>
                 ))}
                 {!rows.length && (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-sm text-muted-foreground">Немає об'єктів за цим фільтром</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">Немає об'єктів за цим фільтром</td></tr>
                 )}
+
               </tbody>
             </table>
           </div>

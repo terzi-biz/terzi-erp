@@ -361,3 +361,18 @@ export const KPI_TYPE_LABELS: Record<string, string> = {
   DEDUCTION: "Утримання",
   REIMBURSEMENT: "Компенсація",
 };
+
+/**
+ * Стартовий штат TERZI для швидкого заведення схем оплати.
+ * Ставки й KPI беруться з шаблону посади; після створення редагуються у схемі оплати.
+ */
+export const DEFAULT_STAFF: { full_name: string; template: string }[] = [
+  { full_name: "Олег", template: "executive_director" },
+  { full_name: "Альона", template: "assistant_director" },
+  { full_name: "Сергій", template: "financier" },
+  { full_name: "Менеджер з продажів", template: "sales_manager" },
+  { full_name: "Бригадир 1", template: "brigadier" },
+  { full_name: "Бригадир 2", template: "brigadier" },
+  { full_name: "Водій", template: "driver" },
+  { full_name: "Родіон", template: "surveyor" },
+];

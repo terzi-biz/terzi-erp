@@ -55,12 +55,14 @@ export const calculatePayrollPeriod = createServerFn({ method: "POST" })
     const monthStart = `${period}-01`;
     const monthEnd = new Date(Number(period.slice(0, 4)), Number(period.slice(5, 7)), 0).toISOString().slice(0, 10);
 
-    let { data: pRow } = await context.supabase.from("payroll_periods").select("*").eq("period", period).maybeSingle();
+    // Колонка period має тип date — зберігаємо перше число місяця, а не «2026-09».
+    let { data: pRow } = await context.supabase.from("payroll_periods").select("*").eq("period", monthStart).maybeSingle();
     if (!pRow) {
-      const { data: created, error } = await context.supabase.from("payroll_periods").insert({ period, status: "open" }).select().single();
+      const { data: created, error } = await context.supabase.from("payroll_periods").insert({ period: monthStart, status: "open" }).select().single();
       if (error) { console.error("createPeriod", error); throw new Error("Не вдалося створити період"); }
       pRow = created;
     }
+
     if (["approved", "closed"].includes(pRow.status)) throw new Error("Період закрито — розрахунок не змінюється");
 
     const { data: profiles } = await context.supabase
@@ -134,7 +136,7 @@ export const listPayrollCalculations = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ period: z.string().regex(/^\d{4}-\d{2}$/) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
-    const { data: p } = await context.supabase.from("payroll_periods").select("id,status").eq("period", data.period).maybeSingle();
+    const { data: p } = await context.supabase.from("payroll_periods").select("id,status").eq("period", `${data.period}-01`).maybeSingle();
     if (!p) return { period: data.period, status: null, rows: [], schedule: payrollScheduleFor(data.period) };
     const { data: rows, error } = await context.supabase
       .from("payroll_calculations")
@@ -183,7 +185,7 @@ export const reconcilePayrollPayments = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ period: z.string().regex(/^\d{4}-\d{2}$/) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
-    const { data: p } = await context.supabase.from("payroll_periods").select("id").eq("period", data.period).maybeSingle();
+    const { data: p } = await context.supabase.from("payroll_periods").select("id").eq("period", `${data.period}-01`).maybeSingle();
     if (!p) throw new Error("Період не знайдено");
 
     const monthStart = `${data.period}-01`;
@@ -338,3 +340,68 @@ export const pushPayrollPaymentToFinmap = createServerFn({ method: "POST" })
     };
   });
 
+
+/**
+ * Заведення штату і схем оплати за затвердженими шаблонами KPI TERZI.
+ * Ідемпотентно: співробітник шукається за ПІБ, схема створюється лише якщо
+ * для нього ще немає діючої схеми на цей місяць.
+ */
+export const seedPayrollStaff = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      valid_from: z.string().min(4),
+      staff: z.array(z.object({
+        full_name: z.string().min(2).max(200),
+        template: z.string().min(2).max(60),
+        base_salary: z.number().min(0).optional(),
+      })).min(1).max(50),
+    }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { KPI_TEMPLATE_BY_KEY } = await import("./kpi-templates");
+    const created: string[] = [];
+    const skipped: string[] = [];
+
+    for (const s of data.staff) {
+      const tpl = KPI_TEMPLATE_BY_KEY[s.template];
+      if (!tpl) { skipped.push(`${s.full_name}: невідомий шаблон`); continue; }
+
+      const { data: found } = await context.supabase
+        .from("payroll_employees").select("id,full_name").ilike("full_name", s.full_name).maybeSingle();
+
+      let employeeId = found?.id as string | undefined;
+      if (!employeeId) {
+        const { data: emp, error } = await context.supabase
+          .from("payroll_employees")
+          .insert({ full_name: s.full_name, base_salary: s.base_salary ?? tpl.base_salary, active: true })
+          .select("id").single();
+        if (error) { console.error("seed employee", error); skipped.push(`${s.full_name}: не вдалося створити`); continue; }
+        employeeId = emp.id;
+      }
+
+      const { data: existingProfile } = await context.supabase
+        .from("payroll_profiles").select("id")
+        .eq("employee_id", employeeId)
+        .lte("valid_from", data.valid_from)
+        .or(`valid_to.is.null,valid_to.gte.${data.valid_from}`)
+        .maybeSingle();
+      if (existingProfile) { skipped.push(`${s.full_name}: схема вже існує`); continue; }
+
+      const { error: pe } = await context.supabase.from("payroll_profiles").insert({
+        employee_id: employeeId,
+        role_key: tpl.key,
+        payroll_group: tpl.group,
+        base_salary: s.base_salary ?? tpl.base_salary,
+        advance_percent: tpl.advance_percent,
+        kpi_scheme: tpl.kpi_scheme,
+        valid_from: data.valid_from,
+        created_by: context.userId,
+      });
+      if (pe) { console.error("seed profile", pe); skipped.push(`${s.full_name}: не вдалося створити схему`); continue; }
+      created.push(`${s.full_name} — ${tpl.position}`);
+    }
+
+    return { created, skipped };
+  });

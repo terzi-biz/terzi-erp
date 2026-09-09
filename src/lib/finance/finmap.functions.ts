@@ -144,7 +144,10 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance,balance_synced_at,source").eq("archived", false).order("name"),
       context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,order_id,client_id,counterparty_id,category_id,match_status").gte("op_date", data.from).lte("op_date", data.to),
       context.supabase.from("invoices").select("id,total,paid,status,due_date,client_id,order_id"),
-      context.supabase.from("payroll_calculations").select("total_payable,paid_amount,status,payroll_group,period_id"),
+      context.supabase
+        .from("payroll_calculations")
+        .select("total_payable,paid_amount,base_amount,kpi_amount,bonus_amount,advance_amount,status,payroll_group,period:period_id(period)"),
+
     ]);
 
     const rows = (tx ?? []) as any[];
@@ -161,9 +164,18 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       .filter((i) => i.due_date && new Date(i.due_date) < new Date() && (Number(i.total) || 0) > (Number(i.paid) || 0))
       .reduce((s, i) => s + ((Number(i.total) || 0) - (Number(i.paid) || 0)), 0);
 
-    const pay = (payroll ?? []) as any[];
-    const payrollAccrued = pay.reduce((s, p) => s + (Number(p.total_payable) || 0), 0);
-    const payrollPaid = pay.reduce((s, p) => s + (Number(p.paid_amount) || 0), 0);
+    // ФОТ періоду: беремо лише розрахунки, місяць яких потрапляє у вибраний діапазон.
+    const pay = ((payroll ?? []) as any[]).filter((p) => {
+      const per = p.period?.period as string | undefined;
+      if (!per) return false;
+      return per >= String(data.from).slice(0, 10) && per <= String(data.to).slice(0, 10);
+    });
+    const sum = (key: string) => pay.reduce((s, p) => s + (Number(p[key]) || 0), 0);
+    const payrollAccrued = sum("total_payable");
+    const payrollPaid = sum("paid_amount");
+    const payrollBase = sum("base_amount");
+    const payrollKpi = sum("kpi_amount") + sum("bonus_amount");
+    const payrollAdvance = sum("advance_amount");
 
     return {
       accounts: accounts ?? [],
@@ -174,10 +186,13 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       margin: income > 0 ? ((income - expense) / income) * 100 : 0,
       receivable, overdue,
       payable: Math.max(payrollAccrued - payrollPaid, 0),
-      payrollAccrued, payrollPaid,
+      payrollAccrued, payrollPaid, payrollBase, payrollKpi, payrollAdvance,
+      payrollRest: Math.max(payrollAccrued - payrollPaid, 0),
+      payrollEmployees: pay.length,
       unmatched: rows.filter((r) => r.match_status === "unmatched").length,
       transactions: rows.length,
     };
+
   });
 
 // ---------------- Мапінги та звірка ----------------
