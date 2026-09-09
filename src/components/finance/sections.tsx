@@ -959,7 +959,9 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
             <Metric title="Факт витрат (Finmap)" value={formatUah(data.totals.factCost)} tone="bad" />
             <Metric title="Прибуток факт" value={formatUah(data.totals.profitFact)}
               tone={data.totals.profitFact >= 0 ? "good" : "bad"} hint={`План ${formatUah(data.totals.profitPlan)}`} />
-            <Metric title="Маржа факт" value={`${data.totals.marginFact.toFixed(1)}%`} tone="warn" />
+            <Metric title="Маржа факт" value={`${data.totals.marginFact.toFixed(1)}%`} tone="warn"
+              hint={`ФОТ по об'єктах ${formatUah(data.totals.payrollCost)}`} />
+
           </div>
 
           <div className={`${card} overflow-x-auto p-0`}>
