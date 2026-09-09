@@ -136,7 +136,7 @@ export const listPayrollCalculations = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ period: z.string().regex(/^\d{4}-\d{2}$/) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
-    const { data: p } = await context.supabase.from("payroll_periods").select("id,status").eq("period", data.period).maybeSingle();
+    const { data: p } = await context.supabase.from("payroll_periods").select("id,status").eq("period", `${data.period}-01`).maybeSingle();
     if (!p) return { period: data.period, status: null, rows: [], schedule: payrollScheduleFor(data.period) };
     const { data: rows, error } = await context.supabase
       .from("payroll_calculations")
@@ -185,7 +185,7 @@ export const reconcilePayrollPayments = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => z.object({ period: z.string().regex(/^\d{4}-\d{2}$/) }).parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
-    const { data: p } = await context.supabase.from("payroll_periods").select("id").eq("period", data.period).maybeSingle();
+    const { data: p } = await context.supabase.from("payroll_periods").select("id").eq("period", `${data.period}-01`).maybeSingle();
     if (!p) throw new Error("Період не знайдено");
 
     const monthStart = `${data.period}-01`;
