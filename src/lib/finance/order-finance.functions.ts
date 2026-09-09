@@ -212,20 +212,23 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
 
     let txq = context.supabase
       .from("finance_transactions")
-      .select("order_id,kind,amount,amount_uah,op_date")
+      .select("order_id,kind,amount,amount_uah,op_date,category_id")
       .not("order_id", "is", null)
       .limit(20000);
     if (data.from) txq = txq.gte("op_date", data.from);
     if (data.to) txq = txq.lte("op_date", data.to);
 
-    const [{ data: orders }, { data: estimates }, { data: tx }] = await Promise.all([
+    const [{ data: orders }, { data: estimates }, { data: tx }, { data: categories }] = await Promise.all([
       context.supabase
         .from("orders")
         .select("id,number,name,address,commercial_status,production_status,client_id,client:client_id(name)")
         .limit(5000),
       context.supabase.from("estimates").select("order_id,total_client,total_cost,status").not("order_id", "is", null).limit(20000),
       txq,
+      context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
     ]);
+
+    const catById = new Map(((categories ?? []) as any[]).map((c) => [c.id, c]));
 
     const plan = new Map<string, { revenue: number; cost: number }>();
     for (const e of ((estimates ?? []) as any[])) {
@@ -235,16 +238,21 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
       plan.set(e.order_id, cur);
     }
 
-    const fact = new Map<string, { income: number; expense: number; ops: number; last: string | null }>();
+    const fact = new Map<string, { income: number; expense: number; payroll: number; ops: number; last: string | null }>();
     for (const t of ((tx ?? []) as any[])) {
       if (t.kind === "transfer") continue;
-      const cur = fact.get(t.order_id) ?? { income: 0, expense: 0, ops: 0, last: null };
+      const cur = fact.get(t.order_id) ?? { income: 0, expense: 0, payroll: 0, ops: 0, last: null };
       const v = num(t.amount_uah ?? t.amount);
-      if (t.kind === "income") cur.income += v; else cur.expense += v;
+      if (t.kind === "income") cur.income += v;
+      else {
+        cur.expense += v;
+        if (costClassOf(catById.get(t.category_id) ?? null) === "payroll") cur.payroll += v;
+      }
       cur.ops += 1;
       if (!cur.last || String(t.op_date) > cur.last) cur.last = t.op_date;
       fact.set(t.order_id, cur);
     }
+
 
     const rows = ((orders ?? []) as any[])
       .map((o) => {
