@@ -996,6 +996,7 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
                       {r.revenueGap > 0 && <div className="text-[11px] text-muted-foreground">борг {formatUah(r.revenueGap)}</div>}
                     </td>
                     <td className="px-3 py-2 text-right tabular-nums">{formatUah(r.factCost)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{formatUah(r.payrollCost)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-muted-foreground">{formatUah(r.profitPlan)}</td>
                     <td className={`px-3 py-2 text-right tabular-nums font-semibold ${r.profitFact >= 0 ? "text-success" : "text-destructive"}`}>
                       {formatUah(r.profitFact)}
@@ -1005,8 +1006,9 @@ export function OrdersFinanceSection({ period }: { period: Period }) {
                   </tr>
                 ))}
                 {!rows.length && (
-                  <tr><td colSpan={9} className="px-3 py-8 text-center text-sm text-muted-foreground">Немає об'єктів за цим фільтром</td></tr>
+                  <tr><td colSpan={10} className="px-3 py-8 text-center text-sm text-muted-foreground">Немає об'єктів за цим фільтром</td></tr>
                 )}
+
               </tbody>
             </table>
           </div>
