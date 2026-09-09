@@ -257,7 +257,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
     const rows = ((orders ?? []) as any[])
       .map((o) => {
         const p = plan.get(o.id) ?? { revenue: 0, cost: 0 };
-        const f = fact.get(o.id) ?? { income: 0, expense: 0, ops: 0, last: null };
+        const f = fact.get(o.id) ?? { income: 0, expense: 0, payroll: 0, ops: 0, last: null };
         const planRevenue = r2(p.revenue), planCost = r2(p.cost);
         const factRevenue = r2(f.income), factCost = r2(f.expense);
         const profitPlan = r2(planRevenue - planCost);
@@ -273,6 +273,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
           planRevenue, planCost, profitPlan,
           marginPlan: planRevenue > 0 ? r2((profitPlan / planRevenue) * 100) : 0,
           factRevenue, factCost, profitFact,
+          payrollCost: r2(f.payroll),
           marginFact: factRevenue > 0 ? r2((profitFact / factRevenue) * 100) : 0,
           collected: planRevenue > 0 ? r2((factRevenue / planRevenue) * 100) : null,
           revenueGap: r2(planRevenue - factRevenue),
@@ -289,9 +290,11 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
         planCost: r2(s.planCost + r.planCost),
         factRevenue: r2(s.factRevenue + r.factRevenue),
         factCost: r2(s.factCost + r.factCost),
+        payrollCost: r2(s.payrollCost + r.payrollCost),
       }),
-      { planRevenue: 0, planCost: 0, factRevenue: 0, factCost: 0 },
+      { planRevenue: 0, planCost: 0, factRevenue: 0, factCost: 0, payrollCost: 0 },
     );
+
 
     return {
       rows,
