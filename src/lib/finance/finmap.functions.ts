@@ -140,14 +140,14 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => periodFilter.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
-    const [{ data: accounts }, { data: tx }, { data: invoices }, { data: payroll }] = await Promise.all([
+    const [{ data: accounts }, { data: tx }, { data: invoices }, { data: payroll }, { data: categories }] = await Promise.all([
       context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance,balance_synced_at,source").eq("archived", false).order("name"),
       context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,order_id,client_id,counterparty_id,category_id,match_status").gte("op_date", data.from).lte("op_date", data.to),
       context.supabase.from("invoices").select("id,total,paid,status,due_date,client_id,order_id"),
       context.supabase
         .from("payroll_calculations")
         .select("total_payable,paid_amount,base_amount,kpi_amount,bonus_amount,advance_amount,status,payroll_group,period:period_id(period)"),
-
+      context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
     ]);
 
     const rows = (tx ?? []) as any[];

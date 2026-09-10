@@ -249,10 +249,10 @@ export const KPI_TEMPLATES: KpiTemplate[] = [
     kpi_scheme: [
       {
         code: "OBJECT_NET_PROFIT",
-        title: "Бонус 20% від чистого прибутку закритих об'єктів",
+        title: "Бонус 30% від чистого прибутку закритих об'єктів",
         kpi_type: "OBJECT_PROFIT_PERCENT",
-        percent: 20,
-        note: "Чистий прибуток = договір − матеріали − доставка − ФОП бригади − техніка − логістика − інші прямі − адмінвитрати.",
+        percent: 30,
+        note: "Затверджено таблицею «Структура» (30%). Чистий прибуток = договір − матеріали − доставка − ФОП бригади − техніка − логістика − інші прямі − адмінвитрати.",
       },
       {
         code: "CREW_PREMIUM_M2",
@@ -368,8 +368,8 @@ export const KPI_TYPE_LABELS: Record<string, string> = {
  */
 export const DEFAULT_STAFF: { full_name: string; template: string }[] = [
   { full_name: "Олег", template: "executive_director" },
-  { full_name: "Альона", template: "assistant_director" },
-  { full_name: "Сергій", template: "financier" },
+  { full_name: "Сергій", template: "assistant_director" },
+  { full_name: "Альона", template: "financier" },
   { full_name: "Менеджер з продажів", template: "sales_manager" },
   { full_name: "Бригадир 1", template: "brigadier" },
   { full_name: "Бригадир 2", template: "brigadier" },
