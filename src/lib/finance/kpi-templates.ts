@@ -187,9 +187,9 @@ export const KPI_TEMPLATES: KpiTemplate[] = [
     key: "sales_manager",
     position: "Менеджер з продажів",
     group: "commercial",
-    base_salary: 25000,
+    base_salary: 50000,
     advance_percent: 50,
-    target_bonus: 48000,
+    target_bonus: 37500,
     must_have: [
       "Бонус тільки від валової маржі виконаних і оплачених об'єктів",
       "Аванси та непідтверджена дебіторка в розрахунок не беруться",
@@ -216,8 +216,8 @@ export const KPI_TEMPLATES: KpiTemplate[] = [
         note: "Факт — конверсія у %. Норматив — не менше 18%.",
         tiers: [
           { from: 0, bonus: 0, label: "менше 15% — не виконано" },
-          { from: 15, bonus: 2604, label: "15–18% — допустимо" },
-          { from: 18, bonus: 5208, label: "18% і вище — виконано" },
+          { from: 15, bonus: 4687.5, label: "15–18% — допустимо" },
+          { from: 18, bonus: 9375, label: "18% і вище — виконано" },
         ],
       },
       {
@@ -228,9 +228,9 @@ export const KPI_TEMPLATES: KpiTemplate[] = [
         note: "Новий клієнт: не купував за останні 12 міс., підписав договір і вніс передоплату.",
         tiers: [
           { from: 0, bonus: 0, label: "0–2 клієнти" },
-          { from: 3, bonus: 2604, label: "3 клієнти — 50%" },
-          { from: 5, bonus: 5208, label: "5 клієнтів — 100%" },
-          { from: 6, bonus: 6250, label: "6 і більше — 120%" },
+          { from: 3, bonus: 4687.5, label: "3 клієнти — 50%" },
+          { from: 5, bonus: 9375, label: "5 клієнтів — 100%" },
+          { from: 6, bonus: 11250, label: "6 і більше — 120%" },
         ],
       },
     ],
