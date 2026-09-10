@@ -16,11 +16,12 @@ import {
 import {
   listPayrollProfiles, savePayrollProfile, calculatePayrollPeriod, listPayrollCalculations,
   setPayrollKpiFact, setPayrollStatus, reconcilePayrollPayments, pushPayrollPaymentToFinmap,
+  seedPayrollStaff,
 } from "@/lib/finance/payroll.functions";
 import { listAccounts } from "@/lib/finance.functions";
 import { listOrdersFinance, listAdvancePayments } from "@/lib/finance/order-finance.functions";
 import { payrollScheduleFor } from "@/lib/finance/payroll-engine";
-import { KPI_TEMPLATES, KPI_TEMPLATE_BY_KEY, KPI_TYPE_LABELS } from "@/lib/finance/kpi-templates";
+import { KPI_TEMPLATES, KPI_TEMPLATE_BY_KEY, KPI_TYPE_LABELS, DEFAULT_STAFF } from "@/lib/finance/kpi-templates";
 
 
 export const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
