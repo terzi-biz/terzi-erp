@@ -526,13 +526,27 @@ export function PayrollSection() {
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити операцію"),
   });
 
+  const seedFn = useServerFn(seedPayrollStaff);
+  const seed = useMutation({
+    mutationFn: () => seedFn({ data: { valid_from: `${period}-01`, staff: DEFAULT_STAFF } }),
+    onSuccess: (r: any) => {
+      toast.success(r.created.length ? `Заведено: ${r.created.length}` : "Штат уже заведено");
+      if (r.skipped?.length) toast.message(r.skipped.join("; "));
+      qc.invalidateQueries({ queryKey: ["payroll-profiles"] });
+      refresh();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося завести штат"),
+  });
+
   const schedule = payrollScheduleFor(period);
   const rows = (data?.rows ?? []) as any[];
   const totals = rows.reduce((a, r) => ({
     accrued: a.accrued + (Number(r.total_payable) || 0),
     advance: a.advance + (Number(r.advance_amount) || 0),
     paid: a.paid + (Number(r.paid_amount) || 0),
-  }), { accrued: 0, advance: 0, paid: 0 });
+    base: a.base + (Number(r.base_amount) || 0),
+    kpi: a.kpi + (Number(r.kpi_amount) || 0) + (Number(r.bonus_amount) || 0),
+  }), { accrued: 0, advance: 0, paid: 0, base: 0, kpi: 0 });
 
   const [newProfile, setNewProfile] = useState<any>(null);
 
@@ -542,6 +556,10 @@ export function PayrollSection() {
         <input type="month" className={`${input} max-w-[180px]`} value={period} onChange={(e) => setPeriod(e.target.value)} />
         <button className={`${btn} bg-primary text-primary-foreground`} disabled={calc.isPending} onClick={() => calc.mutate()}>
           <Calculator className="w-4 h-4" /> Розрахувати місяць
+        </button>
+        <button className={`${btn} border border-border`} disabled={seed.isPending} onClick={() => seed.mutate()}
+          title="Створює співробітників і схеми оплати за затвердженими ставками та KPI. Повторний запуск нічого не дублює.">
+          <Wallet className="w-4 h-4" /> Завести штат
         </button>
         <button className={`${btn} border border-border`} disabled={rec.isPending} onClick={() => rec.mutate()}>
           <RefreshCw className="w-4 h-4" /> Звірити з фактичними виплатами
@@ -555,12 +573,15 @@ export function PayrollSection() {
         </span>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        <Metric title="Зарплати (ставки)" value={formatUah(totals.base)} />
+        <Metric title="KPI-бонуси" value={formatUah(totals.kpi)} />
         <Metric title="Нараховано" value={formatUah(totals.accrued)} />
         <Metric title="Аванс (20-го)" value={formatUah(totals.advance)} />
         <Metric title="Виплачено (факт)" value={formatUah(totals.paid)} tone="good" />
         <Metric title="Залишок до виплати" value={formatUah(Math.max(totals.accrued - totals.paid, 0))} tone="warn" />
       </div>
+
 
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <div className="scroll-x">
