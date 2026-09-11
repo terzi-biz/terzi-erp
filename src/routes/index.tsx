@@ -233,7 +233,7 @@ function Dashboard() {
               {r.label}
             </button>
           ))}
-          <Link to="/calc" className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-gold)] px-3 py-1.5 text-xs font-bold text-[var(--color-gold-foreground)]">
+          <Link to="/calc" className={buttonVariants({ variant: "gold", size: "sm" }) + " gap-1.5 font-bold"}>
             <Plus className="h-3.5 w-3.5" /> Розрахунок
           </Link>
         </div>
