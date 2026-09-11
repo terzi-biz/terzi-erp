@@ -11,6 +11,7 @@ import {
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
 import { navForRoles, activeSectionKey, type NavSection } from "./nav-model";
+import { buttonVariants } from "@/components/ui/button";
 
 const AppShellContext = createContext(false);
 
