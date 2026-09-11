@@ -98,9 +98,9 @@ describe("Маршрути розрахунків", () => {
 });
 
 describe("Інформаційна архітектура меню", () => {
-  it("перший рівень — рівно 8 розділів", () => {
+  it("перший рівень — рівно 9 розділів", () => {
     expect(NAV_SECTIONS.map((s) => s.key)).toEqual([
-      "dashboard", "crm", "calc", "estimates", "orders", "finance", "analytics", "settings",
+      "dashboard", "crm", "calc", "estimates", "orders", "calendar", "finance", "analytics", "settings",
     ]);
   });
 
