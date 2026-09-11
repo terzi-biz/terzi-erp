@@ -215,7 +215,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
             <span className="text-[11px] text-muted-foreground hidden lg:inline">
               {new Date().toLocaleDateString("uk-UA", { day: "2-digit", month: "long", year: "numeric" })}
             </span>
-            <Link to="/calc" className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground hover:opacity-90">
+            <Link to="/calc" className={buttonVariants({ variant: "gold", size: "sm" }) + " gap-1.5 font-bold"}>
               <Plus className="w-3.5 h-3.5" /> Розрахунок
             </Link>
           </div>
