@@ -8,6 +8,7 @@ import { getAnalyticsOverview, getAdsCurrencyBreakdown } from "@/lib/analytics.f
 import { getFinanceOverview } from "@/lib/finance/finmap.functions";
 import { currencyNote } from "@/lib/marketing/currency";
 import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } from "@/components/dashboard/panels";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Plus, Target, Users, Ruler, FileText, Handshake, Wallet, PhoneCall, TrendingUp, TrendingDown, ListChecks, Link2,
 } from "lucide-react";
@@ -232,7 +233,7 @@ function Dashboard() {
               {r.label}
             </button>
           ))}
-          <Link to="/calc" className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-gold)] px-3 py-1.5 text-xs font-bold text-[var(--color-gold-foreground)]">
+          <Link to="/calc" className={buttonVariants({ variant: "gold", size: "sm" }) + " gap-1.5 font-bold"}>
             <Plus className="h-3.5 w-3.5" /> Розрахунок
           </Link>
         </div>
