@@ -218,8 +218,9 @@ export const getUpcomingPayments = createServerFn({ method: "GET" })
       if (rest <= 0) continue;
       rows.push({ id: s.id, date: s.due_date ?? null, kind: "income", amount: rest, counterparty: null, category: "Етап договору", order_id: s.order_id, status: s.status ?? "planned", source: "erp" });
     }
-    for (const o of (obligations ?? []) as any[]) {
-      rows.push({ id: o.id, date: o.due_date ?? null, kind: "expense", amount: r2(num(o.amount)), counterparty: o.supplier_name, category: "Зобовʼязання постачальнику", order_id: o.order_id, status: o.status ?? "open", source: "erp" });
+    for (const o of obligations) {
+      // Показуємо непогашений залишок, а не початкову суму зобовʼязання.
+      rows.push({ id: o.id, date: o.dueDate, kind: "expense", amount: o.remaining, counterparty: o.supplier, category: "Зобовʼязання постачальнику", order_id: o.orderId, status: o.status, source: "erp" });
     }
 
     return { today, ...upcomingBuckets(rows, today) };
