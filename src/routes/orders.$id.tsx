@@ -20,6 +20,7 @@ import { useInternalAccess } from "@/lib/useInternalAccess";
 import { formatUah } from "@/lib/screed-calc";
 import { getOrderPnl } from "@/lib/finance.functions";
 import { getOrderFinance } from "@/lib/finance/order-finance.functions";
+import { OrderReceivables } from "@/components/finance/OrderReceivables";
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 
 import { listReservations } from "@/lib/warehouse.functions";
