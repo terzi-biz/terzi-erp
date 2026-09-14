@@ -416,6 +416,19 @@ function Dashboard() {
                   ["ФОТ нараховано", fin ? money(fin.payrollAccrued) : NO],
                   ["ФОТ виплачено (Finmap)", fin ? money(fin.payrollFact) : NO],
                   ["Сума договорів", show(contractValue, money)],
+                  ["Витрати на звʼязок (Finmap)", fin ? money((fin as any).telephonyCost ?? 0) : NO],
+                  ["Дзвінків у періоді", fin && (fin as any).callsCount != null ? num((fin as any).callsCount) : NO],
+                  [
+                    "Телефонія оновлена",
+                    fin && (fin as any).callsSyncedAt
+                      ? new Date((fin as any).callsSyncedAt).toLocaleString("uk-UA", {
+                          timeZone: "Europe/Kyiv",
+                          day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit",
+                        })
+                      : fin && (fin as any).callsSyncError
+                        ? `Помилка: ${(fin as any).callsSyncError}`
+                        : NO,
+                  ],
                   ["Реклама", show(spend, money) + (spend != null && fxNote ? ` (${fxNote})` : "")],
                   ["ROMI", romi == null ? NO : pct(romi)],
                 ].map(([l, v]) => (
@@ -424,6 +437,7 @@ function Dashboard() {
                     <b>{v}</b>
                   </div>
                 ))}
+
               </div>
             </Panel>
           </div>
