@@ -393,8 +393,160 @@ async function estimatesPriceVersion(): Promise<AuditReport> {
   };
 }
 
+/* ─────────── якість даних CRM ─────────── */
+
+type LeadRow = Record<string, any>;
+
+async function leadsForQuality(): Promise<LeadRow[]> {
+  return fetchAll(
+    "crm_leads",
+    "id,title,contact_id,client_id,assigned_to,order_id,source,utm,status,stage_id,phone_e164,created_at,external_source,external_id",
+  );
+}
+
+function leadTitle(l: LeadRow) {
+  return `${l.title || "без назви"} · ${new Date(l.created_at).toLocaleDateString("uk-UA")}`;
+}
+
+function simpleReport(check: AuditCheck, rows: LeadRow[], detail: (l: LeadRow) => string, note: string): AuditReport {
+  return {
+    check,
+    label: AUDIT_LABELS[check],
+    applicable: false,
+    total: rows.length,
+    rows: rows.slice(0, REPORT_LIMIT).map((l) => ({
+      applyKey: null,
+      title: leadTitle(l),
+      detail: detail(l),
+      change: null,
+    })),
+    note,
+  };
+}
+
+const hasUtm = (l: LeadRow) => Object.values((l.utm ?? {}) as Record<string, unknown>).some((v) => v);
+
+async function stageConflicts(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id");
+  const stageById = new Map(stages.map((s) => [s.id, s]));
+  const bad = leads.filter((l) => {
+    const stage = l.stage_id ? stageById.get(l.stage_id) : null;
+    if (!stage) return Boolean(l.stage_id);
+    const name = String(stage.name ?? "");
+    const won = /(успешн|успішн|successful)/i.test(name);
+    const finalLost = /(отказ|відмов|спам|дубл|не цел|не наш|некоррект|перестал|дорого|купил)/i.test(name);
+    if (won && l.status !== "won") return true;
+    if (finalLost && l.status === "open") return true;
+    if (!won && !finalLost && (l.status === "won" || l.status === "lost")) return true;
+    return false;
+  });
+  return simpleReport(
+    "stage_status_conflicts",
+    bad,
+    (l) => `етап: ${stageById.get(l.stage_id)?.name ?? "—"} · статус: ${l.status}`,
+    "Етап keyCRM — джерело істини. Конфлікти зникають після наступної синхронізації картки.",
+  );
+}
+
+async function duplicateLeads(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const groups = new Map<string, LeadRow[]>();
+  for (const l of leads) {
+    const key = l.external_id ? `keycrm:${l.external_id}` : l.phone_e164 ? `tel:${l.phone_e164}` : null;
+    if (!key) continue;
+    const arr = groups.get(key) ?? [];
+    arr.push(l);
+    groups.set(key, arr);
+  }
+  const dup = [...groups.entries()].filter(([, list]) => list.length > 1);
+  return {
+    check: "duplicate_leads",
+    label: AUDIT_LABELS.duplicate_leads,
+    applicable: false,
+    total: dup.length,
+    rows: dup.slice(0, REPORT_LIMIT).map(([key, list]) => ({
+      applyKey: null,
+      title: `${key} · ${list.length} лідів`,
+      detail: list.map((l) => leadTitle(l)).join(" | "),
+      change: null,
+    })),
+    note: "Ліди не об'єднуються автоматично: повторні звернення того самого номера — нормальна ситуація. Дублі за зовнішнім ID keyCRM потребують перевірки.",
+  };
+}
+
+async function unlinkedKeycrmOrders(): Promise<AuditReport> {
+  const orders = await fetchAll("orders", "id,number,name,client_id,external_source,external_id,created_at", (q) =>
+    q.eq("external_source", "keycrm"),
+  );
+  const leads = await fetchAll("crm_leads", "id,order_id");
+  const linked = new Set(leads.map((l) => l.order_id).filter(Boolean));
+  const bad = orders.filter((o) => !o.client_id || !linked.has(o.id));
+  return {
+    check: "unlinked_keycrm_orders",
+    label: AUDIT_LABELS.unlinked_keycrm_orders,
+    applicable: false,
+    total: bad.length,
+    rows: bad.slice(0, REPORT_LIMIT).map((o) => ({
+      applyKey: null,
+      title: `${o.number} · ${o.name || "без назви"}`,
+      detail: `${o.client_id ? "клієнт є" : "без клієнта"} · ${linked.has(o.id) ? "лід є" : "без ліда"}`,
+      change: null,
+    })),
+    note: "Замовлення keyCRM без клієнта або без зв'язку з лідом. Зв'язок встановлюється синхронізацією за зовнішнім ID.",
+  };
+}
+
+async function wonLeadsWithoutOrder(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const bad = leads.filter((l) => l.status === "won" && !l.order_id);
+  return simpleReport(
+    "won_leads_without_order",
+    bad,
+    (l) => `клієнт: ${l.client_id ? "є" : "—"} · відповідальний: ${l.assigned_to ? "є" : "—"}`,
+    "Виграний лід без замовлення: замовлення keyCRM ще не створене або не зіставлене.",
+  );
+}
+
+async function crmQuality(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const [dupClients, stage, dupLeads, unlinked] = await Promise.all([
+    clientDuplicateGroups(),
+    stageConflicts(),
+    duplicateLeads(),
+    unlinkedKeycrmOrders(),
+  ]);
+  const counters: { check: AuditCheck; label: string; total: number }[] = [
+    { check: "leads_without_contact", label: AUDIT_LABELS.leads_without_contact, total: leads.filter((l) => !l.contact_id).length },
+    { check: "leads_to_clients", label: "Ліди без клієнта", total: leads.filter((l) => !l.client_id).length },
+    { check: "leads_without_manager", label: AUDIT_LABELS.leads_without_manager, total: leads.filter((l) => !l.assigned_to).length },
+    { check: "leads_without_source", label: AUDIT_LABELS.leads_without_source, total: leads.filter((l) => !l.source && !hasUtm(l)).length },
+    { check: "stage_status_conflicts", label: AUDIT_LABELS.stage_status_conflicts, total: stage.total },
+    { check: "client_duplicates", label: "Дублі клієнтів (групи)", total: dupClients.groups.length },
+    { check: "duplicate_leads", label: AUDIT_LABELS.duplicate_leads, total: dupLeads.total },
+    { check: "unlinked_keycrm_orders", label: AUDIT_LABELS.unlinked_keycrm_orders, total: unlinked.total },
+    { check: "won_leads_without_order", label: AUDIT_LABELS.won_leads_without_order, total: leads.filter((l) => l.status === "won" && !l.order_id).length },
+    { check: "leads_to_orders", label: "Неоднозначні зіставлення (лід без замовлення при клієнті)", total: leads.filter((l) => l.client_id && !l.order_id).length },
+  ];
+  return {
+    check: "crm_quality",
+    label: AUDIT_LABELS.crm_quality,
+    applicable: false,
+    total: counters.reduce((s, c) => s + c.total, 0),
+    rows: counters.map((c) => ({
+      applyKey: `open:${c.check}`,
+      title: `${c.label}: ${c.total}`,
+      detail: `Усього лідів: ${leads.length}`,
+      change: "Відкрити перелік",
+    })),
+    note: "Натисніть «Відкрити перелік», щоб побачити точні записи за лічильником.",
+  };
+}
+
 export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> {
   switch (check) {
+    case "crm_quality":
+      return crmQuality();
     case "client_duplicates":
       return clientDuplicates();
     case "calls_to_leads":
@@ -403,6 +555,41 @@ export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> 
       return leadsToClients();
     case "leads_to_orders":
       return leadsToOrders();
+    case "leads_without_contact": {
+      const leads = await leadsForQuality();
+      return simpleReport(
+        "leads_without_contact",
+        leads.filter((l) => !l.contact_id),
+        (l) => `джерело: ${l.source || "—"} · статус: ${l.status}`,
+        "Контакт створюється синхронізацією картки keyCRM (include=contact).",
+      );
+    }
+    case "leads_without_manager": {
+      const leads = await leadsForQuality();
+      return simpleReport(
+        "leads_without_manager",
+        leads.filter((l) => !l.assigned_to),
+        (l) => `статус: ${l.status} · клієнт: ${l.client_id ? "є" : "—"}`,
+        "Відповідальний підтягується з keyCRM за e-mail або телефоном користувача. Без надійного збігу — потребує перевірки.",
+      );
+    }
+    case "leads_without_source": {
+      const leads = await leadsForQuality();
+      return simpleReport(
+        "leads_without_source",
+        leads.filter((l) => !l.source && !hasUtm(l)),
+        (l) => `статус: ${l.status} · створено ${new Date(l.created_at).toLocaleDateString("uk-UA")}`,
+        "Джерело або UTM не визначені — «Не класифіковано / потребує перевірки». Історична атрибуція не вигадується.",
+      );
+    }
+    case "stage_status_conflicts":
+      return stageConflicts();
+    case "duplicate_leads":
+      return duplicateLeads();
+    case "unlinked_keycrm_orders":
+      return unlinkedKeycrmOrders();
+    case "won_leads_without_order":
+      return wonLeadsWithoutOrder();
     case "catalog_issues":
       return catalogIssues();
     case "estimates_price_version":
