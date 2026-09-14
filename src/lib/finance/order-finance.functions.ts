@@ -269,7 +269,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
 
     const rows = ((orders ?? []) as any[])
       .map((o) => {
-        const p = plan.get(o.id) ?? { revenue: 0, cost: 0 };
+        const p = plan.get(o.id) ?? { revenue: 0, cost: 0, versions: 0 };
         const f = fact.get(o.id) ?? { income: 0, expense: 0, payroll: 0, ops: 0, last: null };
         const planRevenue = r2(p.revenue), planCost = r2(p.cost);
         const factRevenue = r2(f.income), factCost = r2(f.expense);
