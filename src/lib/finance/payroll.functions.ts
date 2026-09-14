@@ -368,8 +368,11 @@ export const seedPayrollStaff = createServerFn({ method: "POST" })
       const tpl = KPI_TEMPLATE_BY_KEY[s.template];
       if (!tpl) { skipped.push(`${s.full_name}: невідомий шаблон`); continue; }
 
-      const { data: found } = await context.supabase
-        .from("payroll_employees").select("id,full_name").ilike("full_name", s.full_name).maybeSingle();
+      // maybeSingle() падає на дублікатах — беремо перший збіг, щоб повторний seed був ідемпотентним.
+      const { data: foundList } = await context.supabase
+        .from("payroll_employees").select("id,full_name").ilike("full_name", s.full_name)
+        .order("created_at", { ascending: true }).limit(1);
+      const found = (foundList ?? [])[0];
 
       let employeeId = found?.id as string | undefined;
       if (!employeeId) {
