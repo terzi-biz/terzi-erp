@@ -118,7 +118,159 @@ export async function syncCounterparties(db: Db): Promise<SyncResult> {
   return { entity: "counterparties", status: "ok", fetched, inserted, updated, skipped: 0 };
 }
 
+/* ---------- Хелпери збагаченої моделі операцій ---------- */
+
+/** Будь-яке представлення дати Finmap → YYYY-MM-DD (UTC). */
+function isoDay(v: unknown): string | null {
+  if (v == null || v === "") return null;
+  const n = typeof v === "number" ? v : Number(v);
+  const d = Number.isFinite(n) ? new Date(n) : new Date(String(v));
+  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+}
+
+/**
+ * ACTUAL чи SCHEDULED. Планова — незатверджена операція або операція
+ * з датою оплати в майбутньому. Планова ніколи не входить у факт.
+ */
+function operationState(raw: any): "actual" | "scheduled" {
+  const explicit = String(raw?.status ?? raw?.state ?? "").toLowerCase();
+  if (["planned", "scheduled", "future", "expected"].includes(explicit)) return "scheduled";
+  if (raw?.approved === false) return "scheduled";
+  const pay = isoDay(raw?.dateOfPayment ?? raw?.paymentDate ?? raw?.date);
+  const today = new Date().toISOString().slice(0, 10);
+  if (pay && pay > today && raw?.approved !== true) return "scheduled";
+  return "actual";
+}
+
+/** Теги Finmap: зберігаємо id + назву, без хардкоду конкретних тегів TERZI. */
+function normalizeTags(raw: any): { id: string | null; name: string | null }[] {
+  const src = raw?.tags ?? raw?.tagObjects ?? raw?.tagIds ?? [];
+  if (!Array.isArray(src)) return [];
+  return src.map((t: any) =>
+    typeof t === "string" || typeof t === "number"
+      ? { id: String(t), name: null }
+      : { id: t?.id != null ? String(t.id) : null, name: t?.name ?? t?.label ?? null },
+  );
+}
+
+/**
+ * Розподіли операції по проєктах і статтях (projectObjects / categoryObjects).
+ * Явний розподіл Finmap має найвищий пріоритет і не перетирає ручний TERZI-розподіл.
+ */
+async function saveAllocations(db: Db, ops: FinmapOperation[], refs: { prById: Map<any, any>; catById: Map<any, any> }) {
+  const { normalizeFinmapParts, resolveAllocations, allocationStatus } = await import("./allocations");
+  const ids = ops.map((o) => o.id);
+  const { data: txs } = await db.from("finance_transactions").select("id,finmap_id,amount_uah,amount").in("finmap_id", ids);
+  const txByFinmap = new Map((txs ?? []).map((t: any) => [t.finmap_id, t]));
+
+  const rows: any[] = [];
+  const statuses: { id: string; allocation_status: string }[] = [];
+
+  for (const o of ops) {
+    const tx = txByFinmap.get(o.id) as any;
+    if (!tx) continue;
+    const raw = o as any;
+    const total = Number(tx.amount_uah ?? tx.amount) || 0;
+    const all: any[] = [];
+
+    for (const dim of ["project", "category"] as const) {
+      const src = dim === "project" ? raw.projectObjects ?? raw.projects : raw.categoryObjects ?? raw.categories;
+      const parts = normalizeFinmapParts(src);
+      if (!parts.length) continue;
+      const { allocations } = resolveAllocations({ total, dimension: dim, finmap: parts });
+      for (const a of allocations) {
+        const local = dim === "project" ? refs.prById.get(a.ref) : refs.catById.get(a.ref);
+        rows.push({
+          transaction_id: tx.id,
+          dimension: dim,
+          ref_finmap_id: a.ref,
+          ref_name: a.name,
+          order_id: dim === "project" ? (local as any)?.order_id ?? null : null,
+          category_id: dim === "category" ? (local ?? null) : null,
+          amount: a.amount,
+          share: a.share,
+          source: "finmap",
+          status: local ? "ok" : "needs_review",
+        });
+        all.push(a);
+      }
+    }
+    if (all.length) statuses.push({ id: tx.id, allocation_status: allocationStatus(total, all) });
+  }
+
+  if (rows.length) {
+    // Ручний розподіл TERZI не перетирається синхронізацією.
+    const txIds = [...new Set(rows.map((r) => r.transaction_id))];
+    const { data: manual } = await db.from("finance_allocations").select("transaction_id").eq("source", "manual").in("transaction_id", txIds);
+    const locked = new Set((manual ?? []).map((m: any) => m.transaction_id));
+    const free = rows.filter((r) => !locked.has(r.transaction_id));
+    if (free.length) {
+      await db.from("finance_allocations").upsert(free, { onConflict: "transaction_id,dimension,ref_finmap_id,service" });
+    }
+  }
+  for (const s of statuses) await db.from("finance_transactions").update({ allocation_status: s.allocation_status }).eq("id", s.id);
+}
+
+/** Теги Finmap як додаткова фінансова класифікація. */
+export async function syncTags(db: Db): Promise<SyncResult> {
+  try {
+    const list = (await finmap.tags()) ?? [];
+    const { inserted, updated } = await upsertRefs(db, "finance_tags", list, (r) => ({ name: r.label }));
+    return { entity: "match" as SyncEntity, status: "ok", fetched: list.length, inserted, updated, skipped: 0, message: `теги: ${list.length}` };
+  } catch (e: any) {
+    if (e instanceof FinmapError && (e.status === 404 || e.status === 400)) {
+      return { entity: "match" as SyncEntity, status: "ok", fetched: 0, inserted: 0, updated: 0, skipped: 0, message: "теги недоступні в API" };
+    }
+    throw e;
+  }
+}
+
+/** Рахунки постачальників Finmap — додаткове джерело звірки, не нова система закупівель. */
+export async function syncInvoices(db: Db): Promise<SyncResult> {
+  let list: any[] = [];
+  try {
+    const res = await finmap.invoices();
+    list = Array.isArray(res) ? res : res?.list ?? res?.data ?? [];
+  } catch (e: any) {
+    if (e instanceof FinmapError && (e.status === 404 || e.status === 400 || e.status === 403)) {
+      return { entity: "invoices", status: "ok", fetched: 0, inserted: 0, updated: 0, skipped: 0, message: "рахунки недоступні в API або немає прав" };
+    }
+    throw e;
+  }
+  if (!list.length) return { entity: "invoices", status: "ok", fetched: 0, inserted: 0, updated: 0, skipped: 0 };
+
+  const { data: cps } = await db.from("finance_counterparties").select("id,finmap_id").not("finmap_id", "is", null);
+  const cpById = new Map((cps ?? []).map((c: any) => [c.finmap_id, c.id]));
+  const { data: existing } = await db.from("finmap_invoices").select("finmap_id");
+  const known = new Set((existing ?? []).map((e: any) => e.finmap_id));
+
+  const rows = list.map((i: any) => ({
+    finmap_id: String(i.id ?? i.invoiceId),
+    number: i.number ?? i.invoiceNumber ?? null,
+    counterparty_id: cpById.get(String(i.counterpartyId ?? "")) ?? null,
+    counterparty_name: i.counterpartyName ?? i.supplier ?? null,
+    issue_date: isoDay(i.date ?? i.issueDate),
+    due_date: isoDay(i.dueDate),
+    amount: Number(i.sum ?? i.amount) || 0,
+    currency: i.currencyId ?? "UAH",
+    amount_uah: i.companyCurrencySum ?? null,
+    vat_amount: Number(i.vat ?? i.vatAmount) || null,
+    discount_amount: Number(i.discount) || null,
+    delivery_amount: Number(i.delivery) || null,
+    status: i.status ?? null,
+    items: (i.items ?? i.goods ?? []) as any,
+    attachments: (i.attachments ?? []) as any,
+    payload: i,
+    match_status: "unmatched",
+  }));
+  const { error } = await db.from("finmap_invoices").upsert(rows, { onConflict: "finmap_id" });
+  if (error) throw new Error(`finmap_invoices: ${error.message}`);
+  const inserted = rows.filter((r) => !known.has(r.finmap_id)).length;
+  return { entity: "invoices", status: "ok", fetched: rows.length, inserted, updated: rows.length - inserted, skipped: 0 };
+}
+
 /** Операції: інкрементально від останнього курсора (або від fromDate при initial sync). */
+
 export async function syncOperations(db: Db, opts: { from?: string; to?: string; pageSize?: number; maxPages?: number } = {}): Promise<SyncResult> {
   const pageSize = Math.min(opts.pageSize ?? 100, 100);
   const maxPages = opts.maxPages ?? 300;
