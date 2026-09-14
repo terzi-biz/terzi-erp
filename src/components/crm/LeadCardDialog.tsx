@@ -257,9 +257,9 @@ export function LeadCardDialog({
                 ) : null}
 
                 {tab === "calls" ? (
-                  (data?.calls ?? []).length ? (data?.calls ?? []).map((c: any) => <CallItem key={c.id} call={c} />)
-                    : <Empty text="Дзвінків за цим номером немає" />
+                  <CallsPlayerList leadId={leadId} title="" limit={50} />
                 ) : null}
+
 
                 {tab === "history" ? (
                   (data?.activities ?? []).length ? (data?.activities ?? []).map((a: any) => (
