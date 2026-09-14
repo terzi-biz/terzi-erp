@@ -166,11 +166,14 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       order_id: orderId,
       plan: { revenue: revenuePlan, cost: costPlan, profit: profitPlan, margin: marginPlan },
       fact: { revenue: revenueFact, cost: costFact, profit: profitFact, margin: marginFact },
-      variance: {
-        revenue: r2(revenueFact - revenuePlan),
-        cost: r2(costFact - costPlan),
-        profit: r2(profitFact - profitPlan),
+      variance: core.variance,
+      planSource: {
+        estimate_id: canonicalEstimate?.id ?? null,
+        number: (canonicalEstimate as any)?.number ?? null,
+        status: planFigures.status,
+        versions: planFigures.versions,
       },
+      legacy: { paymentsIn, paymentsOut, expensesFact },
       invoiced,
       receivable,
       receivableOverdue,
