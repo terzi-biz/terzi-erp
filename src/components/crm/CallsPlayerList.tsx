@@ -84,24 +84,27 @@ export function CallsPlayerList({
   clientId,
   orderId,
   measurementId,
+  leadId,
   title = "Дзвінки",
   limit = 20,
 }: {
   clientId?: string | null;
   orderId?: string | null;
   measurementId?: string | null;
+  leadId?: string | null;
   title?: string;
   limit?: number;
 }) {
   const fn = useServerFn(listEntityCalls);
-  const key = measurementId ? ["m", measurementId] : orderId ? ["o", orderId] : ["c", clientId];
+  const key = measurementId ? ["m", measurementId] : orderId ? ["o", orderId] : leadId ? ["l", leadId] : ["c", clientId];
   const q = useQuery({
     queryKey: ["entity-calls", ...key, limit],
-    queryFn: () => fn({ data: { clientId, orderId, measurementId, limit } }) as any,
-    enabled: Boolean(clientId || orderId || measurementId),
+    queryFn: () => fn({ data: { clientId, orderId, measurementId, leadId, limit } }) as any,
+    enabled: Boolean(clientId || orderId || measurementId || leadId),
   });
 
   const rows = (q.data ?? []) as any[];
+
 
   return (
     <div className="space-y-2">
