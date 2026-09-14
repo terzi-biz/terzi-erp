@@ -637,7 +637,7 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
   ];
 
   if (internalId) {
-    const patch = { ...preservePatch(current, incoming, owned), management_data: managementData };
+    const patch: Record<string, unknown> = { ...preservePatch(current, incoming, owned), management_data: managementData };
     if (current?.utm) patch.utm = mergeUtm(current.utm as any, utm as any);
     const { error } = await db.from("orders").update(patch as any).eq("id", internalId);
     if (error) throw error;
