@@ -103,59 +103,57 @@ export const getServiceEconomics = createServerFn({ method: "POST" })
 
 /* ---------------------------- Кредиторка ---------------------------- */
 
+/**
+ * Єдиний канонічний розрахунок кредиторки. Використовується в Кредиторці,
+ * Огляді (KPI) та Очікуваних платежах — щоб залишок усюди був однаковий.
+ */
+async function loadPayables(supabase: any, today: string): Promise<{ payables: PayablesResult; invoices: any[]; cpName: Map<string, string> }> {
+  const [{ data: obligations }, { data: tx }, { data: links }, { data: cps }, { data: invoices }] = await Promise.all([
+    supabase.from("supplier_obligations").select("*"),
+    supabase
+      .from("finance_transactions")
+      .select("id,kind,amount,amount_uah,op_date,payment_date,state,counterparty_id,order_id")
+      .eq("kind", "expense"),
+    supabase.from("finance_transaction_links").select("transaction_id,entity_type,entity_id,status").eq("entity_type", "supplier_obligation"),
+    supabase.from("finance_counterparties").select("id,name,kind"),
+    supabase.from("finmap_invoices").select("id,finmap_id,number,counterparty_id,counterparty_name,amount,amount_uah,issue_date,due_date,status,order_id,match_status"),
+  ]);
+
+  const cpName = new Map(((cps ?? []) as any[]).map((c) => [c.id, c.name])) as Map<string, string>;
+  const explicit = new Map(((links ?? []) as any[]).filter((l) => l.status !== "rejected").map((l) => [l.transaction_id, l.entity_id]));
+
+  const payments = ((tx ?? []) as any[]).map((t) => ({
+    id: t.id,
+    counterparty_id: t.counterparty_id ?? null,
+    order_id: t.order_id ?? null,
+    obligation_id: explicit.get(t.id) ?? null,
+    amount: amt(t),
+    date: cash(t),
+    state: String(t.state ?? "actual"),
+  }));
+
+  const payables = computePayables({
+    obligations: (obligations ?? []) as any[],
+    payments,
+    today,
+    cpName: (id) => (id ? cpName.get(id) ?? null : null),
+  });
+
+  return { payables, invoices: (invoices ?? []) as any[], cpName };
+}
+
 export const getPayables = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFinance(context);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: obligations }, { data: tx }, { data: cps }, { data: invoices }] = await Promise.all([
-      context.supabase.from("supplier_obligations").select("*"),
-      context.supabase
-        .from("finance_transactions")
-        .select("id,kind,amount,amount_uah,op_date,payment_date,state,counterparty_id,order_id")
-        .eq("kind", "expense"),
-      context.supabase.from("finance_counterparties").select("id,name,kind"),
-      context.supabase.from("finmap_invoices").select("id,finmap_id,number,counterparty_id,counterparty_name,amount,amount_uah,issue_date,due_date,status,order_id,match_status"),
-    ]);
-
-    const cpName = new Map(((cps ?? []) as any[]).map((c) => [c.id, c.name]));
-    const groups = new Map<string, { supplier: string; counterpartyId: string | null; obligations: any[]; paid: any[]; scheduled: any[] }>();
-    const key = (cpId: string | null, name: string | null) => cpId ?? `name:${name ?? "—"}`;
-
-    for (const o of (obligations ?? []) as any[]) {
-      const k = key(o.counterparty_id, o.supplier_name);
-      const g = groups.get(k) ?? {
-        supplier: (o.supplier_name ?? cpName.get(o.counterparty_id) ?? "—") as string,
-        counterpartyId: o.counterparty_id as string | null,
-        obligations: [] as any[], paid: [] as any[], scheduled: [] as any[],
-      };
-      g.obligations.push(o);
-      groups.set(k, g);
-    }
-    for (const t of (tx ?? []) as any[]) {
-      const k = key(t.counterparty_id, null);
-      const g = groups.get(k);
-      if (!g) continue; // витрата без зобовʼязання не створює борг заднім числом
-      if (String(t.state) === "scheduled") g.scheduled.push({ amount: amt(t) });
-      else g.paid.push({ amount: amt(t), date: cash(t) });
-    }
-
-    const rows = [...groups.values()].map((g) => ({
-      supplier: g.supplier,
-      counterpartyId: g.counterpartyId,
-      ...computePayable({ obligations: g.obligations, actualPaid: g.paid, scheduledPayments: g.scheduled, today }),
-    })).sort((a, b) => b.remaining - a.remaining);
-
+    const { payables, invoices } = await loadPayables(context.supabase, today);
     return {
-      rows,
-      totals: {
-        obligations: r2(rows.reduce((s, r) => s + r.obligations, 0)),
-        scheduled: r2(rows.reduce((s, r) => s + r.scheduled, 0)),
-        paid: r2(rows.reduce((s, r) => s + r.paid, 0)),
-        remaining: r2(rows.reduce((s, r) => s + r.remaining, 0)),
-        overdue: r2(rows.reduce((s, r) => s + r.overdue, 0)),
-      },
-      invoices: (invoices ?? []) as any[],
+      rows: payables.suppliers,
+      obligations: payables.obligations,
+      totals: payables.totals,
+      unmatchedPayments: payables.unmatchedPayments,
+      invoices,
     };
   });
 
