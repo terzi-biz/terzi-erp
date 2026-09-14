@@ -338,3 +338,52 @@ export const saveManualAllocation = createServerFn({ method: "POST" })
     });
     return { ok: true, parts, unallocated, allocation_status: status };
   });
+
+/* --------------------- Розширена звірка (Reconciliation) --------------------- */
+
+/** Додаткові пункти звірки Етапу 2: розподіли, рахунки, зобовʼязання, ФОП. */
+export const getManagementReconciliation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertFinance(context);
+    const [{ data: tx }, { data: invoices }, { data: obligations }, { data: cps }, { data: payrollPayments }] = await Promise.all([
+      context.supabase
+        .from("finance_transactions")
+        .select("id,kind,amount,amount_uah,state,service,order_id,allocation_status,category_id")
+        .eq("state", "actual").limit(20000),
+      context.supabase.from("finmap_invoices").select("id,number,amount,amount_uah,order_id,match_status,counterparty_id"),
+      context.supabase.from("supplier_obligations").select("id,supplier_name,amount,status,counterparty_id"),
+      context.supabase.from("finance_counterparties").select("id,name,finmap_kind,employee_id,client_id"),
+      context.supabase.from("payroll_payments").select("id,amount,calculation_id"),
+    ]);
+
+    const rows = ((tx ?? []) as any[]).filter((t) => t.kind !== "transfer");
+    const agg = (list: any[]) => ({ count: list.length, amount: r2(list.reduce((s, t) => s + amt(t), 0)) });
+
+    const noService = rows.filter((t) => !t.service && !["manual", "full"].includes(String(t.allocation_status)));
+    const partial = rows.filter((t) => t.allocation_status === "partial");
+    const needsReview = rows.filter((t) => t.allocation_status === "needs_review");
+
+    const invList = (invoices ?? []) as any[];
+    const employees = ((cps ?? []) as any[]).filter((c) => c.finmap_kind === "employee" && !c.employee_id);
+    const payments = (payrollPayments ?? []) as any[];
+
+    return {
+      transactionsWithoutService: agg(noService),
+      incompleteAllocation: agg(partial),
+      allocationNeedsReview: agg(needsReview),
+      invoicesWithoutErp: {
+        count: invList.filter((i) => !i.order_id && i.match_status !== "matched").length,
+        amount: r2(invList.filter((i) => !i.order_id && i.match_status !== "matched").reduce((s, i) => s + num(i.amount_uah ?? i.amount), 0)),
+      },
+      obligationsWithoutPayment: {
+        count: ((obligations ?? []) as any[]).filter((o) => o.status === "open").length,
+        amount: r2(((obligations ?? []) as any[]).filter((o) => o.status === "open").reduce((s, o) => s + num(o.amount), 0)),
+      },
+      employeesWithoutErp: { count: employees.length, rows: employees.slice(0, 50).map((c) => ({ id: c.id, name: c.name })) },
+      payrollPaymentsWithoutRelation: {
+        count: payments.filter((p) => !p.calculation_id).length,
+        amount: r2(payments.filter((p) => !p.calculation_id).reduce((s, p) => s + num(p.amount), 0)),
+      },
+    };
+  });
