@@ -9,6 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { payrollScheduleFor } from "./payroll-engine";
 import { costClassOf, COST_CLASS_LABELS, DIRECT_COST_CLASSES, type CostClass } from "./cost-class";
+import { orderFinance, planFromEstimates, pickCanonicalEstimate } from "./core";
 
 const num = (v: unknown) => Number(v) || 0;
 const r2 = (v: number) => Math.round(v * 100) / 100;
