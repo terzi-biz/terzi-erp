@@ -123,7 +123,11 @@ export const getPayables = createServerFn({ method: "GET" })
 
     for (const o of (obligations ?? []) as any[]) {
       const k = key(o.counterparty_id, o.supplier_name);
-      const g = groups.get(k) ?? { supplier: o.supplier_name ?? cpName.get(o.counterparty_id) ?? "—", counterpartyId: o.counterparty_id, obligations: [], paid: [], scheduled: [] };
+      const g = groups.get(k) ?? {
+        supplier: (o.supplier_name ?? cpName.get(o.counterparty_id) ?? "—") as string,
+        counterpartyId: o.counterparty_id as string | null,
+        obligations: [] as any[], paid: [] as any[], scheduled: [] as any[],
+      };
       g.obligations.push(o);
       groups.set(k, g);
     }
