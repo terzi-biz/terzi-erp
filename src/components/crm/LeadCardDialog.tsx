@@ -7,8 +7,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save, PlayCircle,
-  Loader2, PhoneMissed, PhoneIncoming, PhoneOutgoing, User, Plus, Briefcase,
+  X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save,
+  Loader2, User, Plus, Briefcase,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
@@ -313,6 +313,5 @@ function Empty({ text }: { text: string }) {
   return <div className="py-6 text-center text-sm text-muted-foreground">{text}</div>;
 }
 
-const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** Дзвінок у картці ліда з прослуховуванням запису. */
