@@ -9,6 +9,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { payrollScheduleFor } from "./payroll-engine";
 import { costClassOf, COST_CLASS_LABELS, DIRECT_COST_CLASSES, type CostClass } from "./cost-class";
+import { orderFinance, planFromEstimates, pickCanonicalEstimate } from "./core";
 
 const num = (v: unknown) => Number(v) || 0;
 const r2 = (v: number) => Math.round(v * 100) / 100;
@@ -29,7 +30,7 @@ export const getOrderFinance = createServerFn({ method: "POST" })
 
     const [{ data: estimates }, { data: invoices }, { data: payments }, { data: expenses }, { data: tx }, { data: payrollItems }] =
       await Promise.all([
-        context.supabase.from("estimates").select("total_client,total_cost,status,created_at").eq("order_id", orderId),
+        context.supabase.from("estimates").select("id,number,total_client,total_cost,status,created_at,approved_at").eq("order_id", orderId),
         context.supabase.from("invoices").select("id,number,total,paid,status,issue_date,due_date").eq("order_id", orderId),
         context.supabase.from("payments").select("amount,direction,paid_at").eq("order_id", orderId),
         context.supabase.from("expenses").select("amount,category,name,spent_at,supplier").eq("order_id", orderId),
@@ -44,9 +45,12 @@ export const getOrderFinance = createServerFn({ method: "POST" })
           .eq("order_id", orderId),
       ]);
 
+    // План — з ОДНОГО канонічного кошторису (договір > затверджений > ...), а не суми всіх версій.
     const est = (estimates ?? []) as any[];
-    const revenuePlan = r2(est.reduce((s, e) => s + num(e.total_client), 0));
-    const costPlan = r2(est.reduce((s, e) => s + num(e.total_cost), 0));
+    const planFigures = planFromEstimates(est);
+    const canonicalEstimate = pickCanonicalEstimate(est);
+    const revenuePlan = planFigures.revenue;
+    const costPlan = planFigures.cost;
 
     const inv = ((invoices ?? []) as any[]).filter((i) => !["cancelled", "draft"].includes(i.status));
     const invoiced = r2(inv.reduce((s, i) => s + num(i.total), 0));
@@ -79,14 +83,15 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       .sort((a, b) => b.amount - a.amount);
     const directCost = r2(costBreakdown.filter((c) => c.direct).reduce((s, c) => s + c.amount, 0));
 
-    // Факт беремо максимум з ERP-платежів і операцій Finmap, щоб не подвоювати одні й ті самі гроші.
-    const revenueFact = r2(Math.max(paymentsIn, finmapIncome));
-    const costFact = r2(Math.max(paymentsOut + expensesFact, finmapExpense));
+    // Факт — ТІЛЬКИ Finmap (єдине джерело правди про гроші); ERP payments/expenses лишаються довідково.
+    const core = orderFinance({ estimates: est, transactions: txRows });
+    const revenueFact = core.fact.revenue;
+    const costFact = core.fact.cost;
 
-    const profitPlan = r2(revenuePlan - costPlan);
-    const profitFact = r2(revenueFact - costFact);
-    const marginPlan = revenuePlan > 0 ? r2((profitPlan / revenuePlan) * 100) : 0;
-    const marginFact = revenueFact > 0 ? r2((profitFact / revenueFact) * 100) : 0;
+    const profitPlan = core.plan.profit;
+    const profitFact = core.fact.profit;
+    const marginPlan = core.plan.margin;
+    const marginFact = core.fact.margin;
 
     // ФОТ по об'єкту
     const items = (payrollItems ?? []) as any[];
@@ -161,11 +166,14 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       order_id: orderId,
       plan: { revenue: revenuePlan, cost: costPlan, profit: profitPlan, margin: marginPlan },
       fact: { revenue: revenueFact, cost: costFact, profit: profitFact, margin: marginFact },
-      variance: {
-        revenue: r2(revenueFact - revenuePlan),
-        cost: r2(costFact - costPlan),
-        profit: r2(profitFact - profitPlan),
+      variance: core.variance,
+      planSource: {
+        estimate_id: canonicalEstimate?.id ?? null,
+        number: (canonicalEstimate as any)?.number ?? null,
+        status: planFigures.status,
+        versions: planFigures.versions,
       },
+      legacy: { paymentsIn, paymentsOut, expensesFact },
       invoiced,
       receivable,
       receivableOverdue,
@@ -223,19 +231,24 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
         .from("orders")
         .select("id,number,name,address,commercial_status,production_status,client_id,client:client_id(name)")
         .limit(5000),
-      context.supabase.from("estimates").select("order_id,total_client,total_cost,status").not("order_id", "is", null).limit(20000),
+      context.supabase.from("estimates").select("id,order_id,total_client,total_cost,status,created_at,approved_at").not("order_id", "is", null).limit(20000),
       txq,
       context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
     ]);
 
     const catById = new Map(((categories ?? []) as any[]).map((c) => [c.id, c]));
 
-    const plan = new Map<string, { revenue: number; cost: number }>();
+    // План по замовленню — один канонічний кошторис, а не сума всіх версій.
+    const byOrder = new Map<string, any[]>();
     for (const e of ((estimates ?? []) as any[])) {
-      const cur = plan.get(e.order_id) ?? { revenue: 0, cost: 0 };
-      cur.revenue += num(e.total_client);
-      cur.cost += num(e.total_cost);
-      plan.set(e.order_id, cur);
+      const arr = byOrder.get(e.order_id) ?? [];
+      arr.push(e);
+      byOrder.set(e.order_id, arr);
+    }
+    const plan = new Map<string, { revenue: number; cost: number; versions: number }>();
+    for (const [orderId, list] of byOrder) {
+      const p = planFromEstimates(list);
+      plan.set(orderId, { revenue: p.revenue, cost: p.cost, versions: p.versions });
     }
 
     const fact = new Map<string, { income: number; expense: number; payroll: number; ops: number; last: string | null }>();
@@ -256,7 +269,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
 
     const rows = ((orders ?? []) as any[])
       .map((o) => {
-        const p = plan.get(o.id) ?? { revenue: 0, cost: 0 };
+        const p = plan.get(o.id) ?? { revenue: 0, cost: 0, versions: 0 };
         const f = fact.get(o.id) ?? { income: 0, expense: 0, payroll: 0, ops: 0, last: null };
         const planRevenue = r2(p.revenue), planCost = r2(p.cost);
         const factRevenue = r2(f.income), factCost = r2(f.expense);
@@ -279,6 +292,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
           revenueGap: r2(planRevenue - factRevenue),
           operations: f.ops,
           lastOperation: f.last,
+          estimateVersions: p.versions,
         };
       })
       .filter((r) => (data.only_with_money ? r.factRevenue > 0 || r.factCost > 0 : r.planRevenue > 0 || r.factRevenue > 0 || r.factCost > 0))

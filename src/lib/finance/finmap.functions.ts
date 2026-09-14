@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { periodFilter, syncInput, mappingInput, linkTransactionInput, uuid } from "./finance.schema";
 import { z } from "zod";
+import { costClassOf, CANONICAL_COST_CLASSES } from "./cost-class";
 
 /** Фінансовий контур: доступ лише admin / director / finance. */
 async function assertFinance(context: any) {
@@ -87,10 +88,13 @@ export const runFinmapSyncNow = createServerFn({ method: "POST" })
 /** Автозв'язок Finmap ↔ ERP без повторного завантаження даних із Finmap. */
 export const runFinmapMatchNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ dry_run: z.boolean().default(false) }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
     await assertFinance(context);
     const { runFinmapAutoMatch } = await import("./finmap-match.server");
-    const reports = await runFinmapAutoMatch(context.supabase);
+    const reports = await runFinmapAutoMatch(context.supabase, { dryRun: data.dry_run });
+    // Пробний прохід нічого не пише — ані зв'язків, ані журналу.
+    if (data.dry_run) return reports;
     await context.supabase.from("finmap_sync_log").insert({
       entity: "match", mode: "match", status: "ok",
       fetched: reports.reduce((s, r) => s + r.linked + r.review, 0),
@@ -279,6 +283,12 @@ export const saveFinmapMapping = createServerFn({ method: "POST" })
           (await context.supabase.from("finance_projects").select("id").eq("finmap_id", data.finmap_id)).data?.map((p: any) => p.id) ?? [],
         );
     }
+    // Ручні рішення оператора фіксуємо в журналі аудиту.
+    await context.supabase.from("audit_logs").insert({
+      actor_id: context.userId, module: "finance", action: "finmap.mapping.save", is_critical: true,
+      entity_type: data.erp_entity, entity_id: data.erp_id ?? null, entity_label: data.finmap_name ?? null,
+      new_value: payload as never,
+    });
     return out;
   });
 
@@ -336,6 +346,8 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFinance(context);
     const { transaction_id, status, ...fields } = data;
+    const { data: before } = await context.supabase
+      .from("finance_transactions").select("order_id,client_id,counterparty_id,match_status").eq("id", transaction_id).maybeSingle();
     const patch: Record<string, unknown> = { match_status: status };
     for (const [k, v] of Object.entries(fields)) if (v !== undefined) patch[k] = v;
     const { data: out, error } = await context.supabase
@@ -345,6 +357,14 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
       transaction_id, entity_type: fields.order_id ? "order" : fields.client_id ? "client" : "counterparty",
       entity_id: (fields.order_id ?? fields.client_id ?? fields.counterparty_id ?? null) as string,
       amount: out.amount, confidence: 1, status: "manual", created_by: context.userId,
+    });
+    await context.supabase.from("audit_logs").insert({
+      actor_id: context.userId, module: "finance", action: "transaction.link", is_critical: true,
+      entity_type: "finance_transaction", entity_id: transaction_id,
+      order_id: (fields.order_id ?? null) as string | null,
+      client_id: (fields.client_id ?? null) as string | null,
+      old_value: (before ?? null) as never, new_value: patch as never,
+      financial_impact: Number(out.amount_uah ?? out.amount) || 0,
     });
     return out;
   });
@@ -400,4 +420,94 @@ export const getPlanFact = createServerFn({ method: "POST" })
       const p = plan[a] ?? 0, f = actual[a] ?? 0;
       return { article: a, plan: p, actual: f, variance: f - p, variancePercent: p > 0 ? ((f - p) / p) * 100 : null };
     });
+  });
+
+/**
+ * Звірка: що саме заважає фінансам зійтися — операції без замовлення/клієнта,
+ * проєкти й контрагенти без ERP-сутності, категорії без класу витрат.
+ */
+export const getFinanceReconciliation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ from: z.string().min(4).optional(), to: z.string().min(4).optional() }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+
+    let txq = context.supabase
+      .from("finance_transactions")
+      .select("id,kind,amount,amount_uah,op_date,order_id,client_id,comment,category:category_id(id,name,cost_class),counterparty:counterparty_id(name)")
+      .limit(20000);
+    if (data.from) txq = txq.gte("op_date", data.from);
+    if (data.to) txq = txq.lte("op_date", data.to);
+
+    const [{ data: tx }, { data: projects }, { data: cps }, { data: cats }] = await Promise.all([
+      txq,
+      context.supabase.from("finance_projects").select("id,name,order_id,client_id,match_score").limit(5000),
+      context.supabase.from("finance_counterparties").select("id,name,finmap_kind,client_id,employee_id,match_score").limit(5000),
+      context.supabase.from("finance_categories").select("id,name,kind,cost_class").limit(2000),
+    ]);
+
+    const rows = (tx ?? []) as any[];
+    const money = (t: any) => Number(t.amount_uah ?? t.amount) || 0;
+    const nonTransfer = rows.filter((t) => t.kind !== "transfer");
+    const noOrder = nonTransfer.filter((t) => !t.order_id);
+    const noClient = nonTransfer.filter((t) => !t.client_id);
+    const noCategory = nonTransfer.filter((t) => !t.category?.id);
+
+    const sum = (list: any[]) => Math.round(list.reduce((s, t) => s + money(t), 0) * 100) / 100;
+
+    return {
+      transactions: {
+        total: rows.length,
+        totalAmount: sum(nonTransfer),
+        noOrder: { count: noOrder.length, amount: sum(noOrder) },
+        noClient: { count: noClient.length, amount: sum(noClient) },
+        noCategory: { count: noCategory.length, amount: sum(noCategory) },
+        top: noOrder
+          .sort((a, b) => money(b) - money(a))
+          .slice(0, 50)
+          .map((t) => ({
+            id: t.id, kind: t.kind, op_date: t.op_date, amount: money(t),
+            category: t.category?.name ?? null, counterparty: t.counterparty?.name ?? null, comment: t.comment ?? null,
+          })),
+      },
+      projects: {
+        total: (projects ?? []).length,
+        noOrder: ((projects ?? []) as any[]).filter((p) => !p.order_id).length,
+        rows: ((projects ?? []) as any[]).filter((p) => !p.order_id).slice(0, 50)
+          .map((p) => ({ id: p.id, name: p.name, client_id: p.client_id, score: p.match_score })),
+      },
+      counterparties: {
+        total: (cps ?? []).length,
+        unmapped: ((cps ?? []) as any[]).filter((c) => !c.client_id && !c.employee_id).length,
+        rows: ((cps ?? []) as any[]).filter((c) => !c.client_id && !c.employee_id).slice(0, 50)
+          .map((c) => ({ id: c.id, name: c.name, kind: c.finmap_kind, score: c.match_score })),
+      },
+      categories: {
+        total: (cats ?? []).length,
+        unclassified: ((cats ?? []) as any[]).filter((c) => !c.cost_class).length,
+        rows: ((cats ?? []) as any[]).filter((c) => !c.cost_class).slice(0, 100)
+          .map((c) => ({ id: c.id, name: c.name, kind: c.kind, suggested: costClassOf(c) })),
+      },
+    };
+  });
+
+/** Ручне закріплення класу витрат за статтею Finmap (переглядається фінансистом). */
+export const saveCategoryCostClass = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ category_id: uuid, cost_class: z.enum(CANONICAL_COST_CLASSES) }).parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { data: before } = await context.supabase
+      .from("finance_categories").select("id,name,cost_class").eq("id", data.category_id).maybeSingle();
+    const { error } = await context.supabase
+      .from("finance_categories").update({ cost_class: data.cost_class }).eq("id", data.category_id);
+    if (error) { console.error("saveCategoryCostClass", error); throw new Error("Не вдалося зберегти клас витрат"); }
+    await context.supabase.from("audit_logs").insert({
+      actor_id: context.userId, module: "finance", action: "category.cost_class", is_critical: true,
+      entity_type: "finance_category", entity_id: data.category_id, entity_label: before?.name ?? null,
+      old_value: { cost_class: before?.cost_class ?? null }, new_value: { cost_class: data.cost_class },
+    });
+    return { ok: true };
   });

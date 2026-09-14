@@ -15,6 +15,13 @@
       "when": 1789389083780,
       "tag": "0001_repair_binotel_call_links",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789409735807,
+      "tag": "0002_order_payment_stages",
+      "breakpoints": true
     }
   ]
 }

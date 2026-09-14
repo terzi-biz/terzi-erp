@@ -5647,6 +5647,65 @@ export type Database = {
           },
         ]
       }
+      order_payment_stages: {
+        Row: {
+          amount: number | null
+          created_at: string
+          created_by: string | null
+          due_date: string | null
+          id: string
+          name: string
+          notes: string | null
+          order_id: string
+          percent: number | null
+          planned_date: string | null
+          position: number
+          status: string
+          trigger_note: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          order_id: string
+          percent?: number | null
+          planned_date?: string | null
+          position?: number
+          status?: string
+          trigger_note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          due_date?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          order_id?: string
+          percent?: number | null
+          planned_date?: string | null
+          position?: number
+          status?: string
+          trigger_note?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_payment_stages_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_services: {
         Row: {
           created_at: string
