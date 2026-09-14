@@ -29,6 +29,13 @@
       "when": 1789412455248,
       "tag": "0003_finmap_enriched_management_finance",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789413262454,
+      "tag": "0004_payroll_profile_uniqueness",
+      "breakpoints": true
     }
   ]
 }
