@@ -58,6 +58,8 @@ const TABS = [
   { key: "operations", label: "Операції", icon: ListChecks },
   { key: "objects", label: "Об'єкти", icon: Layers },
   { key: "planfact", label: "План/факт", icon: Scale },
+  { key: "services", label: "Економіка робіт", icon: Scale },
+  { key: "upcoming", label: "Очікувані платежі", icon: CircleDollarSign },
   { key: "reconcile", label: "Звірка", icon: ShieldCheck },
   { key: "finmap", label: "Finmap", icon: PlugZap },
   { key: "payroll", label: "ФОТ і KPI", icon: Users },
