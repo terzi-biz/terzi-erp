@@ -271,13 +271,9 @@ export function MeasurementCard({
           </section>
 
           <section className="space-y-2 rounded-lg border border-border p-3">
-            <CallsPlayerList
-              measurementId={row.id}
-              clientId={row.measurement_calls_fallback_client_id ?? null}
-              title="Дзвінки по заміру"
-              limit={10}
-            />
+            <CallsPlayerList measurementId={row.id} title="Дзвінки по заміру" limit={10} />
           </section>
+
 
 
           <button
