@@ -57,6 +57,12 @@ function Row({ call }: { call: any }) {
           {call.employee_name && <span className="text-muted-foreground">· {call.employee_name}</span>}
         </span>
         <span className="text-muted-foreground">
+          {call.match && call.match !== "direct" ? (
+            <span className="mr-2 rounded bg-muted px-1.5 py-0.5">
+              {call.match === "order" ? "по замовленню" : call.match === "client" ? "по клієнту" : "за номером"}
+            </span>
+          ) : null}
+
           {fmtDT(call.started_at)} · {fmtDur(Number(call.duration_sec ?? 0))}
         </span>
       </div>
