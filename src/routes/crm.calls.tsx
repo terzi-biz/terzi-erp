@@ -78,10 +78,17 @@ function CallsPage() {
     const answered = all.filter((c) => !c.is_missed);
     const bySource = new Map<CallSourceBucket, number>();
     const byStaff = new Map<string, number>();
+    const byHour = new Array(24).fill(0) as number[];
+    const waits = all.map((c) => c.wait_seconds).filter((v): v is number => v != null);
     for (const c of all) {
       bySource.set(c.source, (bySource.get(c.source) ?? 0) + 1);
       if (c.employee_name) byStaff.set(c.employee_name, (byStaff.get(c.employee_name) ?? 0) + 1);
+      if (c.started_at) {
+        const h = new Date(c.started_at).getHours();
+        if (h >= 0 && h < 24) byHour[h] = (byHour[h] ?? 0) + 1;
+      }
     }
+    const talkSec = answered.reduce((a, c) => a + c.duration_sec, 0);
     return {
       total: all.length,
       inbound: all.filter((c) => c.direction === "inbound").length,
@@ -90,10 +97,26 @@ function CallsPage() {
       first: all.filter((c) => c.is_new_call).length,
       minutes: Math.round(all.reduce((a, c) => a + c.duration_sec, 0) / 60),
       answerRate: all.length ? Math.round((answered.length / all.length) * 100) : null,
+      avgTalk: answered.length ? Math.round(talkSec / answered.length) : null,
+      avgWait: waits.length ? Math.round(waits.reduce((a, v) => a + v, 0) / waits.length) : null,
+      records: all.filter((c) => c.recording_available).length,
+      uniqueContacts: new Set(all.map((c) => (c.counterparty ?? "").replace(/\D/g, "")).filter(Boolean)).size,
+      longCalls: answered.filter((c) => c.duration_sec >= 180).length,
       bySource: Array.from(bySource.entries()).sort((a, b) => b[1] - a[1]),
       byStaff: Array.from(byStaff.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8),
+      byHour,
     };
   }, [all]);
+
+  /** Ручне довантаження історії дзвінків із Binotel (по днях, як вимагає API). */
+  const sync = useMutation({
+    mutationFn: (days: number) => syncFn({ data: { days } }),
+    onSuccess: (res: any) => {
+      toast.success(`Синхронізовано з Binotel${res?.inserted != null ? ` · нових: ${res.inserted}` : ""}`);
+      void refetch();
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося оновити дзвінки"),
+  });
 
   const rows = useMemo(() => {
     const nn = q.replace(/\D/g, "");
