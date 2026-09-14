@@ -244,11 +244,14 @@ export async function matchProjects(db: Db, opts: MatchOptions = {}): Promise<Ma
 export async function backfillTransactionLinks(db: Db, opts: MatchOptions = {}): Promise<MatchReport> {
   const dry = !!opts.dryRun;
   const rules = ruleCounter();
-  const [{ data: projects }, { data: cps }, { data: orders }] = await Promise.all([
+  const [{ data: projects }, { data: cps }, { data: orders }, { data: manualLinks }] = await Promise.all([
     db.from("finance_projects").select("id,order_id,client_id"),
     db.from("finance_counterparties").select("id,client_id"),
     db.from("orders").select("id,number,client_id,created_at").limit(5000),
+    db.from("finance_transaction_links").select("transaction_id").eq("status", "manual").limit(20000),
   ]);
+  // Ручні зв'язки оператора ніколи не перетираються автоматикою.
+  const manual = new Set(((manualLinks ?? []) as any[]).map((l) => l.transaction_id));
   const pr = new Map(((projects ?? []) as any[]).map((p) => [p.id, p]));
   const cp = new Map(((cps ?? []) as any[]).map((c) => [c.id, c]));
   const ordList = (orders ?? []) as any[];
