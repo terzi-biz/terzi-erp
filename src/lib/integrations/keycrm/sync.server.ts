@@ -1170,7 +1170,7 @@ export async function extractOrderChildren(ctx: AdapterContext, order: any) {
     }
   }
 
-  // Файли keyCRM → файли замовлення (ключ — URL).
+  // Вкладення keyCRM (include=attachments.file) → файли замовлення. Ключ — URL, повтор не дублює.
   const files = [
     ...(Array.isArray(order?.files) ? order.files : []),
     ...(Array.isArray(order?.attachments) ? order.attachments : []),
@@ -1178,15 +1178,17 @@ export async function extractOrderChildren(ctx: AdapterContext, order: any) {
   if (files.length) {
     const { data: existing } = await db.from("order_files").select("url").eq("order_id", orderId);
     const seen = new Set((existing ?? []).map((f: any) => String(f.url)));
-    for (const f of files) {
+    for (const a of files) {
+      const f = a?.file ?? a;
       const url = String(f?.url ?? f?.link ?? f?.path ?? "").trim();
       if (!url || seen.has(url)) continue;
       seen.add(url);
       await db.from("order_files").insert({
         order_id: orderId,
         url,
-        file_name: f?.name ?? f?.file_name ?? null,
+        file_name: f?.original_file_name ?? f?.name ?? f?.file_name ?? null,
         category: "keycrm",
+        note: `keyCRM file #${a?.file_id ?? f?.id ?? "—"} · ${f?.created_at ?? ""}`.trim(),
       } as any);
     }
   }
