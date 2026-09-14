@@ -17,6 +17,7 @@ import {
   ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip, ManagementReconcileBlock,
 } from "@/components/finance/management-sections";
 import { ObjectAnalyticsSection } from "@/components/finance/ObjectAnalytics";
+import { AllocationReviewSection } from "@/components/finance/AllocationReview";
 import { getManagementKpi } from "@/lib/finance/management.functions";
 
 
@@ -188,7 +189,13 @@ function FinancePage() {
         {tab === "upcoming" && <UpcomingSection />}
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
         {tab === "planfact" && <PlanFactSection period={period} />}
-        {tab === "reconcile" && <div className="space-y-4"><ManagementReconcileBlock /><ReconcileSection period={period} /></div>}
+        {tab === "reconcile" && (
+          <div className="space-y-4">
+            <ManagementReconcileBlock />
+            <AllocationReviewSection />
+            <ReconcileSection period={period} />
+          </div>
+        )}
         {tab === "objects" && (
           <div className="space-y-4">
             <ObjectAnalyticsSection period={period} />
