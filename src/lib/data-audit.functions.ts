@@ -5,9 +5,18 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 /** Аудит цілісності даних: dry-run звіти та застосування за підтвердженням. */
 
 const checkEnum = z.enum([
+  "crm_quality",
   "client_duplicates",
   "calls_to_leads",
   "leads_to_clients",
+  "leads_to_orders",
+  "leads_without_contact",
+  "leads_without_manager",
+  "leads_without_source",
+  "stage_status_conflicts",
+  "duplicate_leads",
+  "unlinked_keycrm_orders",
+  "won_leads_without_order",
   "catalog_issues",
   "estimates_price_version",
 ]);
