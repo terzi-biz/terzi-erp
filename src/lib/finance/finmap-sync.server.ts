@@ -380,6 +380,8 @@ export async function runFinmapSync(
     { entity: "projects", run: () => syncProjects(db) },
     { entity: "counterparties", run: () => syncCounterparties(db) },
     { entity: "operations", run: () => syncOperations(db, { from: opts.mode === "initial" ? opts.from ?? "2024-01-01" : opts.from, to: opts.to }) },
+    { entity: "invoices", run: () => syncInvoices(db) },
+    { entity: "match" as SyncEntity, run: () => syncTags(db) },
     {
       entity: "match" as SyncEntity,
       run: async () => {
