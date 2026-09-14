@@ -6,20 +6,36 @@
  */
 
 export const AUDIT_CHECKS = [
+  "crm_quality",
   "client_duplicates",
   "calls_to_leads",
   "leads_to_clients",
   "leads_to_orders",
+  "leads_without_contact",
+  "leads_without_manager",
+  "leads_without_source",
+  "stage_status_conflicts",
+  "duplicate_leads",
+  "unlinked_keycrm_orders",
+  "won_leads_without_order",
   "catalog_issues",
   "estimates_price_version",
 ] as const;
 export type AuditCheck = (typeof AUDIT_CHECKS)[number];
 
 export const AUDIT_LABELS: Record<AuditCheck, string> = {
-  client_duplicates: "Дублі клієнтів за телефоном",
+  crm_quality: "Якість даних CRM — лічильники",
+  client_duplicates: "Дублі клієнтів (телефон / e-mail / keyCRM)",
   calls_to_leads: "Звінки без ліда",
   leads_to_clients: "Ліди без клієнта",
   leads_to_orders: "Ліди без замовлення",
+  leads_without_contact: "Ліди без контакту",
+  leads_without_manager: "Ліди без відповідального",
+  leads_without_source: "Ліди без джерела",
+  stage_status_conflicts: "Конфлікти етап / статус",
+  duplicate_leads: "Дублі лідів",
+  unlinked_keycrm_orders: "Замовлення keyCRM без звʼязку",
+  won_leads_without_order: "Виграні ліди без замовлення",
   catalog_issues: "Каталог: без коду або з нульовою ціною",
   estimates_price_version: "Кошториси без зафіксованої версії прайсу",
 };
