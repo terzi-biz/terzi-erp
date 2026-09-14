@@ -212,3 +212,73 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
 
   return { rows, truncated: list.length >= LIMIT };
 }
+
+/**
+ * Дзвінки конкретної сутності (клієнт, замовлення або замір) для картки.
+ * Показуємо лише те, що реально записано в CRM; запис береться на вимогу.
+ */
+export interface EntityCallRow {
+  id: string;
+  started_at: string | null;
+  direction: string;
+  duration_sec: number;
+  is_missed: boolean;
+  recording_available: boolean;
+  counterparty: string | null;
+  employee_name: string | null;
+}
+
+export async function entityCalls(
+  sb: Sb,
+  p: { clientId?: string | null; orderId?: string | null; measurementId?: string | null; limit?: number },
+): Promise<EntityCallRow[]> {
+  const limit = Math.min(Math.max(p.limit ?? 30, 1), 100);
+  let q = sb
+    .from("crm_calls")
+    .select("id, started_at, direction, duration_sec, is_missed, recording_available, phone_e164, from_number, to_number, employee_id, answered_employee_id, internal_number")
+    .order("started_at", { ascending: false })
+    .limit(limit);
+
+  if (p.measurementId) q = q.eq("measurement_id", p.measurementId);
+  else if (p.orderId) q = q.eq("order_id", p.orderId);
+  else if (p.clientId) q = q.eq("client_id", p.clientId);
+  else return [];
+
+  const { data } = await q;
+  const list = (data ?? []) as any[];
+  if (!list.length) return [];
+
+  const userIds = Array.from(
+    new Set(list.flatMap((c) => [c.answered_employee_id, c.employee_id]).filter(Boolean)),
+  ) as string[];
+  const nameByUser = new Map<string, string>();
+  if (userIds.length) {
+    const { data: profiles } = await sb.from("profiles").select("user_id, display_name, email").in("user_id", userIds);
+    for (const r of profiles ?? []) {
+      const n = (r as any).display_name || (r as any).email;
+      if (n) nameByUser.set((r as any).user_id, n);
+    }
+  }
+
+  return list.map((c) => {
+    const inbound = c.direction === "inbound";
+    const employeeId = c.answered_employee_id || c.employee_id || null;
+    return {
+      id: c.id,
+      started_at: c.started_at ?? null,
+      direction: c.direction,
+      duration_sec: Number(c.duration_sec ?? 0),
+      is_missed: Boolean(c.is_missed),
+      recording_available: Boolean(c.recording_available),
+      counterparty:
+        c.phone_e164 ||
+        (inbound ? (isInternal(c.from_number) ? c.to_number : c.from_number) : (isInternal(c.to_number) ? c.from_number : c.to_number)) ||
+        null,
+      employee_name: employeeId
+        ? (nameByUser.get(employeeId) ?? null)
+        : c.internal_number
+          ? `Внутрішній ${c.internal_number}`
+          : null,
+    };
+  });
+}
