@@ -154,10 +154,10 @@ export function createKeyCrmClient(opts: {
     get: (path, query) => request("GET", path, { query }),
     post: (path, body) => request("POST", path, { body }),
     put: (path, body) => request("PUT", path, { body }),
-    async paginate(path, query = {}, maxPages = 10) {
+    async paginate(path, query = {}, maxPages = 10, startPage = 1) {
       const out: any[] = [];
       const limit = Number(query.limit ?? 50);
-      for (let page = 1; page <= maxPages; page++) {
+      for (let page = startPage; page < startPage + maxPages; page++) {
         const res = await request("GET", path, { query: { ...query, page, limit } });
         const items: any[] = Array.isArray(res) ? res : (res?.data ?? res?.items ?? []);
         out.push(...items);
