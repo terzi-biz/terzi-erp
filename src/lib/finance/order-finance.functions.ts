@@ -30,7 +30,7 @@ export const getOrderFinance = createServerFn({ method: "POST" })
 
     const [{ data: estimates }, { data: invoices }, { data: payments }, { data: expenses }, { data: tx }, { data: payrollItems }] =
       await Promise.all([
-        context.supabase.from("estimates").select("total_client,total_cost,status,created_at").eq("order_id", orderId),
+        context.supabase.from("estimates").select("id,number,total_client,total_cost,status,created_at,approved_at").eq("order_id", orderId),
         context.supabase.from("invoices").select("id,number,total,paid,status,issue_date,due_date").eq("order_id", orderId),
         context.supabase.from("payments").select("amount,direction,paid_at").eq("order_id", orderId),
         context.supabase.from("expenses").select("amount,category,name,spent_at,supplier").eq("order_id", orderId),
