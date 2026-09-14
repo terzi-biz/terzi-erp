@@ -50,7 +50,69 @@ export function classifyCostCategory(name: string | null | undefined): CostClass
 
 /** Клас категорії з урахуванням ручного перевизначення в довіднику. */
 export function costClassOf(category: { name?: string | null; cost_class?: string | null } | null | undefined): CostClass {
-  const manual = category?.cost_class as CostClass | null | undefined;
+  const raw = category?.cost_class as string | null | undefined;
+  const manual = raw ? (CANONICAL_TO_INTERNAL[raw as CanonicalCostClass] ?? (raw as CostClass)) : null;
   if (manual && manual in COST_CLASS_LABELS) return manual;
   return classifyCostCategory(category?.name);
+}
+
+/* ---------------- Канонічний довідник статей (для звірки й планування) ---------------- */
+
+/** Класифікація, яку бачить і редагує фінансист у довіднику статей. */
+export const CANONICAL_COST_CLASSES = [
+  "materials", "labour", "subcontract", "logistics", "equipment", "marketing",
+  "administrative", "tax", "bank", "communication", "other", "income", "transfer",
+] as const;
+
+export type CanonicalCostClass = (typeof CANONICAL_COST_CLASSES)[number];
+
+export const CANONICAL_LABELS: Record<CanonicalCostClass, string> = {
+  materials: "Матеріали",
+  labour: "Оплата праці",
+  subcontract: "Підряд",
+  logistics: "Логістика",
+  equipment: "Обладнання",
+  marketing: "Маркетинг",
+  administrative: "Адміністративні",
+  tax: "Податки",
+  bank: "Банк і комісії",
+  communication: "Звʼязок",
+  other: "Інше",
+  income: "Дохід",
+  transfer: "Переказ",
+};
+
+/** Канонічне значення → внутрішній клас собівартості. */
+export const CANONICAL_TO_INTERNAL: Record<CanonicalCostClass, CostClass> = {
+  materials: "materials",
+  labour: "payroll",
+  subcontract: "subcontractors",
+  logistics: "logistics",
+  equipment: "equipment",
+  marketing: "marketing",
+  administrative: "overhead",
+  tax: "taxes",
+  bank: "taxes",
+  communication: "overhead",
+  other: "other",
+  income: "other",
+  transfer: "other",
+};
+
+const INTERNAL_TO_CANONICAL: Record<CostClass, CanonicalCostClass> = {
+  materials: "materials",
+  works: "labour",
+  payroll: "labour",
+  subcontractors: "subcontract",
+  logistics: "logistics",
+  equipment: "equipment",
+  marketing: "marketing",
+  taxes: "tax",
+  overhead: "administrative",
+  other: "other",
+};
+
+/** Канонічна стаття для відображення у звірці й довіднику. */
+export function toCanonicalCostClass(cls: CostClass): CanonicalCostClass {
+  return INTERNAL_TO_CANONICAL[cls] ?? "other";
 }
