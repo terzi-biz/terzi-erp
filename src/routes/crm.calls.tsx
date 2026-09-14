@@ -58,7 +58,7 @@ function CallsPage() {
   const [source, setSource] = useState<"all" | CallSourceBucket>("all");
   const [staff, setStaff] = useState<string>("all");
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ["calls-feed", from, to],
     queryFn: () => feedFn({ data: { from, to } }),
   });
