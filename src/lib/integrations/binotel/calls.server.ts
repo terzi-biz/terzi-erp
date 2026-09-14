@@ -595,7 +595,11 @@ export async function handleCallCompleted(
     call_id: callId,
     lead_id: leadId,
     contact_id: contactId,
+    order_id: orderId,
+    measurement_id: measurementId,
+    created_measurement: createdMeasurement,
     task_id: taskId,
+
     created_lead: createdLead,
     created_contact: createdContact,
     missed: call.isMissed,
