@@ -967,7 +967,8 @@ export async function applyExternal(
     internalHash,
     direction: "inbound",
     externalUpdatedAt,
-    payload: entity === "orders" || entity === "payments" || entity === "sources" || entity === "managers" || entity === "order_statuses" ? ext : {},
+    // Сирий payload keyCRM зберігаємо для довідників і карток — для мапінгу й відлагодження.
+    payload: entity === "pipelines" || entity === "pipeline_statuses" ? {} : ext,
   });
 
   await auditSync(ctx, { action: "sync_inbound_apply", entity, externalId, internalId: result.internalId, table: result.table, payload: ext });
