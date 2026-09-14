@@ -269,7 +269,7 @@ export async function backfillTransactionLinks(db: Db, opts: MatchOptions = {}):
   for (;;) {
     const { data: rows } = await db
       .from("finance_transactions")
-      .select("id,kind,amount,amount_uah,order_id,client_id,finance_project_id,counterparty_id,comment,op_date,match_status,match_source")
+      .select("id,kind,amount,amount_uah,order_id,client_id,finance_project_id,counterparty_id,comment,op_date,match_status")
       .or("order_id.is.null,client_id.is.null")
       .range(from, from + PAGE - 1);
     const list = (rows ?? []) as any[];
@@ -277,7 +277,7 @@ export async function backfillTransactionLinks(db: Db, opts: MatchOptions = {}):
 
     for (const t of list) {
       const money = Number(t.amount_uah ?? t.amount) || 0;
-      if (t.match_source === "manual") { rules.hit("manual", "Ручний звʼязок — пропущено", money); skipped++; continue; }
+      if (manual.has(t.id)) { rules.hit("manual", "Ручний звʼязок — пропущено", money); skipped++; continue; }
 
       const p = t.finance_project_id ? pr.get(t.finance_project_id) : null;
       const c = t.counterparty_id ? cp.get(t.counterparty_id) : null;
