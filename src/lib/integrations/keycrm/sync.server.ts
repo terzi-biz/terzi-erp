@@ -272,76 +272,215 @@ async function applyStage(ctx: AdapterContext, ext: any) {
   return { internalId, table: "crm_stages" };
 }
 
-async function applyBuyer(ctx: AdapterContext, ext: any) {
+/**
+ * Канонічний клієнт для контакту/покупця keyCRM.
+ * Пріоритет: звʼязок інтеграції → зовнішній ID → точний E.164 → точний e-mail →
+ * client_id контакту → створення нового клієнта-перспективи.
+ * Повторна синхронізація ніколи не створює другого клієнта для тієї самої людини.
+ */
+async function resolveClient(
+  ctx: AdapterContext,
+  input: { externalId: string | null; name: string; phone: string | null; email: string | null; contactClientId?: string | null },
+  owner: string,
+): Promise<string | null> {
+  const db = await admin();
+  const e164 = toE164(input.phone);
+  const email = normalizeEmail(input.email);
+
+  let clientId: string | null = null;
+  if (input.externalId) {
+    const { data } = await db
+      .from("clients")
+      .select("id")
+      .eq("external_source", "keycrm")
+      .eq("external_id", input.externalId)
+      .neq("status", "archived")
+      .limit(1)
+      .maybeSingle();
+    clientId = (data as any)?.id ?? null;
+  }
+  if (!clientId && e164) {
+    const { data } = await db
+      .from("clients")
+      .select("id")
+      .eq("phone_e164", e164)
+      .neq("status", "archived")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    clientId = (data as any)?.id ?? null;
+  }
+  if (!clientId && email) {
+    const { data } = await db
+      .from("clients")
+      .select("id")
+      .ilike("email", email)
+      .neq("status", "archived")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    clientId = (data as any)?.id ?? null;
+  }
+  if (!clientId && input.contactClientId) clientId = input.contactClientId;
+
+  const incoming: Record<string, unknown> = {
+    name: input.name,
+    phone: input.phone,
+    phone_e164: e164,
+    email: input.email,
+    external_source: input.externalId ? "keycrm" : null,
+    external_id: input.externalId,
+  };
+
+  if (clientId) {
+    const { data: current } = await db.from("clients").select("*").eq("id", clientId).maybeSingle();
+    const patch = preservePatch(current as any, incoming, ["phone_e164"]);
+    if (Object.keys(patch).length) await db.from("clients").update(patch as any).eq("id", clientId);
+    return clientId;
+  }
+
+  const { data, error } = await db
+    .from("clients")
+    .insert({ ...incoming, owner_id: owner, status: "prospect" } as any)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.id ?? null;
+}
+
+/**
+ * Контакт keyCRM (покупець /buyer або contact картки) → crm_contacts + канонічний клієнт.
+ * Порожні значення keyCRM не затирають сильніші дані ERP.
+ */
+async function upsertContact(
+  ctx: AdapterContext,
+  input: {
+    entity: "buyers" | "contacts";
+    externalId: string;
+    fullName: string;
+    phone: string | null;
+    email: string | null;
+    company?: string | null;
+    clientExternalId?: string | null;
+  },
+): Promise<{ contactId: string | null; clientId: string | null }> {
   const db = await admin();
   const owner = await ownerFor(ctx);
   if (!owner) throw new Error("Не визначено власника записів — задайте default_owner_id у налаштуваннях");
-  const externalId = String(ext.id);
-  const phone = firstPhone(ext.phone ?? ext.phones);
-  const phoneNorm = normPhone(phone);
-  const email = Array.isArray(ext.email) ? ext.email[0] : (ext.email ?? null);
-  const fullName = String(ext.full_name ?? ext.name ?? `Покупець ${externalId}`);
+  const e164 = toE164(input.phone);
+  const phoneNorm = normPhone(input.phone);
 
-  const link = await getLink(ctx.integration.id, "buyers", externalId);
+  const link = await getLink(ctx.integration.id, input.entity, input.externalId);
   let contactId: string | null = link?.internal_id ?? null;
-  let clientId: string | null = null;
-
-  const { data: existingClient } = await db
-    .from("clients")
-    .select("id")
-    .eq("external_source", "keycrm")
-    .eq("external_id", externalId)
-    .maybeSingle();
-  clientId = (existingClient as any)?.id ?? null;
-  const clientRow = {
-    name: fullName,
-    phone: phone ?? null,
-    email: email ?? null,
-    external_source: "keycrm",
-    external_id: externalId,
-  };
-  if (clientId) {
-    const { error } = await db.from("clients").update(clientRow as any).eq("id", clientId);
-    if (error) throw error;
-  } else {
-    const { data, error } = await db.from("clients").insert({ ...clientRow, owner_id: owner } as any).select("id").maybeSingle();
-    if (error) throw error;
-    clientId = (data as any)?.id ?? null;
-  }
-
   if (!contactId) {
     const { data: byExt } = await db
       .from("crm_contacts")
       .select("id")
       .eq("external_source", "keycrm")
-      .eq("external_id", externalId)
+      .eq("external_id", input.externalId)
+      .limit(1)
       .maybeSingle();
     contactId = (byExt as any)?.id ?? null;
   }
+  if (!contactId && e164) {
+    const { data: byE164 } = await db
+      .from("crm_contacts")
+      .select("id")
+      .eq("phone_e164", e164)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    contactId = (byE164 as any)?.id ?? null;
+  }
   if (!contactId && phoneNorm) {
-    const { data: byPhone } = await db.from("crm_contacts").select("id").eq("phone_norm", phoneNorm).limit(1).maybeSingle();
+    const { data: byPhone } = await db
+      .from("crm_contacts")
+      .select("id")
+      .eq("phone_norm", phoneNorm)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
     contactId = (byPhone as any)?.id ?? null;
   }
 
-  const row: Record<string, unknown> = {
-    full_name: fullName,
+  let current: any = null;
+  if (contactId) {
+    const { data } = await db.from("crm_contacts").select("*").eq("id", contactId).maybeSingle();
+    current = data ?? null;
+  }
+
+  const clientId = await resolveClient(
+    ctx,
+    {
+      externalId: input.clientExternalId ?? (input.entity === "buyers" ? input.externalId : null),
+      name: input.fullName,
+      phone: input.phone,
+      email: input.email,
+      contactClientId: (current?.client_id as string) ?? null,
+    },
+    owner,
+  );
+
+  const incoming: Record<string, unknown> = {
+    full_name: input.fullName,
+    phone: input.phone,
+    phone_e164: e164,
+    phone_norm: phoneNorm,
+    email: input.email,
+    company: input.company ?? null,
+    external_source: "keycrm",
+    external_id: input.externalId,
+    client_id: clientId,
+  };
+
+  if (contactId) {
+    const patch = preservePatch(current, incoming, ["phone_e164", "phone_norm", "external_source", "external_id"]);
+    if (Object.keys(patch).length) {
+      const { error } = await db.from("crm_contacts").update(patch as any).eq("id", contactId);
+      if (error) throw error;
+    }
+  } else {
+    const { data, error } = await db
+      .from("crm_contacts")
+      .insert({ ...incoming, owner_id: owner } as any)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    contactId = (data as any)?.id ?? null;
+  }
+  return { contactId, clientId };
+}
+
+async function applyBuyer(ctx: AdapterContext, ext: any) {
+  const externalId = String(ext.id);
+  const phone = firstPhone(ext.phone ?? ext.phones);
+  const email = Array.isArray(ext.email) ? (ext.email[0] ?? null) : (ext.email ?? null);
+  const { contactId } = await upsertContact(ctx, {
+    entity: "buyers",
+    externalId,
+    fullName: String(ext.full_name ?? ext.name ?? `Покупець ${externalId}`),
     phone: phone ?? null,
     email: email ?? null,
     company: ext.company?.name ?? ext.company_name ?? null,
-    external_source: "keycrm",
-    external_id: externalId,
-    client_id: clientId,
-  };
-  if (contactId) {
-    const { error } = await db.from("crm_contacts").update(row as any).eq("id", contactId);
-    if (error) throw error;
-  }
-  else {
-    const { data, error } = await db.from("crm_contacts").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
-    if (error) throw error;
-    contactId = (data as any).id;
-  }
+  });
   return { internalId: contactId, table: "crm_contacts" };
+}
+
+/** Відповідальний keyCRM → користувач ERP. Ідентичність — e-mail або телефон, ніколи лише імʼя. */
+async function applyManager(ctx: AdapterContext, ext: any) {
+  const db = await admin();
+  const [{ data: profiles }] = await Promise.all([
+    db.from("profiles").select("user_id,email,phone,display_name"),
+  ]);
+  const match = matchManager(ext, (profiles ?? []).map((p: any) => ({ id: p.user_id, email: p.email, phone: p.phone, name: p.display_name })));
+  return { internalId: match.userId, table: match.userId ? "profiles" : null };
+}
+
+/** Користувач ERP для відповідального keyCRM (за звʼязком сутності managers). */
+async function managerUserId(ctx: AdapterContext, managerExt: unknown): Promise<string | null> {
+  if (managerExt === null || managerExt === undefined || managerExt === "") return null;
+  const link = await getLink(ctx.integration.id, "managers", String(managerExt));
+  return (link?.internal_id as string) ?? null;
 }
 
 async function applyOrder(ctx: AdapterContext, ext: any) {
