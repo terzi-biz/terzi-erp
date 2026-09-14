@@ -1305,7 +1305,10 @@ export async function extractLeadChildren(ctx: AdapterContext, card: any) {
 
 
 /** Повний прогін увімкнених сутностей у правильному порядку. */
-export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: string[]; full?: boolean; dryRun?: boolean } = {}) {
+export async function runKeyCrmSync(
+  ctx: AdapterContext,
+  opts: { entities?: string[]; full?: boolean; dryRun?: boolean; maxPages?: number; force?: boolean; page?: number } = {},
+) {
   const modes = await getSyncModes(ctx.integration.id);
   const results: any[] = [];
   for (const def of KEYCRM_ENTITIES) {
