@@ -4,8 +4,10 @@
  */
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Download, Phone, X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Download, Phone, Play, X } from "lucide-react";
 import { getBinotelCallDetail } from "@/lib/binotel.functions";
+import { getCallRecording } from "@/lib/crm.functions";
 import { CALL_STATUS_LABEL } from "@/lib/integrations/binotel-constants";
 
 const fmt = (v: string | null | undefined) =>
@@ -25,6 +27,10 @@ const SLA_LABEL: Record<string, string> = {
 
 export function BinotelCallDialog({ generalCallId, onClose }: { generalCallId: string; onClose: () => void }) {
   const fn = useServerFn(getBinotelCallDetail);
+  const recordingFn = useServerFn(getCallRecording);
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [recordingLoading, setRecordingLoading] = useState(false);
   const q = useQuery({
     queryKey: ["binotel", "call", generalCallId],
     queryFn: () => fn({ data: { generalCallId } }),
@@ -32,6 +38,25 @@ export function BinotelCallDialog({ generalCallId, onClose }: { generalCallId: s
 
   const d = q.data as any;
   const call = d?.call;
+  useEffect(() => {
+    setRecordingUrl(null);
+    setRecordingError(null);
+  }, [generalCallId]);
+
+  const loadRecording = async () => {
+    if (!call?.id) return;
+    setRecordingLoading(true);
+    setRecordingError(null);
+    try {
+      const result: any = await recordingFn({ data: { call_id: call.id } });
+      if (result?.url) setRecordingUrl(result.url);
+      else setRecordingError(result?.reason ?? "Запис недоступний");
+    } catch (error: any) {
+      setRecordingError(error?.message ?? "Не вдалося отримати запис");
+    } finally {
+      setRecordingLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4" onClick={onClose}>
@@ -74,11 +99,11 @@ export function BinotelCallDialog({ generalCallId, onClose }: { generalCallId: s
 
             <div className="rounded-lg border border-border p-3">
               <div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Запис розмови</div>
-              {call.recording_url ? (
+              {recordingUrl ? (
                 <div className="space-y-2">
-                  <audio controls preload="none" src={call.recording_url} className="w-full" />
+                  <audio controls autoPlay preload="metadata" src={recordingUrl} className="w-full" onError={() => setRecordingError("Браузер не зміг відкрити запис")}/>
                   <a
-                    href={call.recording_url}
+                    href={recordingUrl}
                     target="_blank"
                     rel="noreferrer"
                     className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-semibold"
@@ -86,8 +111,15 @@ export function BinotelCallDialog({ generalCallId, onClose }: { generalCallId: s
                     <Download className="h-3.5 w-3.5" /> Завантажити запис
                   </a>
                 </div>
+              ) : !call.is_missed && Number(call.duration_sec ?? 0) > 0 ? (
+                <div className="space-y-2">
+                  <button type="button" onClick={loadRecording} disabled={recordingLoading} className="inline-flex items-center gap-2 rounded-md border border-border px-3 py-1.5 text-xs font-semibold disabled:opacity-60">
+                    <Play className="h-3.5 w-3.5" /> {recordingLoading ? "Завантаження…" : "Прослухати запис"}
+                  </button>
+                  {recordingError ? <p className="text-sm text-muted-foreground">{recordingError}</p> : null}
+                </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Запис недоступний для цього дзвінка.</p>
+                <p className="text-sm text-muted-foreground">Розмова не відбулася, запису немає.</p>
               )}
             </div>
 
