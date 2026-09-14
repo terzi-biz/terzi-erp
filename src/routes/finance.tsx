@@ -187,7 +187,7 @@ function FinancePage() {
         {tab === "finmap" && <FinmapSection />}
         {tab === "payroll" && <PayrollSection />}
         {tab === "receivables" && <ReceivablesSection invoices={invoices as any[]} payments={payments as any[]} />}
-        {tab === "payables" && <PayablesSection expenses={expenses as any[]} />}
+        {tab === "payables" && <SupplierPayablesSection />}
         {tab === "categories" && <CategoriesSection />}
         {tab === "projects" && <ProjectsTab />}
 
