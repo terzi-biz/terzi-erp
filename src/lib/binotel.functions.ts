@@ -122,6 +122,9 @@ export const saveBinotelSettings = createServerFn({ method: "POST" })
         defaultPipelineId: z.string().uuid().nullable().optional(),
         defaultStageId: z.string().uuid().nullable().optional(),
         reconcileWindowHours: z.number().int().min(1).max(72).optional(),
+        autoCreateMeasurement: z.boolean().optional(),
+        measurementMinDurationSec: z.number().int().min(10).max(1800).optional(),
+
       })
       .parse(d),
   )
