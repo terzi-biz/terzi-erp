@@ -115,18 +115,19 @@ function FinancePage() {
     }
   };
 
-  const kpi = useMemo(() => {
-    const inv = invoices as any[];
-    const totalInvoiced = inv.reduce((s, i) => s + (Number(i.total) || 0), 0);
-    const totalPaid = paidSum((payments as any[]).map((p) => ({ amount: Number(p.amount) || 0, direction: p.direction })));
-    const totalExpenses = (expenses as any[]).reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    return {
-      invoiced: totalInvoiced,
-      paid: totalPaid,
-      debt: debt(totalInvoiced, inv.reduce((s, i) => s + (Number(i.paid) || 0), 0)),
-      profit: totalPaid - totalExpenses,
-    };
-  }, [invoices, payments, expenses]);
+  // Верхні показники — канонічне джерело Stage 2 (той самий розрахунок, що й у Дашборді).
+  const kpiFn = useServerFn(getManagementKpi);
+  const { data: canonicalKpi } = useQuery({
+    queryKey: ["fin-kpi", period.from, period.to],
+    queryFn: () => kpiFn({ data: period }),
+  });
+  const kpi = useMemo(() => ({
+    income: canonicalKpi?.income ?? 0,
+    expense: canonicalKpi?.expense ?? 0,
+    debt: canonicalKpi?.receivableRemaining ?? 0,
+    profit: canonicalKpi?.profit ?? 0,
+  }), [canonicalKpi]);
+
 
   return (
     <AppShell>
