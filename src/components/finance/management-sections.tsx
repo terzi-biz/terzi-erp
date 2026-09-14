@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { formatUah } from "@/lib/screed-calc";
 import { Metric, type Period } from "./sections";
-import { getServiceEconomics, getPayables, getUpcomingPayments, getManagementKpi } from "@/lib/finance/management.functions";
+import { getServiceEconomics, getPayables, getUpcomingPayments, getManagementKpi, getManagementReconciliation } from "@/lib/finance/management.functions";
 import { moduleLabel } from "@/lib/modules";
 
 const card = "rounded-2xl border border-border bg-card p-4 shadow-sm";
@@ -269,6 +269,47 @@ export function ManagementKpiStrip({ period }: { period: Period }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {items.map((i) => <Metric key={i.t} title={i.t} value={formatUah(i.v)} tone={i.tone} />)}
+    </div>
+  );
+}
+
+/* --------------------- Розширена звірка Етапу 2 --------------------- */
+
+export function ManagementReconcileBlock() {
+  const fn = useServerFn(getManagementReconciliation);
+  const { data, isLoading } = useQuery({ queryKey: ["fin-recon-2"], queryFn: () => fn() });
+  if (isLoading || !data) return null;
+
+  const tiles = [
+    { t: "Операції без напрямку", c: data.transactionsWithoutService.count, a: data.transactionsWithoutService.amount },
+    { t: "Неповний розподіл", c: data.incompleteAllocation.count, a: data.incompleteAllocation.amount },
+    { t: "Розподіл на перевірку", c: data.allocationNeedsReview.count, a: data.allocationNeedsReview.amount },
+    { t: "Рахунки Finmap без звʼязку з ERP", c: data.invoicesWithoutErp.count, a: data.invoicesWithoutErp.amount },
+    { t: "Зобовʼязання без оплати", c: data.obligationsWithoutPayment.count, a: data.obligationsWithoutPayment.amount },
+    { t: "Виплати ФОП без розрахунку", c: data.payrollPaymentsWithoutRelation.count, a: data.payrollPaymentsWithoutRelation.amount },
+  ];
+
+  return (
+    <div className="space-y-3">
+      <div className={note}>
+        Автоматичні звʼязки робляться лише за стабільними ідентифікаторами. Усе сумнівне лишається
+        на ручну перевірку й не впливає на звіти.
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {tiles.map((x) => (
+          <div key={x.t} className={card}>
+            <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{x.t}</div>
+            <div className="mt-1 text-xl font-black tabular-nums">{x.c}</div>
+            <div className="mt-1 text-[11px] text-muted-foreground">{formatUah(x.a)}</div>
+          </div>
+        ))}
+      </div>
+      {data.employeesWithoutErp.count > 0 && (
+        <div className="rounded-2xl border border-primary/40 bg-primary/5 p-3 text-xs">
+          Співробітники Finmap без звʼязку з ERP: {data.employeesWithoutErp.count} —{" "}
+          {data.employeesWithoutErp.rows.map((e: any) => e.name).join(", ")}. Потрібне ручне зіставлення.
+        </div>
+      )}
     </div>
   );
 }

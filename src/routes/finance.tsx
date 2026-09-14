@@ -14,7 +14,7 @@ import {
   type Period,
 } from "@/components/finance/sections";
 import {
-  ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip,
+  ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip, ManagementReconcileBlock,
 } from "@/components/finance/management-sections";
 
 
@@ -182,7 +182,7 @@ function FinancePage() {
         {tab === "upcoming" && <UpcomingSection />}
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
         {tab === "planfact" && <PlanFactSection period={period} />}
-        {tab === "reconcile" && <ReconcileSection period={period} />}
+        {tab === "reconcile" && <div className="space-y-4"><ManagementReconcileBlock /><ReconcileSection period={period} /></div>}
         {tab === "objects" && <OrdersFinanceSection period={period} />}
         {tab === "finmap" && <FinmapSection />}
         {tab === "payroll" && <PayrollSection />}
