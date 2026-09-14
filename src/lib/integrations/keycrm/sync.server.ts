@@ -1129,7 +1129,8 @@ export async function pollEntity(
   }
 
   await setState(ctx.integration.id, entity, {
-    last_sync_at: startedAt,
+    // Прогін по вікну сторінок (ручний бекфіл) не зсуває курсор інкрементальної синхронізації.
+    ...(opts.page ? {} : { last_sync_at: startedAt }),
     last_run_at: startedAt,
     last_status: failed ? "partial" : "ok",
     last_error: null,
