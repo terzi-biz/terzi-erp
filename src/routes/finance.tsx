@@ -141,10 +141,11 @@ function FinancePage() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard label="Виставлено" value={formatUah(kpi.invoiced)} icon={Receipt} tone="neutral" />
-          <KpiCard label="Отримано" value={formatUah(kpi.paid)} icon={TrendingUp} tone="good" />
-          <KpiCard label="Дебіторка" value={formatUah(kpi.debt)} icon={TrendingDown} tone="warn" />
-          <KpiCard label="Грошовий результат" value={formatUah(kpi.profit)} icon={CircleDollarSign} tone={kpi.profit >= 0 ? "good" : "bad"} />
+          <KpiCard label="Дохід (факт)" value={formatUah(kpi.income)} icon={Receipt} tone="good" />
+          <KpiCard label="Витрати (факт)" value={formatUah(kpi.expense)} icon={TrendingDown} tone="bad" />
+          <KpiCard label="Дебіторка" value={formatUah(kpi.debt)} icon={TrendingUp} tone="warn" />
+          <KpiCard label="Прибуток" value={formatUah(kpi.profit)} icon={CircleDollarSign} tone={kpi.profit >= 0 ? "good" : "bad"} />
+
         </div>
 
         <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3">
