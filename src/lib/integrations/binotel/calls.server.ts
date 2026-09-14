@@ -167,8 +167,13 @@ async function lookupByPhone(phoneNorm: string | null) {
       .maybeSingle();
     return data ?? null;
   };
-  // Основний ключ — E.164; для старих записів лишається запасний пошук по phone_norm.
-  const contact = (await findContact("phone_e164", e164)) ?? (await findContact("phone_norm", phoneNorm));
+  // Основний ключ — E.164; для старих записів лишається запасний пошук по phone_norm
+  // у двох історичних форматах: локальні цифри та E.164.
+  const contact =
+    (await findContact("phone_e164", e164)) ??
+    (await findContact("phone_norm", phoneNorm)) ??
+    (e164 !== phoneNorm ? await findContact("phone_norm", e164) : null);
+
 
   let lead: any = null;
   if (contact) {
