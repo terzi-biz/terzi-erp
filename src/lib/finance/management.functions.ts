@@ -228,15 +228,17 @@ export const getUpcomingPayments = createServerFn({ method: "GET" })
 
 /* ------------------- Канонічні управлінські KPI ------------------- */
 
-/** Єдине джерело KPI для Finance Overview і Dashboard — жодних окремих формул. */
-export const getManagementKpi = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => periodInput.parse(d))
-  .handler(async ({ data, context }) => {
-    await assertFinance(context);
+/**
+ * Канонічний розрахунок управлінських KPI. Єдине джерело для Finance Overview,
+ * головного Dashboard і будь-яких інших фінансових блоків.
+ */
+export async function computeManagementKpi(supabase: any, from: string, to: string) {
     const today = new Date().toISOString().slice(0, 10);
     const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
+    const context = { supabase };
+    const data = { from, to };
     const [{ data: accounts }, { data: tx }, { data: sched }, { data: stages }, { payables }, { data: payroll }] = await Promise.all([
+
       context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance").eq("archived", false),
       // Cash Flow періоду — за датою оплати.
       context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "actual").or(cashDateFilter(data.from, data.to)),
@@ -274,14 +276,26 @@ export const getManagementKpi = createServerFn({ method: "POST" })
 
     return {
       period: { from: data.from, to: data.to },
+      accounts: (accounts ?? []) as any[],
       cashBalance: r2(((accounts ?? []) as any[]).reduce((s, a) => s + num(a.actual_balance ?? a.opening_balance), 0)),
       income, expense, profit: r2(income - expense),
+      margin: income > 0 ? r2(((income - expense) / income) * 100) : 0,
       receivableRemaining, receivableDue, receivableOverdue,
       payableRemaining, payableOverdue,
       payrollAccrued, payrollPaid, payrollRemaining: r2(Math.max(payrollAccrued - payrollPaid, 0)),
       scheduledReceipts30, scheduledPayments30,
     };
+}
+
+/** Серверна функція-обгортка над канонічним розрахунком. */
+export const getManagementKpi = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => periodInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    return computeManagementKpi(context.supabase, data.from, data.to);
   });
+
 
 /* --------------------- Ручний розподіл (override) --------------------- */
 
@@ -333,8 +347,14 @@ export const saveManualAllocation = createServerFn({ method: "POST" })
       if (error) { console.error("saveManualAllocation", error); throw new Error("Не вдалося зберегти розподіл"); }
     }
 
-    const status = parts.length === 0 ? "none" : Math.abs(unallocated) <= 0.01 ? "manual" : "partial";
+    // Статус — з незалежних станів вимірів; ручний розподіл одного виміру
+    // не робить операцію «частковою» через інші виміри.
+    const { data: allDims } = await context.supabase
+      .from("finance_allocations").select("dimension,amount,source,status").eq("transaction_id", tx.id);
+    const { overall } = allocationStatusByDimension(total, (allDims ?? []) as any);
+    const status = overall;
     await context.supabase.from("finance_transactions").update({ allocation_status: status }).eq("id", tx.id);
+
     await audit(context, {
       action: "finance.allocation.manual", entity_type: "finance_transaction", entity_id: tx.id,
       old_value: before ?? null, new_value: { dimension: data.dimension, parts }, financial_impact: total,

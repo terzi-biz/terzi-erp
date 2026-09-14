@@ -46,8 +46,31 @@ export const Route = createFileRoute("/api/public/integrations/worker")({
           binotel = { error: e instanceof Error ? e.message : "binotel sync failed" };
         }
 
-        return Response.json({ ok: true, ...res, polls, binotel });
+        // Щогодинна фонова звірка Finmap: інкрементальна синхронізація + автозвʼязування.
+        let finmap: unknown = null;
+        try {
+          if (!process.env.FINMAP_API_KEY) {
+            finmap = { skipped: "no_api_key" };
+          } else {
+            const { admin } = await import("@/lib/access.server");
+            const db = await admin();
+            const { data: state } = await db
+              .from("finmap_sync_state").select("last_success_at").eq("entity", "operations").maybeSingle();
+            const last = state?.last_success_at ? Date.parse(state.last_success_at) : 0;
+            if (Date.now() - last < 55 * 60_000) {
+              finmap = { skipped: "recent", last_success_at: state?.last_success_at ?? null };
+            } else {
+              const { runFinmapSync } = await import("@/lib/finance/finmap-sync.server");
+              finmap = await runFinmapSync(db, { mode: "incremental", userId: null });
+            }
+          }
+        } catch (e) {
+          finmap = { error: e instanceof Error ? e.message : "finmap sync failed" };
+        }
+
+        return Response.json({ ok: true, ...res, polls, binotel, finmap });
       },
+
     },
   },
 });

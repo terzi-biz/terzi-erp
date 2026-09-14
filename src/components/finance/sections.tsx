@@ -61,16 +61,14 @@ export function OverviewSection({ period, onDrill }: { period: Period; onDrill: 
 
   return (
     <div className="space-y-4">
+      {/* KPI не дублюємо: їх показує канонічна смуга вище (той самий серверний розрахунок). */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Metric title="Гроші на рахунках" value={formatUah(data.cashOnAccounts)} hint="Фактичні залишки з Finmap" />
         <Metric title="Доходи періоду" value={formatUah(data.income)} tone="good" onClick={() => onDrill("income")} />
         <Metric title="Витрати періоду" value={formatUah(data.expense)} tone="bad" onClick={() => onDrill("expense")} />
-        <Metric title="Cash Flow" value={formatUah(data.cashFlow)} tone={data.cashFlow >= 0 ? "good" : "bad"} onClick={() => onDrill("all")} />
-        <Metric title="Дебіторка" value={formatUah(data.receivable)} tone="warn" hint={`Прострочено: ${formatUah(data.overdue)}`} />
-        <Metric title="Кредиторка (ФОП)" value={formatUah(data.payable)} tone="warn" />
-        <Metric title="Валовий прибуток" value={formatUah(data.grossProfit)} tone={data.grossProfit >= 0 ? "good" : "bad"} />
-        <Metric title="Маржа" value={`${data.margin.toFixed(1)} %`} />
+        <Metric title="Перекази між рахунками" value={formatUah(data.transfers)} hint="Не впливають на прибуток" onClick={() => onDrill("transfer")} />
+        <Metric title="Усі операції періоду" value={String(data.transactions)} onClick={() => onDrill("all")} />
       </div>
+
 
       <div className={card}>
         <div className="flex items-center justify-between">

@@ -16,6 +16,8 @@ import {
 import {
   ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip, ManagementReconcileBlock,
 } from "@/components/finance/management-sections";
+import { ObjectAnalyticsSection } from "@/components/finance/ObjectAnalytics";
+
 
 
 import { AppShell } from "@/components/AppShell";
@@ -183,7 +185,13 @@ function FinancePage() {
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
         {tab === "planfact" && <PlanFactSection period={period} />}
         {tab === "reconcile" && <div className="space-y-4"><ManagementReconcileBlock /><ReconcileSection period={period} /></div>}
-        {tab === "objects" && <OrdersFinanceSection period={period} />}
+        {tab === "objects" && (
+          <div className="space-y-4">
+            <ObjectAnalyticsSection period={period} />
+            <OrdersFinanceSection period={period} />
+          </div>
+        )}
+
         {tab === "finmap" && <FinmapSection />}
         {tab === "payroll" && <PayrollSection />}
         {tab === "receivables" && <ReceivablesSection invoices={invoices as any[]} payments={payments as any[]} />}

@@ -377,3 +377,157 @@ export const listAdvancePayments = createServerFn({ method: "POST" })
       },
     };
   });
+
+/* ------------------ Аналітика по об'єктах (план/факт) ------------------ */
+
+/**
+ * Зведена аналітика об'єктів: доходи, витрати, прибуток і розподіл
+ * за проєктами Finmap, статтями, напрямками та замовленнями.
+ *
+ * Факт береться з Finmap за управлінським періодом; план — з одного
+ * канонічного кошторису замовлення (не сума версій).
+ */
+export const getObjectAnalytics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({
+      from: z.string().min(4),
+      to: z.string().min(4),
+      whole_period: z.boolean().default(false),
+    }).parse(d ?? {}),
+  )
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { managementPeriodFilter } = await import("./allocations");
+
+    let txq = context.supabase
+      .from("finance_transactions")
+      .select("id,kind,amount,amount_uah,op_date,payment_date,period_start,period_end,state,order_id,category_id,service,finance_project_id")
+      .eq("state", "actual")
+      .limit(20000);
+    if (!data.whole_period) txq = txq.or(managementPeriodFilter(data.from, data.to));
+
+    const [{ data: tx }, { data: orders }, { data: estimates }, { data: cats }, { data: projects }, { data: allocs }] =
+      await Promise.all([
+        txq,
+        context.supabase.from("orders").select("id,number,name,address,client:client_id(name)").limit(5000),
+        context.supabase
+          .from("estimates").select("id,order_id,total_client,total_cost,status,created_at,approved_at")
+          .not("order_id", "is", null).limit(20000),
+        context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
+        context.supabase.from("finance_projects").select("id,name,order_id").limit(5000),
+        context.supabase.from("finance_allocations").select("transaction_id,dimension,ref_name,order_id,category_id,service,amount").limit(50000),
+      ]);
+
+    const rows = ((tx ?? []) as any[]).filter((t) => t.kind !== "transfer");
+    const amt = (t: any) => num(t.amount_uah ?? t.amount);
+    const catById = new Map(((cats ?? []) as any[]).map((c) => [c.id, c]));
+    const projById = new Map(((projects ?? []) as any[]).map((p) => [p.id, p]));
+    const orderById = new Map(((orders ?? []) as any[]).map((o) => [o.id, o]));
+
+    // Розподіли по вимірах (пріоритет над «сирим» полем операції).
+    const byDim = new Map<string, any[]>();
+    for (const a of (allocs ?? []) as any[]) byDim.set(`${a.transaction_id}:${a.dimension}`, [...(byDim.get(`${a.transaction_id}:${a.dimension}`) ?? []), a]);
+
+    type Agg = { key: string; label: string; order_id: string | null; income: number; expense: number; ops: number };
+    const mk = () => new Map<string, Agg>();
+    const add = (m: Map<string, Agg>, key: string, label: string, kind: string, value: number, orderId: string | null = null) => {
+      const cur = m.get(key) ?? { key, label, order_id: orderId, income: 0, expense: 0, ops: 0 };
+      if (kind === "income") cur.income = r2(cur.income + value); else cur.expense = r2(cur.expense + value);
+      cur.ops += 1;
+      m.set(key, cur);
+    };
+
+    const byProject = mk(), byCategory = mk(), byService = mk(), byOrder = mk();
+    const unallocated = { income: 0, expense: 0 };
+
+    for (const t of rows) {
+      const total = amt(t);
+      const kind = t.kind === "income" ? "income" : "expense";
+
+      // Проєкт / замовлення
+      const pParts = byDim.get(`${t.id}:project`) ?? [];
+      if (pParts.length) {
+        for (const p of pParts) {
+          add(byProject, p.ref_name ?? p.order_id ?? "—", p.ref_name ?? "Без назви", kind, num(p.amount), p.order_id ?? null);
+          if (p.order_id) add(byOrder, p.order_id, orderById.get(p.order_id)?.number ?? "Без номера", kind, num(p.amount), p.order_id);
+        }
+      } else {
+        const proj = t.finance_project_id ? projById.get(t.finance_project_id) : null;
+        const orderId = (t.order_id ?? proj?.order_id ?? null) as string | null;
+        if (proj) add(byProject, proj.id, proj.name ?? "Без назви", kind, total, proj.order_id ?? null);
+        if (orderId) add(byOrder, orderId, orderById.get(orderId)?.number ?? "Без номера", kind, total, orderId);
+        else if (kind === "income") unallocated.income = r2(unallocated.income + total);
+        else unallocated.expense = r2(unallocated.expense + total);
+      }
+
+      // Стаття
+      const cParts = byDim.get(`${t.id}:category`) ?? [];
+      if (cParts.length) for (const c of cParts) add(byCategory, c.ref_name ?? c.category_id ?? "—", c.ref_name ?? "Без статті", kind, num(c.amount));
+      else {
+        const cat = catById.get(t.category_id);
+        add(byCategory, cat?.id ?? "none", cat?.name ?? "Без статті", kind, total);
+      }
+
+      // Напрямок
+      const sParts = byDim.get(`${t.id}:service`) ?? [];
+      if (sParts.length) for (const s of sParts) add(byService, s.service ?? "—", s.service ?? "Без напрямку", kind, num(s.amount));
+      else if (t.service) add(byService, t.service, t.service, kind, total);
+    }
+
+    // План по замовленнях — канонічний кошторис.
+    const estByOrder = new Map<string, any[]>();
+    for (const e of (estimates ?? []) as any[]) estByOrder.set(e.order_id, [...(estByOrder.get(e.order_id) ?? []), e]);
+
+    const orderRows = [...byOrder.values()].map((o) => {
+      const plan = planFromEstimates(estByOrder.get(o.key) ?? []);
+      const ord = orderById.get(o.key);
+      const factProfit = r2(o.income - o.expense);
+      const planProfit = r2(plan.revenue - plan.cost);
+      return {
+        order_id: o.key,
+        number: ord?.number ?? null,
+        name: ord?.name ?? null,
+        address: ord?.address ?? null,
+        client: ord?.client?.name ?? null,
+        planRevenue: r2(plan.revenue), planCost: r2(plan.cost), planProfit,
+        factRevenue: o.income, factCost: o.expense, factProfit,
+        revenueVariance: r2(o.income - plan.revenue),
+        costVariance: r2(o.expense - plan.cost),
+        profitVariance: r2(factProfit - planProfit),
+        marginFact: o.income > 0 ? r2((factProfit / o.income) * 100) : null,
+        marginPlan: plan.revenue > 0 ? r2((planProfit / plan.revenue) * 100) : null,
+        ops: o.ops,
+        estimateVersions: plan.versions,
+      };
+    }).sort((a, b) => b.factRevenue + b.factCost - (a.factRevenue + a.factCost));
+
+    const sum = (list: Agg[], key: "income" | "expense") => r2(list.reduce((s, x) => s + x[key], 0));
+    const all = [...byOrder.values()];
+    const totals = {
+      factRevenue: sum(all, "income"),
+      factCost: sum(all, "expense"),
+      planRevenue: r2(orderRows.reduce((s, o) => s + o.planRevenue, 0)),
+      planCost: r2(orderRows.reduce((s, o) => s + o.planCost, 0)),
+      objects: orderRows.length,
+    };
+
+    const shape = (m: Map<string, Agg>) =>
+      [...m.values()]
+        .map((x) => ({ ...x, profit: r2(x.income - x.expense) }))
+        .sort((a, b) => b.income + b.expense - (a.income + a.expense));
+
+    return {
+      period: { from: data.from, to: data.to, whole: data.whole_period },
+      totals: {
+        ...totals,
+        factProfit: r2(totals.factRevenue - totals.factCost),
+        planProfit: r2(totals.planRevenue - totals.planCost),
+      },
+      orders: orderRows,
+      byProject: shape(byProject),
+      byCategory: shape(byCategory).map((c) => ({ ...c, cost_class: catById.get(c.key)?.cost_class ?? null })),
+      byService: shape(byService),
+      unallocated,
+    };
+  });
