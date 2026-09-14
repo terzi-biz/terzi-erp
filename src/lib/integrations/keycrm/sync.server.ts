@@ -946,6 +946,7 @@ export async function applyExternal(
     case "buyers": result = await applyBuyer(ctx, ext); break;
     case "lead_cards": result = await applyLeadCard(ctx, ext); break;
     case "orders": result = await applyOrder(ctx, ext); break;
+    case "managers": result = await applyManager(ctx, ext); break;
     default: result = await applyReference(ctx, entity, ext); break;
   }
 
