@@ -100,51 +100,77 @@ async function fetchAll(table: string, columns: string, filter?: (q: any) => any
 
 /* ─────────── звіти ─────────── */
 
-async function clientDuplicates(): Promise<AuditReport> {
-  const clients = await fetchAll("clients", "id,name,phone,created_at,status");
-  const [orders, estimates, leads, calls] = await Promise.all([
-    fetchAll("orders", "client_id"),
-    fetchAll("estimates", "client_id"),
-    fetchAll("crm_leads", "client_id"),
-    fetchAll("crm_calls", "client_id"),
-  ]);
-  const usage = new Map<string, number>();
-  for (const set of [orders, estimates, leads, calls]) {
-    for (const r of set) {
-      if (r.client_id) usage.set(r.client_id, (usage.get(r.client_id) ?? 0) + 1);
-    }
-  }
+/** Таблиці з посиланням на клієнта, які переносяться при об'єднанні дублів. */
+export const CLIENT_RELATION_TABLES = [
+  "crm_contacts",
+  "crm_leads",
+  "crm_calls",
+  "crm_tasks",
+  "calendar_events",
+  "estimates",
+  "orders",
+  "order_measurements",
+  "invoices",
+  "binotel_call_sessions",
+  "finance_transactions",
+  "finance_counterparties",
+  "finance_projects",
+] as const;
 
-  const groups = new Map<string, any[]>();
-  for (const c of clients) {
-    const key = normPhone(c.phone);
-    if (!key) continue;
-    const arr = groups.get(key) ?? [];
-    arr.push(c);
-    groups.set(key, arr);
+/** Детерміновані групи дублів клієнтів: точний E.164, точний e-mail, той самий покупець keyCRM. */
+export async function clientDuplicateGroups() {
+  const { buildDuplicateGroups } = await import("../integrations/keycrm/mapping");
+  const { toE164 } = await import("../phone");
+  const { normalizeEmail } = await import("../crm/identity");
+  const clients = await fetchAll(
+    "clients",
+    "id,name,phone,phone_e164,email,address,created_at,status,external_source,external_id",
+  );
+  const usage = new Map<string, number>();
+  for (const table of CLIENT_RELATION_TABLES) {
+    const rows = await fetchAll(table, "client_id");
+    for (const r of rows) if (r.client_id) usage.set(r.client_id, (usage.get(r.client_id) ?? 0) + 1);
   }
+  const records = clients.map((c) => ({
+    id: c.id as string,
+    name: c.name as string | null,
+    phoneE164: (c.phone_e164 as string | null) ?? toE164(c.phone),
+    email: normalizeEmail(c.email),
+    externalSource: c.external_source as string | null,
+    externalId: c.external_id as string | null,
+    createdAt: c.created_at as string | null,
+    status: c.status as string | null,
+    relations: usage.get(c.id) ?? 0,
+    completeness: ["name", "phone", "email", "address"].filter((k) => c[k]).length,
+  }));
+  return { groups: buildDuplicateGroups(records), usage };
+}
+
+async function clientDuplicates(): Promise<AuditReport> {
+  const { groups } = await clientDuplicateGroups();
+  const safe = groups.filter((g) => g.safe);
+  const ambiguous = groups.filter((g) => !g.safe);
+  const excess = safe.reduce((s, g) => s + g.losers.length, 0);
 
   const rows: AuditRow[] = [];
-  let total = 0;
-  for (const [phone, list] of groups) {
-    if (list.length < 2) continue;
-    total += 1;
-    if (rows.length >= REPORT_LIMIT) continue;
-    // Утримувач = найбільше зв'язків, далі найстаріший запис
-    const sorted = [...list].sort(
-      (a, b) =>
-        (usage.get(b.id) ?? 0) - (usage.get(a.id) ?? 0) ||
-        Date.parse(a.created_at) - Date.parse(b.created_at),
-    );
-    const keeper = sorted[0];
-    const losers = sorted.slice(1);
+  if (safe.length) {
     rows.push({
-      applyKey: `merge:${keeper.id}:${losers.map((l) => l.id).join(",")}`,
-      title: `+${phone} · ${list.length} записи`,
-      detail: sorted
-        .map((c) => `${c.name || "без назви"} (${usage.get(c.id) ?? 0} зв'язків)`)
+      applyKey: "mergesafe:all",
+      title: `Безпечні групи: ${safe.length} (зайвих записів ${excess})`,
+      detail: "Ознаки: той самий покупець keyCRM, точний E.164 або точний e-mail. Нечіткого злиття за іменем немає.",
+      change: `Об'єднати всі ${safe.length} безпечні групи: перенести звʼязки на канонічних клієнтів, дублі — в архів (merged_into)`,
+    });
+  }
+  for (const g of groups.slice(0, REPORT_LIMIT)) {
+    rows.push({
+      applyKey: g.safe ? `merge:${g.survivor.id}:${g.losers.map((l) => l.id).join(",")}` : null,
+      title: `${g.safe ? "SAFE" : "ПЕРЕВІРИТИ"} · ${g.key} · ${g.losers.length + 1} записи`,
+      detail: [g.survivor, ...g.losers]
+        .map((c) => `${c.name || "без назви"} (${c.relations ?? 0} зв'язків)`)
         .join(" | "),
-      change: `Залишити «${keeper.name || keeper.id}», перепривʼязати зв'язки з ${losers.length} дубл. і позначити їх архівними`,
+      change: g.safe
+        ? `Залишити «${g.survivor.name || g.survivor.id}», перенести звʼязки з ${g.losers.length} дубл., дублі — в архів`
+        : (g.reason ?? "Потребує перевірки"),
     });
   }
 
@@ -152,9 +178,9 @@ async function clientDuplicates(): Promise<AuditReport> {
     check: "client_duplicates",
     label: AUDIT_LABELS.client_duplicates,
     applicable: true,
-    total,
+    total: groups.length,
     rows,
-    note: "Об'єднання виконується лише по одній групі за окремим підтвердженням. Дублі не видаляються — отримують статус archived.",
+    note: `Безпечних груп: ${safe.length} (зайвих ${excess}); неоднозначних: ${ambiguous.length} — вони залишаються без змін у «потребує перевірки». Дублі не видаляються — переходять у статус archived із посиланням merged_into.`,
   };
 }
 
