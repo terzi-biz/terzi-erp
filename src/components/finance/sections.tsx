@@ -252,6 +252,8 @@ export function ReconcileSection({ period }: { period: Period }) {
   });
 
   return (
+    <div className="space-y-3">
+    <ReconciliationSummary period={period} />
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
