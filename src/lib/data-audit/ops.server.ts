@@ -6,20 +6,36 @@
  */
 
 export const AUDIT_CHECKS = [
+  "crm_quality",
   "client_duplicates",
   "calls_to_leads",
   "leads_to_clients",
   "leads_to_orders",
+  "leads_without_contact",
+  "leads_without_manager",
+  "leads_without_source",
+  "stage_status_conflicts",
+  "duplicate_leads",
+  "unlinked_keycrm_orders",
+  "won_leads_without_order",
   "catalog_issues",
   "estimates_price_version",
 ] as const;
 export type AuditCheck = (typeof AUDIT_CHECKS)[number];
 
 export const AUDIT_LABELS: Record<AuditCheck, string> = {
-  client_duplicates: "Дублі клієнтів за телефоном",
+  crm_quality: "Якість даних CRM — лічильники",
+  client_duplicates: "Дублі клієнтів (телефон / e-mail / keyCRM)",
   calls_to_leads: "Звінки без ліда",
   leads_to_clients: "Ліди без клієнта",
   leads_to_orders: "Ліди без замовлення",
+  leads_without_contact: "Ліди без контакту",
+  leads_without_manager: "Ліди без відповідального",
+  leads_without_source: "Ліди без джерела",
+  stage_status_conflicts: "Конфлікти етап / статус",
+  duplicate_leads: "Дублі лідів",
+  unlinked_keycrm_orders: "Замовлення keyCRM без звʼязку",
+  won_leads_without_order: "Виграні ліди без замовлення",
   catalog_issues: "Каталог: без коду або з нульовою ціною",
   estimates_price_version: "Кошториси без зафіксованої версії прайсу",
 };
@@ -84,51 +100,77 @@ async function fetchAll(table: string, columns: string, filter?: (q: any) => any
 
 /* ─────────── звіти ─────────── */
 
-async function clientDuplicates(): Promise<AuditReport> {
-  const clients = await fetchAll("clients", "id,name,phone,created_at,status");
-  const [orders, estimates, leads, calls] = await Promise.all([
-    fetchAll("orders", "client_id"),
-    fetchAll("estimates", "client_id"),
-    fetchAll("crm_leads", "client_id"),
-    fetchAll("crm_calls", "client_id"),
-  ]);
-  const usage = new Map<string, number>();
-  for (const set of [orders, estimates, leads, calls]) {
-    for (const r of set) {
-      if (r.client_id) usage.set(r.client_id, (usage.get(r.client_id) ?? 0) + 1);
-    }
-  }
+/** Таблиці з посиланням на клієнта, які переносяться при об'єднанні дублів. */
+export const CLIENT_RELATION_TABLES = [
+  "crm_contacts",
+  "crm_leads",
+  "crm_calls",
+  "crm_tasks",
+  "calendar_events",
+  "estimates",
+  "orders",
+  "order_measurements",
+  "invoices",
+  "binotel_call_sessions",
+  "finance_transactions",
+  "finance_counterparties",
+  "finance_projects",
+] as const;
 
-  const groups = new Map<string, any[]>();
-  for (const c of clients) {
-    const key = normPhone(c.phone);
-    if (!key) continue;
-    const arr = groups.get(key) ?? [];
-    arr.push(c);
-    groups.set(key, arr);
+/** Детерміновані групи дублів клієнтів: точний E.164, точний e-mail, той самий покупець keyCRM. */
+export async function clientDuplicateGroups() {
+  const { buildDuplicateGroups } = await import("../integrations/keycrm/mapping");
+  const { toE164 } = await import("../phone");
+  const { normalizeEmail } = await import("../crm/identity");
+  const clients = await fetchAll(
+    "clients",
+    "id,name,phone,phone_e164,email,address,created_at,status,external_source,external_id",
+  );
+  const usage = new Map<string, number>();
+  for (const table of CLIENT_RELATION_TABLES) {
+    const rows = await fetchAll(table, "client_id");
+    for (const r of rows) if (r.client_id) usage.set(r.client_id, (usage.get(r.client_id) ?? 0) + 1);
   }
+  const records = clients.map((c) => ({
+    id: c.id as string,
+    name: c.name as string | null,
+    phoneE164: (c.phone_e164 as string | null) ?? toE164(c.phone),
+    email: normalizeEmail(c.email),
+    externalSource: c.external_source as string | null,
+    externalId: c.external_id as string | null,
+    createdAt: c.created_at as string | null,
+    status: c.status as string | null,
+    relations: usage.get(c.id) ?? 0,
+    completeness: ["name", "phone", "email", "address"].filter((k) => c[k]).length,
+  }));
+  return { groups: buildDuplicateGroups(records), usage };
+}
+
+async function clientDuplicates(): Promise<AuditReport> {
+  const { groups } = await clientDuplicateGroups();
+  const safe = groups.filter((g) => g.safe);
+  const ambiguous = groups.filter((g) => !g.safe);
+  const excess = safe.reduce((s, g) => s + g.losers.length, 0);
 
   const rows: AuditRow[] = [];
-  let total = 0;
-  for (const [phone, list] of groups) {
-    if (list.length < 2) continue;
-    total += 1;
-    if (rows.length >= REPORT_LIMIT) continue;
-    // Утримувач = найбільше зв'язків, далі найстаріший запис
-    const sorted = [...list].sort(
-      (a, b) =>
-        (usage.get(b.id) ?? 0) - (usage.get(a.id) ?? 0) ||
-        Date.parse(a.created_at) - Date.parse(b.created_at),
-    );
-    const keeper = sorted[0];
-    const losers = sorted.slice(1);
+  if (safe.length) {
     rows.push({
-      applyKey: `merge:${keeper.id}:${losers.map((l) => l.id).join(",")}`,
-      title: `+${phone} · ${list.length} записи`,
-      detail: sorted
-        .map((c) => `${c.name || "без назви"} (${usage.get(c.id) ?? 0} зв'язків)`)
+      applyKey: "mergesafe:all",
+      title: `Безпечні групи: ${safe.length} (зайвих записів ${excess})`,
+      detail: "Ознаки: той самий покупець keyCRM, точний E.164 або точний e-mail. Нечіткого злиття за іменем немає.",
+      change: `Об'єднати всі ${safe.length} безпечні групи: перенести звʼязки на канонічних клієнтів, дублі — в архів (merged_into)`,
+    });
+  }
+  for (const g of groups.slice(0, REPORT_LIMIT)) {
+    rows.push({
+      applyKey: g.safe ? `merge:${g.survivor.id}:${g.losers.map((l) => l.id).join(",")}` : null,
+      title: `${g.safe ? "SAFE" : "ПЕРЕВІРИТИ"} · ${g.key} · ${g.losers.length + 1} записи`,
+      detail: [g.survivor, ...g.losers]
+        .map((c) => `${c.name || "без назви"} (${c.relations ?? 0} зв'язків)`)
         .join(" | "),
-      change: `Залишити «${keeper.name || keeper.id}», перепривʼязати зв'язки з ${losers.length} дубл. і позначити їх архівними`,
+      change: g.safe
+        ? `Залишити «${g.survivor.name || g.survivor.id}», перенести звʼязки з ${g.losers.length} дубл., дублі — в архів`
+        : (g.reason ?? "Потребує перевірки"),
     });
   }
 
@@ -136,9 +178,9 @@ async function clientDuplicates(): Promise<AuditReport> {
     check: "client_duplicates",
     label: AUDIT_LABELS.client_duplicates,
     applicable: true,
-    total,
+    total: groups.length,
     rows,
-    note: "Об'єднання виконується лише по одній групі за окремим підтвердженням. Дублі не видаляються — отримують статус archived.",
+    note: `Безпечних груп: ${safe.length} (зайвих ${excess}); неоднозначних: ${ambiguous.length} — вони залишаються без змін у «потребує перевірки». Дублі не видаляються — переходять у статус archived із посиланням merged_into.`,
   };
 }
 
@@ -351,8 +393,160 @@ async function estimatesPriceVersion(): Promise<AuditReport> {
   };
 }
 
+/* ─────────── якість даних CRM ─────────── */
+
+type LeadRow = Record<string, any>;
+
+async function leadsForQuality(): Promise<LeadRow[]> {
+  return fetchAll(
+    "crm_leads",
+    "id,title,contact_id,client_id,assigned_to,order_id,source,utm,status,stage_id,phone_e164,created_at,external_source,external_id",
+  );
+}
+
+function leadTitle(l: LeadRow) {
+  return `${l.title || "без назви"} · ${new Date(l.created_at).toLocaleDateString("uk-UA")}`;
+}
+
+function simpleReport(check: AuditCheck, rows: LeadRow[], detail: (l: LeadRow) => string, note: string): AuditReport {
+  return {
+    check,
+    label: AUDIT_LABELS[check],
+    applicable: false,
+    total: rows.length,
+    rows: rows.slice(0, REPORT_LIMIT).map((l) => ({
+      applyKey: null,
+      title: leadTitle(l),
+      detail: detail(l),
+      change: null,
+    })),
+    note,
+  };
+}
+
+const hasUtm = (l: LeadRow) => Object.values((l.utm ?? {}) as Record<string, unknown>).some((v) => v);
+
+async function stageConflicts(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id");
+  const stageById = new Map(stages.map((s) => [s.id, s]));
+  const bad = leads.filter((l) => {
+    const stage = l.stage_id ? stageById.get(l.stage_id) : null;
+    if (!stage) return Boolean(l.stage_id);
+    const name = String(stage.name ?? "");
+    const won = /(успешн|успішн|successful)/i.test(name);
+    const finalLost = /(отказ|відмов|спам|дубл|не цел|не наш|некоррект|перестал|дорого|купил)/i.test(name);
+    if (won && l.status !== "won") return true;
+    if (finalLost && l.status === "open") return true;
+    if (!won && !finalLost && (l.status === "won" || l.status === "lost")) return true;
+    return false;
+  });
+  return simpleReport(
+    "stage_status_conflicts",
+    bad,
+    (l) => `етап: ${stageById.get(l.stage_id)?.name ?? "—"} · статус: ${l.status}`,
+    "Етап keyCRM — джерело істини. Конфлікти зникають після наступної синхронізації картки.",
+  );
+}
+
+async function duplicateLeads(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const groups = new Map<string, LeadRow[]>();
+  for (const l of leads) {
+    const key = l.external_id ? `keycrm:${l.external_id}` : l.phone_e164 ? `tel:${l.phone_e164}` : null;
+    if (!key) continue;
+    const arr = groups.get(key) ?? [];
+    arr.push(l);
+    groups.set(key, arr);
+  }
+  const dup = [...groups.entries()].filter(([, list]) => list.length > 1);
+  return {
+    check: "duplicate_leads",
+    label: AUDIT_LABELS.duplicate_leads,
+    applicable: false,
+    total: dup.length,
+    rows: dup.slice(0, REPORT_LIMIT).map(([key, list]) => ({
+      applyKey: null,
+      title: `${key} · ${list.length} лідів`,
+      detail: list.map((l) => leadTitle(l)).join(" | "),
+      change: null,
+    })),
+    note: "Ліди не об'єднуються автоматично: повторні звернення того самого номера — нормальна ситуація. Дублі за зовнішнім ID keyCRM потребують перевірки.",
+  };
+}
+
+async function unlinkedKeycrmOrders(): Promise<AuditReport> {
+  const orders = await fetchAll("orders", "id,number,name,client_id,external_source,external_id,created_at", (q) =>
+    q.eq("external_source", "keycrm"),
+  );
+  const leads = await fetchAll("crm_leads", "id,order_id");
+  const linked = new Set(leads.map((l) => l.order_id).filter(Boolean));
+  const bad = orders.filter((o) => !o.client_id || !linked.has(o.id));
+  return {
+    check: "unlinked_keycrm_orders",
+    label: AUDIT_LABELS.unlinked_keycrm_orders,
+    applicable: false,
+    total: bad.length,
+    rows: bad.slice(0, REPORT_LIMIT).map((o) => ({
+      applyKey: null,
+      title: `${o.number} · ${o.name || "без назви"}`,
+      detail: `${o.client_id ? "клієнт є" : "без клієнта"} · ${linked.has(o.id) ? "лід є" : "без ліда"}`,
+      change: null,
+    })),
+    note: "Замовлення keyCRM без клієнта або без зв'язку з лідом. Зв'язок встановлюється синхронізацією за зовнішнім ID.",
+  };
+}
+
+async function wonLeadsWithoutOrder(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const bad = leads.filter((l) => l.status === "won" && !l.order_id);
+  return simpleReport(
+    "won_leads_without_order",
+    bad,
+    (l) => `клієнт: ${l.client_id ? "є" : "—"} · відповідальний: ${l.assigned_to ? "є" : "—"}`,
+    "Виграний лід без замовлення: замовлення keyCRM ще не створене або не зіставлене.",
+  );
+}
+
+async function crmQuality(): Promise<AuditReport> {
+  const leads = await leadsForQuality();
+  const [dupClients, stage, dupLeads, unlinked] = await Promise.all([
+    clientDuplicateGroups(),
+    stageConflicts(),
+    duplicateLeads(),
+    unlinkedKeycrmOrders(),
+  ]);
+  const counters: { check: AuditCheck; label: string; total: number }[] = [
+    { check: "leads_without_contact", label: AUDIT_LABELS.leads_without_contact, total: leads.filter((l) => !l.contact_id).length },
+    { check: "leads_to_clients", label: "Ліди без клієнта", total: leads.filter((l) => !l.client_id).length },
+    { check: "leads_without_manager", label: AUDIT_LABELS.leads_without_manager, total: leads.filter((l) => !l.assigned_to).length },
+    { check: "leads_without_source", label: AUDIT_LABELS.leads_without_source, total: leads.filter((l) => !l.source && !hasUtm(l)).length },
+    { check: "stage_status_conflicts", label: AUDIT_LABELS.stage_status_conflicts, total: stage.total },
+    { check: "client_duplicates", label: "Дублі клієнтів (групи)", total: dupClients.groups.length },
+    { check: "duplicate_leads", label: AUDIT_LABELS.duplicate_leads, total: dupLeads.total },
+    { check: "unlinked_keycrm_orders", label: AUDIT_LABELS.unlinked_keycrm_orders, total: unlinked.total },
+    { check: "won_leads_without_order", label: AUDIT_LABELS.won_leads_without_order, total: leads.filter((l) => l.status === "won" && !l.order_id).length },
+    { check: "leads_to_orders", label: "Неоднозначні зіставлення (лід без замовлення при клієнті)", total: leads.filter((l) => l.client_id && !l.order_id).length },
+  ];
+  return {
+    check: "crm_quality",
+    label: AUDIT_LABELS.crm_quality,
+    applicable: false,
+    total: counters.reduce((s, c) => s + c.total, 0),
+    rows: counters.map((c) => ({
+      applyKey: `open:${c.check}`,
+      title: `${c.label}: ${c.total}`,
+      detail: `Усього лідів: ${leads.length}`,
+      change: "Відкрити перелік",
+    })),
+    note: "Натисніть «Відкрити перелік», щоб побачити точні записи за лічильником.",
+  };
+}
+
 export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> {
   switch (check) {
+    case "crm_quality":
+      return crmQuality();
     case "client_duplicates":
       return clientDuplicates();
     case "calls_to_leads":
@@ -361,6 +555,41 @@ export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> 
       return leadsToClients();
     case "leads_to_orders":
       return leadsToOrders();
+    case "leads_without_contact": {
+      const leads = await leadsForQuality();
+      return simpleReport(
+        "leads_without_contact",
+        leads.filter((l) => !l.contact_id),
+        (l) => `джерело: ${l.source || "—"} · статус: ${l.status}`,
+        "Контакт створюється синхронізацією картки keyCRM (include=contact).",
+      );
+    }
+    case "leads_without_manager": {
+      const leads = await leadsForQuality();
+      return simpleReport(
+        "leads_without_manager",
+        leads.filter((l) => !l.assigned_to),
+        (l) => `статус: ${l.status} · клієнт: ${l.client_id ? "є" : "—"}`,
+        "Відповідальний підтягується з keyCRM за e-mail або телефоном користувача. Без надійного збігу — потребує перевірки.",
+      );
+    }
+    case "leads_without_source": {
+      const leads = await leadsForQuality();
+      return simpleReport(
+        "leads_without_source",
+        leads.filter((l) => !l.source && !hasUtm(l)),
+        (l) => `статус: ${l.status} · створено ${new Date(l.created_at).toLocaleDateString("uk-UA")}`,
+        "Джерело або UTM не визначені — «Не класифіковано / потребує перевірки». Історична атрибуція не вигадується.",
+      );
+    }
+    case "stage_status_conflicts":
+      return stageConflicts();
+    case "duplicate_leads":
+      return duplicateLeads();
+    case "unlinked_keycrm_orders":
+      return unlinkedKeycrmOrders();
+    case "won_leads_without_order":
+      return wonLeadsWithoutOrder();
     case "catalog_issues":
       return catalogIssues();
     case "estimates_price_version":
@@ -414,28 +643,62 @@ export async function applyAuditAction(
     const keeper = parts[1];
     const losers = (parts[2] ?? "").split(",").filter(Boolean);
     if (!keeper || losers.length === 0) throw new Error("Некоректна група для об'єднання");
+    const res = await mergeClientGroup(keeper, losers, userId);
+    return { applied: res.applied, message: `Перенесено ${res.applied} звʼязків, архівовано дублів: ${losers.length}` };
+  }
+
+  if (parts[0] === "mergesafe") {
+    const { groups } = await clientDuplicateGroups();
+    const safe = groups.filter((g) => g.safe);
     let applied = 0;
-    for (const table of ["orders", "estimates", "crm_leads", "crm_calls"] as const) {
-      for (const loser of losers) {
-        const { data, error } = await client
-          .from(table)
-          .update({ client_id: keeper })
-          .eq("client_id", loser)
-          .select("id");
-        if (error) throw new Error(`Не вдалося перенести ${table}: ${error.message}`);
-        applied += (data ?? []).length;
-      }
+    for (const g of safe) {
+      const res = await mergeClientGroup(
+        g.survivor.id,
+        g.losers.map((l) => l.id),
+        userId,
+      );
+      applied += res.applied;
     }
-    const { error: archErr } = await client
-      .from("clients")
-      .update({ status: "archived", notes: `Обʼєднано з клієнтом ${keeper} (аудит даних, ${userId})` })
-      .in("id", losers);
-    if (archErr) throw new Error(`Не вдалося архівувати дублі: ${archErr.message}`);
+    const excess = safe.reduce((s, g) => s + g.losers.length, 0);
     return {
       applied,
-      message: `Перенесено ${applied} звʼязків, архівовано дублів: ${losers.length}`,
+      message: `Обʼєднано безпечних груп: ${safe.length}, архівовано дублів: ${excess}, перенесено звʼязків: ${applied}. Неоднозначні групи не змінювалися.`,
     };
   }
 
   throw new Error("Невідома дія аудиту");
+}
+
+/**
+ * Обʼєднання однієї групи клієнтів: усі звʼязки переходять на канонічного клієнта,
+ * дублі архівуються з посиланням merged_into. Фізичного видалення немає,
+ * фінансові розрахунки не змінюються — переносяться лише посилання client_id.
+ */
+async function mergeClientGroup(
+  keeper: string,
+  losers: string[],
+  userId: string,
+): Promise<{ applied: number }> {
+  const client = await db();
+  let applied = 0;
+  for (const table of CLIENT_RELATION_TABLES) {
+    for (const loser of losers) {
+      if (loser === keeper) continue;
+      const { data, error } = await client.from(table).update({ client_id: keeper }).eq("client_id", loser).select("id");
+      if (error) throw new Error(`Не вдалося перенести ${table}: ${error.message}`);
+      applied += (data ?? []).length;
+    }
+  }
+  const { data: keeperRow } = await client.from("clients").select("name").eq("id", keeper).maybeSingle();
+  for (const loser of losers) {
+    if (loser === keeper) continue;
+    const { data: cur } = await client.from("clients").select("notes").eq("id", loser).maybeSingle();
+    const note = `merged_into:${keeper} (${keeperRow?.name ?? "канонічний клієнт"}) · аудит даних ${new Date().toISOString()} · ${userId}`;
+    const { error } = await client
+      .from("clients")
+      .update({ status: "archived", notes: [cur?.notes, note].filter(Boolean).join("\n") })
+      .eq("id", loser);
+    if (error) throw new Error(`Не вдалося архівувати дубль: ${error.message}`);
+  }
+  return { applied };
 }

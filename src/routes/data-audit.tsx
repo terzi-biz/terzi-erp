@@ -45,9 +45,17 @@ export const Route = createFileRoute("/data-audit")({
 });
 
 const CHECKS = [
+  { key: "crm_quality", label: "Якість даних CRM" },
   { key: "client_duplicates", label: "Дублі клієнтів" },
-  { key: "calls_to_leads", label: "Звінки без ліда" },
+  { key: "duplicate_leads", label: "Дублі лідів" },
+  { key: "leads_without_contact", label: "Ліди без контакту" },
   { key: "leads_to_clients", label: "Ліди без клієнта" },
+  { key: "leads_without_manager", label: "Ліди без відповідального" },
+  { key: "leads_without_source", label: "Ліди без джерела" },
+  { key: "stage_status_conflicts", label: "Конфлікти етап / статус" },
+  { key: "unlinked_keycrm_orders", label: "Замовлення keyCRM без звʼязку" },
+  { key: "won_leads_without_order", label: "Виграні ліди без замовлення" },
+  { key: "calls_to_leads", label: "Звінки без ліда" },
   { key: "leads_to_orders", label: "Ліди без замовлення" },
   { key: "catalog_issues", label: "Каталог" },
   { key: "estimates_price_version", label: "Версія прайсу" },
@@ -194,7 +202,19 @@ function DataAuditPage() {
                         <td className="py-2 px-2 text-muted-foreground">{r.detail}</td>
                         <td className="py-2 px-2">{r.change ?? "—"}</td>
                         <td className="py-2 pl-2">
-                          {!r.applyKey ? (
+                          {typeof r.applyKey === "string" && r.applyKey.startsWith("open:") ? (
+                            <button
+                              className={`${btn} border border-border text-xs px-2 py-1`}
+                              onClick={() => {
+                                const next = r.applyKey.slice(5) as CheckKey;
+                                setCheck(next);
+                                setReport(null);
+                                runMut.mutate({ check: next, save: false });
+                              }}
+                            >
+                              Відкрити перелік
+                            </button>
+                          ) : !r.applyKey ? (
                             <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                               <AlertTriangle className="w-3.5 h-3.5" /> вручну
                             </span>

@@ -4,6 +4,9 @@
  * (зберігаємо хеші зовнішнього та внутрішнього стану). Конфлікти — в чергу.
  */
 import { admin } from "../../access.server";
+import { toE164 } from "../../phone";
+import { normalizeEmail } from "../../crm/identity";
+import { canonicalLeadStatus, mapCustomFields, matchManager, mergeUtm, preservePatch } from "./mapping";
 import { sha256Hex } from "../signature.server";
 import { logAttempt } from "../core.server";
 import type { AdapterContext } from "../adapter.server";
@@ -272,76 +275,237 @@ async function applyStage(ctx: AdapterContext, ext: any) {
   return { internalId, table: "crm_stages" };
 }
 
-async function applyBuyer(ctx: AdapterContext, ext: any) {
+/**
+ * Канонічний клієнт для контакту/покупця keyCRM.
+ * Пріоритет: звʼязок інтеграції → зовнішній ID → точний E.164 → точний e-mail →
+ * client_id контакту → створення нового клієнта-перспективи.
+ * Повторна синхронізація ніколи не створює другого клієнта для тієї самої людини.
+ */
+async function resolveClient(
+  ctx: AdapterContext,
+  input: { externalId: string | null; name: string; phone: string | null; email: string | null; contactClientId?: string | null },
+  owner: string,
+): Promise<string | null> {
+  const db = await admin();
+  const e164 = toE164(input.phone);
+  const email = normalizeEmail(input.email);
+
+  let clientId: string | null = null;
+  if (input.externalId) {
+    const { data } = await db
+      .from("clients")
+      .select("id")
+      .eq("external_source", "keycrm")
+      .eq("external_id", input.externalId)
+      .neq("status", "archived")
+      .limit(1)
+      .maybeSingle();
+    clientId = (data as any)?.id ?? null;
+  }
+  if (!clientId && e164) {
+    const { data } = await db
+      .from("clients")
+      .select("id")
+      .eq("phone_e164", e164)
+      .neq("status", "archived")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    clientId = (data as any)?.id ?? null;
+  }
+  if (!clientId && email) {
+    const { data } = await db
+      .from("clients")
+      .select("id")
+      .ilike("email", email)
+      .neq("status", "archived")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    clientId = (data as any)?.id ?? null;
+  }
+  if (!clientId && input.contactClientId) clientId = input.contactClientId;
+
+  const incoming: Record<string, unknown> = {
+    name: input.name,
+    phone: input.phone,
+    phone_e164: e164,
+    email: input.email,
+    external_source: input.externalId ? "keycrm" : null,
+    external_id: input.externalId,
+  };
+
+  if (clientId) {
+    const { data: current } = await db.from("clients").select("*").eq("id", clientId).maybeSingle();
+    const patch = preservePatch(current as any, incoming, ["phone_e164"]);
+    if (Object.keys(patch).length) await db.from("clients").update(patch as any).eq("id", clientId);
+    return clientId;
+  }
+
+  const { data, error } = await db
+    .from("clients")
+    .insert({ ...incoming, owner_id: owner, status: "prospect" } as any)
+    .select("id")
+    .maybeSingle();
+  if (error) throw error;
+  return (data as any)?.id ?? null;
+}
+
+/**
+ * Контакт keyCRM (покупець /buyer або contact картки) → crm_contacts + канонічний клієнт.
+ * Порожні значення keyCRM не затирають сильніші дані ERP.
+ */
+async function upsertContact(
+  ctx: AdapterContext,
+  input: {
+    entity: "buyers" | "contacts";
+    externalId: string;
+    fullName: string;
+    phone: string | null;
+    email: string | null;
+    company?: string | null;
+    clientExternalId?: string | null;
+  },
+): Promise<{ contactId: string | null; clientId: string | null }> {
   const db = await admin();
   const owner = await ownerFor(ctx);
   if (!owner) throw new Error("Не визначено власника записів — задайте default_owner_id у налаштуваннях");
-  const externalId = String(ext.id);
-  const phone = firstPhone(ext.phone ?? ext.phones);
-  const phoneNorm = normPhone(phone);
-  const email = Array.isArray(ext.email) ? ext.email[0] : (ext.email ?? null);
-  const fullName = String(ext.full_name ?? ext.name ?? `Покупець ${externalId}`);
+  const e164 = toE164(input.phone);
+  const phoneNorm = normPhone(input.phone);
 
-  const link = await getLink(ctx.integration.id, "buyers", externalId);
+  const link = await getLink(ctx.integration.id, input.entity, input.externalId);
   let contactId: string | null = link?.internal_id ?? null;
-  let clientId: string | null = null;
-
-  const { data: existingClient } = await db
-    .from("clients")
-    .select("id")
-    .eq("external_source", "keycrm")
-    .eq("external_id", externalId)
-    .maybeSingle();
-  clientId = (existingClient as any)?.id ?? null;
-  const clientRow = {
-    name: fullName,
-    phone: phone ?? null,
-    email: email ?? null,
-    external_source: "keycrm",
-    external_id: externalId,
-  };
-  if (clientId) {
-    const { error } = await db.from("clients").update(clientRow as any).eq("id", clientId);
-    if (error) throw error;
-  } else {
-    const { data, error } = await db.from("clients").insert({ ...clientRow, owner_id: owner } as any).select("id").maybeSingle();
-    if (error) throw error;
-    clientId = (data as any)?.id ?? null;
-  }
-
   if (!contactId) {
     const { data: byExt } = await db
       .from("crm_contacts")
       .select("id")
       .eq("external_source", "keycrm")
-      .eq("external_id", externalId)
+      .eq("external_id", input.externalId)
+      .limit(1)
       .maybeSingle();
     contactId = (byExt as any)?.id ?? null;
   }
+  if (!contactId && e164) {
+    const { data: byE164 } = await db
+      .from("crm_contacts")
+      .select("id")
+      .eq("phone_e164", e164)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    contactId = (byE164 as any)?.id ?? null;
+  }
   if (!contactId && phoneNorm) {
-    const { data: byPhone } = await db.from("crm_contacts").select("id").eq("phone_norm", phoneNorm).limit(1).maybeSingle();
+    const { data: byPhone } = await db
+      .from("crm_contacts")
+      .select("id")
+      .eq("phone_norm", phoneNorm)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
     contactId = (byPhone as any)?.id ?? null;
   }
 
-  const row: Record<string, unknown> = {
-    full_name: fullName,
+  let current: any = null;
+  if (contactId) {
+    const { data } = await db.from("crm_contacts").select("*").eq("id", contactId).maybeSingle();
+    current = data ?? null;
+  }
+
+  const clientId = await resolveClient(
+    ctx,
+    {
+      externalId: input.clientExternalId ?? (input.entity === "buyers" ? input.externalId : null),
+      name: input.fullName,
+      phone: input.phone,
+      email: input.email,
+      contactClientId: (current?.client_id as string) ?? null,
+    },
+    owner,
+  );
+
+  const incoming: Record<string, unknown> = {
+    full_name: input.fullName,
+    phone: input.phone,
+    phone_e164: e164,
+    phone_norm: phoneNorm,
+    email: input.email,
+    company: input.company ?? null,
+    external_source: "keycrm",
+    external_id: input.externalId,
+    client_id: clientId,
+  };
+
+  if (contactId) {
+    const patch = preservePatch(current, incoming, ["phone_e164", "phone_norm", "external_source", "external_id"]);
+    if (Object.keys(patch).length) {
+      const { error } = await db.from("crm_contacts").update(patch as any).eq("id", contactId);
+      if (error) throw error;
+    }
+  } else {
+    const { data, error } = await db
+      .from("crm_contacts")
+      .insert({ ...incoming, owner_id: owner } as any)
+      .select("id")
+      .maybeSingle();
+    if (error) throw error;
+    contactId = (data as any)?.id ?? null;
+  }
+  return { contactId, clientId };
+}
+
+async function applyBuyer(ctx: AdapterContext, ext: any) {
+  const externalId = String(ext.id);
+  const phone = firstPhone(ext.phone ?? ext.phones);
+  const email = Array.isArray(ext.email) ? (ext.email[0] ?? null) : (ext.email ?? null);
+  const { contactId } = await upsertContact(ctx, {
+    entity: "buyers",
+    externalId,
+    fullName: String(ext.full_name ?? ext.name ?? `Покупець ${externalId}`),
     phone: phone ?? null,
     email: email ?? null,
     company: ext.company?.name ?? ext.company_name ?? null,
-    external_source: "keycrm",
-    external_id: externalId,
-    client_id: clientId,
-  };
-  if (contactId) {
-    const { error } = await db.from("crm_contacts").update(row as any).eq("id", contactId);
-    if (error) throw error;
-  }
-  else {
-    const { data, error } = await db.from("crm_contacts").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
-    if (error) throw error;
-    contactId = (data as any).id;
-  }
+  });
   return { internalId: contactId, table: "crm_contacts" };
+}
+
+/** Відповідальний keyCRM → користувач ERP. Ідентичність — e-mail або телефон, ніколи лише імʼя. */
+async function applyManager(ctx: AdapterContext, ext: any) {
+  const db = await admin();
+  const [{ data: profiles }] = await Promise.all([
+    db.from("profiles").select("user_id,email,phone,display_name"),
+  ]);
+  const match = matchManager(ext, (profiles ?? []).map((p: any) => ({ id: p.user_id, email: p.email, phone: p.phone, name: p.display_name })));
+  return { internalId: match.userId, table: match.userId ? "profiles" : null };
+}
+
+/** Користувач ERP для відповідального keyCRM (за звʼязком сутності managers). */
+async function managerUserId(ctx: AdapterContext, managerExt: unknown): Promise<string | null> {
+  if (managerExt === null || managerExt === undefined || managerExt === "") return null;
+  const link = await getLink(ctx.integration.id, "managers", String(managerExt));
+  return (link?.internal_id as string) ?? null;
+}
+
+const numOrNull = (v: unknown) => {
+  const n = Number(v);
+  return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : null;
+};
+
+const isoOrNull = (v: unknown) => {
+  if (!v) return null;
+  const s = String(v).replace(" ", "T");
+  const d = new Date(/Z|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+};
+
+/** Назва джерела keyCRM за довідником sources. */
+async function sourceName(ctx: AdapterContext, ext: any): Promise<string | null> {
+  const direct = ext.source?.name ?? ext.source_name ?? (typeof ext.source === "string" ? ext.source : null);
+  if (direct) return String(direct);
+  if (ext.source_id == null) return null;
+  const sl = await getLink(ctx.integration.id, "sources", String(ext.source_id));
+  const p = (sl?.payload ?? {}) as Record<string, unknown>;
+  return (p.name as string) ?? (p.title as string) ?? null;
 }
 
 async function applyOrder(ctx: AdapterContext, ext: any) {
@@ -351,25 +515,27 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
   const externalId = String(ext.id);
   const link = await getLink(ctx.integration.id, "orders", externalId);
   let internalId: string | null = link?.internal_id ?? null;
+
+  // Покупець keyCRM → контакт + канонічний клієнт (без створення дублів).
   const buyerExt = ext.buyer?.id ?? ext.buyer_id ?? ext.client_id ?? null;
   let clientId: string | null = null;
-  if (buyerExt != null) {
+  if (ext.buyer?.id != null) {
+    const res = await upsertContact(ctx, {
+      entity: "buyers",
+      externalId: String(ext.buyer.id),
+      fullName: String(ext.buyer.full_name ?? ext.buyer.name ?? `Покупець ${ext.buyer.id}`),
+      phone: firstPhone(ext.buyer.phone ?? ext.buyer.phones),
+      email: Array.isArray(ext.buyer.email) ? (ext.buyer.email[0] ?? null) : (ext.buyer.email ?? null),
+    });
+    clientId = res.clientId;
+  } else if (buyerExt != null) {
     const buyerLink = await getLink(ctx.integration.id, "buyers", String(buyerExt));
     if (buyerLink?.internal_id) {
       const { data: contact } = await db.from("crm_contacts").select("client_id").eq("id", buyerLink.internal_id).maybeSingle();
       clientId = (contact as any)?.client_id ?? null;
     }
   }
-  const numOrNull = (v: unknown) => {
-    const n = Number(v);
-    return Number.isFinite(n) && String(v ?? "").trim() !== "" ? n : null;
-  };
-  const isoOrNull = (v: unknown) => {
-    if (!v) return null;
-    const s = String(v).replace(" ", "T");
-    const d = new Date(/Z|[+-]\d\d:?\d\d$/.test(s) ? s : `${s}Z`);
-    return Number.isFinite(d.getTime()) ? d.toISOString() : null;
-  };
+
   const amountTotal = numOrNull(ext.grand_total ?? ext.total_price ?? ext.amount ?? ext.total);
   const paidTotal =
     numOrNull(ext.payments_total ?? ext.paid_total ?? ext.paid_amount) ??
@@ -379,57 +545,108 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
           .reduce((s: number, p: any) => s + (Number(p?.amount) || 0), 0)
       : null);
 
-  const utm = ext.utm_source || ext.utm
-    ? {
-        utm_source: ext.utm_source ?? ext.utm?.source ?? ext.utm?.utm_source ?? null,
-        utm_medium: ext.utm_medium ?? ext.utm?.medium ?? ext.utm?.utm_medium ?? null,
-        utm_campaign: ext.utm_campaign ?? ext.utm?.campaign ?? ext.utm?.utm_campaign ?? null,
-        utm_content: ext.utm_content ?? ext.utm?.content ?? ext.utm?.utm_content ?? null,
-        utm_term: ext.utm_term ?? ext.utm?.term ?? ext.utm?.utm_term ?? null,
-      }
-    : {};
+  const custom = mapCustomFields(ext.custom_fields ?? ext.customFields);
+  const utm = mergeUtm(
+    {
+      utm_source: ext.utm_source ?? ext.marketing?.utm_source ?? null,
+      utm_medium: ext.utm_medium ?? ext.marketing?.utm_medium ?? null,
+      utm_campaign: ext.utm_campaign ?? ext.marketing?.utm_campaign ?? null,
+      utm_content: ext.utm_content ?? ext.marketing?.utm_content ?? null,
+      utm_term: ext.utm_term ?? ext.marketing?.utm_term ?? null,
+    },
+    custom.utm,
+  );
 
-  // Джерело = рекламний канал (довідник sources keyCRM або utm_source), а не назва CRM.
-  let orderSource: string | null =
-    ext.source?.name ?? ext.source_name ?? (typeof ext.source === "string" ? ext.source : null);
-  if (!orderSource && ext.source_id != null) {
-    const sl = await getLink(ctx.integration.id, "sources", String(ext.source_id));
-    const p = (sl?.payload ?? {}) as Record<string, unknown>;
-    orderSource = (p.name as string) ?? (p.title as string) ?? null;
+  const src = (await sourceName(ctx, ext)) ?? ((utm as any).utm_source as string | null) ?? null;
+  const managerId = await managerUserId(ctx, ext.manager_id ?? ext.manager?.id ?? null);
+
+  let current: any = null;
+  if (!internalId) {
+    const { data: byExt } = await db
+      .from("orders")
+      .select("id")
+      .eq("external_source", "keycrm")
+      .eq("external_id", externalId)
+      .limit(1)
+      .maybeSingle();
+    internalId = (byExt as any)?.id ?? null;
   }
-  if (!orderSource) orderSource = (utm as any).utm_source ?? (utm as any).utm_campaign ?? null;
+  if (!internalId) {
+    const { data: byNumber } = await db.from("orders").select("id").eq("number", `KCRM-${externalId}`).maybeSingle();
+    internalId = (byNumber as any)?.id ?? null;
+  }
+  if (internalId) {
+    const { data } = await db.from("orders").select("*").eq("id", internalId).maybeSingle();
+    current = data ?? null;
+  }
 
-  const row = {
-    number: `KCRM-${externalId}`,
+  // Технічні дані keyCRM живуть в окремій гілці management_data і не чіпають ручні поля.
+  const managementData = {
+    ...((current?.management_data ?? {}) as Record<string, unknown>),
+    keycrm: {
+      order_id: Number(externalId),
+      status_id: ext.status_id ?? null,
+      status_group_id: ext.status_group_id ?? null,
+      status_changed_at: isoOrNull(ext.status_changed_at),
+      closed_at: isoOrNull(ext.closed_at),
+      source_id: ext.source_id ?? null,
+      buyer_comment: ext.buyer_comment ?? ext.client_comment ?? null,
+      payments_total: paidTotal,
+      custom_fields: custom.raw,
+      synced_at: new Date().toISOString(),
+    },
+  };
+
+  const incoming: Record<string, unknown> = {
     name: String(ext.title ?? ext.name ?? `Замовлення keyCRM #${externalId}`),
     client_id: clientId,
-    source: orderSource,
-
-    address: ext.shipping?.address ?? ext.delivery_address ?? ext.address ?? null,
+    manager_id: managerId,
+    source: src,
+    address: custom.address ?? ext.shipping?.address ?? ext.delivery_address ?? ext.address ?? null,
     crm_link: `keycrm:order:${externalId}`,
-    notes: ext.manager_comment ?? ext.comment ?? null,
+    notes: ext.manager_comment ?? ext.buyer_comment ?? ext.client_comment ?? null,
     amount_total: amountTotal,
     paid_total: paidTotal,
-    payment_status: ext.payment_status ?? (paidTotal != null && amountTotal != null
-      ? (paidTotal <= 0 ? "unpaid" : paidTotal + 0.01 >= amountTotal ? "paid" : "partial")
-      : null),
+    payment_status:
+      ext.payment_status ??
+      (paidTotal != null && amountTotal != null
+        ? paidTotal <= 0
+          ? "unpaid"
+          : paidTotal + 0.01 >= amountTotal
+            ? "paid"
+            : "partial"
+        : null),
     crm_status: ext.status?.name ?? ext.status_name ?? (typeof ext.status === "string" ? ext.status : null),
     ordered_at: isoOrNull(ext.ordered_at ?? ext.created_at ?? ext.createdAt),
     manager_comment: ext.manager_comment ?? null,
-    utm: utm as any,
+    utm,
     external_source: "keycrm",
     external_id: externalId,
   };
 
-  if (!internalId) {
-    const { data: byNumber } = await db.from("orders").select("id").eq("number", row.number).maybeSingle();
-    internalId = (byNumber as any)?.id ?? null;
-  }
+  // keyCRM володіє статусом, сумами й зовнішніми ідентифікаторами; решта — лише доповнення.
+  const owned = [
+    "crm_status",
+    "payment_status",
+    "amount_total",
+    "paid_total",
+    "external_source",
+    "external_id",
+    "crm_link",
+    "utm",
+  ];
+
   if (internalId) {
-    const { error } = await db.from("orders").update(row as any).eq("id", internalId);
+    const patch: Record<string, unknown> = { ...preservePatch(current, incoming, owned), management_data: managementData };
+    if (current?.utm) patch.utm = mergeUtm(current.utm as any, utm as any);
+    const { error } = await db.from("orders").update(patch as any).eq("id", internalId);
     if (error) throw error;
   } else {
-    const { data, error } = await db.from("orders").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
+    const { data, error } = await db
+      .from("orders")
+      .insert({ ...incoming, number: `KCRM-${externalId}`, management_data: managementData, owner_id: owner } as any)
+      .select("id")
+      .maybeSingle();
     if (error) throw error;
     internalId = (data as any)?.id ?? null;
   }
@@ -448,6 +665,17 @@ async function linkLeadToOrder(ctx: AdapterContext, ext: any, orderId: string, c
   if (leadExt != null) {
     const ll = await getLink(ctx.integration.id, "lead_cards", String(leadExt));
     leadId = ll?.internal_id ?? null;
+  }
+  if (!leadId && clientId) {
+    const { data } = await db
+      .from("crm_leads")
+      .select("id")
+      .eq("client_id", clientId)
+      .is("order_id", null)
+      .order("created_at", { ascending: false })
+      .limit(2);
+    const rows = (data ?? []) as any[];
+    if (rows.length === 1) leadId = rows[0].id;
   }
   if (!leadId) {
     const buyerExt = ext.buyer?.id ?? ext.buyer_id ?? ext.client_id ?? null;
@@ -504,61 +732,53 @@ async function applyLeadCard(ctx: AdapterContext, ext: any) {
     stageId = (st as any)?.id ?? null;
   }
 
-  // Контакт ліда — через покупця або контактні дані картки.
+  // Контакт картки: keyCRM віддає contact (ім'я, телефон, client_id = покупець).
   let contactId: string | null = null;
+  let clientId: string | null = null;
+  const contactExt = ext.contact ?? null;
+  const contactExtId = contactExt?.id ?? ext.contact_id ?? null;
+  if (contactExt?.id != null) {
+    const res = await upsertContact(ctx, {
+      entity: "contacts",
+      externalId: String(contactExt.id),
+      fullName: String(contactExt.full_name ?? contactExt.social_name ?? ext.title ?? `Контакт ${contactExt.id}`),
+      phone: firstPhone(contactExt.phone ?? contactExt.phones),
+      email: Array.isArray(contactExt.email) ? (contactExt.email[0] ?? null) : (contactExt.email ?? null),
+      clientExternalId: contactExt.client_id != null ? String(contactExt.client_id) : null,
+    });
+    contactId = res.contactId;
+    clientId = res.clientId;
+  } else if (contactExtId != null) {
+    const cl = await getLink(ctx.integration.id, "contacts", String(contactExtId));
+    contactId = cl?.internal_id ?? null;
+  }
   const buyerExt = ext.buyer?.id ?? ext.buyer_id ?? ext.client_id ?? null;
-  if (buyerExt != null) {
+  if (!contactId && buyerExt != null) {
     const bl = await getLink(ctx.integration.id, "buyers", String(buyerExt));
     contactId = bl?.internal_id ?? null;
-    if (!contactId && ext.buyer) {
-      const applied = await applyBuyer(ctx, ext.buyer);
-      contactId = applied.internalId;
-      await upsertLink({
-        integrationId: ctx.integration.id,
-        entity: "buyers",
-        externalId: String(buyerExt),
-        internalId: contactId,
-        internalTable: "crm_contacts",
-        externalHash: await hashOf(ext.buyer),
-        direction: "inbound",
-      });
-    }
+  }
+  if (contactId && !clientId) {
+    const { data: ct } = await db.from("crm_contacts").select("client_id,phone").eq("id", contactId).maybeSingle();
+    clientId = (ct as any)?.client_id ?? null;
   }
 
-  const utm = ext.utm_source || ext.utm
-    ? {
-        source: ext.utm_source ?? ext.utm?.source ?? null,
-        medium: ext.utm_medium ?? ext.utm?.medium ?? null,
-        campaign: ext.utm_campaign ?? ext.utm?.campaign ?? null,
-        content: ext.utm_content ?? ext.utm?.content ?? null,
-        term: ext.utm_term ?? ext.utm?.term ?? null,
-      }
-    : {};
+  const custom = mapCustomFields(ext.custom_fields ?? ext.customFields);
+  const utmIncoming = mergeUtm(
+    {
+      utm_source: ext.utm_source ?? null,
+      utm_medium: ext.utm_medium ?? null,
+      utm_campaign: ext.utm_campaign ?? null,
+      utm_content: ext.utm_content ?? null,
+      utm_term: ext.utm_term ?? null,
+    },
+    custom.utm,
+  );
 
-  // Джерело: назва з довідника keyCRM (імпортується раніше як reference).
-  let sourceName: string | null = ext.source?.name ?? ext.source_name ?? (typeof ext.source === "string" ? ext.source : null);
-  if (!sourceName && ext.source_id != null) {
-    const sl = await getLink(ctx.integration.id, "sources", String(ext.source_id));
-    const p = (sl?.payload ?? {}) as Record<string, unknown>;
-    sourceName = (p.name as string) ?? (p.title as string) ?? null;
-  }
-
-  const createdAt = ext.created_at ?? ext.createdAt ?? null;
-
-  const row: Record<string, unknown> = {
-    title: String(ext.title ?? ext.name ?? `Лід keyCRM #${externalId}`),
-    pipeline_id: pipelineId,
-    stage_id: stageId,
-    contact_id: contactId,
-    source: sourceName,
-    budget: ext.total_price ?? ext.amount ?? null,
-    notes: ext.comment ?? ext.manager_comment ?? null,
-    utm: utm as any,
-    external_source: "keycrm",
-    external_id: externalId,
-    ...(createdAt ? { created_at: new Date(String(createdAt).replace(" ", "T") + (String(createdAt).includes("Z") || String(createdAt).includes("+") ? "" : "Z")).toISOString() } : {}),
-  };
-
+  const canonical = canonicalLeadStatus(ext.status ?? null);
+  const assignedTo = await managerUserId(ctx, ext.manager_id ?? ext.manager?.id ?? null);
+  const src = (await sourceName(ctx, ext)) ?? ((utmIncoming as any).utm_source as string | null) ?? null;
+  const contactPhone = firstPhone(contactExt?.phone ?? contactExt?.phones);
+  const createdAt = isoOrNull(ext.created_at ?? ext.createdAt);
 
   const link = await getLink(ctx.integration.id, "lead_cards", externalId);
   let leadId: string | null = link?.internal_id ?? null;
@@ -571,11 +791,74 @@ async function applyLeadCard(ctx: AdapterContext, ext: any) {
       .maybeSingle();
     leadId = (byExt as any)?.id ?? null;
   }
-  if (leadId) await db.from("crm_leads").update(row as any).eq("id", leadId);
-  else {
-    const { data, error } = await db.from("crm_leads").insert({ ...row, owner_id: owner } as any).select("id").maybeSingle();
+  let current: any = null;
+  if (leadId) {
+    const { data } = await db.from("crm_leads").select("*").eq("id", leadId).maybeSingle();
+    current = data ?? null;
+  }
+
+  // Додаткові поля картки: доповнюємо tags.fields, не перетираючи заповнене в ERP.
+  const currentTags = (current?.tags ?? {}) as Record<string, unknown>;
+  const currentFields = (currentTags.fields ?? {}) as Record<string, unknown>;
+  const mergedFields = { ...custom.fields, ...currentFields };
+  for (const [k, v] of Object.entries(custom.fields)) {
+    if (currentFields[k] === null || currentFields[k] === undefined || currentFields[k] === "") mergedFields[k] = v;
+  }
+  const tags = { ...currentTags, fields: mergedFields };
+
+  const incoming: Record<string, unknown> = {
+    title: String(ext.title ?? ext.name ?? `Лід keyCRM #${externalId}`),
+    pipeline_id: pipelineId,
+    stage_id: stageId,
+    contact_id: contactId,
+    client_id: clientId,
+    assigned_to: assignedTo,
+    source: src,
+    phone_e164: toE164(contactPhone),
+    budget: numOrNull(ext.products_total ?? ext.total_price ?? ext.amount),
+    area: custom.area,
+    address: custom.address,
+    notes: ext.manager_comment ?? ext.comment ?? null,
+    next_action_at: isoOrNull(ext.communicate_at ?? ext.next_communication_at),
+    status: canonical.status,
+    lost_reason: canonical.status === "lost" || canonical.status === "postponed" ? canonical.lostReason : null,
+    closed_at: ext.is_finished ? isoOrNull(ext.status_changed_at ?? ext.updated_at) : null,
+    external_source: "keycrm",
+    external_id: externalId,
+    ...(createdAt ? { created_at: createdAt } : {}),
+  };
+
+  // keyCRM — джерело істини для етапу й статусу картки; атрибуція та ручні дані зберігаються.
+  const owned = ["title", "pipeline_id", "stage_id", "status", "external_source", "external_id", "next_action_at"];
+
+  if (leadId) {
+    const patch = preservePatch(current, incoming, owned);
+    patch.utm = mergeUtm((current?.utm ?? {}) as any, utmIncoming);
+    patch.tags = tags;
+    if (canonical.status !== "lost" && canonical.status !== "postponed") patch.lost_reason = null;
+    delete patch.created_at;
+    const { error } = await db.from("crm_leads").update(patch as any).eq("id", leadId);
+    if (error) throw error;
+  } else {
+    const { data, error } = await db
+      .from("crm_leads")
+      .insert({ ...incoming, utm: utmIncoming, tags, owner_id: owner } as any)
+      .select("id")
+      .maybeSingle();
     if (error) throw error;
     leadId = (data as any).id;
+  }
+  if (contactExt?.id != null && contactId) {
+    await upsertLink({
+      integrationId: ctx.integration.id,
+      entity: "contacts",
+      externalId: String(contactExt.id),
+      internalId: contactId,
+      internalTable: "crm_contacts",
+      externalHash: await hashOf(contactExt),
+      direction: "inbound",
+      externalUpdatedAt: contactExt.updated_at ?? null,
+    });
   }
   return { internalId: leadId, table: "crm_leads" };
 }
@@ -663,6 +946,7 @@ export async function applyExternal(
     case "buyers": result = await applyBuyer(ctx, ext); break;
     case "lead_cards": result = await applyLeadCard(ctx, ext); break;
     case "orders": result = await applyOrder(ctx, ext); break;
+    case "managers": result = await applyManager(ctx, ext); break;
     default: result = await applyReference(ctx, entity, ext); break;
   }
 
@@ -683,7 +967,8 @@ export async function applyExternal(
     internalHash,
     direction: "inbound",
     externalUpdatedAt,
-    payload: entity === "orders" || entity === "payments" || entity === "sources" || entity === "managers" || entity === "order_statuses" ? ext : {},
+    // Сирий payload keyCRM зберігаємо для довідників і карток — для мапінгу й відлагодження.
+    payload: entity === "pipelines" || entity === "pipeline_statuses" ? {} : ext,
   });
 
   await auditSync(ctx, { action: "sync_inbound_apply", entity, externalId, internalId: result.internalId, table: result.table, payload: ext });
@@ -745,11 +1030,22 @@ export async function pushInternal(ctx: AdapterContext, entity: string, internal
 
 /* -------------------------------- polling -------------------------------- */
 
+/** Документовані include keyCRM Open API v1 (перевірено на бойовому акаунті). */
+export const KEYCRM_DEFAULT_INCLUDES: Record<string, string> = {
+  lead_cards: "contact,contact.client,manager,status,payments,customFields,products",
+  orders: "buyer,manager,status,payments,customFields,marketing,shipping,attachments.file,tags",
+};
+
+/** Сутності з документованим фільтром filter[updated_between]. */
+const UPDATED_BETWEEN_ENTITIES = new Set(["lead_cards", "orders", "buyers"]);
+
+const isoMinute = (d: Date) => d.toISOString().slice(0, 19).replace("T", " ");
+
 /** Опитування змін за updated_at із збереженням last_sync_at і пагінацією. */
 export async function pollEntity(
   ctx: AdapterContext,
   entity: string,
-  opts: { mode: SyncMode; full?: boolean; maxPages?: number; dryRun?: boolean },
+  opts: { mode: SyncMode; full?: boolean; maxPages?: number; dryRun?: boolean; force?: boolean; page?: number },
 ) {
   const client = apiClient(ctx);
   const path = entityPath(ctx, entity);
@@ -758,9 +1054,19 @@ export async function pollEntity(
   const startedAt = new Date().toISOString();
 
   const query: Record<string, unknown> = { limit: Number((ctx.config as any)?.page_size ?? 50) };
+  const include = (ctx.config as any)?.[`include_${entity}`] ?? KEYCRM_DEFAULT_INCLUDES[entity] ?? undefined;
+  if (include) query.include = include;
+
+  // keyCRM підтримує лише filter[updated_between]=from,to (документований фільтр).
   const filterParam = ((ctx.config as any)?.updated_filter_param ?? null) as string | null;
+  const supportsUpdatedBetween = UPDATED_BETWEEN_ENTITIES.has(entity);
   if (since && filterParam) query[filterParam] = since;
-  if (entity === "lead_cards" || entity === "orders") query.include = (ctx.config as any)?.[`include_${entity}`] ?? undefined;
+  else if (since && supportsUpdatedBetween) {
+    // Перекриття 10 хв: повʼязані дані змінюються незалежно від updated_at батька.
+    const from = new Date(new Date(since).getTime() - 10 * 60_000);
+    const to = new Date(Date.now() + 24 * 3600_000);
+    query["filter[updated_between]"] = `${isoMinute(from)},${isoMinute(to)}`;
+  }
 
   let items: any[] = [];
   try {
@@ -772,7 +1078,7 @@ export async function pollEntity(
         items.push(...rows.map((r: any) => ({ ...r, pipeline_id: r.pipeline_id ?? p.id })));
       }
     } else {
-      items = await client.paginate(path, query, opts.maxPages ?? 5);
+      items = await client.paginate(path, query, opts.maxPages ?? 5, opts.page ?? 1);
     }
   } catch (e: any) {
     if (!opts.dryRun) {
@@ -806,7 +1112,7 @@ export async function pollEntity(
   let failed = 0;
   for (const item of items) {
     try {
-      const res = await applyExternal(ctx, entity, item, opts.mode);
+      const res = await applyExternal(ctx, entity, item, opts.mode, { force: opts.force });
       if (res.skipped) skipped += 1;
       else applied += 1;
       if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
@@ -823,7 +1129,8 @@ export async function pollEntity(
   }
 
   await setState(ctx.integration.id, entity, {
-    last_sync_at: startedAt,
+    // Прогін по вікну сторінок (ручний бекфіл) не зсуває курсор інкрементальної синхронізації.
+    ...(opts.page ? {} : { last_sync_at: startedAt }),
     last_run_at: startedAt,
     last_status: failed ? "partial" : "ok",
     last_error: null,
@@ -864,7 +1171,7 @@ export async function extractOrderChildren(ctx: AdapterContext, order: any) {
     }
   }
 
-  // Файли keyCRM → файли замовлення (ключ — URL).
+  // Вкладення keyCRM (include=attachments.file) → файли замовлення. Ключ — URL, повтор не дублює.
   const files = [
     ...(Array.isArray(order?.files) ? order.files : []),
     ...(Array.isArray(order?.attachments) ? order.attachments : []),
@@ -872,15 +1179,17 @@ export async function extractOrderChildren(ctx: AdapterContext, order: any) {
   if (files.length) {
     const { data: existing } = await db.from("order_files").select("url").eq("order_id", orderId);
     const seen = new Set((existing ?? []).map((f: any) => String(f.url)));
-    for (const f of files) {
+    for (const a of files) {
+      const f = a?.file ?? a;
       const url = String(f?.url ?? f?.link ?? f?.path ?? "").trim();
       if (!url || seen.has(url)) continue;
       seen.add(url);
       await db.from("order_files").insert({
         order_id: orderId,
         url,
-        file_name: f?.name ?? f?.file_name ?? null,
+        file_name: f?.original_file_name ?? f?.name ?? f?.file_name ?? null,
         category: "keycrm",
+        note: `keyCRM file #${a?.file_id ?? f?.id ?? "—"} · ${f?.created_at ?? ""}`.trim(),
       } as any);
     }
   }
@@ -997,7 +1306,10 @@ export async function extractLeadChildren(ctx: AdapterContext, card: any) {
 
 
 /** Повний прогін увімкнених сутностей у правильному порядку. */
-export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: string[]; full?: boolean; dryRun?: boolean } = {}) {
+export async function runKeyCrmSync(
+  ctx: AdapterContext,
+  opts: { entities?: string[]; full?: boolean; dryRun?: boolean; maxPages?: number; force?: boolean; page?: number } = {},
+) {
   const modes = await getSyncModes(ctx.integration.id);
   const results: any[] = [];
   for (const def of KEYCRM_ENTITIES) {
@@ -1008,7 +1320,16 @@ export async function runKeyCrmSync(ctx: AdapterContext, opts: { entities?: stri
     if (!opts.dryRun && (mode === "off" || mode === "erp_master")) continue;
     if (!opts.dryRun && !opts.entities && !setting?.poll) continue;
     try {
-      results.push(await pollEntity(ctx, def.key, { mode, full: opts.full, dryRun: opts.dryRun }));
+      results.push(
+        await pollEntity(ctx, def.key, {
+          mode,
+          full: opts.full,
+          dryRun: opts.dryRun,
+          maxPages: opts.maxPages,
+          force: opts.force,
+          page: opts.page,
+        }),
+      );
     } catch (e: any) {
       results.push({ entity: def.key, error: e?.message ?? String(e) });
     }

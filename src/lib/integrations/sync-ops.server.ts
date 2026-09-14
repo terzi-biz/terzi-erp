@@ -30,7 +30,7 @@ export async function listSyncSettingsOp(userId: string, integrationId: string) 
     note: e.note ?? null,
     mode: (sMap.get(e.key)?.mode ?? "off") as SyncMode,
     poll_enabled: sMap.get(e.key)?.poll_enabled ?? false,
-    poll_interval_min: sMap.get(e.key)?.poll_interval_min ?? 15,
+    poll_interval_min: sMap.get(e.key)?.poll_interval_min ?? 5,
     last_sync_at: stMap.get(e.key)?.last_sync_at ?? null,
     last_status: stMap.get(e.key)?.last_status ?? null,
     last_error: stMap.get(e.key)?.last_error ?? null,
@@ -50,7 +50,7 @@ export async function saveSyncSettingOp(
       entity: input.entity,
       mode: input.mode,
       poll_enabled: input.pollEnabled ?? false,
-      poll_interval_min: input.pollIntervalMin ?? 15,
+      poll_interval_min: input.pollIntervalMin ?? 5,
     },
     { onConflict: "integration_id,entity" },
   );
@@ -133,7 +133,7 @@ export async function setOneWayInboundOp(userId: string, input: { integrationId:
   if (input.enabled) {
     for (const e of KEYCRM_ENTITIES) {
       await db.from("integration_sync_settings").upsert(
-        { integration_id: integration.id, entity: e.key, mode: "external_master" as SyncMode, poll_enabled: true, poll_interval_min: 15 },
+        { integration_id: integration.id, entity: e.key, mode: "external_master" as SyncMode, poll_enabled: true, poll_interval_min: 5 },
         { onConflict: "integration_id,entity" },
       );
     }

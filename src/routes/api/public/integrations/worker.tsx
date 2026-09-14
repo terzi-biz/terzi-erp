@@ -23,6 +23,29 @@ export const Route = createFileRoute("/api/public/integrations/worker")({
           eq(apikey, process.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "");
         if (!authorized) return new Response("Unauthorized", { status: 401 });
 
+        // Ручний бекфіл keyCRM: вікно сторінок по одній сутності, курсор не зсувається.
+        let body: any = null;
+        try {
+          body = await request.clone().json();
+        } catch {
+          body = null;
+        }
+        if (body?.task === "keycrm_backfill") {
+          const { loadIntegration, buildContext } = await import("@/lib/integrations/core.server");
+          const { runKeyCrmSync } = await import("@/lib/integrations/keycrm/sync.server");
+          const integration = await loadIntegration(String(body.integration_id ?? "keycrm"));
+          if (!integration) return Response.json({ ok: false, error: "integration_not_found" }, { status: 404 });
+          const ctx = await buildContext(integration);
+          const results = await runKeyCrmSync(ctx, {
+            entities: Array.isArray(body.entities) ? body.entities : undefined,
+            full: Boolean(body.full),
+            force: Boolean(body.force),
+            maxPages: Number(body.max_pages ?? 5),
+            page: body.page ? Number(body.page) : undefined,
+          });
+          return Response.json({ ok: true, task: "keycrm_backfill", results });
+        }
+
         const { runQueue } = await import("@/lib/integrations/core.server");
         const res = await runQueue(10);
 
