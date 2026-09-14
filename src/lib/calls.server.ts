@@ -134,7 +134,27 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
         }
       }
     }),
+    ...chunk(orderIds, 200).map(async (part) => {
+      const { data } = await sb.from("orders").select("id, name, number").in("id", part);
+      for (const r of data ?? []) orderById.set((r as any).id, (r as any).name || (r as any).number || "Замовлення");
+    }),
+    ...chunk(measurementIds, 200).map(async (part) => {
+      const { data } = await sb.from("order_measurements").select("id, status").in("id", part);
+      for (const r of data ?? []) measurementStatusById.set((r as any).id, String((r as any).status));
+    }),
   ]);
+
+  // «Відклик» — пропущений дзвінок, після якого був вихідний на той самий номер.
+  const outboundAfter = new Map<string, number[]>();
+  for (const c of list) {
+    if (c.direction !== "outbound" || !c.phone_e164 || !c.started_at) continue;
+    const at = new Date(c.started_at).getTime();
+    const arr = outboundAfter.get(c.phone_e164);
+    if (arr) arr.push(at);
+    else outboundAfter.set(c.phone_e164, [at]);
+  }
+
+
 
   const rows: CallFeedRow[] = list.map((c) => {
     const inbound = c.direction === "inbound";
