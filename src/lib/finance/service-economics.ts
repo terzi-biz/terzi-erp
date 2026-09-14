@@ -175,3 +175,191 @@ export function computePayable(input: {
     lastPayment: dates.length ? dates.sort().slice(-1)[0]! : null,
   };
 }
+
+/* ------------------- Канонічна кредиторка (один розрахунок) ------------------- */
+
+export type PayableObligation = {
+  id: string;
+  counterparty_id?: string | null;
+  supplier_name?: string | null;
+  order_id?: string | null;
+  finmap_invoice_id?: string | null;
+  amount?: unknown;
+  due_date?: string | null;
+  status?: string | null;
+};
+
+export type PayablePayment = {
+  id?: string | null;
+  counterparty_id?: string | null;
+  order_id?: string | null;
+  obligation_id?: string | null;
+  finmap_invoice_id?: string | null;
+  amount?: unknown;
+  date?: string | null;
+  state?: string | null;
+};
+
+export type PayableObligationRow = {
+  id: string;
+  supplier: string;
+  counterpartyId: string | null;
+  orderId: string | null;
+  amount: number;
+  paid: number;
+  scheduled: number;
+  /** Непогашений залишок — саме він показується в Кредиторці, Огляді й Очікуваних платежах. */
+  remaining: number;
+  overdue: number;
+  dueDate: string | null;
+  lastPayment: string | null;
+  status: string;
+};
+
+export type PayableSupplierRow = {
+  supplier: string;
+  counterpartyId: string | null;
+  obligations: number;
+  scheduled: number;
+  paid: number;
+  remaining: number;
+  overdue: number;
+  lastPayment: string | null;
+};
+
+export type PayablesResult = {
+  obligations: PayableObligationRow[];
+  suppliers: PayableSupplierRow[];
+  totals: { obligations: number; scheduled: number; paid: number; remaining: number; overdue: number };
+  /** Витрати, які не можна достовірно віднести до зобовʼязання — на ручну перевірку. */
+  unmatchedPayments: { id: string | null; amount: number; date: string | null; counterpartyId: string | null; orderId: string | null; reason: string }[];
+};
+
+const liveObligation = (o: PayableObligation) => !["cancelled"].includes(String(o.status ?? "open"));
+
+/**
+ * Зіставлення оплат із зобовʼязаннями. Пріоритет:
+ *  1. явний звʼязок (obligation_id або спільний рахунок Finmap);
+ *  2. точний збіг замовлення + контрагента;
+ *  3. needs_review — оплата НЕ зменшує жодне зобовʼязання.
+ * Ніякого fuzzy-матчингу за сумою чи назвою.
+ */
+function matchPayment(o: PayableObligation[], p: PayablePayment): { hits: PayableObligation[]; reason: string } {
+  const explicit = o.filter(
+    (x) =>
+      (p.obligation_id && p.obligation_id === x.id) ||
+      (p.finmap_invoice_id && x.finmap_invoice_id && p.finmap_invoice_id === x.finmap_invoice_id),
+  );
+  if (explicit.length) return { hits: explicit, reason: "explicit" };
+
+  if (p.counterparty_id && p.order_id) {
+    const exact = o.filter((x) => x.counterparty_id === p.counterparty_id && x.order_id === p.order_id);
+    if (exact.length) return { hits: exact, reason: "order+counterparty" };
+  }
+  return { hits: [], reason: p.counterparty_id ? "Контрагент збігається, але немає звʼязку із зобовʼязанням" : "Немає звʼязку із зобовʼязанням" };
+}
+
+const byDue = (a: PayableObligation, b: PayableObligation) =>
+  (a.due_date ?? "9999-12-31").localeCompare(b.due_date ?? "9999-12-31");
+
+/** Єдиний канонічний розрахунок кредиторки для Кредиторки, Огляду й Очікуваних платежів. */
+export function computePayables(input: {
+  obligations: PayableObligation[];
+  payments: PayablePayment[];
+  today?: string;
+  cpName?: (id: string | null) => string | null;
+}): PayablesResult {
+  const today = input.today ?? new Date().toISOString().slice(0, 10);
+  const live = (input.obligations ?? []).filter(liveObligation);
+  const state = new Map<string, { o: PayableObligation; paid: number; scheduled: number; last: string | null }>();
+  for (const o of live) state.set(o.id, { o, paid: 0, scheduled: 0, last: null });
+
+  const unmatchedPayments: PayablesResult["unmatchedPayments"] = [];
+
+  for (const p of input.payments ?? []) {
+    const amount = num(p.amount);
+    if (amount <= 0) continue;
+    const scheduled = String(p.state ?? "actual") === "scheduled";
+    const { hits, reason } = matchPayment(live, p);
+    if (!hits.length) {
+      if (!scheduled) {
+        unmatchedPayments.push({
+          id: p.id ?? null, amount: r2(amount), date: p.date ?? null,
+          counterpartyId: p.counterparty_id ?? null, orderId: p.order_id ?? null, reason,
+        });
+      }
+      continue;
+    }
+    // Часткова оплата зменшує тільки відповідні зобовʼязання (FIFO за строком).
+    let pool = amount;
+    for (const o of [...hits].sort(byDue)) {
+      if (pool <= 0) break;
+      const st = state.get(o.id)!;
+      const capacity = Math.max(num(o.amount) - (scheduled ? st.paid + st.scheduled : st.paid), 0);
+      const applied = Math.min(pool, capacity);
+      if (applied <= 0) continue;
+      pool = r2(pool - applied);
+      if (scheduled) st.scheduled = r2(st.scheduled + applied);
+      else {
+        st.paid = r2(st.paid + applied);
+        if (p.date && (!st.last || p.date > st.last)) st.last = p.date;
+      }
+    }
+    if (pool > 0.01 && !scheduled) {
+      unmatchedPayments.push({
+        id: p.id ?? null, amount: r2(pool), date: p.date ?? null,
+        counterpartyId: p.counterparty_id ?? null, orderId: p.order_id ?? null,
+        reason: `${reason}: сума перевищує залишок зобовʼязання`,
+      });
+    }
+  }
+
+  const obligations: PayableObligationRow[] = [...state.values()].map(({ o, paid, scheduled, last }) => {
+    const amount = r2(num(o.amount));
+    const remaining = r2(Math.max(amount - paid, 0));
+    return {
+      id: o.id,
+      supplier: (o.supplier_name ?? input.cpName?.(o.counterparty_id ?? null) ?? "—") as string,
+      counterpartyId: o.counterparty_id ?? null,
+      orderId: o.order_id ?? null,
+      amount,
+      paid: r2(paid),
+      scheduled: r2(scheduled),
+      remaining,
+      overdue: o.due_date && o.due_date < today ? remaining : 0,
+      dueDate: o.due_date ?? null,
+      lastPayment: last,
+      status: String(o.status ?? "open"),
+    };
+  });
+
+  const groups = new Map<string, PayableSupplierRow>();
+  for (const r of obligations) {
+    const k = r.counterpartyId ?? `name:${r.supplier}`;
+    const g = groups.get(k) ?? {
+      supplier: r.supplier, counterpartyId: r.counterpartyId,
+      obligations: 0, scheduled: 0, paid: 0, remaining: 0, overdue: 0, lastPayment: null,
+    };
+    g.obligations = r2(g.obligations + r.amount);
+    g.scheduled = r2(g.scheduled + r.scheduled);
+    g.paid = r2(g.paid + r.paid);
+    g.remaining = r2(g.remaining + r.remaining);
+    g.overdue = r2(g.overdue + r.overdue);
+    if (r.lastPayment && (!g.lastPayment || r.lastPayment > g.lastPayment)) g.lastPayment = r.lastPayment;
+    groups.set(k, g);
+  }
+
+  const suppliers = [...groups.values()].sort((a, b) => b.remaining - a.remaining);
+  return {
+    obligations: obligations.sort((a, b) => b.remaining - a.remaining),
+    suppliers,
+    totals: {
+      obligations: r2(suppliers.reduce((s, r) => s + r.obligations, 0)),
+      scheduled: r2(suppliers.reduce((s, r) => s + r.scheduled, 0)),
+      paid: r2(suppliers.reduce((s, r) => s + r.paid, 0)),
+      remaining: r2(suppliers.reduce((s, r) => s + r.remaining, 0)),
+      overdue: r2(suppliers.reduce((s, r) => s + r.overdue, 0)),
+    },
+    unmatchedPayments,
+  };
+}
