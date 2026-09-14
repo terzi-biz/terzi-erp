@@ -4,6 +4,9 @@
  * (зберігаємо хеші зовнішнього та внутрішнього стану). Конфлікти — в чергу.
  */
 import { admin } from "../../access.server";
+import { toE164 } from "../../phone";
+import { normalizeEmail } from "../../crm/identity";
+import { canonicalLeadStatus, mapCustomFields, matchManager, mergeUtm, preservePatch } from "./mapping";
 import { sha256Hex } from "../signature.server";
 import { logAttempt } from "../core.server";
 import type { AdapterContext } from "../adapter.server";
