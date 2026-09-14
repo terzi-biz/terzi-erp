@@ -282,6 +282,12 @@ export const saveFinmapMapping = createServerFn({ method: "POST" })
           (await context.supabase.from("finance_projects").select("id").eq("finmap_id", data.finmap_id)).data?.map((p: any) => p.id) ?? [],
         );
     }
+    // Ручні рішення оператора фіксуємо в журналі аудиту.
+    await context.supabase.from("audit_logs").insert({
+      actor_id: context.userId, module: "finance", action: "finmap.mapping.save", is_critical: true,
+      entity_type: data.erp_entity, entity_id: data.erp_id ?? null, entity_label: data.finmap_name ?? null,
+      new_value: payload as never,
+    });
     return out;
   });
 
