@@ -329,6 +329,18 @@ export async function entityCalls(
         : c.internal_number
           ? `Внутрішній ${c.internal_number}`
           : null,
-    };
+      match:
+        (measurementId && c.measurement_id === measurementId) ||
+        (!measurementId && orderId && c.order_id === orderId) ||
+        (!measurementId && !orderId && leadId && c.lead_id === leadId) ||
+        (!measurementId && !orderId && !leadId && clientId && c.client_id === clientId)
+          ? "direct"
+          : orderId && c.order_id === orderId
+            ? "order"
+            : clientId && c.client_id === clientId
+              ? "client"
+              : "phone",
+    } as EntityCallRow;
+
   });
 }
