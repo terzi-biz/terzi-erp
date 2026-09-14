@@ -51,7 +51,7 @@ export function OrderReceivables({ orderId }: { orderId: string }) {
     setStages(
       (r?.stages ?? []).map((s: any) => ({
         id: s.id, name: s.name ?? "",
-        amount: s.rawAmount != null ? String(s.rawAmount) : s.percent != null ? "" : String(s.amount ?? ""),
+        amount: s.percent != null ? "" : String(s.amount ?? ""),
         percent: s.percent != null ? String(s.percent) : "",
         due_date: (s.due_date ?? s.planned_date ?? "").slice(0, 10),
         trigger_note: s.trigger ?? "",
