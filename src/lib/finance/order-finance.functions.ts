@@ -45,9 +45,12 @@ export const getOrderFinance = createServerFn({ method: "POST" })
           .eq("order_id", orderId),
       ]);
 
+    // План — з ОДНОГО канонічного кошторису (договір > затверджений > ...), а не суми всіх версій.
     const est = (estimates ?? []) as any[];
-    const revenuePlan = r2(est.reduce((s, e) => s + num(e.total_client), 0));
-    const costPlan = r2(est.reduce((s, e) => s + num(e.total_cost), 0));
+    const planFigures = planFromEstimates(est);
+    const canonicalEstimate = pickCanonicalEstimate(est);
+    const revenuePlan = planFigures.revenue;
+    const costPlan = planFigures.cost;
 
     const inv = ((invoices ?? []) as any[]).filter((i) => !["cancelled", "draft"].includes(i.status));
     const invoiced = r2(inv.reduce((s, i) => s + num(i.total), 0));
