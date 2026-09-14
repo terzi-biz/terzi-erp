@@ -8,6 +8,8 @@ import { z } from "zod";
 export type ManagementData = {
   estimate_total?: number | null;
   contract_total?: number | null;
+  /** Затверджені додаткові роботи до договору (сума). */
+  approved_extras?: number | null;
   planned_cost?: number | null;
   actual_revenue?: number | null;
   actual_cost?: number | null;
@@ -18,6 +20,8 @@ export type ManagementData = {
   foreman_name?: string | null;
   work_description?: string | null;
   internal_note?: string | null;
+  /** Фінансова примітка (видима лише внутрішнім ролям). */
+  finance_note?: string | null;
 };
 
 const num = z.number().finite().optional().nullable();
@@ -26,6 +30,7 @@ const str = (max: number) => z.string().max(max).optional().nullable();
 export const managementDataSchema = z.object({
   estimate_total: num,
   contract_total: num,
+  approved_extras: num,
   planned_cost: num,
   actual_revenue: num,
   actual_cost: num,
@@ -36,6 +41,7 @@ export const managementDataSchema = z.object({
   foreman_name: str(200),
   work_description: str(4000),
   internal_note: str(4000),
+  finance_note: str(4000),
 });
 
 export const MANAGEMENT_KEYS = Object.keys(managementDataSchema.shape) as (keyof ManagementData)[];
