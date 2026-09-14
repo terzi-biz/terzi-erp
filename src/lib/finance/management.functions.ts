@@ -198,14 +198,16 @@ export const getUpcomingPayments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertFinance(context);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: sched }, { data: stages }, { data: obligations }] = await Promise.all([
+    const [{ data: sched }, { data: stages }, { payables }] = await Promise.all([
       context.supabase
         .from("finance_transactions")
         .select("id,kind,amount,amount_uah,op_date,payment_date,state,order_id,counterparty:counterparty_id(name),category:category_id(name)")
         .eq("state", "scheduled"),
       context.supabase.from("order_payment_stages").select("id,order_id,due_date,amount,paid_amount,status").in("status", ["planned", "due", "partially_paid", "overdue"]),
-      context.supabase.from("supplier_obligations").select("id,order_id,supplier_name,amount,due_date,status").in("status", ["open", "partial"]),
+      loadPayables(context.supabase, today),
     ]);
+    // Той самий канонічний залишок, що й у Кредиторці та KPI.
+    const obligations = payables.obligations.filter((o) => o.remaining > 0);
 
     const rows: UpcomingRow[] = [];
     for (const t of (sched ?? []) as any[]) {
