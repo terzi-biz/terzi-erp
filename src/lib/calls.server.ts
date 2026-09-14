@@ -214,8 +214,9 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
 }
 
 /**
- * Дзвінки конкретної сутності (клієнт, замовлення або замір) для картки.
- * Показуємо лише те, що реально записано в CRM; запис береться на вимогу.
+ * Дзвінки конкретної сутності (клієнт, лід, замовлення або замір) для картки.
+ * Спершу беремо прямі звʼязки, далі — дзвінки того самого клієнта/ліда/номера,
+ * позначені як «звʼязано за клієнтом/номером», щоб історія не була порожньою.
  */
 export interface EntityCallRow {
   id: string;
@@ -226,27 +227,76 @@ export interface EntityCallRow {
   recording_available: boolean;
   counterparty: string | null;
   employee_name: string | null;
+  /** Як саме дзвінок повʼязаний із карткою. */
+  match: "direct" | "order" | "client" | "phone";
 }
 
 export async function entityCalls(
   sb: Sb,
-  p: { clientId?: string | null; orderId?: string | null; measurementId?: string | null; limit?: number },
+  p: {
+    clientId?: string | null;
+    orderId?: string | null;
+    measurementId?: string | null;
+    leadId?: string | null;
+    limit?: number;
+  },
 ): Promise<EntityCallRow[]> {
   const limit = Math.min(Math.max(p.limit ?? 30, 1), 100);
-  let q = sb
+  const cols =
+    "id, started_at, direction, duration_sec, is_missed, recording_available, phone_e164, from_number, to_number, employee_id, answered_employee_id, internal_number, measurement_id, order_id, client_id, lead_id";
+
+  // Розкручуємо контекст картки: замір → замовлення → клієнт/лід → номер.
+  let measurementId = p.measurementId ?? null;
+  let orderId = p.orderId ?? null;
+  let clientId = p.clientId ?? null;
+  let leadId = p.leadId ?? null;
+  const phones = new Set<string>();
+
+  if (measurementId) {
+    const { data } = await sb
+      .from("order_measurements")
+      .select("order_id, client_id, lead_id")
+      .eq("id", measurementId)
+      .maybeSingle();
+    orderId = orderId ?? ((data as any)?.order_id ?? null);
+    clientId = clientId ?? ((data as any)?.client_id ?? null);
+    leadId = leadId ?? ((data as any)?.lead_id ?? null);
+  }
+  if (orderId) {
+    const { data } = await sb.from("orders").select("client_id, lead_id, phone_e164").eq("id", orderId).maybeSingle();
+    clientId = clientId ?? ((data as any)?.client_id ?? null);
+    leadId = leadId ?? ((data as any)?.lead_id ?? null);
+    if ((data as any)?.phone_e164) phones.add((data as any).phone_e164);
+  }
+  if (leadId) {
+    const { data } = await sb.from("crm_leads").select("client_id, phone_e164").eq("id", leadId).maybeSingle();
+    clientId = clientId ?? ((data as any)?.client_id ?? null);
+    if ((data as any)?.phone_e164) phones.add((data as any).phone_e164);
+  }
+  if (clientId) {
+    const { data } = await sb.from("clients").select("phone_e164").eq("id", clientId).maybeSingle();
+    if ((data as any)?.phone_e164) phones.add((data as any).phone_e164);
+  }
+
+  if (!measurementId && !orderId && !clientId && !leadId && !phones.size) return [];
+
+  const or: string[] = [];
+  if (measurementId) or.push(`measurement_id.eq.${measurementId}`);
+  if (orderId) or.push(`order_id.eq.${orderId}`);
+  if (clientId) or.push(`client_id.eq.${clientId}`);
+  if (leadId) or.push(`lead_id.eq.${leadId}`);
+  for (const ph of phones) or.push(`phone_e164.eq.${ph}`);
+
+  const { data } = await sb
     .from("crm_calls")
-    .select("id, started_at, direction, duration_sec, is_missed, recording_available, phone_e164, from_number, to_number, employee_id, answered_employee_id, internal_number")
+    .select(cols)
+    .or(or.join(","))
     .order("started_at", { ascending: false })
     .limit(limit);
 
-  if (p.measurementId) q = q.eq("measurement_id", p.measurementId);
-  else if (p.orderId) q = q.eq("order_id", p.orderId);
-  else if (p.clientId) q = q.eq("client_id", p.clientId);
-  else return [];
-
-  const { data } = await q;
   const list = (data ?? []) as any[];
   if (!list.length) return [];
+
 
   const userIds = Array.from(
     new Set(list.flatMap((c) => [c.answered_employee_id, c.employee_id]).filter(Boolean)),
