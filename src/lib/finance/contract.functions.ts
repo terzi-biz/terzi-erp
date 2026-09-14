@@ -111,7 +111,7 @@ export const saveOrderContract = createServerFn({ method: "POST" })
     if (data.approved_extras !== undefined) patch.approved_extras = data.approved_extras;
     if (data.finance_note !== undefined) patch.finance_note = data.finance_note;
 
-    const { error } = await context.supabase.from("orders").update({ management_data: patch }).eq("id", data.order_id);
+    const { error } = await context.supabase.from("orders").update({ management_data: patch as never }).eq("id", data.order_id);
     if (error) { console.error("saveOrderContract", error); throw new Error("Не вдалося зберегти дані договору"); }
 
     await audit(context, {
