@@ -4,13 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { formatUah } from "@/lib/screed-calc";
 import { Metric, type Period } from "./sections";
 import { getServiceEconomics, getPayables, getUpcomingPayments, getManagementKpi } from "@/lib/finance/management.functions";
-import { MODULES } from "@/lib/modules";
+import { moduleLabel } from "@/lib/modules";
 
 const card = "rounded-2xl border border-border bg-card p-4 shadow-sm";
 const thead = "bg-secondary/60 text-xs uppercase tracking-wider text-muted-foreground";
 const note = "rounded-2xl border border-dashed border-border p-3 text-xs text-muted-foreground";
 
-const serviceLabel = (key: string) => MODULES.find((m) => m.id === key || m.estimateModule === key)?.label ?? key;
+const serviceLabel = (key: string) => moduleLabel(key) || key;
 const nfmt = (v: number | null, unit?: string | null) =>
   v == null ? "—" : `${v.toLocaleString("uk-UA", { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ""}`;
 
