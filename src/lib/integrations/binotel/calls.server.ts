@@ -531,8 +531,11 @@ export async function handleCallCompleted(
     contact_id: contactId,
     client_id: clientId,
     lead_id: leadId,
+    order_id: orderId,
+    measurement_id: measurementId,
     call_tracking: call.callTracking as any,
     payload: raw as any,
+
   };
 
   let callId: string | null = null;
