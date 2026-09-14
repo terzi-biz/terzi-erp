@@ -91,11 +91,16 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
   const userIds = Array.from(
     new Set(list.flatMap((c) => [c.employee_id, c.answered_employee_id]).filter(Boolean)),
   ) as string[];
+  const orderIds = Array.from(new Set(list.map((c) => c.order_id).filter(Boolean))) as string[];
+  const measurementIds = Array.from(new Set(list.map((c) => c.measurement_id).filter(Boolean))) as string[];
 
   const leadByPhone = new Map<string, { id: string; source: string | null; title: string | null }>();
   const clientByPhone = new Map<string, { id: string; name: string; source: string | null }>();
   const clientById = new Map<string, { id: string; name: string; source: string | null }>();
   const nameByUser = new Map<string, string>();
+  const orderById = new Map<string, string>();
+  const measurementStatusById = new Map<string, string>();
+
 
   await Promise.all([
     ...chunk(phones, 200).map(async (part) => {
