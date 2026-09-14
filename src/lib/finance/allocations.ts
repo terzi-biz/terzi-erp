@@ -158,13 +158,74 @@ export function resolveAllocations(input: ResolveInput): { allocations: Resolved
   return { allocations: [], unallocated: total };
 }
 
-/** Стан розподілу операції для звірки. */
+/** Стан розподілу операції для звірки в межах ОДНОГО виміру. */
 export function allocationStatus(total: unknown, allocations: { amount: number }[]): "none" | "partial" | "full" {
   const sum = r2(num(total));
   const alloc = r2(allocations.reduce((s, a) => s + a.amount, 0));
   if (alloc <= 0) return "none";
   if (Math.abs(sum - alloc) <= 0.01) return "full";
   return "partial";
+}
+
+/* ---------------- Незалежні виміри розподілу ---------------- */
+
+export type Dimension = "project" | "category" | "service";
+export type DimStatus = "none" | "partial" | "full" | "manual" | "needs_review";
+
+export type DimAlloc = { amount: unknown; source?: string | null; status?: string | null };
+
+/**
+ * Стан одного виміру. Виміри незалежні: проєкт, стаття і послуга ніколи
+ * не додаються один до одного (100% проєкт + 100% стаття ≠ 200%).
+ */
+export function dimensionStatus(total: unknown, allocations: DimAlloc[]): DimStatus {
+  const list = (allocations ?? []).filter(Boolean);
+  const sum = r2(list.reduce((s, a) => s + num(a.amount), 0));
+  if (!list.length || sum <= 0) return "none";
+  if (list.some((a) => a.status === "needs_review")) return "needs_review";
+  const full = Math.abs(r2(num(total)) - sum) <= 0.01;
+  if (!full) return "partial";
+  return list.every((a) => a.source === "manual") ? "manual" : "full";
+}
+
+/** Загальний стан операції виводиться з незалежних станів вимірів, а не з їх суми. */
+export function overallAllocationStatus(byDimension: Partial<Record<Dimension, DimStatus>>): DimStatus {
+  const vals = Object.values(byDimension).filter((v): v is DimStatus => !!v && v !== "none");
+  if (!vals.length) return "none";
+  if (vals.includes("needs_review")) return "needs_review";
+  if (vals.includes("partial")) return "partial";
+  return vals.every((v) => v === "manual") ? "manual" : "full";
+}
+
+/** Групує розподіли по вимірах і повертає стан кожного виміру окремо + загальний. */
+export function allocationStatusByDimension(
+  total: unknown,
+  allocations: (DimAlloc & { dimension: Dimension })[],
+): { byDimension: Record<Dimension, DimStatus>; overall: DimStatus } {
+  const dims: Dimension[] = ["project", "category", "service"];
+  const byDimension = {} as Record<Dimension, DimStatus>;
+  for (const d of dims) byDimension[d] = dimensionStatus(total, (allocations ?? []).filter((a) => a.dimension === d));
+  return { byDimension, overall: overallAllocationStatus(byDimension) };
+}
+
+/* ---------------- Фільтри періоду для PostgREST ---------------- */
+
+/** Cash Flow: дата оплати (payment_date), із відкатом на op_date для історичних рядків. */
+export function cashDateFilter(from: string, to: string): string {
+  return [
+    `and(payment_date.gte.${from},payment_date.lte.${to})`,
+    `and(payment_date.is.null,op_date.gte.${from},op_date.lte.${to})`,
+  ].join(",");
+}
+
+/** Management P&L: економічний період (period_start/period_end) з перекриттям діапазону. */
+export function managementPeriodFilter(from: string, to: string): string {
+  return [
+    `and(period_start.lte.${to},period_end.gte.${from})`,
+    `and(period_start.lte.${to},period_end.is.null)`,
+    `and(period_start.is.null,payment_date.gte.${from},payment_date.lte.${to})`,
+    `and(period_start.is.null,payment_date.is.null,op_date.gte.${from},op_date.lte.${to})`,
+  ].join(",");
 }
 
 /* ---------------- Касова дата vs управлінський період ---------------- */
