@@ -42,12 +42,13 @@ export const getServiceEconomics = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => periodInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
+    // Управлінський P&L: економічний період операції, а не касова дата.
     const [{ data: tx }, { data: cats }, { data: allocs }, { data: zones }, { data: orderSvc }] = await Promise.all([
       context.supabase
         .from("finance_transactions")
-        .select("id,kind,amount,amount_uah,op_date,payment_date,state,order_id,category_id,service")
+        .select("id,kind,amount,amount_uah,op_date,payment_date,period_start,period_end,state,order_id,category_id,service")
         .eq("state", "actual")
-        .gte("op_date", data.from).lte("op_date", data.to),
+        .or(managementPeriodFilter(data.from, data.to)),
       context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
       context.supabase.from("finance_allocations").select("transaction_id,dimension,service,order_id,amount").eq("dimension", "service"),
       context.supabase.from("order_zones").select("order_id,service,area,status,archived"),
