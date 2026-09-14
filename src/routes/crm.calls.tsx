@@ -254,7 +254,11 @@ function CallsPage() {
               ))}
 
               {!stats.byStaff.length ? <div className="text-sm text-muted-foreground">Немає даних про співробітників</div> : null}
+            </div>
+          </div>
         </div>
+
+
 
         <div className="grid gap-4 lg:grid-cols-2">
           <div className="rounded-md border border-border bg-card p-4">
