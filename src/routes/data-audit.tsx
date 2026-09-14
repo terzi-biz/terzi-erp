@@ -45,9 +45,17 @@ export const Route = createFileRoute("/data-audit")({
 });
 
 const CHECKS = [
+  { key: "crm_quality", label: "Якість даних CRM" },
   { key: "client_duplicates", label: "Дублі клієнтів" },
-  { key: "calls_to_leads", label: "Звінки без ліда" },
+  { key: "duplicate_leads", label: "Дублі лідів" },
+  { key: "leads_without_contact", label: "Ліди без контакту" },
   { key: "leads_to_clients", label: "Ліди без клієнта" },
+  { key: "leads_without_manager", label: "Ліди без відповідального" },
+  { key: "leads_without_source", label: "Ліди без джерела" },
+  { key: "stage_status_conflicts", label: "Конфлікти етап / статус" },
+  { key: "unlinked_keycrm_orders", label: "Замовлення keyCRM без звʼязку" },
+  { key: "won_leads_without_order", label: "Виграні ліди без замовлення" },
+  { key: "calls_to_leads", label: "Звінки без ліда" },
   { key: "leads_to_orders", label: "Ліди без замовлення" },
   { key: "catalog_issues", label: "Каталог" },
   { key: "estimates_price_version", label: "Версія прайсу" },
