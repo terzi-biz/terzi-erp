@@ -292,6 +292,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
           revenueGap: r2(planRevenue - factRevenue),
           operations: f.ops,
           lastOperation: f.last,
+          estimateVersions: p.versions,
         };
       })
       .filter((r) => (data.only_with_money ? r.factRevenue > 0 || r.factCost > 0 : r.planRevenue > 0 || r.factRevenue > 0 || r.factCost > 0))
