@@ -59,7 +59,7 @@ describe("parseBinotelCall", () => {
     expect(call.isMissed).toBe(true);
     expect(call.durationSec).toBe(0);
     expect(call.waitSec).toBe(12);
-    expect(call.phoneNorm).toBe("+380671234567");
+    expect(call.phoneNorm).toBe("380671234567");
   });
 
   it("відповідений дзвінок не вважається пропущеним", () => {
