@@ -311,8 +311,7 @@ function CallsPage() {
           </div>
         </div>
 
-          </div>
-        </div>
+
 
         <div className="flex gap-2 flex-wrap">
           {([["all", "Усі"], ["inbound", "Вхідні"], ["outbound", "Вихідні"], ["missed", "Пропущені"], ["new", "Вперше"]] as const).map(([k, l]) => (
