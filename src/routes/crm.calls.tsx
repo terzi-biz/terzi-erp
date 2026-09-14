@@ -105,7 +105,29 @@ function CallsPage() {
       bySource: Array.from(bySource.entries()).sort((a, b) => b[1] - a[1]),
       byStaff: Array.from(byStaff.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8),
       byHour,
+      callbackDone: all.filter((c) => c.is_missed && c.is_callback_done).length,
+      missedOpen: all.filter((c) => c.is_missed && !c.is_callback_done).length,
+      byOrder: (() => {
+        const m = new Map<string, { name: string; total: number; answered: number; missed: number; callback: number }>();
+        for (const c of all) {
+          if (!c.order_id) continue;
+          const cur = m.get(c.order_id) ?? { name: c.order_name ?? "Замовлення", total: 0, answered: 0, missed: 0, callback: 0 };
+          cur.total += 1;
+          if (c.is_missed) { cur.missed += 1; if (c.is_callback_done) cur.callback += 1; } else cur.answered += 1;
+          m.set(c.order_id, cur);
+        }
+        return Array.from(m.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+      })(),
+      byMeasurementStatus: (() => {
+        const m = new Map<string, number>();
+        for (const c of all) {
+          if (!c.measurement_status) continue;
+          m.set(c.measurement_status, (m.get(c.measurement_status) ?? 0) + 1);
+        }
+        return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+      })(),
     };
+
   }, [all]);
 
   /** Ручне довантаження історії дзвінків із Binotel (по днях, як вимагає API). */
