@@ -236,12 +236,13 @@ export const getManagementKpi = createServerFn({ method: "POST" })
     await assertFinance(context);
     const today = new Date().toISOString().slice(0, 10);
     const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-    const [{ data: accounts }, { data: tx }, { data: sched }, { data: stages }, { data: obligations }, { data: payroll }] = await Promise.all([
+    const [{ data: accounts }, { data: tx }, { data: sched }, { data: stages }, { payables }, { data: payroll }] = await Promise.all([
       context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance").eq("archived", false),
-      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "actual").gte("op_date", data.from).lte("op_date", data.to),
+      // Cash Flow періоду — за датою оплати.
+      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "actual").or(cashDateFilter(data.from, data.to)),
       context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "scheduled"),
       context.supabase.from("order_payment_stages").select("amount,paid_amount,due_date,status"),
-      context.supabase.from("supplier_obligations").select("amount,due_date,status"),
+      loadPayables(context.supabase, today),
       context.supabase.from("payroll_calculations").select("total_payable,paid_amount,period:period_id(period)"),
     ]);
 
