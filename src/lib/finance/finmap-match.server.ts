@@ -73,12 +73,33 @@ async function upsertReview(db: Db, kind: string, finmapId: string, name: string
   );
 }
 
+export type RuleStat = { rule: string; label: string; count: number; amount?: number };
+
 export type MatchReport = {
   entity: "counterparties" | "projects" | "transactions";
   linked: number;
   review: number;
   skipped: number;
+  rules: RuleStat[];
 };
+
+export type MatchOptions = { dryRun?: boolean };
+
+/** Лічильник правил, які дали зіставлення (для dry-run звіту). */
+export function ruleCounter() {
+  const map = new Map<string, RuleStat>();
+  return {
+    hit(rule: string, label: string, amount = 0) {
+      const cur = map.get(rule) ?? { rule, label, count: 0, amount: 0 };
+      cur.count += 1;
+      cur.amount = Math.round(((cur.amount ?? 0) + amount) * 100) / 100;
+      map.set(rule, cur);
+    },
+    list(): RuleStat[] {
+      return [...map.values()].sort((a, b) => b.count - a.count);
+    },
+  };
+}
 
 /** Останні 9 цифр номера — стабільний ключ зіставлення (0XX / +380XX / 380XX). */
 export function phoneKey(raw: string | null | undefined): string | null {
