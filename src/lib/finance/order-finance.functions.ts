@@ -449,8 +449,11 @@ export const getObjectAnalytics = createServerFn({ method: "POST" })
       const pParts = byDim.get(`${t.id}:project`) ?? [];
       if (pParts.length) {
         for (const p of pParts) {
-          add(byProject, p.ref_name ?? p.order_id ?? "—", p.ref_name ?? "Без назви", kind, num(p.amount), p.order_id ?? null);
-          if (p.order_id) add(byOrder, p.order_id, orderById.get(p.order_id)?.number ?? "Без номера", kind, num(p.amount), p.order_id);
+          const oid = (p.order_id ?? t.order_id ?? (t.finance_project_id ? projById.get(t.finance_project_id)?.order_id : null) ?? null) as string | null;
+          add(byProject, p.ref_name ?? oid ?? "—", p.ref_name ?? "Без назви", kind, num(p.amount), oid);
+          if (oid) add(byOrder, oid, orderById.get(oid)?.number ?? "Без номера", kind, num(p.amount), oid);
+          else if (kind === "income") unallocated.income = r2(unallocated.income + num(p.amount));
+          else unallocated.expense = r2(unallocated.expense + num(p.amount));
         }
       } else {
         const proj = t.finance_project_id ? projById.get(t.finance_project_id) : null;

@@ -248,7 +248,7 @@ export function UpcomingSection() {
 
 /* ---------------- Канонічні KPI (Overview + Dashboard) ---------------- */
 
-export function ManagementKpiStrip({ period }: { period: Period }) {
+export function ManagementKpiStrip({ period, omit = [] }: { period: Period; omit?: string[] }) {
   const fn = useServerFn(getManagementKpi);
   const { data } = useQuery({ queryKey: ["fin-kpi", period.from, period.to], queryFn: () => fn({ data: period }) });
   const k = data;
@@ -268,7 +268,7 @@ export function ManagementKpiStrip({ period }: { period: Period }) {
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {items.map((i) => <Metric key={i.t} title={i.t} value={formatUah(i.v)} tone={i.tone} />)}
+      {items.filter((i) => !omit.includes(i.t)).map((i) => <Metric key={i.t} title={i.t} value={formatUah(i.v)} tone={i.tone} />)}
     </div>
   );
 }

@@ -178,7 +178,7 @@ function FinancePage() {
         {tab === "overview" && (
           <div className="space-y-4">
             {/* Канонічні KPI: ті самі серверні розрахунки, що й на Дашборді. */}
-            <ManagementKpiStrip period={period} />
+            <ManagementKpiStrip period={period} omit={["Дохід (факт)", "Витрати (факт)", "Прибуток"]} />
             <OverviewSection period={period} onDrill={(k) => { setOpsKind(k); setTab("operations"); }} />
           </div>
         )}
