@@ -2,7 +2,7 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall, PhoneMissed } from "lucide-react";
+import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import {

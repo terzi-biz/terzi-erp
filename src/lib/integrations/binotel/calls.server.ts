@@ -452,6 +452,7 @@ export async function handleCallCompleted(
         direction: rule?.service_direction ?? null,
         external_source: "binotel",
         external_id: call.generalCallId,
+        phone_e164: call.externalNumber ? normalizePhone(call.externalNumber).e164 : null,
         notes: `Автоматично створено з дзвінка Binotel (${call.pbxNumberName ?? call.pbxNumber ?? "АТС"})`,
       } as any)
       .select("id")
@@ -513,6 +514,7 @@ export async function handleCallCompleted(
     from_number: call.direction === "inbound" ? call.externalNumber : call.pbxNumber ?? call.internalNumber,
     to_number: call.direction === "inbound" ? call.pbxNumber ?? call.internalNumber : call.externalNumber,
     phone_norm: call.phoneNorm,
+    phone_e164: call.externalNumber ? normalizePhone(call.externalNumber).e164 : null,
     started_at: call.startedAt,
     answered_at: call.answeredAt,
     ended_at: new Date(new Date(call.startedAt).getTime() + (call.waitSec + call.durationSec) * 1000).toISOString(),
