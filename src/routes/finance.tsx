@@ -10,9 +10,12 @@ import {
 } from "lucide-react";
 import {
   OverviewSection, OperationsSection, PlanFactSection, ReconcileSection,
-  FinmapSection, OrdersFinanceSection, PayrollSection, ReceivablesSection, PayablesSection, CategoriesSection,
+  FinmapSection, OrdersFinanceSection, PayrollSection, ReceivablesSection, CategoriesSection,
   type Period,
 } from "@/components/finance/sections";
+import {
+  ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip, ManagementReconcileBlock,
+} from "@/components/finance/management-sections";
 
 
 import { AppShell } from "@/components/AppShell";
@@ -55,6 +58,8 @@ const TABS = [
   { key: "operations", label: "Операції", icon: ListChecks },
   { key: "objects", label: "Об'єкти", icon: Layers },
   { key: "planfact", label: "План/факт", icon: Scale },
+  { key: "services", label: "Економіка робіт", icon: Scale },
+  { key: "upcoming", label: "Очікувані платежі", icon: CircleDollarSign },
   { key: "reconcile", label: "Звірка", icon: ShieldCheck },
   { key: "finmap", label: "Finmap", icon: PlugZap },
   { key: "payroll", label: "ФОТ і KPI", icon: Users },
@@ -166,15 +171,23 @@ function FinancePage() {
           </div>
         </div>
 
-        {tab === "overview" && <OverviewSection period={period} onDrill={(k) => { setOpsKind(k); setTab("operations"); }} />}
+        {tab === "overview" && (
+          <div className="space-y-4">
+            {/* Канонічні KPI: ті самі серверні розрахунки, що й на Дашборді. */}
+            <ManagementKpiStrip period={period} />
+            <OverviewSection period={period} onDrill={(k) => { setOpsKind(k); setTab("operations"); }} />
+          </div>
+        )}
+        {tab === "services" && <ServiceEconomicsSection period={period} />}
+        {tab === "upcoming" && <UpcomingSection />}
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
         {tab === "planfact" && <PlanFactSection period={period} />}
-        {tab === "reconcile" && <ReconcileSection period={period} />}
+        {tab === "reconcile" && <div className="space-y-4"><ManagementReconcileBlock /><ReconcileSection period={period} /></div>}
         {tab === "objects" && <OrdersFinanceSection period={period} />}
         {tab === "finmap" && <FinmapSection />}
         {tab === "payroll" && <PayrollSection />}
         {tab === "receivables" && <ReceivablesSection invoices={invoices as any[]} payments={payments as any[]} />}
-        {tab === "payables" && <PayablesSection expenses={expenses as any[]} />}
+        {tab === "payables" && <SupplierPayablesSection />}
         {tab === "categories" && <CategoriesSection />}
         {tab === "projects" && <ProjectsTab />}
 

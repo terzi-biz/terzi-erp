@@ -368,8 +368,11 @@ export const seedPayrollStaff = createServerFn({ method: "POST" })
       const tpl = KPI_TEMPLATE_BY_KEY[s.template];
       if (!tpl) { skipped.push(`${s.full_name}: невідомий шаблон`); continue; }
 
-      const { data: found } = await context.supabase
-        .from("payroll_employees").select("id,full_name").ilike("full_name", s.full_name).maybeSingle();
+      // maybeSingle() падає на дублікатах — беремо перший збіг, щоб повторний seed був ідемпотентним.
+      const { data: foundList } = await context.supabase
+        .from("payroll_employees").select("id,full_name").ilike("full_name", s.full_name)
+        .order("created_at", { ascending: true }).limit(1);
+      const found = (foundList ?? [])[0];
 
       let employeeId = found?.id as string | undefined;
       if (!employeeId) {
@@ -381,13 +384,14 @@ export const seedPayrollStaff = createServerFn({ method: "POST" })
         employeeId = emp.id;
       }
 
-      const { data: existingProfile } = await context.supabase
+      // Один чинний профіль на дату; повторний seed нічого не дублює й не переписує історію.
+      const { data: existingProfiles } = await context.supabase
         .from("payroll_profiles").select("id")
         .eq("employee_id", employeeId)
         .lte("valid_from", data.valid_from)
         .or(`valid_to.is.null,valid_to.gte.${data.valid_from}`)
-        .maybeSingle();
-      if (existingProfile) { skipped.push(`${s.full_name}: схема вже існує`); continue; }
+        .limit(1);
+      if ((existingProfiles ?? []).length) { skipped.push(`${s.full_name}: схема вже існує`); continue; }
 
       const { error: pe } = await context.supabase.from("payroll_profiles").insert({
         employee_id: employeeId,
