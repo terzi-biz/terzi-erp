@@ -261,9 +261,9 @@ export const getManagementKpi = createServerFn({ method: "POST" })
     const receivableDue = r2(st.filter((x) => x.due_date && x.due_date <= today).reduce((s, x) => s + rest(x), 0));
     const receivableOverdue = r2(st.filter((x) => x.due_date && x.due_date < today).reduce((s, x) => s + rest(x), 0));
 
-    const ob = ((obligations ?? []) as any[]).filter((o) => !["cancelled", "closed"].includes(String(o.status)));
-    const payableRemaining = r2(ob.reduce((s, o) => s + num(o.amount), 0));
-    const payableOverdue = r2(ob.filter((o) => o.due_date && o.due_date < today).reduce((s, o) => s + num(o.amount), 0));
+    // Кредиторка — канонічний розрахунок (той самий, що у вкладці «Кредиторка»).
+    const payableRemaining = payables.totals.remaining;
+    const payableOverdue = payables.totals.overdue;
 
     const pay = ((payroll ?? []) as any[]).filter((p) => {
       const per = p.period?.period as string | undefined;
