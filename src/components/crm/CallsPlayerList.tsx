@@ -57,6 +57,12 @@ function Row({ call }: { call: any }) {
           {call.employee_name && <span className="text-muted-foreground">· {call.employee_name}</span>}
         </span>
         <span className="text-muted-foreground">
+          {call.match && call.match !== "direct" ? (
+            <span className="mr-2 rounded bg-muted px-1.5 py-0.5">
+              {call.match === "order" ? "по замовленню" : call.match === "client" ? "по клієнту" : "за номером"}
+            </span>
+          ) : null}
+
           {fmtDT(call.started_at)} · {fmtDur(Number(call.duration_sec ?? 0))}
         </span>
       </div>
@@ -84,24 +90,27 @@ export function CallsPlayerList({
   clientId,
   orderId,
   measurementId,
+  leadId,
   title = "Дзвінки",
   limit = 20,
 }: {
   clientId?: string | null;
   orderId?: string | null;
   measurementId?: string | null;
+  leadId?: string | null;
   title?: string;
   limit?: number;
 }) {
   const fn = useServerFn(listEntityCalls);
-  const key = measurementId ? ["m", measurementId] : orderId ? ["o", orderId] : ["c", clientId];
+  const key = measurementId ? ["m", measurementId] : orderId ? ["o", orderId] : leadId ? ["l", leadId] : ["c", clientId];
   const q = useQuery({
     queryKey: ["entity-calls", ...key, limit],
-    queryFn: () => fn({ data: { clientId, orderId, measurementId, limit } }) as any,
-    enabled: Boolean(clientId || orderId || measurementId),
+    queryFn: () => fn({ data: { clientId, orderId, measurementId, leadId, limit } }) as any,
+    enabled: Boolean(clientId || orderId || measurementId || leadId),
   });
 
   const rows = (q.data ?? []) as any[];
+
 
   return (
     <div className="space-y-2">
