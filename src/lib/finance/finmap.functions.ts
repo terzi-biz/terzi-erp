@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { periodFilter, syncInput, mappingInput, linkTransactionInput, uuid } from "./finance.schema";
 import { z } from "zod";
+import { costClassOf, CANONICAL_COST_CLASSES } from "./cost-class";
 
 /** Фінансовий контур: доступ лише admin / director / finance. */
 async function assertFinance(context: any) {
