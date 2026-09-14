@@ -17,6 +17,8 @@ import {
   ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip, ManagementReconcileBlock,
 } from "@/components/finance/management-sections";
 import { ObjectAnalyticsSection } from "@/components/finance/ObjectAnalytics";
+import { getManagementKpi } from "@/lib/finance/management.functions";
+
 
 
 
