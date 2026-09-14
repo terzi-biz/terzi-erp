@@ -32,9 +32,18 @@ export interface CallFeedRow {
   client_id: string | null;
   client_name: string | null;
   lead_id: string | null;
+  /** Канонічне замовлення (обʼєкт) дзвінка. */
+  order_id: string | null;
+  order_name: string | null;
+  /** Замір, з яким повʼязаний дзвінок, і його статус. */
+  measurement_id: string | null;
+  measurement_status: string | null;
+  /** Пропущений дзвінок, на який згодом передзвонили. */
+  is_callback_done: boolean;
   source_raw: string | null;
   source: CallSourceBucket;
 }
+
 
 export interface CallFeedResult {
   rows: CallFeedRow[];
