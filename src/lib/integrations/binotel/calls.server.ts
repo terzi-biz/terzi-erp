@@ -203,6 +203,92 @@ async function lookupByPhone(phoneNorm: string | null) {
   return { contact: (contact as any) ?? null, lead, client };
 }
 
+/**
+ * Канонічне замовлення дзвінка: спочатку через лід, далі — якщо в клієнта
+ * рівно одне замовлення. Неоднозначні випадки лишаються без звʼязку.
+ */
+async function resolveOrderId(leadId: string | null, clientId: string | null): Promise<string | null> {
+  const db = await admin();
+  if (leadId) {
+    const { data } = await db.from("crm_leads").select("order_id").eq("id", leadId).maybeSingle();
+    const orderId = (data as any)?.order_id ?? null;
+    if (orderId) return orderId as string;
+  }
+  if (clientId) {
+    const { data } = await db
+      .from("orders")
+      .select("id")
+      .eq("client_id", clientId)
+      .order("created_at", { ascending: false })
+      .limit(2);
+    const list = (data ?? []) as any[];
+    if (list.length === 1) return list[0].id as string;
+  }
+  return null;
+}
+
+/** Найактуальніший замір: за замовленням, інакше за лідом або клієнтом. */
+async function resolveMeasurementId(
+  orderId: string | null,
+  leadId: string | null,
+  clientId: string | null,
+): Promise<string | null> {
+  const db = await admin();
+  const byColumn = async (column: string, value: string) => {
+    const { data } = await db
+      .from("order_measurements")
+      .select("id")
+      .eq(column, value)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    return ((data as any)?.id as string) ?? null;
+  };
+  if (orderId) {
+    const found = await byColumn("order_id", orderId);
+    if (found) return found;
+  }
+  if (leadId) {
+    const found = await byColumn("lead_id", leadId);
+    if (found) return found;
+  }
+  if (clientId) return byColumn("client_id", clientId);
+  return null;
+}
+
+/** Наступний робочий день за київським часом, 10:00. */
+function nextWorkingDayAt10(): string {
+  const now = new Date();
+  const kyivOffsetMs = 3 * 60 * 60 * 1000; // Europe/Kyiv, літній час
+  const d = new Date(now.getTime() + kyivOffsetMs);
+  d.setUTCDate(d.getUTCDate() + 1);
+  while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCHours(10, 0, 0, 0);
+  return new Date(d.getTime() - kyivOffsetMs).toISOString();
+}
+
+/** Чи є вже відкритий (не завершений і не скасований) замір по цих сутностях. */
+async function hasOpenMeasurement(orderId: string | null, leadId: string | null, clientId: string | null) {
+  const db = await admin();
+  const closed = ["completed", "done", "canceled", "cancelled"];
+  for (const [column, value] of [
+    ["order_id", orderId],
+    ["lead_id", leadId],
+    ["client_id", clientId],
+  ] as const) {
+    if (!value) continue;
+    const { data } = await db
+      .from("order_measurements")
+      .select("id,status")
+      .eq(column, value)
+      .limit(20);
+    if (((data ?? []) as any[]).some((m) => !closed.includes(String(m.status)))) return true;
+  }
+  return false;
+}
+
+
+
 
 /** Відповідальний менеджер: лід → контакт-клієнт → правило АТС. */
 async function responsibleFor(lead: any, rule: any, routeToAssigned: boolean) {
