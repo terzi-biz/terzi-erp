@@ -196,8 +196,17 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
       client_id: client?.id ?? null,
       client_name: client?.name ?? null,
       lead_id: c.lead_id ?? lead?.id ?? null,
+      order_id: c.order_id ?? null,
+      order_name: c.order_id ? (orderById.get(c.order_id) ?? null) : null,
+      measurement_id: c.measurement_id ?? null,
+      measurement_status: c.measurement_id ? (measurementStatusById.get(c.measurement_id) ?? null) : null,
+      is_callback_done:
+        Boolean(c.is_missed) && Boolean(c.phone_e164) && Boolean(c.started_at)
+          ? (outboundAfter.get(c.phone_e164) ?? []).some((t) => t > new Date(c.started_at).getTime())
+          : false,
       source_raw: sourceRaw,
       source: bucketSource(sourceRaw),
+
     };
   });
 
