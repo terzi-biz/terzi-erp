@@ -231,19 +231,24 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
         .from("orders")
         .select("id,number,name,address,commercial_status,production_status,client_id,client:client_id(name)")
         .limit(5000),
-      context.supabase.from("estimates").select("order_id,total_client,total_cost,status").not("order_id", "is", null).limit(20000),
+      context.supabase.from("estimates").select("id,order_id,total_client,total_cost,status,created_at,approved_at").not("order_id", "is", null).limit(20000),
       txq,
       context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
     ]);
 
     const catById = new Map(((categories ?? []) as any[]).map((c) => [c.id, c]));
 
-    const plan = new Map<string, { revenue: number; cost: number }>();
+    // План по замовленню — один канонічний кошторис, а не сума всіх версій.
+    const byOrder = new Map<string, any[]>();
     for (const e of ((estimates ?? []) as any[])) {
-      const cur = plan.get(e.order_id) ?? { revenue: 0, cost: 0 };
-      cur.revenue += num(e.total_client);
-      cur.cost += num(e.total_cost);
-      plan.set(e.order_id, cur);
+      const arr = byOrder.get(e.order_id) ?? [];
+      arr.push(e);
+      byOrder.set(e.order_id, arr);
+    }
+    const plan = new Map<string, { revenue: number; cost: number; versions: number }>();
+    for (const [orderId, list] of byOrder) {
+      const p = planFromEstimates(list);
+      plan.set(orderId, { revenue: p.revenue, cost: p.cost, versions: p.versions });
     }
 
     const fact = new Map<string, { income: number; expense: number; payroll: number; ops: number; last: string | null }>();
