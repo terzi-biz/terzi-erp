@@ -149,6 +149,12 @@ function CallsPage() {
             </select>
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
+            <button onClick={() => sync.mutate(7)} disabled={sync.isPending}
+              title="Довантажити дзвінки з телефонії за останні 7 днів"
+              className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm font-semibold hover:bg-muted/60 disabled:opacity-60">
+              {sync.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+              Оновити з телефонії
+            </button>
           </div>
 
         </div>
@@ -166,6 +172,29 @@ function CallsPage() {
           <Kpi label="Пропущені" value={String(stats.missed)} tone={stats.missed ? "warn" : "default"} />
           <Kpi label="Вперше телефонують" value={String(stats.first)} />
           <Kpi label="Відповіли" value={stats.answerRate == null ? "немає даних" : `${stats.answerRate}%`} hint={`${stats.minutes} хв розмов`} />
+        </div>
+
+        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <Kpi label="Середня розмова" value={stats.avgTalk == null ? "немає даних" : mmss(stats.avgTalk)} />
+          <Kpi label="Середнє очікування" value={stats.avgWait == null ? "немає даних" : mmss(stats.avgWait)} tone={(stats.avgWait ?? 0) > 30 ? "warn" : "default"} />
+          <Kpi label="Записів розмов" value={String(stats.records)} hint="Доступні для прослуховування" />
+          <Kpi label="Унікальні номери" value={String(stats.uniqueContacts)} />
+          <Kpi label="Розмови 3+ хв" value={String(stats.longCalls)} hint="Якісні контакти" />
+        </div>
+
+        <div className="rounded-md border border-border bg-card p-4">
+          <div className="text-sm font-bold mb-3">Навантаження по годинах</div>
+          <div className="flex items-end gap-1 h-28">
+            {stats.byHour.map((count, h) => {
+              const max = Math.max(1, ...stats.byHour);
+              return (
+                <div key={h} className="flex-1 flex flex-col items-center gap-1" title={`${h}:00 — ${count} дзвінків`}>
+                  <div className="w-full rounded-t-sm bg-primary/70" style={{ height: `${Math.max(2, (count / max) * 88)}px` }} />
+                  <span className="text-[9px] text-muted-foreground tabular-nums">{h}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="grid gap-4 lg:grid-cols-2">
