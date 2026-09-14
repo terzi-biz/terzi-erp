@@ -739,12 +739,21 @@ function FinanceTab({ o }: { o: any }) {
 
       {f && (
         <>
+          <OrderReceivables orderId={o.id} />
+
           <div className="grid md:grid-cols-4 gap-3">
-            <StatBox label="Дебіторка" value={formatUah(f.receivable)} />
+            <StatBox label="Дебіторка (рахунки)" value={formatUah(f.receivable)} />
             <StatBox label="З них прострочено" value={formatUah(f.receivableOverdue)} />
             <StatBox label="Кредиторка" value={formatUah(f.payable)} />
             <StatBox label="Маржа факт / план" value={`${f.fact.margin.toFixed(1)} % / ${f.plan.margin.toFixed(1)} %`} />
           </div>
+
+          {f.planSource.versions > 1 && (
+            <div className="text-[11px] text-muted-foreground">
+              План узято з канонічного кошторису {f.planSource.number ?? ""} (статус {f.planSource.status ?? "—"}) із {f.planSource.versions} версій.
+            </div>
+          )}
+
 
           <div>
             <div className="text-xs uppercase tracking-wider text-muted-foreground mb-2">План / факт по об'єкту</div>
