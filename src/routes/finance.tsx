@@ -10,9 +10,12 @@ import {
 } from "lucide-react";
 import {
   OverviewSection, OperationsSection, PlanFactSection, ReconcileSection,
-  FinmapSection, OrdersFinanceSection, PayrollSection, ReceivablesSection, PayablesSection, CategoriesSection,
+  FinmapSection, OrdersFinanceSection, PayrollSection, ReceivablesSection, CategoriesSection,
   type Period,
 } from "@/components/finance/sections";
+import {
+  ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip,
+} from "@/components/finance/management-sections";
 
 
 import { AppShell } from "@/components/AppShell";
