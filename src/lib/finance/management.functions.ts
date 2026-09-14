@@ -410,3 +410,173 @@ export const getManagementReconciliation = createServerFn({ method: "GET" })
       },
     };
   });
+
+/* --------------------- Стан щогодинної звірки Finmap --------------------- */
+
+/**
+ * Здоровʼя фонової синхронізації Finmap: останній успіх/помилка, скільки
+ * операцій оброблено в останньому прогоні, коли очікується наступний.
+ */
+export const getFinmapSyncHealth = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertFinance(context);
+    const [{ data: state }, { data: log }] = await Promise.all([
+      context.supabase.from("finmap_sync_state").select("entity,last_success_at,last_sync_at,last_error,items_total"),
+      context.supabase
+        .from("finmap_sync_log")
+        .select("entity,mode,status,fetched,inserted,updated,skipped,message,created_at,duration_ms")
+        .order("created_at", { ascending: false })
+        .limit(60),
+    ]);
+
+    const states = (state ?? []) as any[];
+    const logs = (log ?? []) as any[];
+    const ops = states.find((s) => s.entity === "operations") ?? null;
+
+    const lastSuccessAt =
+      states.map((s) => s.last_success_at).filter(Boolean).sort().at(-1) ?? null;
+    const lastRunAt = logs[0]?.created_at ?? null;
+
+    // Останній прогін — записи журналу в межах 10 хвилин від найсвіжішого.
+    const runStart = lastRunAt ? Date.parse(lastRunAt) - 10 * 60_000 : 0;
+    const runLogs = logs.filter((l) => Date.parse(l.created_at) >= runStart);
+    const sum = (k: string) => runLogs.reduce((s, l) => s + num(l[k]), 0);
+    const failed = runLogs.filter((l) => l.status === "error");
+    const lastError =
+      failed[0]?.message ?? logs.find((l) => l.status === "error")?.message ?? ops?.last_error ?? null;
+    const lastErrorAt = failed[0]?.created_at ?? logs.find((l) => l.status === "error")?.created_at ?? null;
+
+    const successMs = lastSuccessAt ? Date.parse(lastSuccessAt) : 0;
+    const ageMin = successMs ? Math.round((Date.now() - successMs) / 60_000) : null;
+
+    return {
+      configured: !!process.env["FINMAP_API_KEY"],
+      lastSuccessAt,
+      lastRunAt,
+      lastError: failed.length ? lastError : lastRunAt && !failed.length ? null : lastError,
+      lastErrorAt,
+      ok: !!lastSuccessAt && !failed.length,
+      stale: ageMin == null || ageMin > 90,
+      ageMinutes: ageMin,
+      nextDueAt: successMs ? new Date(successMs + 55 * 60_000).toISOString() : null,
+      processed: { fetched: sum("fetched"), inserted: sum("inserted"), updated: sum("updated"), skipped: sum("skipped") },
+      mode: logs[0]?.mode ?? null,
+      transactionsTotal: num(ops?.items_total),
+      entities: states.map((s) => ({
+        entity: s.entity,
+        lastSuccessAt: s.last_success_at ?? null,
+        lastError: s.last_error ?? null,
+        items: num(s.items_total),
+      })),
+    };
+  });
+
+/* --------------------- Ручна робота з розподілами --------------------- */
+
+const reviewInput = z.object({
+  dimension: z.enum(["project", "category", "service"]).nullish(),
+  limit: z.number().int().min(1).max(200).default(50),
+});
+
+/**
+ * Операції, які потребують ручного підтвердження або корекції розподілу,
+ * разом з поточними частками та довідниками для вибору.
+ */
+export const listAllocationReview = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => reviewInput.parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { data: tx } = await context.supabase
+      .from("finance_transactions")
+      .select("id,kind,amount,amount_uah,op_date,payment_date,period_start,period_end,comment,order_id,category_id,counterparty_id,service,allocation_status,state,finmap_id")
+      .eq("state", "actual")
+      .in("allocation_status", ["none", "partial", "needs_review"])
+      .order("op_date", { ascending: false })
+      .limit(data.limit);
+
+    const rows = ((tx ?? []) as any[]).filter((t) => t.kind !== "transfer");
+    const ids = rows.map((t) => t.id);
+    const [{ data: allocs }, { data: cats }, { data: cps }, { data: orders }] = await Promise.all([
+      ids.length
+        ? context.supabase.from("finance_allocations").select("*").in("transaction_id", ids)
+        : Promise.resolve({ data: [] as any[] }),
+      context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
+      context.supabase.from("finance_counterparties").select("id,name").limit(3000),
+      context.supabase.from("orders").select("id,number,name,address").order("created_at", { ascending: false }).limit(400),
+    ]);
+
+    const byTx = new Map<string, any[]>();
+    for (const a of (allocs ?? []) as any[]) {
+      const list = byTx.get(a.transaction_id) ?? [];
+      list.push(a);
+      byTx.set(a.transaction_id, list);
+    }
+    const catName = new Map(((cats ?? []) as any[]).map((c) => [c.id, c.name]));
+    const cpName = new Map(((cps ?? []) as any[]).map((c) => [c.id, c.name]));
+
+    return {
+      rows: rows
+        .map((t) => {
+          const list = byTx.get(t.id) ?? [];
+          const total = amt(t);
+          const { byDimension, overall } = allocationStatusByDimension(total, list as any);
+          const dims = (["project", "category", "service"] as const).map((dimension) => {
+            const parts = list.filter((a) => a.dimension === dimension);
+            const allocated = r2(parts.reduce((s, a) => s + num(a.amount), 0));
+            return {
+              dimension,
+              status: byDimension[dimension] ?? "none",
+              allocated,
+              unallocated: r2(Math.max(total - allocated, 0)),
+              hasFinmap: parts.some((a) => a.source === "finmap"),
+              hasManual: parts.some((a) => a.source === "manual"),
+              parts: parts.map((a) => ({
+                id: a.id, ref: a.ref_finmap_id, name: a.ref_name, order_id: a.order_id,
+                category_id: a.category_id, service: a.service, amount: num(a.amount),
+                share: a.share == null ? null : num(a.share), source: a.source, status: a.status,
+              })),
+            };
+          });
+          return {
+            id: t.id,
+            kind: t.kind,
+            amount: total,
+            op_date: t.op_date,
+            payment_date: t.payment_date ?? t.op_date,
+            period_start: t.period_start,
+            period_end: t.period_end,
+            comment: t.comment,
+            counterparty: t.counterparty_id ? (cpName.get(t.counterparty_id) ?? null) : null,
+            category: t.category_id ? (catName.get(t.category_id) ?? null) : null,
+            order_id: t.order_id,
+            service: t.service,
+            allocation_status: overall,
+            dims,
+          };
+        })
+        .filter((r) => (data.dimension ? r.dims.some((d) => d.dimension === data.dimension && d.status !== "full" && d.status !== "manual") : true)),
+      refs: {
+        orders: ((orders ?? []) as any[]).map((o) => ({ id: o.id, label: [o.number, o.name ?? o.address].filter(Boolean).join(" · ") || o.id.slice(0, 8) })),
+        categories: ((cats ?? []) as any[]).map((c) => ({ id: c.id, label: c.name, cost_class: c.cost_class })),
+      },
+    };
+  });
+
+/** Історія ручних змін розподілу конкретної операції (з аудиту). */
+export const getAllocationHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ transaction_id: uuid }).parse(d))
+  .handler(async ({ data, context }) => {
+    await assertFinance(context);
+    const { data: logs } = await context.supabase
+      .from("audit_logs")
+      .select("id,created_at,actor_name,actor_id,action,old_value,new_value,financial_impact")
+      .eq("module", "finance")
+      .eq("entity_type", "finance_transaction")
+      .eq("entity_id", data.transaction_id)
+      .order("created_at", { ascending: false })
+      .limit(50);
+    return ((logs ?? []) as any[]).filter((l) => String(l.action).startsWith("finance.allocation"));
+  });

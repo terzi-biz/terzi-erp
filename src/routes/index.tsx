@@ -8,6 +8,7 @@ import { getAnalyticsOverview, getAdsCurrencyBreakdown } from "@/lib/analytics.f
 import { getFinanceOverview } from "@/lib/finance/finmap.functions";
 import { currencyNote } from "@/lib/marketing/currency";
 import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } from "@/components/dashboard/panels";
+import { FinmapSyncStatus } from "@/components/finance/FinmapSyncStatus";
 import { buttonVariants } from "@/components/ui/button";
 import {
   Plus, Target, Users, Ruler, FileText, Handshake, Wallet, PhoneCall, TrendingUp, TrendingDown, ListChecks, Link2,
@@ -443,6 +444,13 @@ function Dashboard() {
               </div>
             </Panel>
           </div>
+
+          <Panel
+            title="Звірення з Finmap (щогодини)"
+            action={<Link to="/finance" search={{ tab: "reconcile" }} className="text-[11px] font-semibold text-primary">Звірка</Link>}
+          >
+            <FinmapSyncStatus />
+          </Panel>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Panel title="Менеджери" action={<Link to="/crm/leads" className="text-[11px] font-semibold text-primary">Воронка</Link>}>
