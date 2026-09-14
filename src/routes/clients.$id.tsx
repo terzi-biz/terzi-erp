@@ -7,6 +7,7 @@ import {
   Banknote, History, CheckSquare, MessageSquare, LayoutGrid,
 } from "lucide-react";
 import { getClientDetail, upsertClient, listClientManagers } from "@/lib/clients.functions";
+import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 import { getCallRecording } from "@/lib/crm.functions";
 import { UnifiedTimeline } from "@/components/crm/UnifiedTimeline";
 import { formatUah } from "@/lib/screed-calc";
@@ -237,14 +238,10 @@ function ClientCard() {
             <Stat label="Борг" value={formatUah(s.debt_total)} tone={s.debt_total > 0 ? "text-destructive" : ""} />
             <Stat label="Остання активність" value={fmtDate(s.last_activity_at)} />
           </div>
-          {d.calls.length > 0 && (
-            <div className="panel p-4">
-              <h2 className="font-bold text-sm mb-3">Останні дзвінки</h2>
-              <div className="space-y-2">
-                {d.calls.slice(0, 5).map((call: any) => <CallRow key={call.id} call={call} />)}
-              </div>
-            </div>
-          )}
+          <div className="panel p-4">
+            <h2 className="font-bold text-sm mb-3">Останні дзвінки</h2>
+            <CallsPlayerList clientId={id} title="" limit={10} />
+          </div>
         </div>
       )}
 

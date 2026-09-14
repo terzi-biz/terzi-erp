@@ -489,7 +489,10 @@ export async function binotelSaveSettingsOp(
     defaultPipelineId?: string | null;
     defaultStageId?: string | null;
     reconcileWindowHours?: number;
+    autoCreateMeasurement?: boolean;
+    measurementMinDurationSec?: number;
   },
+
 ) {
   const actor = await requireAccessManager(userId);
   const db = await admin();
@@ -505,6 +508,9 @@ export async function binotelSaveSettingsOp(
   if (input.defaultPipelineId !== undefined) row.default_pipeline_id = input.defaultPipelineId;
   if (input.defaultStageId !== undefined) row.default_stage_id = input.defaultStageId;
   if (input.reconcileWindowHours !== undefined) row.reconcile_window_hours = input.reconcileWindowHours;
+  if (input.autoCreateMeasurement !== undefined) row.auto_create_measurement = input.autoCreateMeasurement;
+  if (input.measurementMinDurationSec !== undefined) row.measurement_min_duration_sec = input.measurementMinDurationSec;
+
 
   const { data, error } = await db.from("binotel_settings").upsert(row, { onConflict: "integration_id" }).select("*").single();
   if (error) throw new Error(`Не вдалося зберегти налаштування: ${error.message}`);

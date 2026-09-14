@@ -240,12 +240,16 @@ export function BinotelPanel() {
               onSave={(v) => saveSettings.mutate({ escalationMinutes: v })} />
             <NumField label="Вікно звірки, год" value={(settings.data as any).reconcile_window_hours}
               onSave={(v) => saveSettings.mutate({ reconcileWindowHours: v })} />
+            <NumField label="Мін. розмова для авто-заміру, с" value={(settings.data as any).measurement_min_duration_sec ?? 60}
+              onSave={(v) => saveSettings.mutate({ measurementMinDurationSec: v })} />
             <div className="space-y-1.5">
               <Toggle label="Створювати контакт" checked={(settings.data as any).auto_create_contact} onChange={(v) => saveSettings.mutate({ autoCreateContact: v })} />
               <Toggle label="Створювати лід" checked={(settings.data as any).auto_create_lead} onChange={(v) => saveSettings.mutate({ autoCreateLead: v })} />
               <Toggle label="Задача по пропущеному" checked={(settings.data as any).auto_create_missed_task} onChange={(v) => saveSettings.mutate({ autoCreateMissedTask: v })} />
+              <Toggle label="Планувати замір після розмови" checked={(settings.data as any).auto_create_measurement} onChange={(v) => saveSettings.mutate({ autoCreateMeasurement: v })} />
               <Toggle label="Маршрут до закріпленого менеджера" checked={(settings.data as any).route_to_assigned_manager} onChange={(v) => saveSettings.mutate({ routeToAssignedManager: v })} />
             </div>
+
           </div>
         ) : (
           <div className="text-sm text-muted-foreground">Створіть підключення, щоб зʼявились налаштування.</div>

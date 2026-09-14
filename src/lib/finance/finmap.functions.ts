@@ -185,6 +185,38 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       .filter((r) => r.kind === "expense" && costClassOf(catById.get(r.category_id) ?? null) === "payroll")
       .reduce((s, r) => s + amt(r), 0);
 
+    // Телефонія: фактичні витрати на звʼязок із реальних операцій Finmap
+    // (категорії зі згадкою звʼязку/телефонії). Нічого не домислюємо.
+    const isTelephony = (c: any) => /зв.?яз|телефон|моб|binotel|київстар|kyivstar|vodafone|lifecell/i.test(String(c?.name ?? ""));
+    const telephonyCost = rows
+      .filter((r) => r.kind === "expense" && isTelephony(catById.get(r.category_id) ?? null))
+      .reduce((s, r) => s + amt(r), 0);
+    const telephonyOps = rows.filter((r) => r.kind === "expense" && isTelephony(catById.get(r.category_id) ?? null)).length;
+
+    // Стан оновлення дзвінків: останній успішний синк і кількість дзвінків періоду.
+    let callsSyncedAt: string | null = null;
+    let callsSyncError: string | null = null;
+    let callsCount: number | null = null;
+    try {
+      const [{ data: integration }, { count }] = await Promise.all([
+        context.supabase
+          .from("integrations")
+          .select("last_success_at,last_sync_at,last_error")
+          .eq("provider_key", "binotel")
+          .maybeSingle(),
+        context.supabase
+          .from("crm_calls")
+          .select("id", { count: "exact", head: true })
+          .gte("started_at", `${data.from}T00:00:00.000Z`)
+          .lte("started_at", `${data.to}T23:59:59.999Z`),
+      ]);
+      callsSyncedAt = ((integration as any)?.last_success_at ?? (integration as any)?.last_sync_at ?? null) as string | null;
+      callsSyncError = ((integration as any)?.last_error ?? null) as string | null;
+      callsCount = count ?? null;
+    } catch {
+      // Немає доступу до інтеграцій — блок телефонії просто лишиться без даних.
+    }
+
     return {
       accounts: accounts ?? [],
       cashOnAccounts: (accounts ?? []).reduce((s: number, a: any) => s + (Number(a.actual_balance ?? a.opening_balance) || 0), 0),
@@ -197,9 +229,12 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       payrollAccrued, payrollPaid, payrollBase, payrollKpi, payrollAdvance, payrollFact,
       payrollRest: Math.max(payrollAccrued - payrollPaid, 0),
       payrollEmployees: pay.length,
+      telephonyCost, telephonyOps,
+      callsSyncedAt, callsSyncError, callsCount,
       unmatched: rows.filter((r) => r.match_status === "unmatched").length,
       transactions: rows.length,
     };
+
 
   });
 

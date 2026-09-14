@@ -13,6 +13,7 @@ import {
   type MeasurementStatus,
 } from "@/lib/measurement-status";
 import { crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
+import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 
 export const MEASUREMENT_STATUS_TONE: Record<MeasurementStatus, string> = {
   planned: "bg-muted text-muted-foreground",
@@ -269,6 +270,12 @@ export function MeasurementCard({
               <Row label="Адреса об'єкта" value={row.address ?? row.order_address ?? "—"} />
             </dl>
           </section>
+
+          <section className="space-y-2 rounded-lg border border-border p-3">
+            <CallsPlayerList measurementId={row.id} title="Дзвінки по заміру" limit={10} />
+          </section>
+
+
 
           <button
             type="button"

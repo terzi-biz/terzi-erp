@@ -13,6 +13,7 @@ import { getCallRecording } from "@/lib/crm.functions";
 import { syncBinotelCallHistory } from "@/lib/binotel.functions";
 import { listCallsFeed } from "@/lib/calls.functions";
 import type { CallFeedRow, CallSourceBucket } from "@/lib/calls.server";
+import { MEASUREMENT_STATUS_LABELS, type MeasurementStatus } from "@/lib/measurement-status";
 
 export const Route = createFileRoute("/crm/calls")({
   ssr: false,
@@ -105,7 +106,29 @@ function CallsPage() {
       bySource: Array.from(bySource.entries()).sort((a, b) => b[1] - a[1]),
       byStaff: Array.from(byStaff.entries()).sort((a, b) => b[1] - a[1]).slice(0, 8),
       byHour,
+      callbackDone: all.filter((c) => c.is_missed && c.is_callback_done).length,
+      missedOpen: all.filter((c) => c.is_missed && !c.is_callback_done).length,
+      byOrder: (() => {
+        const m = new Map<string, { name: string; total: number; answered: number; missed: number; callback: number }>();
+        for (const c of all) {
+          if (!c.order_id) continue;
+          const cur = m.get(c.order_id) ?? { name: c.order_name ?? "Замовлення", total: 0, answered: 0, missed: 0, callback: 0 };
+          cur.total += 1;
+          if (c.is_missed) { cur.missed += 1; if (c.is_callback_done) cur.callback += 1; } else cur.answered += 1;
+          m.set(c.order_id, cur);
+        }
+        return Array.from(m.entries()).sort((a, b) => b[1].total - a[1].total).slice(0, 10);
+      })(),
+      byMeasurementStatus: (() => {
+        const m = new Map<string, number>();
+        for (const c of all) {
+          if (!c.measurement_status) continue;
+          m.set(c.measurement_status, (m.get(c.measurement_status) ?? 0) + 1);
+        }
+        return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+      })(),
     };
+
   }, [all]);
 
   /** Ручне довантаження історії дзвінків із Binotel (по днях, як вимагає API). */
@@ -235,6 +258,60 @@ function CallsPage() {
             </div>
           </div>
         </div>
+
+
+
+        <div className="grid gap-4 lg:grid-cols-2">
+          <div className="rounded-md border border-border bg-card p-4">
+            <div className="text-sm font-bold mb-3">
+              Дзвінки по об'єктах · відповіли {stats.total - stats.missed} · пропущені {stats.missed} · відпрацьовані {stats.callbackDone}
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[12px]">
+                <thead className="text-muted-foreground">
+                  <tr className="text-left">
+                    <th className="py-1">Об'єкт</th>
+                    <th className="py-1 text-right">Усього</th>
+                    <th className="py-1 text-right">Відповіли</th>
+                    <th className="py-1 text-right">Пропущені</th>
+                    <th className="py-1 text-right">Відпрацьовані</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {stats.byOrder.map(([id, o]) => (
+                    <tr key={id} className="border-t border-border/60">
+                      <td className="py-1 pr-2 truncate max-w-[220px]">{o.name}</td>
+                      <td className="py-1 text-right tabular-nums">{o.total}</td>
+                      <td className="py-1 text-right tabular-nums text-success">{o.answered}</td>
+                      <td className="py-1 text-right tabular-nums text-destructive">{o.missed}</td>
+                      <td className="py-1 text-right tabular-nums">{o.callback}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {!stats.byOrder.length ? (
+                <div className="text-sm text-muted-foreground">Дзвінки ще не прив'язані до об'єктів.</div>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="rounded-md border border-border bg-card p-4">
+            <div className="text-sm font-bold mb-3">Дзвінки за статусами замірів</div>
+            <div className="space-y-2">
+              {stats.byMeasurementStatus.map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between border-b border-border/60 pb-1.5 text-sm last:border-0">
+                  <span>{MEASUREMENT_STATUS_LABELS[status as MeasurementStatus] ?? status}</span>
+                  <span className="font-semibold tabular-nums">{count}</span>
+                </div>
+              ))}
+              {!stats.byMeasurementStatus.length ? (
+                <div className="text-sm text-muted-foreground">Дзвінки ще не прив'язані до замірів.</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+
+
 
         <div className="flex gap-2 flex-wrap">
           {([["all", "Усі"], ["inbound", "Вхідні"], ["outbound", "Вихідні"], ["missed", "Пропущені"], ["new", "Вперше"]] as const).map(([k, l]) => (

@@ -32,9 +32,18 @@ export interface CallFeedRow {
   client_id: string | null;
   client_name: string | null;
   lead_id: string | null;
+  /** Канонічне замовлення (обʼєкт) дзвінка. */
+  order_id: string | null;
+  order_name: string | null;
+  /** Замір, з яким повʼязаний дзвінок, і його статус. */
+  measurement_id: string | null;
+  measurement_status: string | null;
+  /** Пропущений дзвінок, на який згодом передзвонили. */
+  is_callback_done: boolean;
   source_raw: string | null;
   source: CallSourceBucket;
 }
+
 
 export interface CallFeedResult {
   rows: CallFeedRow[];
@@ -82,11 +91,16 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
   const userIds = Array.from(
     new Set(list.flatMap((c) => [c.employee_id, c.answered_employee_id]).filter(Boolean)),
   ) as string[];
+  const orderIds = Array.from(new Set(list.map((c) => c.order_id).filter(Boolean))) as string[];
+  const measurementIds = Array.from(new Set(list.map((c) => c.measurement_id).filter(Boolean))) as string[];
 
   const leadByPhone = new Map<string, { id: string; source: string | null; title: string | null }>();
   const clientByPhone = new Map<string, { id: string; name: string; source: string | null }>();
   const clientById = new Map<string, { id: string; name: string; source: string | null }>();
   const nameByUser = new Map<string, string>();
+  const orderById = new Map<string, string>();
+  const measurementStatusById = new Map<string, string>();
+
 
   await Promise.all([
     ...chunk(phones, 200).map(async (part) => {
@@ -120,7 +134,27 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
         }
       }
     }),
+    ...chunk(orderIds, 200).map(async (part) => {
+      const { data } = await sb.from("orders").select("id, name, number").in("id", part);
+      for (const r of data ?? []) orderById.set((r as any).id, (r as any).name || (r as any).number || "Замовлення");
+    }),
+    ...chunk(measurementIds, 200).map(async (part) => {
+      const { data } = await sb.from("order_measurements").select("id, status").in("id", part);
+      for (const r of data ?? []) measurementStatusById.set((r as any).id, String((r as any).status));
+    }),
   ]);
+
+  // «Відклик» — пропущений дзвінок, після якого був вихідний на той самий номер.
+  const outboundAfter = new Map<string, number[]>();
+  for (const c of list) {
+    if (c.direction !== "outbound" || !c.phone_e164 || !c.started_at) continue;
+    const at = new Date(c.started_at).getTime();
+    const arr = outboundAfter.get(c.phone_e164);
+    if (arr) arr.push(at);
+    else outboundAfter.set(c.phone_e164, [at]);
+  }
+
+
 
   const rows: CallFeedRow[] = list.map((c) => {
     const inbound = c.direction === "inbound";
@@ -162,10 +196,89 @@ export async function callFeed(sb: Sb, p: { from: string; to: string }): Promise
       client_id: client?.id ?? null,
       client_name: client?.name ?? null,
       lead_id: c.lead_id ?? lead?.id ?? null,
+      order_id: c.order_id ?? null,
+      order_name: c.order_id ? (orderById.get(c.order_id) ?? null) : null,
+      measurement_id: c.measurement_id ?? null,
+      measurement_status: c.measurement_id ? (measurementStatusById.get(c.measurement_id) ?? null) : null,
+      is_callback_done:
+        Boolean(c.is_missed) && Boolean(c.phone_e164) && Boolean(c.started_at)
+          ? (outboundAfter.get(c.phone_e164) ?? []).some((t) => t > new Date(c.started_at).getTime())
+          : false,
       source_raw: sourceRaw,
       source: bucketSource(sourceRaw),
+
     };
   });
 
   return { rows, truncated: list.length >= LIMIT };
+}
+
+/**
+ * Дзвінки конкретної сутності (клієнт, замовлення або замір) для картки.
+ * Показуємо лише те, що реально записано в CRM; запис береться на вимогу.
+ */
+export interface EntityCallRow {
+  id: string;
+  started_at: string | null;
+  direction: string;
+  duration_sec: number;
+  is_missed: boolean;
+  recording_available: boolean;
+  counterparty: string | null;
+  employee_name: string | null;
+}
+
+export async function entityCalls(
+  sb: Sb,
+  p: { clientId?: string | null; orderId?: string | null; measurementId?: string | null; limit?: number },
+): Promise<EntityCallRow[]> {
+  const limit = Math.min(Math.max(p.limit ?? 30, 1), 100);
+  let q = sb
+    .from("crm_calls")
+    .select("id, started_at, direction, duration_sec, is_missed, recording_available, phone_e164, from_number, to_number, employee_id, answered_employee_id, internal_number")
+    .order("started_at", { ascending: false })
+    .limit(limit);
+
+  if (p.measurementId) q = q.eq("measurement_id", p.measurementId);
+  else if (p.orderId) q = q.eq("order_id", p.orderId);
+  else if (p.clientId) q = q.eq("client_id", p.clientId);
+  else return [];
+
+  const { data } = await q;
+  const list = (data ?? []) as any[];
+  if (!list.length) return [];
+
+  const userIds = Array.from(
+    new Set(list.flatMap((c) => [c.answered_employee_id, c.employee_id]).filter(Boolean)),
+  ) as string[];
+  const nameByUser = new Map<string, string>();
+  if (userIds.length) {
+    const { data: profiles } = await sb.from("profiles").select("user_id, display_name, email").in("user_id", userIds);
+    for (const r of profiles ?? []) {
+      const n = (r as any).display_name || (r as any).email;
+      if (n) nameByUser.set((r as any).user_id, n);
+    }
+  }
+
+  return list.map((c) => {
+    const inbound = c.direction === "inbound";
+    const employeeId = c.answered_employee_id || c.employee_id || null;
+    return {
+      id: c.id,
+      started_at: c.started_at ?? null,
+      direction: c.direction,
+      duration_sec: Number(c.duration_sec ?? 0),
+      is_missed: Boolean(c.is_missed),
+      recording_available: Boolean(c.recording_available),
+      counterparty:
+        c.phone_e164 ||
+        (inbound ? (isInternal(c.from_number) ? c.to_number : c.from_number) : (isInternal(c.to_number) ? c.from_number : c.to_number)) ||
+        null,
+      employee_name: employeeId
+        ? (nameByUser.get(employeeId) ?? null)
+        : c.internal_number
+          ? `Внутрішній ${c.internal_number}`
+          : null,
+    };
+  });
 }

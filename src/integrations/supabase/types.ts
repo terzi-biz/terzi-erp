@@ -539,6 +539,7 @@ export type Database = {
         Row: {
           auto_create_contact: boolean
           auto_create_lead: boolean
+          auto_create_measurement: boolean
           auto_create_missed_task: boolean
           created_at: string
           default_pipeline_id: string | null
@@ -546,6 +547,7 @@ export type Database = {
           escalation_minutes: number
           id: string
           integration_id: string | null
+          measurement_min_duration_sec: number
           missed_sla_minutes: number
           reconcile_window_hours: number
           route_to_assigned_manager: boolean
@@ -555,6 +557,7 @@ export type Database = {
         Insert: {
           auto_create_contact?: boolean
           auto_create_lead?: boolean
+          auto_create_measurement?: boolean
           auto_create_missed_task?: boolean
           created_at?: string
           default_pipeline_id?: string | null
@@ -562,6 +565,7 @@ export type Database = {
           escalation_minutes?: number
           id?: string
           integration_id?: string | null
+          measurement_min_duration_sec?: number
           missed_sla_minutes?: number
           reconcile_window_hours?: number
           route_to_assigned_manager?: boolean
@@ -571,6 +575,7 @@ export type Database = {
         Update: {
           auto_create_contact?: boolean
           auto_create_lead?: boolean
+          auto_create_measurement?: boolean
           auto_create_missed_task?: boolean
           created_at?: string
           default_pipeline_id?: string | null
@@ -578,6 +583,7 @@ export type Database = {
           escalation_minutes?: number
           id?: string
           integration_id?: string | null
+          measurement_min_duration_sec?: number
           missed_sla_minutes?: number
           reconcile_window_hours?: number
           route_to_assigned_manager?: boolean
@@ -1108,6 +1114,8 @@ export type Database = {
           is_missed: boolean
           is_new_call: boolean
           lead_id: string | null
+          measurement_id: string | null
+          order_id: string | null
           owner_id: string
           payload: Json
           pbx_number: string | null
@@ -1145,6 +1153,8 @@ export type Database = {
           is_missed?: boolean
           is_new_call?: boolean
           lead_id?: string | null
+          measurement_id?: string | null
+          order_id?: string | null
           owner_id?: string
           payload?: Json
           pbx_number?: string | null
@@ -1182,6 +1192,8 @@ export type Database = {
           is_missed?: boolean
           is_new_call?: boolean
           lead_id?: string | null
+          measurement_id?: string | null
+          order_id?: string | null
           owner_id?: string
           payload?: Json
           pbx_number?: string | null
@@ -1211,6 +1223,20 @@ export type Database = {
             columns: ["lead_id"]
             isOneToOne: false
             referencedRelation: "crm_leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_calls_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "order_measurements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crm_calls_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
