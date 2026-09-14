@@ -4,12 +4,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import {
   Search, PhoneIncoming, PhoneOutgoing, PhoneCall, PhoneMissed, PlayCircle, Loader2,
-  ExternalLink, Sparkles, Globe, Facebook, MessageCircle, PhoneForwarded, Building2,
+  ExternalLink, Sparkles, Globe, Facebook, MessageCircle, PhoneForwarded, Building2, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { getCallRecording } from "@/lib/crm.functions";
+import { syncBinotelCallHistory } from "@/lib/binotel.functions";
 import { listCallsFeed } from "@/lib/calls.functions";
 import type { CallFeedRow, CallSourceBucket } from "@/lib/calls.server";
 
@@ -49,6 +50,7 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, 
 
 function CallsPage() {
   const feedFn = useServerFn(listCallsFeed);
+  const syncFn = useServerFn(syncBinotelCallHistory);
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(iso(new Date()));
   const [q, setQ] = useState("");
