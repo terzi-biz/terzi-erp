@@ -11,8 +11,9 @@ import { formatUah } from "@/lib/screed-calc";
 import {
   getFinanceOverview, listFinanceTransactions, getFinmapStatus, testFinmapConnection,
   runFinmapSyncNow, runFinmapMatchNow, listFinmapMappings, saveFinmapMapping, suggestTransactionLinks,
-  linkFinanceTransaction, getPlanFact,
+  linkFinanceTransaction, getPlanFact, getFinanceReconciliation, saveCategoryCostClass,
 } from "@/lib/finance/finmap.functions";
+import { CANONICAL_COST_CLASSES, CANONICAL_LABELS } from "@/lib/finance/cost-class";
 import {
   listPayrollProfiles, savePayrollProfile, calculatePayrollPeriod, listPayrollCalculations,
   setPayrollKpiFact, setPayrollStatus, reconcilePayrollPayments, pushPayrollPaymentToFinmap,
