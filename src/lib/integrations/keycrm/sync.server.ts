@@ -1030,6 +1030,17 @@ export async function pushInternal(ctx: AdapterContext, entity: string, internal
 
 /* -------------------------------- polling -------------------------------- */
 
+/** Документовані include keyCRM Open API v1 (перевірено на бойовому акаунті). */
+export const KEYCRM_DEFAULT_INCLUDES: Record<string, string> = {
+  lead_cards: "contact,contact.client,manager,status,payments,customFields,products",
+  orders: "buyer,manager,status,payments,customFields,marketing,shipping,attachments.file,tags",
+};
+
+/** Сутності з документованим фільтром filter[updated_between]. */
+const UPDATED_BETWEEN_ENTITIES = new Set(["lead_cards", "orders", "buyers"]);
+
+const isoMinute = (d: Date) => d.toISOString().slice(0, 19).replace("T", " ");
+
 /** Опитування змін за updated_at із збереженням last_sync_at і пагінацією. */
 export async function pollEntity(
   ctx: AdapterContext,
