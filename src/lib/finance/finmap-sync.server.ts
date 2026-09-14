@@ -160,10 +160,23 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
       const proj = (o.projectIds ?? []).map((p) => prById.get(p)).find(Boolean) as any;
       const cp = o.counterpartyId ? (cpById.get(o.counterpartyId) as any) : null;
       if (o.date > maxDate) maxDate = o.date;
+      const raw = o as any;
+      // Касова дата ≠ управлінський період: Finmap повертає обидва набори полів.
+      const opDate = isoDay(o.date);
+      const paymentDate = isoDay(raw.dateOfPayment ?? raw.paymentDate) ?? opDate;
+      const periodStart = isoDay(raw.periodStartTimestamp ?? raw.periodStart) ?? opDate;
+      const periodEnd = isoDay(raw.periodEndTimestamp ?? raw.periodEnd) ?? periodStart;
+      const approved = typeof raw.approved === "boolean" ? raw.approved : null;
       return {
         finmap_id: o.id,
         kind: o.type === "income" ? "income" : o.type === "transfer" ? "transfer" : "expense",
-        op_date: new Date(o.date).toISOString().slice(0, 10),
+        op_date: opDate,
+        payment_date: paymentDate,
+        period_start: periodStart,
+        period_end: periodEnd,
+        approved,
+        state: operationState(raw),
+        tags: normalizeTags(raw) as any,
         amount: Number(o.sum) || 0,
         currency: o.currencyId ?? "UAH",
         amount_uah: o.companyCurrencySum ?? (o.currencyId === "UAH" ? Number(o.sum) || 0 : null),
@@ -187,6 +200,7 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
 
     const { error } = await db.from("finance_transactions").upsert(rows, { onConflict: "finmap_id" });
     if (error) throw new Error(`finance_transactions: ${error.message}`);
+    await saveAllocations(db, ops, { prById, catById });
     for (const o of ops) known.has(o.id) ? updated++ : inserted++;
     if (ops.length < pageSize) break;
   }
