@@ -263,11 +263,14 @@ export async function entityCalls(
     leadId = leadId ?? ((data as any)?.lead_id ?? null);
   }
   if (orderId) {
-    const { data } = await sb.from("orders").select("client_id, lead_id, phone_e164").eq("id", orderId).maybeSingle();
+    const { data } = await sb.from("orders").select("client_id").eq("id", orderId).maybeSingle();
     clientId = clientId ?? ((data as any)?.client_id ?? null);
-    leadId = leadId ?? ((data as any)?.lead_id ?? null);
-    if ((data as any)?.phone_e164) phones.add((data as any).phone_e164);
+    if (!leadId) {
+      const { data: lead } = await sb.from("crm_leads").select("id").eq("order_id", orderId).limit(1).maybeSingle();
+      leadId = (lead as any)?.id ?? null;
+    }
   }
+
   if (leadId) {
     const { data } = await sb.from("crm_leads").select("client_id, phone_e164").eq("id", leadId).maybeSingle();
     clientId = clientId ?? ((data as any)?.client_id ?? null);
