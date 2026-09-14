@@ -156,17 +156,9 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
 
     const rows = (tx ?? []) as any[];
     const amt = (r: any) => Number(r.amount_uah ?? r.amount) || 0;
-    const income = rows.filter((r) => r.kind === "income").reduce((s, r) => s + amt(r), 0);
-    const expense = rows.filter((r) => r.kind === "expense").reduce((s, r) => s + amt(r), 0);
     const transfers = rows.filter((r) => r.kind === "transfer").reduce((s, r) => s + amt(r), 0);
+    void invoices; // дебіторка рахується канонічно за етапами договорів, а не за legacy-рахунками
 
-    const inv = (invoices ?? []) as any[];
-    const receivable = inv
-      .filter((i) => !["cancelled", "draft"].includes(i.status))
-      .reduce((s, i) => s + Math.max((Number(i.total) || 0) - (Number(i.paid) || 0), 0), 0);
-    const overdue = inv
-      .filter((i) => i.due_date && new Date(i.due_date) < new Date() && (Number(i.total) || 0) > (Number(i.paid) || 0))
-      .reduce((s, i) => s + ((Number(i.total) || 0) - (Number(i.paid) || 0)), 0);
 
     // ФОТ періоду: беремо лише розрахунки, місяць яких потрапляє у вибраний діапазон.
     const pay = ((payroll ?? []) as any[]).filter((p) => {
@@ -221,15 +213,23 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       // Немає доступу до інтеграцій — блок телефонії просто лишиться без даних.
     }
 
+    // Канонічні KPI — один розрахунок для Огляду і головного Dashboard.
+    const { computeManagementKpi } = await import("./management.functions");
+    const kpi = await computeManagementKpi(context.supabase, data.from, data.to);
+
     return {
       accounts: accounts ?? [],
-      cashOnAccounts: (accounts ?? []).reduce((s: number, a: any) => s + (Number(a.actual_balance ?? a.opening_balance) || 0), 0),
-      income, expense, transfers,
-      cashFlow: income - expense,
-      grossProfit: income - expense,
-      margin: income > 0 ? ((income - expense) / income) * 100 : 0,
-      receivable, overdue,
-      payable: Math.max(payrollAccrued - payrollPaid, 0),
+      cashOnAccounts: kpi.cashBalance,
+      income: kpi.income, expense: kpi.expense, transfers,
+      cashFlow: kpi.profit,
+      grossProfit: kpi.profit,
+      margin: kpi.margin,
+      receivable: kpi.receivableRemaining, overdue: kpi.receivableOverdue,
+      receivableDue: kpi.receivableDue,
+      payable: kpi.payableRemaining,
+      payableOverdue: kpi.payableOverdue,
+      scheduledReceipts30: kpi.scheduledReceipts30,
+      scheduledPayments30: kpi.scheduledPayments30,
       payrollAccrued, payrollPaid, payrollBase, payrollKpi, payrollAdvance, payrollFact,
       payrollRest: Math.max(payrollAccrued - payrollPaid, 0),
       payrollEmployees: pay.length,
@@ -238,6 +238,7 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
       unmatched: rows.filter((r) => r.match_status === "unmatched").length,
       transactions: rows.length,
     };
+
 
 
   });

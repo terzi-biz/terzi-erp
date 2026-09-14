@@ -405,12 +405,14 @@ function Dashboard() {
               <div className="space-y-2.5 text-[12px]">
                 {[
                   ["Замовлень у періоді", show(k("orders"), num)],
-                  ["Доходи (Finmap)", fin ? money(fin.income) : show(k("payments"), money)],
-                  ["Витрати (Finmap)", fin ? money(fin.expense) : show(k("expenses"), money)],
-                  ["Прибуток", fin ? money(fin.grossProfit) : show(k("gross_profit"), money)],
+                  // Єдине канонічне джерело фінансових показників (той самий розрахунок, що й у «Фінансах»).
+                  ["Доходи (Finmap)", fin ? money(fin.income) : NO],
+                  ["Витрати (Finmap)", fin ? money(fin.expense) : NO],
+                  ["Прибуток", fin ? money(fin.grossProfit) : NO],
                   ["Маржа", fin ? pct(fin.margin) : NO],
                   ["Дебіторка", fin ? money(fin.receivable) : NO],
                   ["Гроші на рахунках", fin ? money(fin.cashOnAccounts) : NO],
+
                   ["Зарплати (ставки)", fin ? money(fin.payrollBase) : NO],
                   ["KPI-бонуси", fin ? money(fin.payrollKpi) : NO],
                   ["ФОТ нараховано", fin ? money(fin.payrollAccrued) : NO],

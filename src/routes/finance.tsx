@@ -16,6 +16,10 @@ import {
 import {
   ServiceEconomicsSection, SupplierPayablesSection, UpcomingSection, ManagementKpiStrip, ManagementReconcileBlock,
 } from "@/components/finance/management-sections";
+import { ObjectAnalyticsSection } from "@/components/finance/ObjectAnalytics";
+import { getManagementKpi } from "@/lib/finance/management.functions";
+
+
 
 
 import { AppShell } from "@/components/AppShell";
@@ -113,18 +117,19 @@ function FinancePage() {
     }
   };
 
-  const kpi = useMemo(() => {
-    const inv = invoices as any[];
-    const totalInvoiced = inv.reduce((s, i) => s + (Number(i.total) || 0), 0);
-    const totalPaid = paidSum((payments as any[]).map((p) => ({ amount: Number(p.amount) || 0, direction: p.direction })));
-    const totalExpenses = (expenses as any[]).reduce((s, e) => s + (Number(e.amount) || 0), 0);
-    return {
-      invoiced: totalInvoiced,
-      paid: totalPaid,
-      debt: debt(totalInvoiced, inv.reduce((s, i) => s + (Number(i.paid) || 0), 0)),
-      profit: totalPaid - totalExpenses,
-    };
-  }, [invoices, payments, expenses]);
+  // Верхні показники — канонічне джерело Stage 2 (той самий розрахунок, що й у Дашборді).
+  const kpiFn = useServerFn(getManagementKpi);
+  const { data: canonicalKpi } = useQuery({
+    queryKey: ["fin-kpi", period.from, period.to],
+    queryFn: () => kpiFn({ data: period }),
+  });
+  const kpi = useMemo(() => ({
+    income: canonicalKpi?.income ?? 0,
+    expense: canonicalKpi?.expense ?? 0,
+    debt: canonicalKpi?.receivableRemaining ?? 0,
+    profit: canonicalKpi?.profit ?? 0,
+  }), [canonicalKpi]);
+
 
   return (
     <AppShell>
@@ -138,10 +143,11 @@ function FinancePage() {
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <KpiCard label="Виставлено" value={formatUah(kpi.invoiced)} icon={Receipt} tone="neutral" />
-          <KpiCard label="Отримано" value={formatUah(kpi.paid)} icon={TrendingUp} tone="good" />
-          <KpiCard label="Дебіторка" value={formatUah(kpi.debt)} icon={TrendingDown} tone="warn" />
-          <KpiCard label="Грошовий результат" value={formatUah(kpi.profit)} icon={CircleDollarSign} tone={kpi.profit >= 0 ? "good" : "bad"} />
+          <KpiCard label="Дохід (факт)" value={formatUah(kpi.income)} icon={Receipt} tone="good" />
+          <KpiCard label="Витрати (факт)" value={formatUah(kpi.expense)} icon={TrendingDown} tone="bad" />
+          <KpiCard label="Дебіторка" value={formatUah(kpi.debt)} icon={TrendingUp} tone="warn" />
+          <KpiCard label="Прибуток" value={formatUah(kpi.profit)} icon={CircleDollarSign} tone={kpi.profit >= 0 ? "good" : "bad"} />
+
         </div>
 
         <div className="flex flex-wrap items-end gap-2 rounded-2xl border border-border bg-card p-3">
@@ -174,7 +180,7 @@ function FinancePage() {
         {tab === "overview" && (
           <div className="space-y-4">
             {/* Канонічні KPI: ті самі серверні розрахунки, що й на Дашборді. */}
-            <ManagementKpiStrip period={period} />
+            <ManagementKpiStrip period={period} omit={["Дохід (факт)", "Витрати (факт)", "Прибуток"]} />
             <OverviewSection period={period} onDrill={(k) => { setOpsKind(k); setTab("operations"); }} />
           </div>
         )}
@@ -183,7 +189,13 @@ function FinancePage() {
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
         {tab === "planfact" && <PlanFactSection period={period} />}
         {tab === "reconcile" && <div className="space-y-4"><ManagementReconcileBlock /><ReconcileSection period={period} /></div>}
-        {tab === "objects" && <OrdersFinanceSection period={period} />}
+        {tab === "objects" && (
+          <div className="space-y-4">
+            <ObjectAnalyticsSection period={period} />
+            <OrdersFinanceSection period={period} />
+          </div>
+        )}
+
         {tab === "finmap" && <FinmapSection />}
         {tab === "payroll" && <PayrollSection />}
         {tab === "receivables" && <ReceivablesSection invoices={invoices as any[]} payments={payments as any[]} />}
