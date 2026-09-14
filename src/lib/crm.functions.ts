@@ -288,7 +288,9 @@ export const listCalls = createServerFn({ method: "GET" })
 export const getCallRecording = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ call_id: z.string().uuid() }).parse(d))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
+    const { requirePermission } = await import("./access.server");
+    await requirePermission(context.userId, "clients", "view");
     const { fetchCallRecordingUrl } = await import("./integrations/binotel/record.server");
     return await fetchCallRecordingUrl(data.call_id);
   });

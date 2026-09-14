@@ -405,7 +405,7 @@ function CallRow({ call }: { call: CallFeedRow }) {
           <meta.icon className="w-3 h-3" />{call.source_raw && call.source !== "unknown" ? meta.label : meta.label}
         </span>
         <div className="text-xs font-semibold whitespace-nowrap tabular-nums w-12 text-right">{mmss(call.duration_sec)}</div>
-        {call.recording_available ? (
+        {!call.is_missed && call.duration_sec > 0 ? (
           <button onClick={() => (url ? setOpen((v) => !v) : load.mutate())} disabled={load.isPending}
             title="Прослухати запис розмови"
             className={`shrink-0 grid h-8 w-8 place-items-center rounded-lg border transition-colors ${
