@@ -9,9 +9,9 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import { r2 } from "./core";
-import { serviceEconomics, computePayable, type EconLine, type EconQuantity } from "./service-economics";
+import { serviceEconomics, computePayables, type EconLine, type EconQuantity, type PayablesResult } from "./service-economics";
 import { upcomingBuckets, toUpcomingRow, type UpcomingRow } from "./scheduled";
-import { splitAmount } from "./allocations";
+import { splitAmount, cashDateFilter, managementPeriodFilter, allocationStatusByDimension } from "./allocations";
 
 const uuid = z.string().uuid();
 const num = (v: unknown) => Number(v) || 0;
@@ -42,12 +42,13 @@ export const getServiceEconomics = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => periodInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
+    // Управлінський P&L: економічний період операції, а не касова дата.
     const [{ data: tx }, { data: cats }, { data: allocs }, { data: zones }, { data: orderSvc }] = await Promise.all([
       context.supabase
         .from("finance_transactions")
-        .select("id,kind,amount,amount_uah,op_date,payment_date,state,order_id,category_id,service")
+        .select("id,kind,amount,amount_uah,op_date,payment_date,period_start,period_end,state,order_id,category_id,service")
         .eq("state", "actual")
-        .gte("op_date", data.from).lte("op_date", data.to),
+        .or(managementPeriodFilter(data.from, data.to)),
       context.supabase.from("finance_categories").select("id,name,cost_class").limit(2000),
       context.supabase.from("finance_allocations").select("transaction_id,dimension,service,order_id,amount").eq("dimension", "service"),
       context.supabase.from("order_zones").select("order_id,service,area,status,archived"),
@@ -102,59 +103,57 @@ export const getServiceEconomics = createServerFn({ method: "POST" })
 
 /* ---------------------------- Кредиторка ---------------------------- */
 
+/**
+ * Єдиний канонічний розрахунок кредиторки. Використовується в Кредиторці,
+ * Огляді (KPI) та Очікуваних платежах — щоб залишок усюди був однаковий.
+ */
+async function loadPayables(supabase: any, today: string): Promise<{ payables: PayablesResult; invoices: any[]; cpName: Map<string, string> }> {
+  const [{ data: obligations }, { data: tx }, { data: links }, { data: cps }, { data: invoices }] = await Promise.all([
+    supabase.from("supplier_obligations").select("*"),
+    supabase
+      .from("finance_transactions")
+      .select("id,kind,amount,amount_uah,op_date,payment_date,state,counterparty_id,order_id")
+      .eq("kind", "expense"),
+    supabase.from("finance_transaction_links").select("transaction_id,entity_type,entity_id,status").eq("entity_type", "supplier_obligation"),
+    supabase.from("finance_counterparties").select("id,name,kind"),
+    supabase.from("finmap_invoices").select("id,finmap_id,number,counterparty_id,counterparty_name,amount,amount_uah,issue_date,due_date,status,order_id,match_status"),
+  ]);
+
+  const cpName = new Map(((cps ?? []) as any[]).map((c) => [c.id, c.name])) as Map<string, string>;
+  const explicit = new Map(((links ?? []) as any[]).filter((l) => l.status !== "rejected").map((l) => [l.transaction_id, l.entity_id]));
+
+  const payments = ((tx ?? []) as any[]).map((t) => ({
+    id: t.id,
+    counterparty_id: t.counterparty_id ?? null,
+    order_id: t.order_id ?? null,
+    obligation_id: explicit.get(t.id) ?? null,
+    amount: amt(t),
+    date: cash(t),
+    state: String(t.state ?? "actual"),
+  }));
+
+  const payables = computePayables({
+    obligations: (obligations ?? []) as any[],
+    payments,
+    today,
+    cpName: (id) => (id ? cpName.get(id) ?? null : null),
+  });
+
+  return { payables, invoices: (invoices ?? []) as any[], cpName };
+}
+
 export const getPayables = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     await assertFinance(context);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: obligations }, { data: tx }, { data: cps }, { data: invoices }] = await Promise.all([
-      context.supabase.from("supplier_obligations").select("*"),
-      context.supabase
-        .from("finance_transactions")
-        .select("id,kind,amount,amount_uah,op_date,payment_date,state,counterparty_id,order_id")
-        .eq("kind", "expense"),
-      context.supabase.from("finance_counterparties").select("id,name,kind"),
-      context.supabase.from("finmap_invoices").select("id,finmap_id,number,counterparty_id,counterparty_name,amount,amount_uah,issue_date,due_date,status,order_id,match_status"),
-    ]);
-
-    const cpName = new Map(((cps ?? []) as any[]).map((c) => [c.id, c.name]));
-    const groups = new Map<string, { supplier: string; counterpartyId: string | null; obligations: any[]; paid: any[]; scheduled: any[] }>();
-    const key = (cpId: string | null, name: string | null) => cpId ?? `name:${name ?? "—"}`;
-
-    for (const o of (obligations ?? []) as any[]) {
-      const k = key(o.counterparty_id, o.supplier_name);
-      const g = groups.get(k) ?? {
-        supplier: (o.supplier_name ?? cpName.get(o.counterparty_id) ?? "—") as string,
-        counterpartyId: o.counterparty_id as string | null,
-        obligations: [] as any[], paid: [] as any[], scheduled: [] as any[],
-      };
-      g.obligations.push(o);
-      groups.set(k, g);
-    }
-    for (const t of (tx ?? []) as any[]) {
-      const k = key(t.counterparty_id, null);
-      const g = groups.get(k);
-      if (!g) continue; // витрата без зобовʼязання не створює борг заднім числом
-      if (String(t.state) === "scheduled") g.scheduled.push({ amount: amt(t) });
-      else g.paid.push({ amount: amt(t), date: cash(t) });
-    }
-
-    const rows = [...groups.values()].map((g) => ({
-      supplier: g.supplier,
-      counterpartyId: g.counterpartyId,
-      ...computePayable({ obligations: g.obligations, actualPaid: g.paid, scheduledPayments: g.scheduled, today }),
-    })).sort((a, b) => b.remaining - a.remaining);
-
+    const { payables, invoices } = await loadPayables(context.supabase, today);
     return {
-      rows,
-      totals: {
-        obligations: r2(rows.reduce((s, r) => s + r.obligations, 0)),
-        scheduled: r2(rows.reduce((s, r) => s + r.scheduled, 0)),
-        paid: r2(rows.reduce((s, r) => s + r.paid, 0)),
-        remaining: r2(rows.reduce((s, r) => s + r.remaining, 0)),
-        overdue: r2(rows.reduce((s, r) => s + r.overdue, 0)),
-      },
-      invoices: (invoices ?? []) as any[],
+      rows: payables.suppliers,
+      obligations: payables.obligations,
+      totals: payables.totals,
+      unmatchedPayments: payables.unmatchedPayments,
+      invoices,
     };
   });
 
@@ -199,14 +198,16 @@ export const getUpcomingPayments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     await assertFinance(context);
     const today = new Date().toISOString().slice(0, 10);
-    const [{ data: sched }, { data: stages }, { data: obligations }] = await Promise.all([
+    const [{ data: sched }, { data: stages }, { payables }] = await Promise.all([
       context.supabase
         .from("finance_transactions")
         .select("id,kind,amount,amount_uah,op_date,payment_date,state,order_id,counterparty:counterparty_id(name),category:category_id(name)")
         .eq("state", "scheduled"),
       context.supabase.from("order_payment_stages").select("id,order_id,due_date,amount,paid_amount,status").in("status", ["planned", "due", "partially_paid", "overdue"]),
-      context.supabase.from("supplier_obligations").select("id,order_id,supplier_name,amount,due_date,status").in("status", ["open", "partial"]),
+      loadPayables(context.supabase, today),
     ]);
+    // Той самий канонічний залишок, що й у Кредиторці та KPI.
+    const obligations = payables.obligations.filter((o) => o.remaining > 0);
 
     const rows: UpcomingRow[] = [];
     for (const t of (sched ?? []) as any[]) {
@@ -217,8 +218,9 @@ export const getUpcomingPayments = createServerFn({ method: "GET" })
       if (rest <= 0) continue;
       rows.push({ id: s.id, date: s.due_date ?? null, kind: "income", amount: rest, counterparty: null, category: "Етап договору", order_id: s.order_id, status: s.status ?? "planned", source: "erp" });
     }
-    for (const o of (obligations ?? []) as any[]) {
-      rows.push({ id: o.id, date: o.due_date ?? null, kind: "expense", amount: r2(num(o.amount)), counterparty: o.supplier_name, category: "Зобовʼязання постачальнику", order_id: o.order_id, status: o.status ?? "open", source: "erp" });
+    for (const o of obligations) {
+      // Показуємо непогашений залишок, а не початкову суму зобовʼязання.
+      rows.push({ id: o.id, date: o.dueDate, kind: "expense", amount: o.remaining, counterparty: o.supplier, category: "Зобовʼязання постачальнику", order_id: o.orderId, status: o.status, source: "erp" });
     }
 
     return { today, ...upcomingBuckets(rows, today) };
@@ -234,12 +236,13 @@ export const getManagementKpi = createServerFn({ method: "POST" })
     await assertFinance(context);
     const today = new Date().toISOString().slice(0, 10);
     const in30 = new Date(Date.now() + 30 * 86_400_000).toISOString().slice(0, 10);
-    const [{ data: accounts }, { data: tx }, { data: sched }, { data: stages }, { data: obligations }, { data: payroll }] = await Promise.all([
+    const [{ data: accounts }, { data: tx }, { data: sched }, { data: stages }, { payables }, { data: payroll }] = await Promise.all([
       context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance").eq("archived", false),
-      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "actual").gte("op_date", data.from).lte("op_date", data.to),
+      // Cash Flow періоду — за датою оплати.
+      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "actual").or(cashDateFilter(data.from, data.to)),
       context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,payment_date,state").eq("state", "scheduled"),
       context.supabase.from("order_payment_stages").select("amount,paid_amount,due_date,status"),
-      context.supabase.from("supplier_obligations").select("amount,due_date,status"),
+      loadPayables(context.supabase, today),
       context.supabase.from("payroll_calculations").select("total_payable,paid_amount,period:period_id(period)"),
     ]);
 
@@ -258,9 +261,9 @@ export const getManagementKpi = createServerFn({ method: "POST" })
     const receivableDue = r2(st.filter((x) => x.due_date && x.due_date <= today).reduce((s, x) => s + rest(x), 0));
     const receivableOverdue = r2(st.filter((x) => x.due_date && x.due_date < today).reduce((s, x) => s + rest(x), 0));
 
-    const ob = ((obligations ?? []) as any[]).filter((o) => !["cancelled", "closed"].includes(String(o.status)));
-    const payableRemaining = r2(ob.reduce((s, o) => s + num(o.amount), 0));
-    const payableOverdue = r2(ob.filter((o) => o.due_date && o.due_date < today).reduce((s, o) => s + num(o.amount), 0));
+    // Кредиторка — канонічний розрахунок (той самий, що у вкладці «Кредиторка»).
+    const payableRemaining = payables.totals.remaining;
+    const payableOverdue = payables.totals.overdue;
 
     const pay = ((payroll ?? []) as any[]).filter((p) => {
       const per = p.period?.period as string | undefined;
