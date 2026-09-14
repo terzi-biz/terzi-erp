@@ -10,8 +10,8 @@
  * і запис у власні таблиці ERP.
  */
 import { admin } from "../../access.server";
+import { normalizePhone } from "../../phone";
 import { normalizeDirection, normalizeDisposition, toE164Ua } from "../binotel-constants";
-import { normPhone } from "../keycrm/sync.server";
 
 const SESSION_TTL_MIN = 180;
 
@@ -44,6 +44,7 @@ export type ParsedCall = {
   isMissed: boolean;
   isNewCall: boolean;
   recordingUrl: string | null;
+  recordingAvailable: boolean;
   callTracking: Record<string, unknown>;
 };
 
@@ -61,6 +62,8 @@ export function parseBinotelCall(raw: BinotelPayload): ParsedCall {
     ? new Date(typeof startRaw === "number" || /^\d+$/.test(String(startRaw)) ? Number(startRaw) * 1000 : String(startRaw)).toISOString()
     : new Date().toISOString();
   const isMissed = status === "missed" || status === "cancelled" || (durationSec === 0 && status !== "answered");
+  const recordingUrl = pick(raw, ["recordUrl", "recording_url", "recordingUrl"])?.toString() ?? null;
+  const recordingStatus = String(pick(raw, ["recordingStatus", "recording_status"]) ?? "").toLowerCase();
 
   return {
     generalCallId: pick(raw, ["generalCallID", "generalCallId", "callId", "id"])?.toString() ?? null,
@@ -70,7 +73,7 @@ export function parseBinotelCall(raw: BinotelPayload): ParsedCall {
     internalNumber: internal ? String(internal) : null,
     pbxNumber: pick(raw, ["pbxNumber", "pbx_number"])?.toString() ?? null,
     pbxNumberName: pick(raw, ["pbxNumberName", "pbx_number_name"])?.toString() ?? null,
-    phoneNorm: normPhone(external) ?? null,
+    phoneNorm: normalizePhone(external).digits,
     startedAt,
     answeredAt: durationSec > 0 ? new Date(new Date(startedAt).getTime() + waitSec * 1000).toISOString() : null,
     durationSec,
@@ -79,7 +82,8 @@ export function parseBinotelCall(raw: BinotelPayload): ParsedCall {
     status,
     isMissed,
     isNewCall: String(pick(raw, ["isNewCall", "is_new_call"]) ?? "") === "1" || pick(raw, ["isNewCall"]) === true,
-    recordingUrl: pick(raw, ["recordUrl", "recording_url", "recordingUrl"])?.toString() ?? null,
+    recordingUrl,
+    recordingAvailable: Boolean(recordingUrl) || ["uploaded", "ready", "available"].includes(recordingStatus),
     callTracking: (raw?.callTracking ?? raw?.call_tracking ?? {}) as Record<string, unknown>,
   };
 }
@@ -421,6 +425,7 @@ export async function handleCallCompleted(
         phone_norm: call.phoneNorm,
         external_source: "binotel",
         external_id: call.generalCallId,
+        phone_e164: call.externalNumber ? (toE164Ua(call.externalNumber) ?? null) : null,
         notes: "Створено автоматично з дзвінка Binotel",
       } as any)
       .select("id")
@@ -447,6 +452,7 @@ export async function handleCallCompleted(
         direction: rule?.service_direction ?? null,
         external_source: "binotel",
         external_id: call.generalCallId,
+        phone_e164: call.externalNumber ? normalizePhone(call.externalNumber).e164 : null,
         notes: `Автоматично створено з дзвінка Binotel (${call.pbxNumberName ?? call.pbxNumber ?? "АТС"})`,
       } as any)
       .select("id")
@@ -508,6 +514,7 @@ export async function handleCallCompleted(
     from_number: call.direction === "inbound" ? call.externalNumber : call.pbxNumber ?? call.internalNumber,
     to_number: call.direction === "inbound" ? call.pbxNumber ?? call.internalNumber : call.externalNumber,
     phone_norm: call.phoneNorm,
+    phone_e164: call.externalNumber ? normalizePhone(call.externalNumber).e164 : null,
     started_at: call.startedAt,
     answered_at: call.answeredAt,
     ended_at: new Date(new Date(call.startedAt).getTime() + (call.waitSec + call.durationSec) * 1000).toISOString(),
@@ -518,7 +525,7 @@ export async function handleCallCompleted(
     is_missed: call.isMissed,
     is_new_call: call.isNewCall,
     recording_url: call.recordingUrl,
-    recording_available: Boolean(call.recordingUrl),
+    recording_available: call.recordingAvailable,
     provider: "binotel",
     external_source: "binotel",
     external_id: call.generalCallId,

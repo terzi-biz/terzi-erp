@@ -23,4 +23,8 @@ export const listEntityCalls = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) =>
     entityCallsSchema.parse(d),
   )
-  .handler(async ({ context, data }) => entityCalls(context.supabase, data));
+  .handler(async ({ context, data }) => {
+    const { admin, requirePermission } = await import("./access.server");
+    await requirePermission(context.userId, data.measurementId ? "measurements" : data.orderId ? "orders" : "clients", "view");
+    return entityCalls(await admin(), data);
+  });

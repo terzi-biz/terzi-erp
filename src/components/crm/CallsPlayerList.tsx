@@ -62,17 +62,18 @@ function Row({ call }: { call: any }) {
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {url ? (
-          <audio controls preload="none" src={url} className="w-full h-8" />
+          <audio controls autoPlay preload="metadata" src={url} className="w-full h-8" onError={() => setMsg("Браузер не зміг відкрити запис. Спробуйте завантажити його в новій вкладці.")} />
         ) : (
           <button
             type="button"
             onClick={load}
-            disabled={loading}
+            disabled={loading || call.is_missed || Number(call.duration_sec ?? 0) <= 0}
             className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-1 font-semibold disabled:opacity-60"
           >
-            <Play className="w-3 h-3" /> {loading ? "Завантаження…" : "Прослухати запис"}
+            <Play className="w-3 h-3" /> {loading ? "Завантаження…" : call.is_missed || Number(call.duration_sec ?? 0) <= 0 ? "Запису немає" : "Прослухати запис"}
           </button>
         )}
+        {url ? <a href={url} target="_blank" rel="noreferrer" className="font-semibold text-primary hover:underline">Відкрити запис</a> : null}
         {msg && <span className="text-muted-foreground">{msg}</span>}
       </div>
     </div>
