@@ -1078,7 +1078,7 @@ export async function pollEntity(
         items.push(...rows.map((r: any) => ({ ...r, pipeline_id: r.pipeline_id ?? p.id })));
       }
     } else {
-      items = await client.paginate(path, query, opts.maxPages ?? 5);
+      items = await client.paginate(path, query, opts.maxPages ?? 5, opts.page ?? 1);
     }
   } catch (e: any) {
     if (!opts.dryRun) {
