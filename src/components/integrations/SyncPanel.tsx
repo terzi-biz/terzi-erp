@@ -169,7 +169,7 @@ export function SyncPanel({ list, active, onSelect }: { list: any[]; active: any
                         min={5}
                         max={1440}
                         defaultValue={r.poll_interval_min}
-                        onBlur={(e) => save.mutate({ integrationId: current.id, entity: r.entity, mode: r.mode, pollEnabled: r.poll_enabled, pollIntervalMin: Number(e.target.value) || 15 })}
+                        onBlur={(e) => save.mutate({ integrationId: current.id, entity: r.entity, mode: r.mode, pollEnabled: r.poll_enabled, pollIntervalMin: Number(e.target.value) || 5 })}
                         className="w-16 bg-input border border-border rounded px-1 py-0.5"
                       />
                       хв
