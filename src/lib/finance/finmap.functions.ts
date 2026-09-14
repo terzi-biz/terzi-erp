@@ -87,10 +87,13 @@ export const runFinmapSyncNow = createServerFn({ method: "POST" })
 /** Автозв'язок Finmap ↔ ERP без повторного завантаження даних із Finmap. */
 export const runFinmapMatchNow = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((d: unknown) => z.object({ dry_run: z.boolean().default(false) }).parse(d ?? {}))
+  .handler(async ({ data, context }) => {
     await assertFinance(context);
     const { runFinmapAutoMatch } = await import("./finmap-match.server");
-    const reports = await runFinmapAutoMatch(context.supabase);
+    const reports = await runFinmapAutoMatch(context.supabase, { dryRun: data.dry_run });
+    // Пробний прохід нічого не пише — ані зв'язків, ані журналу.
+    if (data.dry_run) return reports;
     await context.supabase.from("finmap_sync_log").insert({
       entity: "match", mode: "match", status: "ok",
       fetched: reports.reduce((s, r) => s + r.linked + r.review, 0),
