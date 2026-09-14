@@ -1319,7 +1319,16 @@ export async function runKeyCrmSync(
     if (!opts.dryRun && (mode === "off" || mode === "erp_master")) continue;
     if (!opts.dryRun && !opts.entities && !setting?.poll) continue;
     try {
-      results.push(await pollEntity(ctx, def.key, { mode, full: opts.full, dryRun: opts.dryRun }));
+      results.push(
+        await pollEntity(ctx, def.key, {
+          mode,
+          full: opts.full,
+          dryRun: opts.dryRun,
+          maxPages: opts.maxPages,
+          force: opts.force,
+          page: opts.page,
+        }),
+      );
     } catch (e: any) {
       results.push({ entity: def.key, error: e?.message ?? String(e) });
     }
