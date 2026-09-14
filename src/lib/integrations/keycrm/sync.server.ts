@@ -1043,9 +1043,19 @@ export async function pollEntity(
   const startedAt = new Date().toISOString();
 
   const query: Record<string, unknown> = { limit: Number((ctx.config as any)?.page_size ?? 50) };
+  const include = (ctx.config as any)?.[`include_${entity}`] ?? KEYCRM_DEFAULT_INCLUDES[entity] ?? undefined;
+  if (include) query.include = include;
+
+  // keyCRM підтримує лише filter[updated_between]=from,to (документований фільтр).
   const filterParam = ((ctx.config as any)?.updated_filter_param ?? null) as string | null;
+  const supportsUpdatedBetween = UPDATED_BETWEEN_ENTITIES.has(entity);
   if (since && filterParam) query[filterParam] = since;
-  if (entity === "lead_cards" || entity === "orders") query.include = (ctx.config as any)?.[`include_${entity}`] ?? undefined;
+  else if (since && supportsUpdatedBetween) {
+    // Перекриття 10 хв: повʼязані дані змінюються незалежно від updated_at батька.
+    const from = new Date(new Date(since).getTime() - 10 * 60_000);
+    const to = new Date(Date.now() + 24 * 3600_000);
+    query["filter[updated_between]"] = `${isoMinute(from)},${isoMinute(to)}`;
+  }
 
   let items: any[] = [];
   try {
