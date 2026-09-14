@@ -202,7 +202,19 @@ function DataAuditPage() {
                         <td className="py-2 px-2 text-muted-foreground">{r.detail}</td>
                         <td className="py-2 px-2">{r.change ?? "—"}</td>
                         <td className="py-2 pl-2">
-                          {!r.applyKey ? (
+                          {typeof r.applyKey === "string" && r.applyKey.startsWith("open:") ? (
+                            <button
+                              className={`${btn} border border-border text-xs px-2 py-1`}
+                              onClick={() => {
+                                const next = r.applyKey.slice(5) as CheckKey;
+                                setCheck(next);
+                                setReport(null);
+                                runMut.mutate({ check: next, save: false });
+                              }}
+                            >
+                              Відкрити перелік
+                            </button>
+                          ) : !r.applyKey ? (
                             <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
                               <AlertTriangle className="w-3.5 h-3.5" /> вручну
                             </span>
