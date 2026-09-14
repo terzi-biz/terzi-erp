@@ -11,8 +11,9 @@ import { formatUah } from "@/lib/screed-calc";
 import {
   getFinanceOverview, listFinanceTransactions, getFinmapStatus, testFinmapConnection,
   runFinmapSyncNow, runFinmapMatchNow, listFinmapMappings, saveFinmapMapping, suggestTransactionLinks,
-  linkFinanceTransaction, getPlanFact,
+  linkFinanceTransaction, getPlanFact, getFinanceReconciliation, saveCategoryCostClass,
 } from "@/lib/finance/finmap.functions";
+import { CANONICAL_COST_CLASSES, CANONICAL_LABELS } from "@/lib/finance/cost-class";
 import {
   listPayrollProfiles, savePayrollProfile, calculatePayrollPeriod, listPayrollCalculations,
   setPayrollKpiFact, setPayrollStatus, reconcilePayrollPayments, pushPayrollPaymentToFinmap,
@@ -252,6 +253,8 @@ export function ReconcileSection({ period }: { period: Period }) {
   });
 
   return (
+    <div className="space-y-3">
+    <ReconciliationSummary period={period} />
     <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
       <div className="rounded-2xl border border-border bg-card overflow-hidden">
         <table className="w-full text-sm">
@@ -304,6 +307,113 @@ export function ReconcileSection({ period }: { period: Period }) {
           )}
         </div>
       </div>
+    </div>
+    </div>
+  );
+}
+
+/** Підсумок звірки: що саме заважає фінансам зійтися. */
+function ReconciliationSummary({ period }: { period: Period }) {
+  const qc = useQueryClient();
+  const recFn = useServerFn(getFinanceReconciliation);
+  const matchFn = useServerFn(runFinmapMatchNow);
+  const classFn = useServerFn(saveCategoryCostClass);
+  const [dry, setDry] = useState<any[] | null>(null);
+
+  const { data: r } = useQuery({
+    queryKey: ["fin-reconciliation", period.from, period.to],
+    queryFn: () => recFn({ data: { ...period } as any }),
+  });
+
+  const run = useMutation({
+    mutationFn: (dryRun: boolean) => matchFn({ data: { dry_run: dryRun } }),
+    onSuccess: (res: any, dryRun) => {
+      if (dryRun) { setDry(res); toast.success("Пробний прохід виконано — нічого не змінено"); }
+      else {
+        setDry(null);
+        toast.success("Автозв'язування виконано");
+        qc.invalidateQueries({ queryKey: ["fin-reconciliation"] });
+        qc.invalidateQueries({ queryKey: ["fin-unmatched"] });
+      }
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Помилка"),
+  });
+
+  const setClass = useMutation({
+    mutationFn: (p: { category_id: string; cost_class: string }) => classFn({ data: p as any }),
+    onSuccess: () => { toast.success("Клас витрат збережено"); qc.invalidateQueries({ queryKey: ["fin-reconciliation"] }); },
+    onError: (e: any) => toast.error(e?.message ?? "Помилка"),
+  });
+
+  if (!r) return null;
+
+  const tile = (label: string, main: string, sub?: string) => (
+    <div className="rounded-xl border border-border bg-card p-3">
+      <div className="text-[11px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="mt-1 text-lg font-black tabular-nums">{main}</div>
+      {sub && <div className="text-[11px] text-muted-foreground">{sub}</div>}
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <button className={`${btn} border border-border`} disabled={run.isPending} onClick={() => run.mutate(true)}>
+          Пробний прохід
+        </button>
+        <button className={`${btn} bg-primary text-primary-foreground`} disabled={run.isPending} onClick={() => run.mutate(false)}>
+          Застосувати автозв'язування
+        </button>
+        <span className="text-[11px] text-muted-foreground">
+          Автоматика застосовує лише однозначні збіги; ручні зв'язки не перетираються.
+        </span>
+      </div>
+
+      {dry && (
+        <div className="rounded-xl border border-border bg-secondary/30 p-3 text-xs space-y-2">
+          <div className="font-semibold uppercase tracking-wider text-muted-foreground">Результат пробного проходу</div>
+          {dry.map((rep: any) => (
+            <div key={rep.entity}>
+              <b>{rep.entity}</b>: зв'яжеться {rep.linked}, на перевірку {rep.review}, пропущено {rep.skipped}
+              <ul className="mt-1 ml-4 list-disc text-muted-foreground">
+                {(rep.rules ?? []).map((x: any) => (
+                  <li key={x.rule}>{x.label} — {x.count}{x.amount ? ` · ${formatUah(x.amount)}` : ""}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="grid gap-3 md:grid-cols-4">
+        {tile("Операції без замовлення", String(r.transactions.noOrder.count), formatUah(r.transactions.noOrder.amount))}
+        {tile("Операції без клієнта", String(r.transactions.noClient.count), formatUah(r.transactions.noClient.amount))}
+        {tile("Проєкти без замовлення", String(r.projects.noOrder), `усього ${r.projects.total}`)}
+        {tile("Контрагенти без сутності", String(r.counterparties.unmapped), `усього ${r.counterparties.total}`)}
+      </div>
+
+      {r.categories.unclassified > 0 && (
+        <div className="rounded-xl border border-border bg-card p-3">
+          <div className="text-xs uppercase tracking-wider text-muted-foreground">
+            Статті без класу витрат · {r.categories.unclassified}
+          </div>
+          <div className="mt-2 space-y-1 max-h-64 overflow-y-auto">
+            {r.categories.rows.map((c: any) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 border-b border-border/50 py-1.5 text-sm">
+                <span className="min-w-0 truncate">{c.name}</span>
+                <select className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  defaultValue=""
+                  onChange={(e) => e.target.value && setClass.mutate({ category_id: c.id, cost_class: e.target.value })}>
+                  <option value="">Обрати клас… (підказка: {CANONICAL_LABELS[c.suggested as keyof typeof CANONICAL_LABELS] ?? c.suggested})</option>
+                  {CANONICAL_COST_CLASSES.map((k) => (
+                    <option key={k} value={k}>{CANONICAL_LABELS[k]}</option>
+                  ))}
+                </select>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
