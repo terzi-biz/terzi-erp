@@ -458,7 +458,51 @@ export async function handleCallCompleted(
     }
   }
 
+  // Звʼязок дзвінка із замовленням і заміром (канонічні сутності ERP).
+  const orderId = await resolveOrderId(leadId, clientId);
+
+  // Успішна вхідна розмова → автоматичний замір (за налаштуванням телефонії).
+  let createdMeasurement: string | null = null;
+  const minTalk = Number(cfg.measurement_min_duration_sec ?? 60) || 60;
+  if (
+    runAutomations &&
+    cfg.auto_create_measurement === true &&
+    call.direction === "inbound" &&
+    !call.isMissed &&
+    call.durationSec >= minTalk &&
+    (leadId || clientId) &&
+    !(await hasOpenMeasurement(orderId, leadId, clientId))
+  ) {
+    const { data: measurement } = await db
+      .from("order_measurements")
+      .insert({
+        order_id: orderId,
+        lead_id: leadId,
+        client_id: clientId,
+        type: "primary",
+        status: "planned",
+        scheduled_at: nextWorkingDayAt10(),
+        surveyor_id: null,
+        created_by: owner,
+        notes: `Створено автоматично з дзвінка Binotel${call.pbxNumberName ? ` · ${call.pbxNumberName}` : ""}`,
+      } as any)
+      .select("id")
+      .maybeSingle();
+    createdMeasurement = (measurement as any)?.id ?? null;
+    if (createdMeasurement && leadId && owner) {
+      await db.from("crm_lead_activities").insert({
+        lead_id: leadId,
+        actor_id: owner,
+        kind: "note",
+        body: "Заплановано замір автоматично після розмови (Binotel)",
+      } as any);
+    }
+  }
+
+  const measurementId = createdMeasurement ?? (await resolveMeasurementId(orderId, leadId, clientId));
+
   // Запис дзвінка (ідемпотентно за external_id).
+
   const row: Record<string, unknown> = {
     direction: call.direction,
     from_number: call.direction === "inbound" ? call.externalNumber : call.pbxNumber ?? call.internalNumber,
