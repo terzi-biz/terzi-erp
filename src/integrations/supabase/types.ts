@@ -2367,6 +2367,82 @@ export type Database = {
         }
         Relationships: []
       }
+      finance_allocations: {
+        Row: {
+          amount: number
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          dimension: string
+          id: string
+          order_id: string | null
+          ref_finmap_id: string | null
+          ref_name: string | null
+          service: string | null
+          share: number | null
+          source: string
+          status: string
+          transaction_id: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dimension: string
+          id?: string
+          order_id?: string | null
+          ref_finmap_id?: string | null
+          ref_name?: string | null
+          service?: string | null
+          share?: number | null
+          source?: string
+          status?: string
+          transaction_id: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          dimension?: string
+          id?: string
+          order_id?: string | null
+          ref_finmap_id?: string | null
+          ref_name?: string | null
+          service?: string | null
+          share?: number | null
+          source?: string
+          status?: string
+          transaction_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_allocations_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_allocations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finance_allocations_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "finance_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_categories: {
         Row: {
           archived: boolean
@@ -2543,6 +2619,36 @@ export type Database = {
           },
         ]
       }
+      finance_tags: {
+        Row: {
+          archived: boolean
+          created_at: string
+          finmap_id: string | null
+          id: string
+          name: string
+          source: string
+          updated_at: string
+        }
+        Insert: {
+          archived?: boolean
+          created_at?: string
+          finmap_id?: string | null
+          id?: string
+          name: string
+          source?: string
+          updated_at?: string
+        }
+        Update: {
+          archived?: boolean
+          created_at?: string
+          finmap_id?: string | null
+          id?: string
+          name?: string
+          source?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       finance_transaction_links: {
         Row: {
           amount: number | null
@@ -2593,8 +2699,10 @@ export type Database = {
       finance_transactions: {
         Row: {
           account_id: string | null
+          allocation_status: string
           amount: number
           amount_uah: number | null
+          approved: boolean | null
           category_id: string | null
           client_id: string | null
           comment: string | null
@@ -2611,16 +2719,24 @@ export type Database = {
           op_date: string
           order_id: string | null
           payload: Json
+          payment_date: string | null
+          period_end: string | null
+          period_start: string | null
+          service: string | null
           source: string
+          state: string
           sync_status: string
           synced_at: string | null
+          tags: Json
           to_account_id: string | null
           updated_at: string
         }
         Insert: {
           account_id?: string | null
+          allocation_status?: string
           amount: number
           amount_uah?: number | null
+          approved?: boolean | null
           category_id?: string | null
           client_id?: string | null
           comment?: string | null
@@ -2637,16 +2753,24 @@ export type Database = {
           op_date: string
           order_id?: string | null
           payload?: Json
+          payment_date?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          service?: string | null
           source?: string
+          state?: string
           sync_status?: string
           synced_at?: string | null
+          tags?: Json
           to_account_id?: string | null
           updated_at?: string
         }
         Update: {
           account_id?: string | null
+          allocation_status?: string
           amount?: number
           amount_uah?: number | null
+          approved?: boolean | null
           category_id?: string | null
           client_id?: string | null
           comment?: string | null
@@ -2663,9 +2787,15 @@ export type Database = {
           op_date?: string
           order_id?: string | null
           payload?: Json
+          payment_date?: string | null
+          period_end?: string | null
+          period_start?: string | null
+          service?: string | null
           source?: string
+          state?: string
           sync_status?: string
           synced_at?: string | null
+          tags?: Json
           to_account_id?: string | null
           updated_at?: string
         }
@@ -2765,6 +2895,93 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      finmap_invoices: {
+        Row: {
+          amount: number
+          amount_uah: number | null
+          attachments: Json
+          counterparty_id: string | null
+          counterparty_name: string | null
+          created_at: string
+          currency: string
+          delivery_amount: number | null
+          discount_amount: number | null
+          due_date: string | null
+          finmap_id: string | null
+          id: string
+          issue_date: string | null
+          items: Json
+          match_status: string
+          number: string | null
+          order_id: string | null
+          payload: Json | null
+          status: string | null
+          updated_at: string
+          vat_amount: number | null
+        }
+        Insert: {
+          amount?: number
+          amount_uah?: number | null
+          attachments?: Json
+          counterparty_id?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          currency?: string
+          delivery_amount?: number | null
+          discount_amount?: number | null
+          due_date?: string | null
+          finmap_id?: string | null
+          id?: string
+          issue_date?: string | null
+          items?: Json
+          match_status?: string
+          number?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          status?: string | null
+          updated_at?: string
+          vat_amount?: number | null
+        }
+        Update: {
+          amount?: number
+          amount_uah?: number | null
+          attachments?: Json
+          counterparty_id?: string | null
+          counterparty_name?: string | null
+          created_at?: string
+          currency?: string
+          delivery_amount?: number | null
+          discount_amount?: number | null
+          due_date?: string | null
+          finmap_id?: string | null
+          id?: string
+          issue_date?: string | null
+          items?: Json
+          match_status?: string
+          number?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          status?: string | null
+          updated_at?: string
+          vat_amount?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finmap_invoices_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "finance_counterparties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "finmap_invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       finmap_sync_log: {
         Row: {
@@ -7586,6 +7803,79 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_obligations: {
+        Row: {
+          amount: number
+          counterparty_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          due_date: string | null
+          finmap_invoice_id: string | null
+          id: string
+          note: string | null
+          order_id: string | null
+          source: string
+          status: string
+          supplier_name: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          counterparty_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string | null
+          finmap_invoice_id?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          source?: string
+          status?: string
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          counterparty_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          due_date?: string | null
+          finmap_invoice_id?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string | null
+          source?: string
+          status?: string
+          supplier_name?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_obligations_counterparty_id_fkey"
+            columns: ["counterparty_id"]
+            isOneToOne: false
+            referencedRelation: "finance_counterparties"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_obligations_finmap_invoice_id_fkey"
+            columns: ["finmap_invoice_id"]
+            isOneToOne: false
+            referencedRelation: "finmap_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_obligations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
