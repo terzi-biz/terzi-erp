@@ -1045,7 +1045,7 @@ const isoMinute = (d: Date) => d.toISOString().slice(0, 19).replace("T", " ");
 export async function pollEntity(
   ctx: AdapterContext,
   entity: string,
-  opts: { mode: SyncMode; full?: boolean; maxPages?: number; dryRun?: boolean },
+  opts: { mode: SyncMode; full?: boolean; maxPages?: number; dryRun?: boolean; force?: boolean; page?: number },
 ) {
   const client = apiClient(ctx);
   const path = entityPath(ctx, entity);
