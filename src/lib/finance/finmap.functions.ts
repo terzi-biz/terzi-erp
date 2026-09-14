@@ -345,6 +345,8 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFinance(context);
     const { transaction_id, status, ...fields } = data;
+    const { data: before } = await context.supabase
+      .from("finance_transactions").select("order_id,client_id,counterparty_id,match_status").eq("id", transaction_id).maybeSingle();
     const patch: Record<string, unknown> = { match_status: status };
     for (const [k, v] of Object.entries(fields)) if (v !== undefined) patch[k] = v;
     const { data: out, error } = await context.supabase
@@ -354,6 +356,14 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
       transaction_id, entity_type: fields.order_id ? "order" : fields.client_id ? "client" : "counterparty",
       entity_id: (fields.order_id ?? fields.client_id ?? fields.counterparty_id ?? null) as string,
       amount: out.amount, confidence: 1, status: "manual", created_by: context.userId,
+    });
+    await context.supabase.from("audit_logs").insert({
+      actor_id: context.userId, module: "finance", action: "transaction.link", is_critical: true,
+      entity_type: "finance_transaction", entity_id: transaction_id,
+      order_id: (fields.order_id ?? null) as string | null,
+      client_id: (fields.client_id ?? null) as string | null,
+      old_value: (before ?? null) as never, new_value: patch as never,
+      financial_impact: Number(out.amount_uah ?? out.amount) || 0,
     });
     return out;
   });
