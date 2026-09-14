@@ -643,28 +643,62 @@ export async function applyAuditAction(
     const keeper = parts[1];
     const losers = (parts[2] ?? "").split(",").filter(Boolean);
     if (!keeper || losers.length === 0) throw new Error("Некоректна група для об'єднання");
+    const res = await mergeClientGroup(keeper, losers, userId);
+    return { applied: res.applied, message: `Перенесено ${res.applied} звʼязків, архівовано дублів: ${losers.length}` };
+  }
+
+  if (parts[0] === "mergesafe") {
+    const { groups } = await clientDuplicateGroups();
+    const safe = groups.filter((g) => g.safe);
     let applied = 0;
-    for (const table of ["orders", "estimates", "crm_leads", "crm_calls"] as const) {
-      for (const loser of losers) {
-        const { data, error } = await client
-          .from(table)
-          .update({ client_id: keeper })
-          .eq("client_id", loser)
-          .select("id");
-        if (error) throw new Error(`Не вдалося перенести ${table}: ${error.message}`);
-        applied += (data ?? []).length;
-      }
+    for (const g of safe) {
+      const res = await mergeClientGroup(
+        g.survivor.id,
+        g.losers.map((l) => l.id),
+        userId,
+      );
+      applied += res.applied;
     }
-    const { error: archErr } = await client
-      .from("clients")
-      .update({ status: "archived", notes: `Обʼєднано з клієнтом ${keeper} (аудит даних, ${userId})` })
-      .in("id", losers);
-    if (archErr) throw new Error(`Не вдалося архівувати дублі: ${archErr.message}`);
+    const excess = safe.reduce((s, g) => s + g.losers.length, 0);
     return {
       applied,
-      message: `Перенесено ${applied} звʼязків, архівовано дублів: ${losers.length}`,
+      message: `Обʼєднано безпечних груп: ${safe.length}, архівовано дублів: ${excess}, перенесено звʼязків: ${applied}. Неоднозначні групи не змінювалися.`,
     };
   }
 
   throw new Error("Невідома дія аудиту");
+}
+
+/**
+ * Обʼєднання однієї групи клієнтів: усі звʼязки переходять на канонічного клієнта,
+ * дублі архівуються з посиланням merged_into. Фізичного видалення немає,
+ * фінансові розрахунки не змінюються — переносяться лише посилання client_id.
+ */
+async function mergeClientGroup(
+  keeper: string,
+  losers: string[],
+  userId: string,
+): Promise<{ applied: number }> {
+  const client = await db();
+  let applied = 0;
+  for (const table of CLIENT_RELATION_TABLES) {
+    for (const loser of losers) {
+      if (loser === keeper) continue;
+      const { data, error } = await client.from(table).update({ client_id: keeper }).eq("client_id", loser).select("id");
+      if (error) throw new Error(`Не вдалося перенести ${table}: ${error.message}`);
+      applied += (data ?? []).length;
+    }
+  }
+  const { data: keeperRow } = await client.from("clients").select("name").eq("id", keeper).maybeSingle();
+  for (const loser of losers) {
+    if (loser === keeper) continue;
+    const { data: cur } = await client.from("clients").select("notes").eq("id", loser).maybeSingle();
+    const note = `merged_into:${keeper} (${keeperRow?.name ?? "канонічний клієнт"}) · аудит даних ${new Date().toISOString()} · ${userId}`;
+    const { error } = await client
+      .from("clients")
+      .update({ status: "archived", notes: [cur?.notes, note].filter(Boolean).join("\n") })
+      .eq("id", loser);
+    if (error) throw new Error(`Не вдалося архівувати дубль: ${error.message}`);
+  }
+  return { applied };
 }
