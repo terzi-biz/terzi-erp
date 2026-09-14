@@ -83,14 +83,15 @@ export const getOrderFinance = createServerFn({ method: "POST" })
       .sort((a, b) => b.amount - a.amount);
     const directCost = r2(costBreakdown.filter((c) => c.direct).reduce((s, c) => s + c.amount, 0));
 
-    // Факт беремо максимум з ERP-платежів і операцій Finmap, щоб не подвоювати одні й ті самі гроші.
-    const revenueFact = r2(Math.max(paymentsIn, finmapIncome));
-    const costFact = r2(Math.max(paymentsOut + expensesFact, finmapExpense));
+    // Факт — ТІЛЬКИ Finmap (єдине джерело правди про гроші); ERP payments/expenses лишаються довідково.
+    const core = orderFinance({ estimates: est, transactions: txRows });
+    const revenueFact = core.fact.revenue;
+    const costFact = core.fact.cost;
 
-    const profitPlan = r2(revenuePlan - costPlan);
-    const profitFact = r2(revenueFact - costFact);
-    const marginPlan = revenuePlan > 0 ? r2((profitPlan / revenuePlan) * 100) : 0;
-    const marginFact = revenueFact > 0 ? r2((profitFact / revenueFact) * 100) : 0;
+    const profitPlan = core.plan.profit;
+    const profitFact = core.fact.profit;
+    const marginPlan = core.plan.margin;
+    const marginFact = core.fact.margin;
 
     // ФОТ по об'єкту
     const items = (payrollItems ?? []) as any[];
