@@ -427,20 +427,25 @@ function simpleReport(check: AuditCheck, rows: LeadRow[], detail: (l: LeadRow) =
 const hasUtm = (l: LeadRow) => Object.values((l.utm ?? {}) as Record<string, unknown>).some((v) => v);
 
 async function stageConflicts(): Promise<AuditReport> {
+  const { canonicalLeadStatus } = await import("../integrations/keycrm/mapping");
   const leads = await leadsForQuality();
-  const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id");
+
+  const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id,is_won,is_lost");
   const stageById = new Map(stages.map((s) => [s.id, s]));
   const bad = leads.filter((l) => {
     const stage = l.stage_id ? stageById.get(l.stage_id) : null;
     if (!stage) return Boolean(l.stage_id);
-    const name = String(stage.name ?? "");
-    const won = /(успешн|успішн|successful)/i.test(name);
-    const finalLost = /(отказ|відмов|спам|дубл|не цел|не наш|некоррект|перестал|дорого|купил)/i.test(name);
-    if (won && l.status !== "won") return true;
-    if (finalLost && l.status === "open") return true;
-    if (!won && !finalLost && (l.status === "won" || l.status === "lost")) return true;
-    return false;
+    const expected = canonicalLeadStatus({
+      title: String(stage.name ?? ""),
+      alias: String(stage.key ?? ""),
+      is_final: Boolean(stage.is_won) || Boolean(stage.is_lost),
+    });
+    if (expected.status === "won") return l.status !== "won";
+    if (expected.status === "open") return l.status === "won" || l.status === "lost";
+    // фінальні етапи відмови: postponed і lost — обидва прийнятні (причина відмови ≠ активний етап)
+    return l.status === "open" || l.status === "won";
   });
+
   return simpleReport(
     "stage_status_conflicts",
     bad,
@@ -649,7 +654,11 @@ export async function applyAuditAction(
 
   if (parts[0] === "mergesafe") {
     const { groups } = await clientDuplicateGroups();
-    const safe = groups.filter((g) => g.safe);
+    const all = groups.filter((g) => g.safe);
+    // Обробляємо порціями, щоб один запит не виходив за ліміт часу.
+    const limit = Number(parts[1] && parts[1] !== "all" ? parts[1] : 120);
+    const safe = all.slice(0, Math.max(1, limit));
+    const remaining = all.length - safe.length;
     let applied = 0;
     for (const g of safe) {
       const res = await mergeClientGroup(
@@ -662,7 +671,7 @@ export async function applyAuditAction(
     const excess = safe.reduce((s, g) => s + g.losers.length, 0);
     return {
       applied,
-      message: `Обʼєднано безпечних груп: ${safe.length}, архівовано дублів: ${excess}, перенесено звʼязків: ${applied}. Неоднозначні групи не змінювалися.`,
+      message: `Обʼєднано безпечних груп: ${safe.length}, архівовано дублів: ${excess}, перенесено звʼязків: ${applied}.${remaining > 0 ? ` Залишилось безпечних груп: ${remaining} — натисніть «Застосувати» ще раз.` : ""} Неоднозначні групи не змінювалися.`,
     };
   }
 

@@ -234,10 +234,12 @@ export function buildDuplicateGroups(records: DuplicateRecord[]): DuplicateGroup
       if (list.length < 2) continue;
       const survivor = pickSurvivor(list);
       const losers = list.filter((r) => r.id !== survivor.id);
-      // Конфлікт: у групі різні точні e-mail або різні зовнішні ID keyCRM.
+      // Конфлікт: у групі різні точні e-mail (дві різні перевірені особи).
+      // Різні зовнішні ID keyCRM при однаковому точному E.164 — це та сама людина,
+      // заведена в keyCRM двічі: обидва звʼязки перенесуться на канонічного клієнта.
       const emails = new Set(list.map((r) => (r.email ?? "").trim().toLowerCase()).filter(Boolean));
-      const externals = new Set(list.map((r) => (r.externalId ? `${r.externalSource}:${r.externalId}` : "")).filter(Boolean));
-      const conflicting = (by !== "email" && emails.size > 1) || (by !== "external_id" && externals.size > 1);
+      const phones = new Set(list.map((r) => r.phoneE164 ?? "").filter(Boolean));
+      const conflicting = (by !== "email" && emails.size > 1) || (by === "email" && phones.size > 1);
       const safe = !conflicting;
       if (safe) for (const r of list) used.add(r.id);
       groups.push({
