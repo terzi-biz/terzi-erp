@@ -380,11 +380,19 @@ export async function missedCallCallbacks(dryRun: boolean, ownerId: string, days
 
   let applied = 0;
   if (!dryRun && rows.length) {
+    // Ідемпотентність: external_key унікальний, дублікати просто пропускаємо.
     for (let i = 0; i < rows.length; i += 200) {
       const part = rows.slice(i, i + 200);
-      const { error } = await client.from("crm_tasks").upsert(part, { onConflict: "external_key" });
-      if (error) throw new Error(`Не вдалося створити задачі передзвону: ${error.message}`);
-      applied += part.length;
+      const { error } = await client.from("crm_tasks").insert(part);
+      if (!error) {
+        applied += part.length;
+        continue;
+      }
+      for (const row of part) {
+        const res = await client.from("crm_tasks").insert(row);
+        if (!res.error) applied += 1;
+        else if (res.error.code !== "23505") throw new Error(`Не вдалося створити задачу передзвону: ${res.error.message}`);
+      }
     }
   }
 
