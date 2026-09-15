@@ -112,11 +112,11 @@ export async function reconcileCalls(dryRun: boolean): Promise<Crm2Result> {
       details.contact += 1;
     }
 
-    const clientId =
-      call.client_id ??
-      ((contact as any)?.client_id ?? null) ??
-      ((contactByPhone.map.get(phone) as any)?.client_id ?? null) ??
-      ((clientByPhone.map.get(phone) as any)?.id ?? null);
+    const clientId: string | null =
+      (call as any).client_id ||
+      (contactByPhone.map.get(phone) as any)?.client_id ||
+      (clientByPhone.map.get(phone) as any)?.id ||
+      null;
     if (!call.client_id && clientId) {
       patch.client_id = clientId;
       details.client += 1;
