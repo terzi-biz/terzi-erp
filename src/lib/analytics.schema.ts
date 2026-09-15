@@ -8,15 +8,28 @@ export const rangeSchema = z.object({
   to: z.string().min(10),
 });
 
-export const drilldownSchema = rangeSchema.extend({
+export const dashboardFilterSchema = rangeSchema.extend({
+  pipelineId: z.string().uuid().nullable().optional(),
+  source: z.string().max(120).nullable().optional(),
+  managerId: z.string().uuid().nullable().optional(),
+  direction: z.string().max(120).nullable().optional(),
+  orderId: z.string().uuid().nullable().optional(),
+  status: z.string().max(80).nullable().optional(),
+});
+
+export const drilldownSchema = dashboardFilterSchema.extend({
   metric: z.enum([
     "leads",
     "qualified",
     "measurements",
+    "measurements_scheduled",
+    "measurements_completed",
     "estimates",
     "contracts",
     "orders",
-    "payments",
+    "finance_income",
+    "tasks_overdue",
+    "calendar",
     "calls_missed",
     "dq_leads_no_source",
     "dq_leads_no_manager",
@@ -24,6 +37,8 @@ export const drilldownSchema = rangeSchema.extend({
     "dq_measurements_no_surveyor",
     "dq_estimates_no_order",
     "dq_orders_no_amount",
+    "dq_orders_no_source",
+    "dq_payments_no_order",
   ]),
   limit: z.number().int().min(1).max(500).optional(),
 });
