@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { listRegistrationApprovals } from "@/lib/registration.functions";
 import {
   LayoutDashboard, Target, Calculator, FileText, Building2, Wallet, BarChart3, Settings,
-  LogOut, ChevronDown, Menu, X, Plus,
+  LogOut, ChevronDown, Menu, X, Plus, Bell,
 } from "lucide-react";
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
@@ -184,17 +184,15 @@ function AppShellLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen flex relative bg-background">
-      <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 h-14 text-white" style={{ backgroundColor: "var(--color-sidebar)" }}>
+      <div className="md:hidden fixed top-0 left-0 right-0 z-40 grid h-16 grid-cols-[auto_minmax(0,1fr)_auto] items-center px-4 text-white" style={{ backgroundColor: "var(--color-sidebar)" }}>
         <button onClick={() => setMobileOpen(true)} className="p-2 -ml-2 rounded hover:bg-white/10" aria-label="Відкрити меню">
           <Menu className="w-5 h-5" />
         </button>
-        <div className="flex items-center gap-2 min-w-0">
-          <TerziLogo size={26} />
-          <div className="font-black tracking-tight truncate">TERZI</div>
+        <div className="mx-auto flex min-w-0 items-center gap-2">
+          <TerziLogo size={30} />
+          <div className="min-w-0"><div className="truncate font-black leading-none">TERZI</div><div className="mt-1 truncate text-[9px] text-white/60">ERP для зростання</div></div>
         </div>
-        <button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="p-2 -mr-2 rounded hover:bg-white/10" aria-label="Вийти">
-          <LogOut className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2"><Bell className="h-5 w-5" /><button onClick={() => { if (window.confirm("Вийти з системи на цьому пристрої?")) signOut(); }} className="grid h-9 w-9 place-items-center rounded-full bg-white/15 text-xs font-black" aria-label="Вийти">{displayName.slice(0, 2).toUpperCase()}</button></div>
       </div>
 
       <div className="hidden md:block sticky top-0 h-screen">{Sidebar}</div>
@@ -206,7 +204,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      <div className="flex-1 min-w-0 pt-14 md:pt-0 flex flex-col">
+      <div className="flex-1 min-w-0 pt-16 md:pt-0 flex flex-col">
         <header className="hidden md:flex sticky top-0 z-30 h-14 items-center gap-3 border-b border-border bg-card/95 backdrop-blur px-6">
           <div className="min-w-0">
             <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">{activeSection?.label ?? "TERZI"}</div>

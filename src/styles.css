@@ -164,17 +164,14 @@
 
 @layer components {
   .crm-workspace {
-    background-color: color-mix(in oklab, var(--background) 92%, var(--primary));
-    background-image:
-      linear-gradient(color-mix(in oklab, var(--border) 34%, transparent) 1px, transparent 1px),
-      linear-gradient(90deg, color-mix(in oklab, var(--border) 34%, transparent) 1px, transparent 1px);
-    background-size: 32px 32px;
+    background-color: color-mix(in oklab, var(--background) 96%, var(--primary));
+    background-image: none;
   }
   .crm-panel {
     border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    background: color-mix(in oklab, var(--card) 97%, transparent);
-    box-shadow: var(--shadow-panel);
+    border-radius: var(--radius-xl);
+    background: var(--card);
+    box-shadow: 0 8px 24px -20px color-mix(in oklab, var(--primary) 45%, transparent), 0 2px 8px color-mix(in oklab, var(--foreground) 5%, transparent);
   }
   .crm-eyebrow {
     color: var(--muted-foreground);
@@ -186,18 +183,20 @@
   .crm-kpi {
     position: relative;
     overflow: hidden;
-    min-height: 118px;
+    min-height: 104px;
     border: 1px solid var(--border);
-    border-left-width: 3px;
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-xl);
     background: var(--card);
-    padding: 1rem;
-    box-shadow: var(--shadow-panel);
+    padding: 0.875rem;
+    box-shadow: 0 8px 24px -20px color-mix(in oklab, var(--primary) 45%, transparent), 0 2px 8px color-mix(in oklab, var(--foreground) 5%, transparent);
   }
-  .crm-kpi--primary { border-left-color: var(--primary); }
-  .crm-kpi--gold { border-left-color: var(--gold); }
-  .crm-kpi--success { border-left-color: var(--success); }
-  .crm-kpi--danger { border-left-color: var(--destructive); }
+  .crm-kpi__icon { display: grid; height: 2.75rem; width: 2.75rem; flex-shrink: 0; place-items: center; border-radius: var(--radius-lg); background: color-mix(in oklab, var(--primary) 10%, var(--card)); color: var(--primary); }
+  .crm-kpi__trend { align-self: end; display: flex; height: 2.5rem; align-items: end; gap: 3px; color: var(--primary); opacity: .35; }
+  .crm-kpi__trend i { display: block; width: 4px; border-radius: 4px; background: currentColor; }
+  .crm-kpi__trend i:nth-child(1) { height: 28%; } .crm-kpi__trend i:nth-child(2) { height: 44%; } .crm-kpi__trend i:nth-child(3) { height: 60%; } .crm-kpi__trend i:nth-child(4) { height: 76%; } .crm-kpi__trend i:nth-child(5) { height: 96%; }
+  .crm-kpi--gold .crm-kpi__icon, .crm-kpi--gold .crm-kpi__trend { background-color: color-mix(in oklab, var(--gold) 13%, var(--card)); color: var(--gold); }
+  .crm-kpi--success .crm-kpi__icon, .crm-kpi--success .crm-kpi__trend { background-color: color-mix(in oklab, var(--success) 12%, var(--card)); color: var(--success); }
+  .crm-kpi--danger .crm-kpi__icon, .crm-kpi--danger .crm-kpi__trend { background-color: color-mix(in oklab, var(--destructive) 10%, var(--card)); color: var(--destructive); }
   .crm-stage-column {
     border: 1px solid var(--border);
     border-top-width: 3px;
