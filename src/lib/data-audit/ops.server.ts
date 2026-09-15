@@ -20,6 +20,11 @@ export const AUDIT_CHECKS = [
   "won_leads_without_order",
   "catalog_issues",
   "estimates_price_version",
+  "crm2_calls",
+  "crm2_sources",
+  "crm2_orders",
+  "crm2_measurements",
+  "crm2_callbacks",
 ] as const;
 export type AuditCheck = (typeof AUDIT_CHECKS)[number];
 
@@ -38,6 +43,11 @@ export const AUDIT_LABELS: Record<AuditCheck, string> = {
   won_leads_without_order: "Виграні ліди без замовлення",
   catalog_issues: "Каталог: без коду або з нульовою ціною",
   estimates_price_version: "Кошториси без зафіксованої версії прайсу",
+  crm2_calls: "Звірка дзвінків: контакт / клієнт / лід / замовлення / замір",
+  crm2_sources: "Звірка джерел лідів (або явне «Не класифіковано»)",
+  crm2_orders: "Звірка лід ↔ замовлення",
+  crm2_measurements: "Звірка замір ↔ лід / клієнт",
+  crm2_callbacks: "Пропущені дзвінки без передзвону → задачі",
 };
 
 export interface AuditRow {
