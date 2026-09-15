@@ -25,7 +25,7 @@ export function KeycrmManagerMapping() {
 
   const managers = data?.managers ?? [];
   const users = data?.users ?? [];
-  const unmapped = managers.filter((m) => !m.userId).length;
+  const unmapped = managers.filter((m: any) => !m.userId).length;
 
   return (
     <div className="panel p-4 space-y-3">
@@ -54,7 +54,7 @@ export function KeycrmManagerMapping() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {managers.map((m) => (
+              {managers.map((m: any) => (
                 <tr key={m.externalId}>
                   <td className="p-2 font-semibold">{m.name}</td>
                   <td className="p-2 text-xs text-muted-foreground">{m.email ?? "—"}</td>
@@ -66,7 +66,7 @@ export function KeycrmManagerMapping() {
                       className="bg-input border border-border rounded px-2 py-1.5 text-sm min-w-[220px]"
                     >
                       <option value="">Потребує перевірки</option>
-                      {users.map((u) => (
+                      {users.map((u: any) => (
                         <option key={u.id} value={u.id}>
                           {u.name}
                         </option>
