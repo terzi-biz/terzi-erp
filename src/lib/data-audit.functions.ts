@@ -19,6 +19,11 @@ const checkEnum = z.enum([
   "won_leads_without_order",
   "catalog_issues",
   "estimates_price_version",
+  "crm2_calls",
+  "crm2_sources",
+  "crm2_orders",
+  "crm2_measurements",
+  "crm2_callbacks",
 ]);
 
 export const runDataAudit = createServerFn({ method: "POST" })
