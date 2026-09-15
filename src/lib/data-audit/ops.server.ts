@@ -649,7 +649,11 @@ export async function applyAuditAction(
 
   if (parts[0] === "mergesafe") {
     const { groups } = await clientDuplicateGroups();
-    const safe = groups.filter((g) => g.safe);
+    const all = groups.filter((g) => g.safe);
+    // Обробляємо порціями, щоб один запит не виходив за ліміт часу.
+    const limit = Number(parts[1] && parts[1] !== "all" ? parts[1] : 120);
+    const safe = all.slice(0, Math.max(1, limit));
+    const remaining = all.length - safe.length;
     let applied = 0;
     for (const g of safe) {
       const res = await mergeClientGroup(
@@ -662,7 +666,7 @@ export async function applyAuditAction(
     const excess = safe.reduce((s, g) => s + g.losers.length, 0);
     return {
       applied,
-      message: `Обʼєднано безпечних груп: ${safe.length}, архівовано дублів: ${excess}, перенесено звʼязків: ${applied}. Неоднозначні групи не змінювалися.`,
+      message: `Обʼєднано безпечних груп: ${safe.length}, архівовано дублів: ${excess}, перенесено звʼязків: ${applied}.${remaining > 0 ? ` Залишилось безпечних груп: ${remaining} — натисніть «Застосувати» ще раз.` : ""} Неоднозначні групи не змінювалися.`,
     };
   }
 
