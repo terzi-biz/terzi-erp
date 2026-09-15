@@ -24,14 +24,14 @@ async function all(sb: Sb, table: string, select = "*") {
 }
 
 async function loadDashboardData(sb: Sb) {
-  const [leads, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations] = await Promise.all([
-    all(sb, "crm_leads"), all(sb, "crm_stages"), all(sb, "crm_lead_activities", "lead_id,kind,from_stage_id,to_stage_id,created_at"),
+  const [leads, pipelines, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations] = await Promise.all([
+    all(sb, "crm_leads"), all(sb, "crm_pipelines"), all(sb, "crm_stages"), all(sb, "crm_lead_activities", "lead_id,kind,from_stage_id,to_stage_id,created_at"),
     all(sb, "order_measurements"), all(sb, "estimates"), all(sb, "orders"), all(sb, "crm_calls"), all(sb, "crm_tasks"),
     all(sb, "calendar_events"), all(sb, "crew_bookings"), all(sb, "marketing_daily_metrics"), all(sb, "marketing_manual_spend"),
     all(sb, "analytics_targets"), all(sb, "profiles", "user_id,display_name,is_active"),
     all(sb, "integrations", "provider_key,name,status,last_success_at,last_error_at,last_error,enabled"),
   ]);
-  return { leads, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations };
+  return { leads, pipelines, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations };
 }
 
 export async function dashboardOverview(sb: Sb, f: DashboardFilters) {
@@ -128,7 +128,7 @@ export async function dashboardOverview(sb: Sb, f: DashboardFilters) {
     telephony: { total: calls.length, inbound: calls.filter((c) => c.direction === "inbound").length, outbound: calls.filter((c) => c.direction === "outbound").length, missed: missed.length, answered: calls.filter((c) => !c.is_missed).length, unique_numbers: new Set(calls.map((c) => c.phone_e164 || c.phone_norm).filter(Boolean)).size, avg_duration: calls.length ? calls.reduce((s, c) => s + n(c.duration_sec), 0) / calls.length : 0, missed_called_back: missed.filter((c) => callbackPhones.has(c.phone_e164 || c.phone_norm)).length, missed_unique: new Set(missed.map((c) => c.phone_e164 || c.phone_norm).filter(Boolean)).size },
     tasks: { period: periodTasks.length, overdue: overdueTasks.length }, calendar: { events: events.slice(0, 8), count: events.length }, operations: { bookings: bookings.length, crews: new Set(bookings.map((b) => b.brigade_key)).size },
     data_quality: dataQuality, alerts, insights, targets,
-    refs: { pipelines: d.stages.length ? [...initialByPipeline.entries()].map(([id]) => ({ id, name: d.stages.find((s) => s.pipeline_id === id)?.pipeline_id === id ? d.stages.find((s) => s.pipeline_id === id)?.pipeline_id : id })) : [], stages: d.stages.map((s) => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id })), sources: [...new Set(d.leads.map((l) => normalizedSource(l.source)))].sort(), managers: d.profiles.filter((p) => p.is_active !== false).map((p) => ({ id: p.user_id, name: p.display_name || "Без імені" })), directions: [...new Set([...d.leads.map((l) => l.direction), ...d.events.map((e) => e.direction)].filter(Boolean))].sort(), orders: d.orders.slice(0, 300).map((o) => ({ id: o.id, name: `${o.number} · ${o.name}` })), statuses: ["open", "won", "lost", "postponed"] },
+    refs: { pipelines: d.pipelines.filter((x) => x.is_active).map((x) => ({ id: x.id, name: x.name })), stages: d.stages.map((s) => ({ id: s.id, name: s.name, pipeline_id: s.pipeline_id })), sources: [...new Set(d.leads.map((l) => normalizedSource(l.source)))].sort(), managers: d.profiles.filter((p) => p.is_active !== false).map((p) => ({ id: p.user_id, name: p.display_name || "Без імені" })), directions: [...new Set([...d.leads.map((l) => l.direction), ...d.events.map((e) => e.direction)].filter(Boolean))].sort(), orders: d.orders.slice(0, 300).map((o) => ({ id: o.id, name: `${o.number} · ${o.name}` })), statuses: ["open", "won", "lost", "postponed"] },
     freshness: d.integrations.filter((x) => x.enabled).map((x) => ({ provider: x.provider_key, name: x.name, status: x.status, syncedAt: x.last_success_at, error: x.last_error })),
   };
 }
