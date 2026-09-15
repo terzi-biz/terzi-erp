@@ -720,6 +720,15 @@ export async function applyAuditAction(
     };
   }
 
+  if (parts[0] === "crm2") {
+    const { runCrm2Pass } = await import("./crm2.server");
+    const res = await runCrm2Pass(parts[1] as any, false, userId);
+    return {
+      applied: res.applied,
+      message: `${res.label}: застосовано ${res.applied} з ${res.planned}. Неоднозначних: ${res.ambiguous}.`,
+    };
+  }
+
   throw new Error("Невідома дія аудиту");
 }
 
