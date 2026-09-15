@@ -11,8 +11,28 @@ import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
 import { CrmEyebrow, CrmPage, CrmSpec, PayStatus, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 
+/** Швидкі зрізи для переходу з панелі CRM: посилання /crm/leads?focus=… */
+const FOCUS = {
+  no_source: { label: "Без джерела", test: (l: any) => !l.source || l.source === "Не класифіковано" },
+  no_manager: { label: "Без відповідального", test: (l: any) => !l.assigned_to },
+  no_client: { label: "Без клієнта", test: (l: any) => !l.client_id },
+  no_order: { label: "Без замовлення", test: (l: any) => !l.order_id },
+  won_no_order: { label: "Успішні без замовлення", test: (l: any) => l.status === "won" && !l.order_id },
+  no_next_action: { label: "Без наступної дії", test: (l: any) => l.status === "open" && !l.next_action_at },
+  overdue: {
+    label: "Прострочена наступна дія",
+    test: (l: any) => l.status === "open" && !!l.next_action_at && l.next_action_at < new Date().toISOString(),
+  },
+} as const;
+type FocusKey = keyof typeof FOCUS;
+
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => ({
+    focus: typeof s.focus === "string" && s.focus in FOCUS ? (s.focus as FocusKey) : undefined,
+    stage: typeof s.stage === "string" ? s.stage : undefined,
+    manager: typeof s.manager === "string" ? s.manager : undefined,
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
