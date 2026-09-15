@@ -104,13 +104,17 @@ function CrmDashboard() {
 
   const byStage = useMemo(() => {
     const stages = (pipe?.stages ?? []) as any[];
-    return stages.map((s) => ({
-      ...s,
-      count: (leads as any[]).filter((l) => l.stage_id === s.id).length,
-      sum: (leads as any[]).filter((l) => l.stage_id === s.id).reduce((a, l) => a + Number(l.budget || 0), 0),
-      area: (leads as any[]).filter((l) => l.stage_id === s.id).reduce((a, l) => a + Number(l.area || 0), 0),
-    }));
-  }, [pipe, leads]);
+    const all = boardLeads as any[];
+    return stages.map((s) => {
+      const rows = all.filter((l) => l.stage_id === s.id);
+      return {
+        ...s,
+        count: rows.length,
+        sum: rows.reduce((a, l) => a + Number(l.budget || 0), 0),
+        area: rows.reduce((a, l) => a + Number(l.area || 0), 0),
+      };
+    });
+  }, [pipe, boardLeads]);
 
   /* Будівельні акценти: площа в роботі та розподіл за напрямами робіт. */
   const openLeads = useMemo(() => (leads as any[]).filter((l) => l.status === "open"), [leads]);
