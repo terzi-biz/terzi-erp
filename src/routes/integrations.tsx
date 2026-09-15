@@ -21,6 +21,7 @@ import {
 import { SyncPanel } from "@/components/integrations/SyncPanel";
 import { BinotelPanel } from "@/components/integrations/BinotelPanel";
 import { BinotelCallsPanel } from "@/components/integrations/BinotelCallsPanel";
+import { KeycrmManagerMapping } from "@/components/integrations/KeycrmManagerMapping";
 
 export const Route = createFileRoute("/integrations")({
   head: () => ({
@@ -139,7 +140,12 @@ function IntegrationsPage() {
       {tab === "binotel" && <BinotelPanel />}
       {tab === "binotel-calls" && <BinotelCallsPanel />}
       {tab === "webhooks" && <Webhooks list={list} active={active} onSelect={setSelected} onChanged={invalidate} />}
-      {tab === "mapping" && <Mapping list={list} active={active} onSelect={setSelected} />}
+      {tab === "mapping" && (
+        <div className="space-y-4">
+          <Mapping list={list} active={active} onSelect={setSelected} />
+          <KeycrmManagerMapping />
+        </div>
+      )}
       {tab === "queue" && <Queue list={list} onChanged={invalidate} />}
       {tab === "logs" && <Queue list={list} onChanged={invalidate} logsOnly />}
     </div>
