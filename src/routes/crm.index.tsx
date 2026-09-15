@@ -156,7 +156,7 @@ function CrmDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">Лід → замір → замовлення → кошторис</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link to="/crm/leads" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground">Воронка лідів</Link>
+            <Link to="/crm/leads" search={{}} className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground">Воронка лідів</Link>
             <Link to="/crm/measurements" className={crmButtonOutline}>Заміри</Link>
             <Link to="/crm/calls" className={crmButtonOutline}>Дзвінки</Link>
             <Link to="/crm/tasks" className={crmButtonOutline}>Задачі</Link>
