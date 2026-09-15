@@ -453,7 +453,7 @@ function Dashboard() {
           </Panel>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <Panel title="Менеджери" action={<Link to="/crm/leads" search={{}} className="text-[11px] font-semibold text-primary">Воронка</Link>}>
+            <Panel title="Менеджери" action={<Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }} className="text-[11px] font-semibold text-primary">Воронка</Link>}>
               {!managers.length ? <Empty /> : (
                 <div className="scroll-x">
                   <table className="w-full min-w-[520px] text-[12px]">
