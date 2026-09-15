@@ -609,7 +609,42 @@ export async function buildAuditReport(check: AuditCheck): Promise<AuditReport> 
       return catalogIssues();
     case "estimates_price_version":
       return estimatesPriceVersion();
+    case "crm2_calls":
+      return crm2Report(check, "calls");
+    case "crm2_sources":
+      return crm2Report(check, "sources");
+    case "crm2_orders":
+      return crm2Report(check, "orders");
+    case "crm2_measurements":
+      return crm2Report(check, "measurements");
+    case "crm2_callbacks":
+      return crm2Report(check, "callbacks");
   }
+}
+
+/** Сухий прогін операційної звірки CRM-2: показує, що саме буде звʼязано. */
+async function crm2Report(check: AuditCheck, pass: string): Promise<AuditReport> {
+  const { runCrm2Pass } = await import("./crm2.server");
+  const res = await runCrm2Pass(pass as any, true, "00000000-0000-0000-0000-000000000000");
+  const rows: AuditRow[] = [
+    {
+      applyKey: res.planned > 0 ? `crm2:${pass}` : null,
+      title: `${res.label}: ${res.planned} записів`,
+      detail: Object.entries(res.details)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(" · "),
+      change: res.planned > 0 ? `Застосувати ${res.planned} детермінованих звʼязків` : null,
+    },
+    ...res.samples.map((s) => ({ applyKey: null, title: s, detail: "приклад", change: null })),
+  ];
+  return {
+    check,
+    label: AUDIT_LABELS[check],
+    applicable: res.planned > 0,
+    total: res.planned,
+    rows,
+    note: `Переглянуто записів: ${res.scanned}. Неоднозначних (потребує перевірки): ${res.ambiguous}. Застосовуються лише однозначні відповідності, наявні звʼязки не перетираються.`,
+  };
 }
 
 /* ─────────── застосування за підтвердженням ─────────── */
