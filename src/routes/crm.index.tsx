@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listLeads, listTasks, listCalls, listPipelines, crmKpi } from "@/lib/crm.functions";
 import { listMeasurements } from "@/lib/measurements.functions";
+import { listBoardLeads } from "@/lib/crm/board.functions";
 import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButtonOutline } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/")({
@@ -51,12 +52,14 @@ function CrmDashboard() {
   const pipeFn = useServerFn(listPipelines);
   const measFn = useServerFn(listMeasurements);
   const kpiFn = useServerFn(crmKpi);
+  const boardFn = useServerFn(listBoardLeads);
 
   const [tab, setTab] = useState<Tab>("funnel");
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return iso(d); });
   const [to, setTo] = useState(() => iso(new Date()));
 
   const { data: leads = [] } = useQuery({ queryKey: ["crm", "leads"], queryFn: () => leadsFn() });
+  const { data: boardLeads = [] } = useQuery({ queryKey: ["crm", "board-leads"], queryFn: () => boardFn() });
   const { data: tasks = [] } = useQuery({ queryKey: ["crm", "tasks"], queryFn: () => tasksFn() });
   const { data: calls = [] } = useQuery({ queryKey: ["crm", "calls"], queryFn: () => callsFn() });
   const { data: pipe } = useQuery({ queryKey: ["crm", "pipelines"], queryFn: () => pipeFn() });
@@ -124,9 +127,9 @@ function CrmDashboard() {
 
   const funnel = meas?.funnel ?? null;
 
-  /* Лічильники якості даних: ті самі правила, що й зрізи у воронці лідів. */
+  /* Лічильники якості даних: те саме джерело і ті самі правила, що й зрізи у воронці лідів. */
   const quality = useMemo(() => {
-    const all = leads as any[];
+    const all = boardLeads as any[];
     const nowIso = new Date().toISOString();
     return [
       { key: "no_source", label: "Без джерела", count: all.filter((l) => !l.source || l.source === "Не класифіковано").length },
@@ -136,7 +139,7 @@ function CrmDashboard() {
       { key: "no_next_action", label: "Без наступної дії", count: all.filter((l) => l.status === "open" && !l.next_action_at).length },
       { key: "overdue", label: "Прострочена дія", count: all.filter((l) => l.status === "open" && l.next_action_at && l.next_action_at < nowIso).length },
     ];
-  }, [leads]);
+  }, [boardLeads]);
 
 
   return (
