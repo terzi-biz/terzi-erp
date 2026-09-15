@@ -124,6 +124,20 @@ function CrmDashboard() {
 
   const funnel = meas?.funnel ?? null;
 
+  /* Лічильники якості даних: ті самі правила, що й зрізи у воронці лідів. */
+  const quality = useMemo(() => {
+    const all = leads as any[];
+    const nowIso = new Date().toISOString();
+    return [
+      { key: "no_source", label: "Без джерела", count: all.filter((l) => !l.source || l.source === "Не класифіковано").length },
+      { key: "no_manager", label: "Без відповідального", count: all.filter((l) => !l.assigned_to).length },
+      { key: "no_client", label: "Без клієнта", count: all.filter((l) => !l.client_id).length },
+      { key: "won_no_order", label: "Успішні без замовлення", count: all.filter((l) => l.status === "won" && !l.order_id).length },
+      { key: "no_next_action", label: "Без наступної дії", count: all.filter((l) => l.status === "open" && !l.next_action_at).length },
+      { key: "overdue", label: "Прострочена дія", count: all.filter((l) => l.status === "open" && l.next_action_at && l.next_action_at < nowIso).length },
+    ];
+  }, [leads]);
+
 
   return (
     <AppShell>
