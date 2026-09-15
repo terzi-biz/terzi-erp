@@ -53,7 +53,7 @@ function rangeFor(key: RangeKey) {
 const selectClass = "h-10 min-w-0 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-panel";
 
 function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
   const [rangeKey, setRangeKey] = usePersistedState<RangeKey>("terzi:dash:range", "month");
   const [custom, setCustom] = usePersistedState("terzi:dash:custom", rangeFor("custom"));
   const [filters, setFilters] = usePersistedState<Filters>("terzi:dash:filters", { pipelineId: "", source: "", managerId: "", direction: "", orderId: "", status: "" });
