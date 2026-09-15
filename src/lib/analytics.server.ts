@@ -17,7 +17,7 @@ async function all(sb: Sb, table: string, select = "*") {
   const rows: any[] = [];
   for (let from = 0; ; from += 1000) {
     const result = await sb.from(table).select(select).range(from, from + 999);
-    if (result.error) throw new Error(result.error.message);
+    if (result.error) throw new Error(`${table}: ${result.error.message}`);
     rows.push(...(result.data ?? []));
     if ((result.data?.length ?? 0) < 1000) return rows;
   }
