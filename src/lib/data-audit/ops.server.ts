@@ -427,7 +427,9 @@ function simpleReport(check: AuditCheck, rows: LeadRow[], detail: (l: LeadRow) =
 const hasUtm = (l: LeadRow) => Object.values((l.utm ?? {}) as Record<string, unknown>).some((v) => v);
 
 async function stageConflicts(): Promise<AuditReport> {
+  const { canonicalLeadStatus } = await import("../integrations/keycrm/mapping");
   const leads = await leadsForQuality();
+
   const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id,is_won,is_lost");
   const stageById = new Map(stages.map((s) => [s.id, s]));
   const bad = leads.filter((l) => {
