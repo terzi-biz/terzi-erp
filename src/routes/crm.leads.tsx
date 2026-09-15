@@ -11,8 +11,28 @@ import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
 import { CrmEyebrow, CrmPage, CrmSpec, PayStatus, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 
+/** Швидкі зрізи для переходу з панелі CRM: посилання /crm/leads?focus=… */
+const FOCUS = {
+  no_source: { label: "Без джерела", test: (l: any) => !l.source || l.source === "Не класифіковано" },
+  no_manager: { label: "Без відповідального", test: (l: any) => !l.assigned_to },
+  no_client: { label: "Без клієнта", test: (l: any) => !l.client_id },
+  no_order: { label: "Без замовлення", test: (l: any) => !l.order_id },
+  won_no_order: { label: "Успішні без замовлення", test: (l: any) => l.status === "won" && !l.order_id },
+  no_next_action: { label: "Без наступної дії", test: (l: any) => l.status === "open" && !l.next_action_at },
+  overdue: {
+    label: "Прострочена наступна дія",
+    test: (l: any) => l.status === "open" && !!l.next_action_at && l.next_action_at < new Date().toISOString(),
+  },
+} as const;
+type FocusKey = keyof typeof FOCUS;
+
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => ({
+    focus: typeof s.focus === "string" && s.focus in FOCUS ? (s.focus as FocusKey) : undefined,
+    stage: typeof s.stage === "string" ? s.stage : undefined,
+    manager: typeof s.manager === "string" ? s.manager : undefined,
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
@@ -44,6 +64,8 @@ const emptyFilters = {
 };
 
 function LeadsPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const qc = useQueryClient();
   const leadsFn = useServerFn(listBoardLeads);
   const pipeFn = useServerFn(listPipelines);
@@ -96,6 +118,9 @@ function LeadsPage() {
 
   const filtered = useMemo(() => (leads as any[]).filter((l) => {
     const f = l.fields ?? {};
+    if (search.focus && !FOCUS[search.focus].test(l)) return false;
+    if (search.stage && l.stage_id !== search.stage) return false;
+    if (search.manager && l.assigned_to !== search.manager) return false;
     if (filters.query && ![l.title, l.phone, l.client_name, l.address, l.source].some((v) => String(v ?? "").toLowerCase().includes(filters.query.toLowerCase()))) return false;
     if (filters.source && !(l.source ?? "").toLowerCase().includes(filters.source.toLowerCase())) return false;
     if (filters.manager && l.assigned_to !== filters.manager) return false;
@@ -112,7 +137,7 @@ function LeadsPage() {
     if ((filters.areaFrom || filters.areaTo) && !inRange(f["object_area"] ?? l.area, filters.areaFrom, filters.areaTo)) return false;
     if ((filters.sumFrom || filters.sumTo) && !inRange(f["contract_sum"] ?? l.budget, filters.sumFrom, filters.sumTo)) return false;
     return true;
-  }), [leads, filters]);
+  }), [leads, filters, search.focus, search.stage, search.manager]);
 
   const move = useMutation({
     mutationFn: (p: { id: string; stage_id: string }) => moveFn({ data: p }),
@@ -153,6 +178,14 @@ function LeadsPage() {
             <p className="text-sm text-muted-foreground">
               Показані активні та успішні етапи · {filtered.length} лідів
             </p>
+            {search.focus && (
+              <button
+                onClick={() => navigate({ search: (s: any) => ({ ...s, focus: undefined }) })}
+                className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+              >
+                Зріз: {FOCUS[search.focus].label} <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"}>

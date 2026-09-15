@@ -7,6 +7,7 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listLeads, listTasks, listCalls, listPipelines, crmKpi } from "@/lib/crm.functions";
 import { listMeasurements } from "@/lib/measurements.functions";
+import { listBoardLeads } from "@/lib/crm/board.functions";
 import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButtonOutline } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/")({
@@ -32,8 +33,14 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 const STAGE_PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#fd9b98", "#ccc8f9", "#f9deff"];
 
-function Kpi({ icon, label, value, hint, tone = "default" }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good" }) {
-  return <CrmKpi icon={icon} label={label} value={value} hint={hint} tone={tone === "warn" ? "danger" : tone === "good" ? "success" : "primary"} />;
+function Kpi({ icon, label, value, hint, tone = "default", to, search }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good"; to?: string; search?: Record<string, string> }) {
+  const card = <CrmKpi icon={icon} label={label} value={value} hint={hint} tone={tone === "warn" ? "danger" : tone === "good" ? "success" : "primary"} />;
+  if (!to) return card;
+  return (
+    <Link to={to} search={search as any} className="block transition-transform hover:-translate-y-0.5">
+      {card}
+    </Link>
+  );
 }
 
 type Tab = "funnel" | "measurements" | "activity";
@@ -45,12 +52,14 @@ function CrmDashboard() {
   const pipeFn = useServerFn(listPipelines);
   const measFn = useServerFn(listMeasurements);
   const kpiFn = useServerFn(crmKpi);
+  const boardFn = useServerFn(listBoardLeads);
 
   const [tab, setTab] = useState<Tab>("funnel");
   const [from, setFrom] = useState(() => { const d = new Date(); d.setDate(1); return iso(d); });
   const [to, setTo] = useState(() => iso(new Date()));
 
   const { data: leads = [] } = useQuery({ queryKey: ["crm", "leads"], queryFn: () => leadsFn() });
+  const { data: boardLeads = [] } = useQuery({ queryKey: ["crm", "board-leads"], queryFn: () => boardFn() });
   const { data: tasks = [] } = useQuery({ queryKey: ["crm", "tasks"], queryFn: () => tasksFn() });
   const { data: calls = [] } = useQuery({ queryKey: ["crm", "calls"], queryFn: () => callsFn() });
   const { data: pipe } = useQuery({ queryKey: ["crm", "pipelines"], queryFn: () => pipeFn() });
@@ -95,13 +104,17 @@ function CrmDashboard() {
 
   const byStage = useMemo(() => {
     const stages = (pipe?.stages ?? []) as any[];
-    return stages.map((s) => ({
-      ...s,
-      count: (leads as any[]).filter((l) => l.stage_id === s.id).length,
-      sum: (leads as any[]).filter((l) => l.stage_id === s.id).reduce((a, l) => a + Number(l.budget || 0), 0),
-      area: (leads as any[]).filter((l) => l.stage_id === s.id).reduce((a, l) => a + Number(l.area || 0), 0),
-    }));
-  }, [pipe, leads]);
+    const all = boardLeads as any[];
+    return stages.map((s) => {
+      const rows = all.filter((l) => l.stage_id === s.id);
+      return {
+        ...s,
+        count: rows.length,
+        sum: rows.reduce((a, l) => a + Number(l.budget || 0), 0),
+        area: rows.reduce((a, l) => a + Number(l.area || 0), 0),
+      };
+    });
+  }, [pipe, boardLeads]);
 
   /* Будівельні акценти: площа в роботі та розподіл за напрямами робіт. */
   const openLeads = useMemo(() => (leads as any[]).filter((l) => l.status === "open"), [leads]);
@@ -118,6 +131,20 @@ function CrmDashboard() {
 
   const funnel = meas?.funnel ?? null;
 
+  /* Лічильники якості даних: те саме джерело і ті самі правила, що й зрізи у воронці лідів. */
+  const quality = useMemo(() => {
+    const all = boardLeads as any[];
+    const nowIso = new Date().toISOString();
+    return [
+      { key: "no_source", label: "Без джерела", count: all.filter((l) => !l.source || l.source === "Не класифіковано").length },
+      { key: "no_manager", label: "Без відповідального", count: all.filter((l) => !l.assigned_to).length },
+      { key: "no_client", label: "Без клієнта", count: all.filter((l) => !l.client_id).length },
+      { key: "won_no_order", label: "Успішні без замовлення", count: all.filter((l) => l.status === "won" && !l.order_id).length },
+      { key: "no_next_action", label: "Без наступної дії", count: all.filter((l) => l.status === "open" && !l.next_action_at).length },
+      { key: "overdue", label: "Прострочена дія", count: all.filter((l) => l.status === "open" && l.next_action_at && l.next_action_at < nowIso).length },
+    ];
+  }, [boardLeads]);
+
 
   return (
     <AppShell>
@@ -129,7 +156,7 @@ function CrmDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">Лід → замір → замовлення → кошторис</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link to="/crm/leads" className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground">Воронка лідів</Link>
+            <Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }} className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground">Воронка лідів</Link>
             <Link to="/crm/measurements" className={crmButtonOutline}>Заміри</Link>
             <Link to="/crm/calls" className={crmButtonOutline}>Дзвінки</Link>
             <Link to="/crm/tasks" className={crmButtonOutline}>Задачі</Link>
@@ -137,13 +164,32 @@ function CrmDashboard() {
         </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} />
+          <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} to="/crm/leads" />
           <Kpi icon={Ruler} label="Площа в роботі" value={`${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(areaInWork)} м²`} hint="Сума площ активних лідів" />
-          <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} />
-          <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" />
+          <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} to="/crm/leads" />
+          <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" to="/crm/leads" />
           <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті за період" />
-          <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} />
+          <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} to="/crm/tasks" />
         </div>
+
+        <CrmPanel className="p-4">
+          <CrmEyebrow>Якість даних</CrmEyebrow>
+          <div className="mt-1 mb-3 text-base font-bold">Що потребує уваги</div>
+          <div className="grid gap-2 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            {quality.map((q) => (
+              <Link
+                key={q.key}
+                to="/crm/leads"
+                search={{ focus: q.key } as any}
+                className="rounded-md border border-border bg-background p-3 transition-colors hover:border-primary"
+              >
+                <div className="text-xl font-bold tabular-nums">{q.count}</div>
+                <div className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{q.label}</div>
+              </Link>
+            ))}
+          </div>
+        </CrmPanel>
+
 
 
         <div className="flex items-center gap-2 flex-wrap border-b border-border">
@@ -175,7 +221,7 @@ function CrmDashboard() {
                   const max = Math.max(1, ...byStage.map((x) => x.count));
                   const color = s.color || STAGE_PALETTE[i % STAGE_PALETTE.length];
                   return (
-                    <div key={s.id} className="flex items-center gap-3">
+                    <Link key={s.id} to="/crm/leads" search={{ stage: s.id } as any} className="flex items-center gap-3 rounded-sm hover:bg-accent/40">
                       <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{s.name}</div>
                       <div className="flex-1 h-7 rounded-sm bg-muted/50 overflow-hidden">
                         <div className="h-full flex items-center px-2 text-[11px] font-bold text-[#22303f] transition-all"
@@ -185,7 +231,7 @@ function CrmDashboard() {
                       </div>
                       <div className="w-20 shrink-0 text-right font-mono text-[11px] text-muted-foreground">{Math.round(s.area)} м²</div>
                       <div className="w-28 shrink-0 text-right text-[12px] font-semibold">{money(s.sum)}</div>
-                    </div>
+                    </Link>
                   );
                 })}
                 {!byStage.length ? <div className="text-sm text-muted-foreground">Немає етапів</div> : null}
