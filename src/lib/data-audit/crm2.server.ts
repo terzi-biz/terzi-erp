@@ -321,7 +321,7 @@ export async function reconcileMeasurements(dryRun: boolean): Promise<Crm2Result
 
 const CALLBACK_SLA_MIN = 60;
 
-export async function missedCallCallbacks(dryRun: boolean, days = 14): Promise<Crm2Result> {
+export async function missedCallCallbacks(dryRun: boolean, ownerId: string, days = 14): Promise<Crm2Result> {
   const since = new Date(Date.now() - days * 86_400_000).toISOString();
   const calls = await fetchAll(
     "crm_calls",
