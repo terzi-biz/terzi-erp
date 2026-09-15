@@ -419,6 +419,6 @@ export async function runCrm2Pass(pass: Crm2Pass, dryRun: boolean, userId: strin
     case "measurements":
       return reconcileMeasurements(dryRun);
     case "callbacks":
-      return missedCallCallbacks(dryRun);
+      return missedCallCallbacks(dryRun, userId);
   }
 }
