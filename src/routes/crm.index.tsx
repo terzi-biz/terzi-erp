@@ -217,7 +217,7 @@ function CrmDashboard() {
                   const max = Math.max(1, ...byStage.map((x) => x.count));
                   const color = s.color || STAGE_PALETTE[i % STAGE_PALETTE.length];
                   return (
-                    <div key={s.id} className="flex items-center gap-3">
+                    <Link key={s.id} to="/crm/leads" search={{ stage: s.id } as any} className="flex items-center gap-3 rounded-sm hover:bg-accent/40">
                       <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{s.name}</div>
                       <div className="flex-1 h-7 rounded-sm bg-muted/50 overflow-hidden">
                         <div className="h-full flex items-center px-2 text-[11px] font-bold text-[#22303f] transition-all"
@@ -227,7 +227,7 @@ function CrmDashboard() {
                       </div>
                       <div className="w-20 shrink-0 text-right font-mono text-[11px] text-muted-foreground">{Math.round(s.area)} м²</div>
                       <div className="w-28 shrink-0 text-right text-[12px] font-semibold">{money(s.sum)}</div>
-                    </div>
+                    </Link>
                   );
                 })}
                 {!byStage.length ? <div className="text-sm text-muted-foreground">Немає етапів</div> : null}
