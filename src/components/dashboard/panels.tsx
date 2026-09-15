@@ -132,22 +132,22 @@ export function TasksPanel() {
   return (
     <div className="space-y-3">
       <form
-        className="flex gap-2"
+        className="grid min-w-0 grid-cols-2 gap-2 sm:flex"
         onSubmit={(e) => { e.preventDefault(); if (title.trim()) save.mutate({ title: title.trim(), due_at: due }); }}
       >
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="Нова задача…"
-          className="h-8 flex-1 rounded-md border border-border bg-background px-2 text-[12px]"
+          className="col-span-2 h-8 min-w-0 rounded-md border border-border bg-background px-2 text-[12px] sm:col-span-1 sm:flex-1"
         />
         <input
           type="date"
           value={due}
           onChange={(e) => setDue(e.target.value)}
-          className="h-8 rounded-md border border-border bg-background px-2 text-[12px]"
+          className="h-8 min-w-0 rounded-md border border-border bg-background px-2 text-[12px]"
         />
-        <button type="submit" disabled={save.isPending} className="inline-flex h-8 items-center gap-1 rounded-md bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground disabled:opacity-60">
+        <button type="submit" disabled={save.isPending} className="inline-flex h-8 min-w-0 items-center justify-center gap-1 rounded-md bg-primary px-2.5 text-[12px] font-semibold text-primary-foreground disabled:opacity-60">
           <Plus className="h-3.5 w-3.5" /> Додати
         </button>
       </form>
