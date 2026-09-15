@@ -1,21 +1,19 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { rangeSchema, drilldownSchema, manualSpendSchema, sourceMapSchema, idSchema, previousRange } from "./analytics.schema";
-import { drilldown } from "./analytics.server";
+import { rangeSchema, dashboardFilterSchema, drilldownSchema, manualSpendSchema, sourceMapSchema, idSchema, previousRange } from "./analytics.schema";
+import { dashboardOverview, drilldown } from "./analytics.server";
 
 /** Зведення за період + попередній період тієї ж довжини. */
 export const getAnalyticsOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => rangeSchema.parse(d))
+  .inputValidator((d: unknown) => dashboardFilterSchema.parse(d))
   .handler(async ({ context, data }) => {
-    const sb = context.supabase;
     const prev = previousRange(data.from, data.to);
     const [cur, before] = await Promise.all([
-      sb.rpc("analytics_overview", { p_from: data.from, p_to: data.to }),
-      sb.rpc("analytics_overview", { p_from: prev.from, p_to: prev.to }),
+      dashboardOverview(context.supabase, data),
+      dashboardOverview(context.supabase, { ...data, ...prev }),
     ]);
-    if (cur.error) throw new Error(cur.error.message);
-    return { current: cur.data, previous: before.data ?? null, prevPeriod: prev };
+    return { current: cur, previous: before, prevPeriod: prev };
   });
 
 /** Список реальних записів за метрикою. */
