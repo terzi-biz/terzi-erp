@@ -137,7 +137,7 @@ function LeadsPage() {
     if ((filters.areaFrom || filters.areaTo) && !inRange(f["object_area"] ?? l.area, filters.areaFrom, filters.areaTo)) return false;
     if ((filters.sumFrom || filters.sumTo) && !inRange(f["contract_sum"] ?? l.budget, filters.sumFrom, filters.sumTo)) return false;
     return true;
-  }), [leads, filters]);
+  }), [leads, filters, search.focus, search.stage, search.manager]);
 
   const move = useMutation({
     mutationFn: (p: { id: string; stage_id: string }) => moveFn({ data: p }),
@@ -178,6 +178,14 @@ function LeadsPage() {
             <p className="text-sm text-muted-foreground">
               Показані активні та успішні етапи · {filtered.length} лідів
             </p>
+            {search.focus && (
+              <button
+                onClick={() => navigate({ search: (s: any) => ({ ...s, focus: undefined }) })}
+                className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
+              >
+                Зріз: {FOCUS[search.focus].label} <X className="h-3 w-3" />
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"}>
