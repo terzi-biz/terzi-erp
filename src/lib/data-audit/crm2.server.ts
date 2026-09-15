@@ -408,7 +408,7 @@ export async function missedCallCallbacks(dryRun: boolean, ownerId: string, days
   };
 }
 
-export async function runCrm2Pass(pass: Crm2Pass, dryRun: boolean): Promise<Crm2Result> {
+export async function runCrm2Pass(pass: Crm2Pass, dryRun: boolean, userId: string): Promise<Crm2Result> {
   switch (pass) {
     case "calls":
       return reconcileCalls(dryRun);
