@@ -64,6 +64,8 @@ const emptyFilters = {
 };
 
 function LeadsPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
   const qc = useQueryClient();
   const leadsFn = useServerFn(listBoardLeads);
   const pipeFn = useServerFn(listPipelines);
@@ -116,6 +118,9 @@ function LeadsPage() {
 
   const filtered = useMemo(() => (leads as any[]).filter((l) => {
     const f = l.fields ?? {};
+    if (search.focus && !FOCUS[search.focus].test(l)) return false;
+    if (search.stage && l.stage_id !== search.stage) return false;
+    if (search.manager && l.assigned_to !== search.manager) return false;
     if (filters.query && ![l.title, l.phone, l.client_name, l.address, l.source].some((v) => String(v ?? "").toLowerCase().includes(filters.query.toLowerCase()))) return false;
     if (filters.source && !(l.source ?? "").toLowerCase().includes(filters.source.toLowerCase())) return false;
     if (filters.manager && l.assigned_to !== filters.manager) return false;
