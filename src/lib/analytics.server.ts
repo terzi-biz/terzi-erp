@@ -23,13 +23,17 @@ async function all(sb: Sb, table: string, select = "*") {
   }
 }
 
+async function optionalAll(sb: Sb, table: string, select = "*") {
+  try { return await all(sb, table, select); } catch { return []; }
+}
+
 async function loadDashboardData(sb: Sb) {
   const [leads, pipelines, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations] = await Promise.all([
     all(sb, "crm_leads"), all(sb, "crm_pipelines"), all(sb, "crm_stages"), all(sb, "crm_lead_activities", "lead_id,kind,from_stage_id,to_stage_id,created_at"),
     all(sb, "order_measurements"), all(sb, "estimates"), all(sb, "orders"), all(sb, "crm_calls"), all(sb, "crm_tasks"),
     all(sb, "calendar_events"), all(sb, "crew_bookings"), all(sb, "marketing_daily_metrics"), all(sb, "marketing_manual_spend"),
     all(sb, "analytics_targets"), all(sb, "profiles", "user_id,display_name,is_active"),
-    all(sb, "integrations", "provider_key,name,status,last_success_at,last_error_at,last_error,enabled"),
+    optionalAll(sb, "integrations", "provider_key,name,status,last_success_at,last_error_at,last_error,enabled"),
   ]);
   return { leads, pipelines, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations };
 }
