@@ -22,6 +22,8 @@ export const drilldownSchema = dashboardFilterSchema.extend({
     "leads",
     "qualified",
     "measurements",
+    "measurements_scheduled",
+    "measurements_completed",
     "estimates",
     "contracts",
     "orders",

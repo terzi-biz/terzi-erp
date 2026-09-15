@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { rangeSchema, dashboardFilterSchema, drilldownSchema, manualSpendSchema, sourceMapSchema, idSchema, previousRange } from "./analytics.schema";
-import { dashboardOverview, drilldown } from "./analytics.server";
+import { dashboardOverviewPair, drilldown } from "./analytics.server";
 
 /** Зведення за період + попередній період тієї ж довжини. */
 export const getAnalyticsOverview = createServerFn({ method: "GET" })
@@ -9,10 +9,7 @@ export const getAnalyticsOverview = createServerFn({ method: "GET" })
   .inputValidator((d: unknown) => dashboardFilterSchema.parse(d))
   .handler(async ({ context, data }) => {
     const prev = previousRange(data.from, data.to);
-    const [cur, before] = await Promise.all([
-      dashboardOverview(context.supabase, data),
-      dashboardOverview(context.supabase, { ...data, ...prev }),
-    ]);
+    const [cur, before] = await dashboardOverviewPair(context.supabase, data, { ...data, ...prev });
     return { current: cur, previous: before, prevPeriod: prev };
   });
 
