@@ -32,8 +32,14 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
 
 const STAGE_PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#fd9b98", "#ccc8f9", "#f9deff"];
 
-function Kpi({ icon, label, value, hint, tone = "default" }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good" }) {
-  return <CrmKpi icon={icon} label={label} value={value} hint={hint} tone={tone === "warn" ? "danger" : tone === "good" ? "success" : "primary"} />;
+function Kpi({ icon, label, value, hint, tone = "default", to, search }: { icon: any; label: string; value: string; hint?: string; tone?: "default" | "warn" | "good"; to?: string; search?: Record<string, string> }) {
+  const card = <CrmKpi icon={icon} label={label} value={value} hint={hint} tone={tone === "warn" ? "danger" : tone === "good" ? "success" : "primary"} />;
+  if (!to) return card;
+  return (
+    <Link to={to} search={search as any} className="block transition-transform hover:-translate-y-0.5">
+      {card}
+    </Link>
+  );
 }
 
 type Tab = "funnel" | "measurements" | "activity";
