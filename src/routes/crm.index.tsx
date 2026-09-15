@@ -143,13 +143,32 @@ function CrmDashboard() {
         </div>
 
         <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} />
+          <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} to="/crm/leads" />
           <Kpi icon={Ruler} label="Площа в роботі" value={`${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(areaInWork)} м²`} hint="Сума площ активних лідів" />
-          <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} />
-          <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" />
+          <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} to="/crm/leads" />
+          <Kpi icon={TrendingUp} label="Виграно" value={money(stats.wonSum)} tone="good" to="/crm/leads" />
           <Kpi icon={Users} label="Конверсія" value={`${stats.conversion}%`} hint="Виграні / закриті за період" />
-          <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} />
+          <Kpi icon={AlertTriangle} label="Прострочені задачі" value={String(stats.overdue)} tone={stats.overdue ? "warn" : "default"} to="/crm/tasks" />
         </div>
+
+        <CrmPanel className="p-4">
+          <CrmEyebrow>Якість даних</CrmEyebrow>
+          <div className="mt-1 mb-3 text-base font-bold">Що потребує уваги</div>
+          <div className="grid gap-2 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+            {quality.map((q) => (
+              <Link
+                key={q.key}
+                to="/crm/leads"
+                search={{ focus: q.key } as any}
+                className="rounded-md border border-border bg-background p-3 transition-colors hover:border-primary"
+              >
+                <div className="text-xl font-bold tabular-nums">{q.count}</div>
+                <div className="mt-0.5 text-[11px] leading-tight text-muted-foreground">{q.label}</div>
+              </Link>
+            ))}
+          </div>
+        </CrmPanel>
+
 
 
         <div className="flex items-center gap-2 flex-wrap border-b border-border">
