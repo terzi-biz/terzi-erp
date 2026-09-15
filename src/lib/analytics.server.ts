@@ -17,10 +17,14 @@ async function all(sb: Sb, table: string, select = "*") {
   const rows: any[] = [];
   for (let from = 0; ; from += 1000) {
     const result = await sb.from(table).select(select).range(from, from + 999);
-    if (result.error) throw new Error(result.error.message);
+    if (result.error) throw new Error(`${table}: ${result.error.message}`);
     rows.push(...(result.data ?? []));
     if ((result.data?.length ?? 0) < 1000) return rows;
   }
+}
+
+async function optionalAll(sb: Sb, table: string, select = "*") {
+  try { return await all(sb, table, select); } catch { return []; }
 }
 
 async function loadDashboardData(sb: Sb) {
@@ -29,7 +33,7 @@ async function loadDashboardData(sb: Sb) {
     all(sb, "order_measurements"), all(sb, "estimates"), all(sb, "orders"), all(sb, "crm_calls"), all(sb, "crm_tasks"),
     all(sb, "calendar_events"), all(sb, "crew_bookings"), all(sb, "marketing_daily_metrics"), all(sb, "marketing_manual_spend"),
     all(sb, "analytics_targets"), all(sb, "profiles", "user_id,display_name,is_active"),
-    all(sb, "integrations", "provider_key,name,status,last_success_at,last_error_at,last_error,enabled"),
+    optionalAll(sb, "integrations", "provider_key,name,status,last_success_at,last_error_at,last_error,enabled"),
   ]);
   return { leads, pipelines, stages, activities, measurements, estimates, orders, calls, tasks, events, bookings, metrics, manualSpend, targets, profiles, integrations };
 }
