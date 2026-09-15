@@ -428,19 +428,22 @@ const hasUtm = (l: LeadRow) => Object.values((l.utm ?? {}) as Record<string, unk
 
 async function stageConflicts(): Promise<AuditReport> {
   const leads = await leadsForQuality();
-  const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id");
+  const stages = await fetchAll("crm_stages", "id,name,key,pipeline_id,is_won,is_lost");
   const stageById = new Map(stages.map((s) => [s.id, s]));
   const bad = leads.filter((l) => {
     const stage = l.stage_id ? stageById.get(l.stage_id) : null;
     if (!stage) return Boolean(l.stage_id);
-    const name = String(stage.name ?? "");
-    const won = /(успешн|успішн|successful)/i.test(name);
-    const finalLost = /(отказ|відмов|спам|дубл|не цел|не наш|некоррект|перестал|дорого|купил)/i.test(name);
-    if (won && l.status !== "won") return true;
-    if (finalLost && l.status === "open") return true;
-    if (!won && !finalLost && (l.status === "won" || l.status === "lost")) return true;
-    return false;
+    const expected = canonicalLeadStatus({
+      title: String(stage.name ?? ""),
+      alias: String(stage.key ?? ""),
+      is_final: Boolean(stage.is_won) || Boolean(stage.is_lost),
+    });
+    if (expected.status === "won") return l.status !== "won";
+    if (expected.status === "open") return l.status === "won" || l.status === "lost";
+    // фінальні етапи відмови: postponed і lost — обидва прийнятні (причина відмови ≠ активний етап)
+    return l.status === "open" || l.status === "won";
   });
+
   return simpleReport(
     "stage_status_conflicts",
     bad,
