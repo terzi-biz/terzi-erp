@@ -372,6 +372,7 @@ export async function missedCallCallbacks(dryRun: boolean, ownerId: string, days
       client_id: c.client_id ?? null,
       contact_id: c.contact_id ?? null,
       assigned_to: (lead as any)?.assigned_to ?? null,
+      owner_id: (lead as any)?.assigned_to ?? ownerId,
       external_key: key,
     });
     if (samples.length < SAMPLES) samples.push(`${c.phone_e164} · ${new Date(c.started_at).toLocaleString("uk-UA")}`);
