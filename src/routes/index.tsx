@@ -9,6 +9,7 @@ import { getFinanceOverview } from "@/lib/finance/finmap.functions";
 import { TasksPanel } from "@/components/dashboard/panels";
 import { ActionDrawer, EmptyState, FunnelCard, ManagementInsight, MetricCard, SectionShell } from "@/components/dashboard/control-center";
 import { FinmapSyncStatus } from "@/components/finance/FinmapSyncStatus";
+import { ReconciliationPanel } from "@/components/dashboard/ReconciliationPanel";
 import { Button } from "@/components/ui/button";
 import { BarChart3, CalendarDays, ChevronDown, ChevronRight, CircleAlert, ClipboardList, FileText, Filter, Handshake, Megaphone, PhoneCall, Plus, RefreshCw, Ruler, Target, Users, Wallet, Wrench } from "lucide-react";
 
