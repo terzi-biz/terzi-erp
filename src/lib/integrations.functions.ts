@@ -381,3 +381,11 @@ export const runKeyCrmImportChunk = createServerFn({ method: "POST" })
     const { importChunkOp } = await import("./integrations/sync-ops.server");
     return importChunkOp(context.userId, data);
   });
+
+/** Телеметрія та Reconciliation усіх інтеграцій для дашборда й звіту Administration. */
+export const getIntegrationReconciliation = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { buildReconciliationReport } = await import("./integrations/telemetry.server");
+    return buildReconciliationReport(context.userId);
+  });
