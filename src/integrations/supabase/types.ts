@@ -1857,6 +1857,30 @@ export type Database = {
         }
         Relationships: []
       }
+      data_fix_runs: {
+        Row: {
+          fix_key: string
+          id: string
+          notes: string | null
+          ran_at: string
+          stats: Json
+        }
+        Insert: {
+          fix_key: string
+          id?: string
+          notes?: string | null
+          ran_at?: string
+          stats?: Json
+        }
+        Update: {
+          fix_key?: string
+          id?: string
+          notes?: string | null
+          ran_at?: string
+          stats?: Json
+        }
+        Relationships: []
+      }
       direction_versions: {
         Row: {
           config: Json
@@ -7539,6 +7563,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_item_applications_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_item_applications_item_id_fkey"
             columns: ["item_id"]
             isOneToOne: false
@@ -7739,6 +7770,13 @@ export type Database = {
             columns: ["catalog_item_id"]
             isOneToOne: false
             referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_items_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items_public"
             referencedColumns: ["id"]
           },
         ]
@@ -8317,7 +8355,93 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      catalog_items_public: {
+        Row: {
+          buy_price: number | null
+          client_group_key: string | null
+          code: string | null
+          created_at: string | null
+          id: string | null
+          is_active: boolean | null
+          is_custom: boolean | null
+          kind: string | null
+          lifetime_months: number | null
+          manual_t100: boolean | null
+          manual_t250: boolean | null
+          manual_t50: boolean | null
+          manual_t500: boolean | null
+          module: string | null
+          name: string | null
+          sell_price: number | null
+          sell_price_t100: number | null
+          sell_price_t250: number | null
+          sell_price_t50: number | null
+          sell_price_t500: number | null
+          show_in_client:
+            | Database["public"]["Enums"]["show_in_client_mode"]
+            | null
+          sort_order: number | null
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          buy_price?: never
+          client_group_key?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          kind?: string | null
+          lifetime_months?: number | null
+          manual_t100?: boolean | null
+          manual_t250?: boolean | null
+          manual_t50?: boolean | null
+          manual_t500?: boolean | null
+          module?: string | null
+          name?: string | null
+          sell_price?: number | null
+          sell_price_t100?: number | null
+          sell_price_t250?: number | null
+          sell_price_t50?: number | null
+          sell_price_t500?: number | null
+          show_in_client?:
+            | Database["public"]["Enums"]["show_in_client_mode"]
+            | null
+          sort_order?: number | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          buy_price?: never
+          client_group_key?: string | null
+          code?: string | null
+          created_at?: string | null
+          id?: string | null
+          is_active?: boolean | null
+          is_custom?: boolean | null
+          kind?: string | null
+          lifetime_months?: number | null
+          manual_t100?: boolean | null
+          manual_t250?: boolean | null
+          manual_t50?: boolean | null
+          manual_t500?: boolean | null
+          module?: string | null
+          name?: string | null
+          sell_price?: number | null
+          sell_price_t100?: number | null
+          sell_price_t250?: number | null
+          sell_price_t50?: number | null
+          sell_price_t500?: number | null
+          show_in_client?:
+            | Database["public"]["Enums"]["show_in_client_mode"]
+            | null
+          sort_order?: number | null
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       analytics_overview: {
