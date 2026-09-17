@@ -66,7 +66,11 @@ import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 import { Route as OrdersNewRouteImport } from './routes/orders.new'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
+import { Route as ReportsIndexRouteImport } from './routes/reports.index'
 import { Route as ReportsCeoRouteImport } from './routes/reports.ceo'
+import { Route as ReportsFunnelRouteImport } from './routes/reports.funnel'
+import { Route as ReportsTasksRouteImport } from './routes/reports.tasks'
+import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -368,9 +372,29 @@ const ProductionIdRoute = ProductionIdRouteImport.update({
   path: '/production/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsIndexRoute = ReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReportsRoute,
+} as any)
 const ReportsCeoRoute = ReportsCeoRouteImport.update({
   id: '/ceo',
   path: '/ceo',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsFunnelRoute = ReportsFunnelRouteImport.update({
+  id: '/funnel',
+  path: '/funnel',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsTasksRoute = ReportsTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsTelephonyRoute = ReportsTelephonyRouteImport.update({
+  id: '/telephony',
+  path: '/telephony',
   getParentRoute: () => ReportsRoute,
 } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
@@ -495,6 +519,9 @@ export interface FileRoutesByFullPath {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/funnel': typeof ReportsFunnelRoute
+  '/reports/tasks': typeof ReportsTasksRoute
+  '/reports/telephony': typeof ReportsTelephonyRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -502,6 +529,7 @@ export interface FileRoutesByFullPath {
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/reports/': typeof ReportsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -533,7 +561,6 @@ export interface FileRoutesByTo {
   '/materials': typeof MaterialsRoute
   '/mcp': typeof McpRoute
   '/operations': typeof OperationsRoute
-  '/reports': typeof ReportsRouteWithChildren
   '/roofing': typeof RoofingRoute
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
@@ -567,6 +594,9 @@ export interface FileRoutesByTo {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/funnel': typeof ReportsFunnelRoute
+  '/reports/tasks': typeof ReportsTasksRoute
+  '/reports/telephony': typeof ReportsTelephonyRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -574,6 +604,7 @@ export interface FileRoutesByTo {
   '/objects': typeof ObjectsIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/reports': typeof ReportsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -640,6 +671,9 @@ export interface FileRoutesById {
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/funnel': typeof ReportsFunnelRoute
+  '/reports/tasks': typeof ReportsTasksRoute
+  '/reports/telephony': typeof ReportsTelephonyRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -647,6 +681,7 @@ export interface FileRoutesById {
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/reports/': typeof ReportsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -714,6 +749,9 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/reports/ceo'
+    | '/reports/funnel'
+    | '/reports/tasks'
+    | '/reports/telephony'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -721,6 +759,7 @@ export interface FileRouteTypes {
     | '/objects/'
     | '/orders/'
     | '/production/'
+    | '/reports/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -752,7 +791,6 @@ export interface FileRouteTypes {
     | '/materials'
     | '/mcp'
     | '/operations'
-    | '/reports'
     | '/roofing'
     | '/roofing_pvc'
     | '/roofing_rub'
@@ -786,6 +824,9 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/reports/ceo'
+    | '/reports/funnel'
+    | '/reports/tasks'
+    | '/reports/telephony'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -793,6 +834,7 @@ export interface FileRouteTypes {
     | '/objects'
     | '/orders'
     | '/production'
+    | '/reports'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -858,6 +900,9 @@ export interface FileRouteTypes {
     | '/orders/new'
     | '/production/$id'
     | '/reports/ceo'
+    | '/reports/funnel'
+    | '/reports/tasks'
+    | '/reports/telephony'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -865,6 +910,7 @@ export interface FileRouteTypes {
     | '/objects/'
     | '/orders/'
     | '/production/'
+    | '/reports/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -1352,11 +1398,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/': {
+      id: '/reports/'
+      path: '/'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof ReportsRoute
+    }
     '/reports/ceo': {
       id: '/reports/ceo'
       path: '/ceo'
       fullPath: '/reports/ceo'
       preLoaderRoute: typeof ReportsCeoRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/funnel': {
+      id: '/reports/funnel'
+      path: '/funnel'
+      fullPath: '/reports/funnel'
+      preLoaderRoute: typeof ReportsFunnelRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/tasks': {
+      id: '/reports/tasks'
+      path: '/tasks'
+      fullPath: '/reports/tasks'
+      preLoaderRoute: typeof ReportsTasksRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/telephony': {
+      id: '/reports/telephony'
+      path: '/telephony'
+      fullPath: '/reports/telephony'
+      preLoaderRoute: typeof ReportsTelephonyRouteImport
       parentRoute: typeof ReportsRoute
     }
     '/.lovable/oauth/consent': {
@@ -1448,10 +1522,18 @@ declare module '@tanstack/react-router' {
 
 interface ReportsRouteChildren {
   ReportsCeoRoute: typeof ReportsCeoRoute
+  ReportsFunnelRoute: typeof ReportsFunnelRoute
+  ReportsTasksRoute: typeof ReportsTasksRoute
+  ReportsTelephonyRoute: typeof ReportsTelephonyRoute
+  ReportsIndexRoute: typeof ReportsIndexRoute
 }
 
 const ReportsRouteChildren: ReportsRouteChildren = {
   ReportsCeoRoute: ReportsCeoRoute,
+  ReportsFunnelRoute: ReportsFunnelRoute,
+  ReportsTasksRoute: ReportsTasksRoute,
+  ReportsTelephonyRoute: ReportsTelephonyRoute,
+  ReportsIndexRoute: ReportsIndexRoute,
 }
 
 const ReportsRouteWithChildren =
