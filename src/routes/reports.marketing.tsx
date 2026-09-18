@@ -23,9 +23,8 @@ function MarketingReport() {
 
   const sources = (data?.sources ?? []) as any[];
   const rows = sources.map((s) => {
-    const key = resolveChannel({ source: s.source });
-    const channel = key ? getChannel(key) : null;
-    const spendAllowed = key ? acceptsSpend(key) : false;
+    const channel = resolveChannel({ source: s.source });
+    const spendAllowed = channel ? acceptsSpend(channel.key) : false;
     const spend = spendAllowed ? Number(s.spend) || 0 : null;
     return {
       __key: s.source,
