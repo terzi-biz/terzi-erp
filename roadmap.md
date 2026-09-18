@@ -10,10 +10,10 @@
 
 # Integration reconciliation and canonical reports
 
-- [ ] Canonical channel attribution registry
-- [ ] Unified integration telemetry and reconciliation DTO
-- [ ] Real Meta Ads and Google Ads adapter wiring
-- [ ] Dashboard synchronization and reconciliation panel
-- [ ] Reports center and eight canonical report routes
-- [ ] Connector-backed Telegram, TikTok, Google Ads setup
-- [ ] Focused tests, typecheck, build, database validation, responsive verification
+- [x] Canonical channel attribution registry
+- [x] Unified integration telemetry and reconciliation DTO
+- [ ] Real Meta Ads and Google Ads adapter wiring (blocked: provider credentials/connectors)
+- [x] Dashboard synchronization and reconciliation panel
+- [x] Reports center and eight canonical report routes
+- [ ] Connector-backed Telegram, TikTok, Google Ads setup (blocked: connector access)
+- [x] Focused tests, typecheck, build (live browser check blocked: database pooler unavailable)
