@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ReportPage, KpiRow, SummaryTable, money, num } from "@/components/reports/report-shell";
 import { useOverview } from "@/components/reports/use-reports";
 import { EmptyState } from "@/components/dashboard/control-center";
-import { resolveChannel, getChannel, acceptsSpend } from "@/lib/marketing/channels";
+import { resolveChannel, acceptsSpend } from "@/lib/marketing/channels";
 
 export const Route = createFileRoute("/reports/marketing")({
   head: () => ({ meta: [
