@@ -87,6 +87,7 @@ import { Route as ApiPublicIntegrationsExternalCallbackRouteImport } from './rou
 import { Route as ApiPublicIntegrationsFinmapWebhookRouteImport } from './routes/api/public/integrations/finmap/webhook'
 import { Route as ApiPublicIntegrationsGoogleAdsCallbackRouteImport } from './routes/api/public/integrations/google-ads/callback'
 import { Route as ApiPublicIntegrationsGoogleAdsStartRouteImport } from './routes/api/public/integrations/google-ads/start'
+import { Route as ApiPublicIntegrationsMessengerTelegramRouteImport } from './routes/api/public/integrations/messenger/telegram'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
@@ -491,6 +492,12 @@ const ApiPublicIntegrationsGoogleAdsStartRoute =
     path: '/api/public/integrations/google-ads/start',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsMessengerTelegramRoute =
+  ApiPublicIntegrationsMessengerTelegramRouteImport.update({
+    id: '/api/public/integrations/messenger/telegram',
+    path: '/api/public/integrations/messenger/telegram',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsOauthCallbackRoute =
   ApiPublicIntegrationsOauthCallbackRouteImport.update({
     id: '/api/public/integrations/oauth/callback',
@@ -583,6 +590,7 @@ export interface FileRoutesByFullPath {
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -664,6 +672,7 @@ export interface FileRoutesByTo {
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -747,6 +756,7 @@ export interface FileRoutesById {
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -831,6 +841,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -912,6 +923,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -994,6 +1006,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -1067,6 +1080,7 @@ export interface RootRouteChildren {
   ApiPublicIntegrationsFinmapWebhookRoute: typeof ApiPublicIntegrationsFinmapWebhookRoute
   ApiPublicIntegrationsGoogleAdsCallbackRoute: typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   ApiPublicIntegrationsGoogleAdsStartRoute: typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  ApiPublicIntegrationsMessengerTelegramRoute: typeof ApiPublicIntegrationsMessengerTelegramRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -1619,6 +1633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsGoogleAdsStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/messenger/telegram': {
+      id: '/api/public/integrations/messenger/telegram'
+      path: '/api/public/integrations/messenger/telegram'
+      fullPath: '/api/public/integrations/messenger/telegram'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerTelegramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/oauth/callback': {
       id: '/api/public/integrations/oauth/callback'
       path: '/api/public/integrations/oauth/callback'
@@ -1741,6 +1762,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsGoogleAdsCallbackRoute,
   ApiPublicIntegrationsGoogleAdsStartRoute:
     ApiPublicIntegrationsGoogleAdsStartRoute,
+  ApiPublicIntegrationsMessengerTelegramRoute:
+    ApiPublicIntegrationsMessengerTelegramRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
