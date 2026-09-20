@@ -83,9 +83,12 @@ import { Route as ApiPublicLeadsIntakeRouteImport } from './routes/api/public/le
 import { Route as ApiPublicMarketingSyncRouteImport } from './routes/api/public/marketing/sync'
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
+import { Route as ApiPublicIntegrationsExternalCallbackRouteImport } from './routes/api/public/integrations/external/callback'
 import { Route as ApiPublicIntegrationsFinmapWebhookRouteImport } from './routes/api/public/integrations/finmap/webhook'
 import { Route as ApiPublicIntegrationsGoogleAdsCallbackRouteImport } from './routes/api/public/integrations/google-ads/callback'
 import { Route as ApiPublicIntegrationsGoogleAdsStartRouteImport } from './routes/api/public/integrations/google-ads/start'
+import { Route as ApiPublicIntegrationsMessengerTelegramRouteImport } from './routes/api/public/integrations/messenger/telegram'
+import { Route as ApiPublicIntegrationsMessengerViberRouteImport } from './routes/api/public/integrations/messenger/viber'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
@@ -466,6 +469,12 @@ const ApiPublicIntegrationsBinotelCallSettingsRoute =
     path: '/api/public/integrations/binotel/call-settings',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsExternalCallbackRoute =
+  ApiPublicIntegrationsExternalCallbackRouteImport.update({
+    id: '/api/public/integrations/external/callback',
+    path: '/api/public/integrations/external/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsFinmapWebhookRoute =
   ApiPublicIntegrationsFinmapWebhookRouteImport.update({
     id: '/api/public/integrations/finmap/webhook',
@@ -482,6 +491,18 @@ const ApiPublicIntegrationsGoogleAdsStartRoute =
   ApiPublicIntegrationsGoogleAdsStartRouteImport.update({
     id: '/api/public/integrations/google-ads/start',
     path: '/api/public/integrations/google-ads/start',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMessengerTelegramRoute =
+  ApiPublicIntegrationsMessengerTelegramRouteImport.update({
+    id: '/api/public/integrations/messenger/telegram',
+    path: '/api/public/integrations/messenger/telegram',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMessengerViberRoute =
+  ApiPublicIntegrationsMessengerViberRouteImport.update({
+    id: '/api/public/integrations/messenger/viber',
+    path: '/api/public/integrations/messenger/viber',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicIntegrationsOauthCallbackRoute =
@@ -572,9 +593,12 @@ export interface FileRoutesByFullPath {
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  '/api/public/integrations/external/callback': typeof ApiPublicIntegrationsExternalCallbackRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -652,9 +676,12 @@ export interface FileRoutesByTo {
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  '/api/public/integrations/external/callback': typeof ApiPublicIntegrationsExternalCallbackRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -734,9 +761,12 @@ export interface FileRoutesById {
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  '/api/public/integrations/external/callback': typeof ApiPublicIntegrationsExternalCallbackRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -817,9 +847,12 @@ export interface FileRouteTypes {
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
+    | '/api/public/integrations/external/callback'
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -897,9 +930,12 @@ export interface FileRouteTypes {
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
+    | '/api/public/integrations/external/callback'
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -978,9 +1014,12 @@ export interface FileRouteTypes {
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
+    | '/api/public/integrations/external/callback'
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -1050,9 +1089,12 @@ export interface RootRouteChildren {
   ApiPublicMarketingSyncRoute: typeof ApiPublicMarketingSyncRoute
   ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  ApiPublicIntegrationsExternalCallbackRoute: typeof ApiPublicIntegrationsExternalCallbackRoute
   ApiPublicIntegrationsFinmapWebhookRoute: typeof ApiPublicIntegrationsFinmapWebhookRoute
   ApiPublicIntegrationsGoogleAdsCallbackRoute: typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   ApiPublicIntegrationsGoogleAdsStartRoute: typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  ApiPublicIntegrationsMessengerTelegramRoute: typeof ApiPublicIntegrationsMessengerTelegramRoute
+  ApiPublicIntegrationsMessengerViberRoute: typeof ApiPublicIntegrationsMessengerViberRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -1577,6 +1619,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/external/callback': {
+      id: '/api/public/integrations/external/callback'
+      path: '/api/public/integrations/external/callback'
+      fullPath: '/api/public/integrations/external/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsExternalCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/finmap/webhook': {
       id: '/api/public/integrations/finmap/webhook'
       path: '/api/public/integrations/finmap/webhook'
@@ -1596,6 +1645,20 @@ declare module '@tanstack/react-router' {
       path: '/api/public/integrations/google-ads/start'
       fullPath: '/api/public/integrations/google-ads/start'
       preLoaderRoute: typeof ApiPublicIntegrationsGoogleAdsStartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/messenger/telegram': {
+      id: '/api/public/integrations/messenger/telegram'
+      path: '/api/public/integrations/messenger/telegram'
+      fullPath: '/api/public/integrations/messenger/telegram'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerTelegramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/messenger/viber': {
+      id: '/api/public/integrations/messenger/viber'
+      path: '/api/public/integrations/messenger/viber'
+      fullPath: '/api/public/integrations/messenger/viber'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerViberRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/integrations/oauth/callback': {
@@ -1712,12 +1775,18 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsBinotelCallCompletedRoute,
   ApiPublicIntegrationsBinotelCallSettingsRoute:
     ApiPublicIntegrationsBinotelCallSettingsRoute,
+  ApiPublicIntegrationsExternalCallbackRoute:
+    ApiPublicIntegrationsExternalCallbackRoute,
   ApiPublicIntegrationsFinmapWebhookRoute:
     ApiPublicIntegrationsFinmapWebhookRoute,
   ApiPublicIntegrationsGoogleAdsCallbackRoute:
     ApiPublicIntegrationsGoogleAdsCallbackRoute,
   ApiPublicIntegrationsGoogleAdsStartRoute:
     ApiPublicIntegrationsGoogleAdsStartRoute,
+  ApiPublicIntegrationsMessengerTelegramRoute:
+    ApiPublicIntegrationsMessengerTelegramRoute,
+  ApiPublicIntegrationsMessengerViberRoute:
+    ApiPublicIntegrationsMessengerViberRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
