@@ -88,6 +88,7 @@ import { Route as ApiPublicIntegrationsFinmapWebhookRouteImport } from './routes
 import { Route as ApiPublicIntegrationsGoogleAdsCallbackRouteImport } from './routes/api/public/integrations/google-ads/callback'
 import { Route as ApiPublicIntegrationsGoogleAdsStartRouteImport } from './routes/api/public/integrations/google-ads/start'
 import { Route as ApiPublicIntegrationsMessengerTelegramRouteImport } from './routes/api/public/integrations/messenger/telegram'
+import { Route as ApiPublicIntegrationsMessengerViberRouteImport } from './routes/api/public/integrations/messenger/viber'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
@@ -498,6 +499,12 @@ const ApiPublicIntegrationsMessengerTelegramRoute =
     path: '/api/public/integrations/messenger/telegram',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsMessengerViberRoute =
+  ApiPublicIntegrationsMessengerViberRouteImport.update({
+    id: '/api/public/integrations/messenger/viber',
+    path: '/api/public/integrations/messenger/viber',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsOauthCallbackRoute =
   ApiPublicIntegrationsOauthCallbackRouteImport.update({
     id: '/api/public/integrations/oauth/callback',
@@ -591,6 +598,7 @@ export interface FileRoutesByFullPath {
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
   '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -673,6 +681,7 @@ export interface FileRoutesByTo {
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
   '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -757,6 +766,7 @@ export interface FileRoutesById {
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
   '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -842,6 +852,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
     | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -924,6 +935,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
     | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -1007,6 +1019,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
     | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -1081,6 +1094,7 @@ export interface RootRouteChildren {
   ApiPublicIntegrationsGoogleAdsCallbackRoute: typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   ApiPublicIntegrationsGoogleAdsStartRoute: typeof ApiPublicIntegrationsGoogleAdsStartRoute
   ApiPublicIntegrationsMessengerTelegramRoute: typeof ApiPublicIntegrationsMessengerTelegramRoute
+  ApiPublicIntegrationsMessengerViberRoute: typeof ApiPublicIntegrationsMessengerViberRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -1640,6 +1654,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsMessengerTelegramRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/messenger/viber': {
+      id: '/api/public/integrations/messenger/viber'
+      path: '/api/public/integrations/messenger/viber'
+      fullPath: '/api/public/integrations/messenger/viber'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerViberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/oauth/callback': {
       id: '/api/public/integrations/oauth/callback'
       path: '/api/public/integrations/oauth/callback'
@@ -1764,6 +1785,8 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsGoogleAdsStartRoute,
   ApiPublicIntegrationsMessengerTelegramRoute:
     ApiPublicIntegrationsMessengerTelegramRoute,
+  ApiPublicIntegrationsMessengerViberRoute:
+    ApiPublicIntegrationsMessengerViberRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
