@@ -1,9 +1,7 @@
 {
   "name": "tanstack_start_ts",
   "private": true,
-  "sideEffects": [
-    "**/*.css"
-  ],
+  "sideEffects": ["**/*.css"],
   "type": "module",
   "scripts": {
     "setup": "bun install && node -e \"const f=require('fs');if(!f.existsSync('.env'))f.copyFileSync('.env.example','.env')\"",
@@ -87,7 +85,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
-    "@lovable.dev/vite-tanstack-config": "2.23.1",
+    "@lovable.dev/vite-tanstack-config": "2.13.1",
     "@playwright/test": "^1.62.1",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
