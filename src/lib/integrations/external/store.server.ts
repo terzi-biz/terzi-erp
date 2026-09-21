@@ -100,7 +100,7 @@ export async function patchConfig(providerKey: string, patch: Record<string, unk
   const db = await admin();
   const row = await ensureIntegrationRow(providerKey);
   const config = { ...((row.config as Record<string, unknown>) ?? {}), ...patch };
-  await db.from("integrations").update({ config }).eq("id", row.id);
+  await db.from("integrations").update({ config: config as never }).eq("id", row.id);
 }
 
 /** Успіх фіксуємо тільки після фактично успішного виклику API провайдера. */
