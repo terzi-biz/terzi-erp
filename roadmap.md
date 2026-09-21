@@ -17,3 +17,10 @@
 - [x] Reports center and eight canonical report routes
 - [ ] Connector-backed Telegram, TikTok, Google Ads setup (blocked: connector access)
 - [x] Focused tests, typecheck, build (live browser check blocked: database pooler unavailable)
+
+# External connections (Google, TikTok, OLX, messengers)
+- [x] Registry, token store, OAuth exchange and auto-refresh
+- [x] Real API tests; "Connected" only after a successful provider response
+- [x] Telegram / Viber / WhatsApp webhooks with signature verification + shared inbound intake
+- [x] "Зовнішні джерела" tab in Integrations (connect / test / disconnect)
+- [ ] Built-in AI assistant for reports and integrations (next step)
