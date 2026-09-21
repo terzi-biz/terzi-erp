@@ -22,6 +22,7 @@ import { SyncPanel } from "@/components/integrations/SyncPanel";
 import { BinotelPanel } from "@/components/integrations/BinotelPanel";
 import { BinotelCallsPanel } from "@/components/integrations/BinotelCallsPanel";
 import { KeycrmManagerMapping } from "@/components/integrations/KeycrmManagerMapping";
+import { ExternalConnectionsPanel } from "@/components/integrations/ExternalConnectionsPanel";
 
 export const Route = createFileRoute("/integrations")({
   head: () => ({
@@ -42,10 +43,11 @@ function useMutFn(fn: any) {
   return (data: any) => (call as any)({ data: data ?? {} });
 }
 
-type Tab = "connections" | "sync" | "binotel" | "binotel-calls" | "webhooks" | "mapping" | "queue" | "logs";
+type Tab = "connections" | "external" | "sync" | "binotel" | "binotel-calls" | "webhooks" | "mapping" | "queue" | "logs";
 
 const TABS: { id: Tab; label: string }[] = [
   { id: "connections", label: "Підключення" },
+  { id: "external", label: "Зовнішні джерела" },
   { id: "sync", label: "Синхронізація keyCRM" },
   { id: "binotel", label: "Binotel" },
   { id: "binotel-calls", label: "Дзвінки Binotel" },
@@ -136,6 +138,7 @@ function IntegrationsPage() {
           loading={items.isLoading}
         />
       )}
+      {tab === "external" && <ExternalConnectionsPanel />}
       {tab === "sync" && <SyncPanel list={list} active={active} onSelect={setSelected} />}
       {tab === "binotel" && <BinotelPanel />}
       {tab === "binotel-calls" && <BinotelCallsPanel />}

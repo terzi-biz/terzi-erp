@@ -10,10 +10,17 @@
 
 # Integration reconciliation and canonical reports
 
-- [ ] Canonical channel attribution registry
-- [ ] Unified integration telemetry and reconciliation DTO
-- [ ] Real Meta Ads and Google Ads adapter wiring
-- [ ] Dashboard synchronization and reconciliation panel
-- [ ] Reports center and eight canonical report routes
-- [ ] Connector-backed Telegram, TikTok, Google Ads setup
-- [ ] Focused tests, typecheck, build, database validation, responsive verification
+- [x] Canonical channel attribution registry
+- [x] Unified integration telemetry and reconciliation DTO
+- [ ] Real Meta Ads and Google Ads adapter wiring (blocked: provider credentials/connectors)
+- [x] Dashboard synchronization and reconciliation panel
+- [x] Reports center and eight canonical report routes
+- [ ] Connector-backed Telegram, TikTok, Google Ads setup (blocked: connector access)
+- [x] Focused tests, typecheck, build (live browser check blocked: database pooler unavailable)
+
+# External connections (Google, TikTok, OLX, messengers)
+- [x] Registry, token store, OAuth exchange and auto-refresh
+- [x] Real API tests; "Connected" only after a successful provider response
+- [x] Telegram / Viber / WhatsApp webhooks with signature verification + shared inbound intake
+- [x] "Зовнішні джерела" tab in Integrations (connect / test / disconnect)
+- [ ] Built-in AI assistant for reports and integrations (next step)
