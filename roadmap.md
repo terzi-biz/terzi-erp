@@ -23,4 +23,10 @@
 - [x] Real API tests; "Connected" only after a successful provider response
 - [x] Telegram / Viber / WhatsApp webhooks with signature verification + shared inbound intake
 - [x] "Зовнішні джерела" tab in Integrations (connect / test / disconnect)
-- [ ] Built-in AI assistant for reports and integrations (next step)
+- [x] Built-in read-only AI assistant for reports, integrations and KPI with evidence links and permission-aware finance
+
+# System recovery and authentication
+- [x] Resume the hosted backend after pause
+- [x] Enable email/password and Google sign-in
+- [x] Keep profiles, roles and access approval flow
+- [x] Return OAuth through the public login page before opening protected destinations

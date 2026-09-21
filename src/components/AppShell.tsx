@@ -12,6 +12,7 @@ import { useState, useEffect, useContext, createContext, type ReactNode } from "
 import { TerziLogo } from "./TerziLogo";
 import { navForRoles, activeSectionKey, type NavSection } from "./nav-model";
 import { buttonVariants } from "@/components/ui/button";
+import { TerziAiAssistant } from "./TerziAiAssistant";
 
 const AppShellContext = createContext(false);
 
@@ -220,6 +221,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-1 min-w-0">{children}</main>
+        <TerziAiAssistant />
       </div>
     </div>
   );
