@@ -42,11 +42,14 @@ function LoginPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const { next } = Route.useSearch();
 
   function goNext() {
-    if (next) window.location.href = next;
+    const saved = typeof window !== "undefined" ? sessionStorage.getItem("terzi:login-next") : null;
+    if (typeof window !== "undefined") sessionStorage.removeItem("terzi:login-next");
+    if (next || saved) window.location.href = next || saved || "/";
     else nav({ to: "/" });
   }
 
@@ -55,11 +58,12 @@ function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading, accessAllowed, next]);
 
-  async function withProvider(p: "google" | "apple") {
+  async function withGoogle() {
     setErr(null); setBusy(true);
-    const res = await lovable.auth.signInWithOAuth(p, {
-      redirect_uri: next ? `${window.location.origin}${next}` : window.location.origin,
-      extraParams: p === "google" ? { prompt: "select_account" } : undefined,
+    if (next) sessionStorage.setItem("terzi:login-next", next);
+    const res = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/login`,
+      extraParams: { prompt: "select_account" },
     });
     if (res.error) { setErr(res.error.message ?? "Помилка входу"); setBusy(false); return; }
     if (!res.redirected) {
@@ -72,7 +76,7 @@ function LoginPage() {
   async function withEmail(e: React.FormEvent) {
     e.preventDefault(); setErr(null); setBusy(true);
     const returnTo = next ? `${window.location.origin}${next}` : `${window.location.origin}/login`;
-    const { error } = await (mode === "signin"
+    const { data, error } = await (mode === "signin"
       ? supabase.auth.signInWithPassword({ email, password: pwd })
       : supabase.auth.signUp({
           email,
@@ -81,7 +85,10 @@ function LoginPage() {
         }));
     setBusy(false);
     if (error) setErr(error.message);
-    else {
+    else if (mode === "signup" && !data.session) {
+      setNotice("Перевірте пошту та підтвердьте адресу. Після цього поверніться до входу.");
+      setMode("signin");
+    } else {
       await router.invalidate();
       goNext();
     }
@@ -115,21 +122,12 @@ function LoginPage() {
       </h1>
 
       <button
-        onClick={() => withProvider("google")}
+        onClick={withGoogle}
         disabled={busy}
         className="flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background py-3 text-sm font-semibold transition-colors hover:bg-accent disabled:opacity-50"
       >
         <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.4 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.2-.1-2.3-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.5 16 18.9 13 24 13c3 0 5.8 1.1 7.9 3l5.7-5.7C34 6 29.3 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.2 26.7 36 24 36c-5.2 0-9.6-3.5-11.2-8.3l-6.5 5C9.6 39.6 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.1-4.1 5.6l6.2 5.2C40.7 35.5 44 30.2 44 24c0-1.2-.1-2.3-.4-3.5z"/></svg>
         Увійти з Google акаунтом
-      </button>
-
-      <button
-        onClick={() => withProvider("apple")}
-        disabled={busy}
-        className="mt-3 flex w-full items-center justify-center gap-3 rounded-xl border border-border bg-background py-3 text-sm font-semibold transition-colors hover:bg-accent disabled:opacity-50"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.49-.12-1.17.461-2.36 1.15-3.12.768-.9 2.063-1.55 3.014-1.45zM21.5 17.04c-.547 1.26-.81 1.82-1.51 2.94-.97 1.55-2.34 3.48-4.03 3.49-1.5.01-1.89-.97-3.93-.96-2.04.01-2.46.97-3.96.96-1.69-.01-2.98-1.76-3.95-3.31C1.43 16.4.74 11.27 2.96 7.96c1.41-2.1 3.64-3.33 5.73-3.33 2.13 0 3.47 1.16 5.23 1.16 1.71 0 2.75-1.16 5.21-1.16 1.86 0 3.83 1.01 5.23 2.76-4.6 2.52-3.86 9.09-2.86 9.65z"/></svg>
-        Увійти з Apple акаунтом
       </button>
 
       <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
@@ -160,6 +158,7 @@ function LoginPage() {
         </label>
 
         {err && <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">{err}</div>}
+        {notice && <div className="rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">{notice}</div>}
 
         <button type="submit" disabled={busy}
           className="w-full rounded-xl bg-primary py-3.5 text-base font-bold text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-50">
@@ -169,7 +168,7 @@ function LoginPage() {
 
       <div className="mt-4 text-center text-sm text-muted-foreground">
         {mode === "signin" ? "Немає акаунту?" : "Вже є акаунт?"}{" "}
-        <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setErr(null); }}
+        <button onClick={() => { setMode(mode === "signin" ? "signup" : "signin"); setErr(null); setNotice(null); }}
           className="font-semibold text-primary underline underline-offset-4">
           {mode === "signin" ? "Зареєструватись" : "Увійти"}
         </button>
