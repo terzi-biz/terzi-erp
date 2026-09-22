@@ -128,5 +128,5 @@ export async function syncLeadAttribution(sb: Db) {
     if (!error) attributed++;
   }
 
-  return { leads: (leads ?? []).length, attributed, campaignsCreated, skipped };
+  return { leads: leads.length, attributed, campaignsCreated, skipped };
 }
