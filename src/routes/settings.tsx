@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, Grid3x3, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, Grid3x3, CheckCircle2, XCircle, Clock3, Building2, ListX } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
 import { useServerFn } from "@tanstack/react-start";
@@ -414,6 +414,8 @@ function SettingsPage() {
         {tab === "access" && <AccessPanel />}
         {tab === "grades" && <ScreedGradesAdmin canEdit={canManageAccess} />}
         {tab === "roofing_norms" && <RoofingNormsAdmin canEdit={canManageAccess} />}
+        {tab === "requisites" && <CompanyRequisitesAdmin canEdit={canManageAccess} />}
+        {tab === "reasons" && <CloseReasonsAdmin canEdit={canManageAccess} />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
