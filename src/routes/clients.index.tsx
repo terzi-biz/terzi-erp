@@ -233,6 +233,15 @@ function ClientsPage() {
                   <tr key={c.id} className="border-t border-border/60 hover:bg-muted/30">
                     <td className="px-3 py-2 font-semibold">
                       <Link to="/clients/$id" params={{ id: c.id }} className="hover:text-primary">{c.name}</Link>
+                      {c.company && <div className="text-xs font-normal text-muted-foreground">{c.company}</div>}
+                      {(c.roles ?? []).filter((r) => r !== "client").length > 0 && (
+                        <div className="text-[11px] font-normal text-muted-foreground">
+                          {(c.roles ?? [])
+                            .filter((r) => r !== "client")
+                            .map((r) => COUNTERPARTY_ROLE_LABEL[r as keyof typeof COUNTERPARTY_ROLE_LABEL] ?? r)
+                            .join(" · ")}
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{c.phone ?? "—"}{c.email ? ` · ${c.email}` : ""}</td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{c.manager_display ?? "—"}{c.source ? ` · ${c.source}` : ""}</td>
