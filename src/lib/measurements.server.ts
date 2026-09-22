@@ -163,3 +163,58 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
     },
   };
 }
+
+/**
+ * Зворотний звʼязок календар → замір.
+ * calendar_events — проєкція, тому будь-яка зміна події з measurement_id
+ * переноситься в канонічний запис order_measurements (дата, замірник, статус).
+ */
+const MEASUREMENT_STATUS_BY_EVENT: Record<string, string> = {
+  planned: "planned",
+  confirmed: "confirmed",
+  in_progress: "in_progress",
+  done: "completed",
+  cancelled: "canceled",
+};
+
+export function measurementPatchFromEvent(p: {
+  starts_at?: string | null;
+  employee_id?: string | null;
+  status?: string | null;
+  address?: string | null;
+  current_status?: string | null;
+}): Record<string, unknown> {
+  const patch: Record<string, unknown> = {};
+  if (p.starts_at) patch['scheduled_at'] = p.starts_at;
+  if (p.employee_id !== undefined) patch['surveyor_id'] = p.employee_id;
+  if (p.address !== undefined && p.address !== null) patch['address'] = p.address;
+  if (p.status) {
+    const mapped = MEASUREMENT_STATUS_BY_EVENT[p.status];
+    if (mapped) {
+      // Не відкочуємо вже завершений замір назад у planned через зміну події.
+      const current = p.current_status ? canonicalMeasurementStatus(p.current_status) : null;
+      if (!(current === "completed" && mapped !== "canceled")) {
+        patch['status'] = mapped;
+        const now = new Date().toISOString();
+        if (mapped === "confirmed") patch['confirmed_at'] = now;
+        if (mapped === "completed") { patch['completed_at'] = now; patch['measured_at'] = now; }
+      }
+    }
+  }
+  // Призначення замірника переводить planned → assigned.
+  if (patch['surveyor_id'] && patch['status'] === "planned") patch['status'] = "assigned";
+  return patch;
+}
+
+export async function syncMeasurementFromEvent(
+  sb: Sb,
+  measurementId: string,
+  p: { starts_at?: string | null; employee_id?: string | null; status?: string | null; address?: string | null },
+) {
+  const { data: current } = await sb
+    .from("order_measurements").select("status").eq("id", measurementId).maybeSingle();
+  const patch = measurementPatchFromEvent({ ...p, current_status: (current as any)?.status ?? null });
+  if (!Object.keys(patch).length) return;
+  const { error } = await sb.from("order_measurements").update(patch as any).eq("id", measurementId);
+  if (error) console.error("syncMeasurementFromEvent", error);
+}

@@ -1,6 +1,10 @@
+import { useState } from "react";
 import type { EstimateLineLike } from "@/lib/estimate-line";
 import { formatUah, formatNum } from "@/lib/screed-calc";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Download, Copy, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { buildPurchaseSheet, downloadPurchaseSheetXlsx, purchaseSheetText } from "@/lib/purchase-sheet";
 
 /**
  * Закупочна відомість (для закупника).
@@ -17,14 +21,39 @@ export function PurchaseSheet({
 }) {
   const materials = lines.filter((l) => l.block === "materials");
   const buyTotal = materials.reduce((s, l) => s + l.cost, 0);
+  const [copied, setCopied] = useState(false);
+
+  const sheet = () => buildPurchaseSheet(lines, { isInternal, estimateNumber: estimateNumber ?? null });
+
+  const onDownload = async () => {
+    if (!materials.length) return;
+    try {
+      await downloadPurchaseSheetXlsx(sheet());
+      toast.success("Закупівельний лист завантажено");
+    } catch {
+      toast.error("Не вдалося сформувати файл");
+    }
+  };
+
+  const onCopy = async () => {
+    if (!materials.length) return;
+    try {
+      await navigator.clipboard.writeText(purchaseSheetText(sheet()));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+      toast.success("Список скопійовано — можна надіслати постачальнику");
+    } catch {
+      toast.error("Не вдалося скопіювати");
+    }
+  };
 
   return (
     <section className="panel p-4 md:p-5 space-y-4">
-      <header className="flex items-center gap-3">
+      <header className="flex flex-wrap items-center gap-3">
         <div className="w-9 h-9 rounded-md bg-primary/10 text-primary grid place-items-center">
           <ShoppingCart className="w-4 h-4" />
         </div>
-        <div>
+        <div className="min-w-0 flex-1">
           <h2 className="font-bold text-sm uppercase tracking-wider text-primary">
             Закупочна відомість
           </h2>
@@ -32,6 +61,16 @@ export function PurchaseSheet({
             {estimateNumber ? `${estimateNumber} · ` : ""}Розрахункова витрата і рекомендована
             закупівля по фасовці
           </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={onCopy} disabled={!materials.length}>
+            {copied ? <Check className="w-4 h-4 mr-1.5" /> : <Copy className="w-4 h-4 mr-1.5" />}
+            Для постачальника
+          </Button>
+          <Button type="button" size="sm" onClick={onDownload} disabled={!materials.length}>
+            <Download className="w-4 h-4 mr-1.5" />
+            Скачати лист
+          </Button>
         </div>
       </header>
 
