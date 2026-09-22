@@ -80,12 +80,14 @@ function ClientsPage() {
         ...form,
         manager_id: form.manager_id || null,
         source: form.source || null,
+        company: form.company || null,
+        roles: form.roles.length ? form.roles : ["client"],
       } as any,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false);
-      setForm({ name: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "", status: "lead" });
+      setForm({ name: "", company: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "", roles: ["client"], status: "lead" });
     },
   });
 
@@ -160,6 +162,24 @@ function ClientsPage() {
             <h2 className="font-black text-lg mb-4">Новий клієнт</h2>
             <div className="space-y-3">
               <input className={inp} placeholder="Назва / ПІБ" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <input className={inp} placeholder="Компанія" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+              <div className="flex flex-wrap gap-3 text-xs">
+                {COUNTERPARTY_ROLES.map((role) => (
+                  <label key={role} className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={form.roles.includes(role)}
+                      onChange={(e) => setForm({
+                        ...form,
+                        roles: e.target.checked
+                          ? [...form.roles, role]
+                          : form.roles.filter((r) => r !== role),
+                      })}
+                    />
+                    {COUNTERPARTY_ROLE_LABEL[role]}
+                  </label>
+                ))}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <input className={inp} placeholder="Телефон" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <input className={inp} placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
