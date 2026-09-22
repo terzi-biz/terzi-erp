@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
 import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
+import { CloseReasonsAdmin, CompanyRequisitesAdmin } from "@/components/settings/ReferenceAdmin";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "access";
+type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "requisites" | "reasons" | "access";
+
+/** Вкладки з числовими налаштуваннями калькулятора (мають панель збереження). */
+const CALC_TABS: Tab[] = ["screed", "roofing", "insulation", "demolition", "common"];
 
 const SCREED_GROUPS = [
   { title: "Норми витрат бригади", fields: [
