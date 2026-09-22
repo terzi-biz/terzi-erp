@@ -139,7 +139,7 @@ function ClientsPage() {
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input className={`${inp} pl-9`} placeholder="Пошук: ПІБ, телефон, email…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className={`${inp} pl-9`} placeholder="Пошук: ПІБ, компанія, телефон, email…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className={inp} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
           <option value="">Усі статуси</option>
