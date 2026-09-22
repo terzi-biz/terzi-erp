@@ -58,7 +58,8 @@ function ClientsPage() {
   const [fSource, setFSource] = useState("");
   const [fManager, setFManager] = useState("");
   const [form, setForm] = useState({
-    name: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "",
+    name: "", company: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "",
+    roles: ["client"] as string[],
     status: "lead" as "lead" | "active" | "done" | "archived",
   });
 
