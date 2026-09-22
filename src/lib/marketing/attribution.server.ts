@@ -66,11 +66,18 @@ export async function syncLeadAttribution(sb: Db) {
     byName.set(normalize(c.name), c.id as string);
   }
 
-  const { data: leads } = await sb
-    .from("crm_leads")
-    .select("id, source, campaign, utm, created_at, marketing_channel_id, marketing_campaign_id, first_touch_at, last_touch_at")
-    .order("created_at", { ascending: false })
-    .limit(5000);
+  const leads: LeadRow[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; offset < 20000; offset += pageSize) {
+    const { data: chunk } = await sb
+      .from("crm_leads")
+      .select("id, source, campaign, utm, created_at, marketing_channel_id, marketing_campaign_id, first_touch_at, last_touch_at")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + pageSize - 1);
+    const rows = (chunk ?? []) as LeadRow[];
+    leads.push(...rows);
+    if (rows.length < pageSize) break;
+  }
 
   const { data: existingCampaigns } = await sb.from("marketing_campaigns").select("id, name, channel_id");
   const campaignIndex = new Map<string, string>();
@@ -121,5 +128,5 @@ export async function syncLeadAttribution(sb: Db) {
     if (!error) attributed++;
   }
 
-  return { leads: (leads ?? []).length, attributed, campaignsCreated, skipped };
+  return { leads: leads.length, attributed, campaignsCreated, skipped };
 }

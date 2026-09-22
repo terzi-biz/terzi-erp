@@ -332,17 +332,32 @@ export const listMarketingAudit = createServerFn({ method: "GET" })
 
 /* ============ Звʼязка CRM → маркетинг ============ */
 
-/** Проставляє лідам канал і кампанію за джерелом/UTM, створює відсутні кампанії. */
+/** Проставляє лідам канал і кампанію за джерелом/UTM, створює відсутні кампанії та точки дотику. */
 export const syncMarketingFromCrm = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const { syncLeadAttribution } = await import("./marketing/attribution.server");
-    const res = await syncLeadAttribution(context.supabase as never);
+    const { buildLeadTouchpoints } = await import("./marketing/touchpoints.server");
+    const { recordSyncRun } = await import("./integrations/sync-run.server");
+    const { admin } = await import("./access.server");
+    const db = await admin();
+
+    const res = await syncLeadAttribution(db as never);
+    const touchpoints = await buildLeadTouchpoints(db as never);
+    const result = { ...res, touchpoints };
+
+    await recordSyncRun(db as never, {
+      providerKey: "attribution",
+      name: "Наскрізна атрибуція",
+      entity: "marketing_touchpoints",
+      ok: true,
+      stats: { processed: touchpoints.leads, created: touchpoints.created, updated: res.attributed, skipped: touchpoints.needsReview },
+    });
     await context.supabase.from("audit_logs").insert({
       module: "marketing", action: "attribution_sync", entity_type: "crm_leads",
-      new_value: res as never, actor_id: context.userId, is_critical: false,
+      new_value: result as never, actor_id: context.userId, is_critical: false,
     });
-    return res;
+    return result;
   });
 
 /** Щоденні показники реклами за період (для таблиці «Кампанії»). */
@@ -369,6 +384,17 @@ export const syncMetaAds = createServerFn({ method: "POST" })
       last_error: null,
       connection_status: "connected",
     }).eq("provider", "meta_ads");
+    {
+      const { recordSyncRun } = await import("./integrations/sync-run.server");
+      const { admin } = await import("./access.server");
+      await recordSyncRun((await admin()) as never, {
+        providerKey: "meta_ads",
+        name: "Meta Ads",
+        entity: "marketing_daily_metrics",
+        ok: true,
+        stats: { processed: res.inserted + res.updated, created: res.inserted, updated: res.updated },
+      });
+    }
     await context.supabase.from("audit_logs").insert({
       module: "marketing", action: "meta_ads_sync", entity_type: "marketing_daily_metrics",
       new_value: res as never, actor_id: context.userId, is_critical: false,
@@ -389,6 +415,17 @@ export const syncGoogleAds = createServerFn({ method: "POST" })
       last_error: null,
       connection_status: "connected",
     }).eq("provider", "google_ads");
+    {
+      const { recordSyncRun } = await import("./integrations/sync-run.server");
+      const { admin } = await import("./access.server");
+      await recordSyncRun((await admin()) as never, {
+        providerKey: "google_ads",
+        name: "Google Ads",
+        entity: "marketing_daily_metrics",
+        ok: true,
+        stats: { processed: (res as any).inserted + (res as any).updated, created: (res as any).inserted, updated: (res as any).updated },
+      });
+    }
     await context.supabase.from("audit_logs").insert({
       module: "marketing", action: "google_ads_sync", entity_type: "marketing_daily_metrics",
       new_value: res as never, actor_id: context.userId, is_critical: false,
