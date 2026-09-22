@@ -2,7 +2,8 @@ import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-ro
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
-import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall } from "lucide-react";
+import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall, Radar } from "lucide-react";
+import { SourceTrace } from "@/components/crm/SourceTrace";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/orders/$id")({
   component: ObjectDetailPage,
 });
 
-type Tab = "overview"|"measurements"|"calc"|"zones"|"estimates"|"contracts"|"finance"|"comments"|"tasks"|"calls"|"history"|"production"|"files";
+type Tab = "overview"|"measurements"|"calc"|"zones"|"estimates"|"contracts"|"finance"|"sources"|"comments"|"tasks"|"calls"|"history"|"production"|"files";
 
 const fmtDate = (v?: string | null) =>
   v ? new Date(v).toLocaleDateString("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric" }) : "—";
@@ -82,6 +83,7 @@ function ObjectDetailPage() {
     { key: "estimates", label: "Кошториси", icon: FileText },
     { key: "contracts", label: "Договори", icon: FileText },
     { key: "finance", label: "Фінанси", icon: DollarSign },
+    { key: "sources", label: "Джерела", icon: Radar },
     { key: "comments", label: `Коментарі${(o.comments ?? []).length ? ` (${o.comments.length})` : ""}`, icon: MessageSquare },
     { key: "tasks", label: `Задачі${(o.tasks ?? []).length ? ` (${o.tasks.length})` : ""}`, icon: ListChecks },
     { key: "calls", label: `Дзвінки${(o.calls ?? []).length ? ` (${o.calls.length})` : ""}`, icon: PhoneCall },
