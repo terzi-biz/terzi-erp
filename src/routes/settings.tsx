@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
 import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
 import { CloseReasonsAdmin, CompanyRequisitesAdmin } from "@/components/settings/ReferenceAdmin";
+import { FinanceRulesAdmin } from "@/components/settings/FinanceRulesAdmin";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -27,7 +28,7 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "requisites" | "reasons" | "access";
+type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "requisites" | "reasons" | "finance_rules" | "access";
 
 /** Вкладки з числовими налаштуваннями калькулятора (мають панель збереження). */
 const CALC_TABS: Tab[] = ["screed", "roofing", "insulation", "demolition", "common"];
@@ -200,6 +201,7 @@ function SettingsPage() {
     { id: "common", label: "Спільні", icon: Sliders },
     { id: "requisites", label: "Реквізити ФОП", icon: Building2 },
     { id: "reasons", label: "Причини закриття", icon: ListX },
+    { id: "finance_rules", label: "Фінансові правила", icon: Sliders },
     ...(canManageAccess ? [{ id: "access" as const, label: "Доступ", icon: UserCheck }] : []),
   ];
 
@@ -416,6 +418,7 @@ function SettingsPage() {
         {tab === "roofing_norms" && <RoofingNormsAdmin canEdit={canManageAccess} />}
         {tab === "requisites" && <CompanyRequisitesAdmin canEdit={canManageAccess} />}
         {tab === "reasons" && <CloseReasonsAdmin canEdit={canManageAccess} />}
+        {tab === "finance_rules" && <FinanceRulesAdmin canEdit={canManageAccess} />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
