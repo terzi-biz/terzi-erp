@@ -6,6 +6,8 @@ export const CLIENT_STATUSES = ["lead", "active", "done", "archived"] as const;
 export const clientInput = z.object({
   id: z.string().uuid().optional(),
   name: z.string().min(1).max(200),
+  company: z.string().max(200).optional().nullable(),
+  roles: z.array(z.string().min(1).max(40)).min(1).max(8).optional(),
   phone: z.string().max(50).optional().nullable(),
   email: z.string().max(200).optional().nullable(),
   address: z.string().max(500).optional().nullable(),
