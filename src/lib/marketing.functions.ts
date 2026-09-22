@@ -384,6 +384,17 @@ export const syncMetaAds = createServerFn({ method: "POST" })
       last_error: null,
       connection_status: "connected",
     }).eq("provider", "meta_ads");
+    {
+      const { recordSyncRun } = await import("./integrations/sync-run.server");
+      const { admin } = await import("./access.server");
+      await recordSyncRun((await admin()) as never, {
+        providerKey: "meta_ads",
+        name: "Meta Ads",
+        entity: "marketing_daily_metrics",
+        ok: true,
+        stats: { processed: res.inserted + res.updated, created: res.inserted, updated: res.updated },
+      });
+    }
     await context.supabase.from("audit_logs").insert({
       module: "marketing", action: "meta_ads_sync", entity_type: "marketing_daily_metrics",
       new_value: res as never, actor_id: context.userId, is_critical: false,
@@ -404,6 +415,17 @@ export const syncGoogleAds = createServerFn({ method: "POST" })
       last_error: null,
       connection_status: "connected",
     }).eq("provider", "google_ads");
+    {
+      const { recordSyncRun } = await import("./integrations/sync-run.server");
+      const { admin } = await import("./access.server");
+      await recordSyncRun((await admin()) as never, {
+        providerKey: "google_ads",
+        name: "Google Ads",
+        entity: "marketing_daily_metrics",
+        ok: true,
+        stats: { processed: (res as any).inserted + (res as any).updated, created: (res as any).inserted, updated: (res as any).updated },
+      });
+    }
     await context.supabase.from("audit_logs").insert({
       module: "marketing", action: "google_ads_sync", entity_type: "marketing_daily_metrics",
       new_value: res as never, actor_id: context.userId, is_critical: false,
