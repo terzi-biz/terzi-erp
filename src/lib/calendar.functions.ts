@@ -48,6 +48,15 @@ export const upsertCalendarEvent = createServerFn({ method: "POST" })
         .from("calendar_events").update(rest).eq("id", id).select().maybeSingle();
       if (error) throw new Error("Не вдалося зберегти подію");
       if (!row) throw new Error("Подію не знайдено або немає прав на редагування");
+      if ((row as any).measurement_id) {
+        const { syncMeasurementFromEvent } = await import("./measurements.server");
+        await syncMeasurementFromEvent(context.supabase, (row as any).measurement_id, {
+          starts_at: (row as any).starts_at,
+          employee_id: (row as any).employee_id ?? null,
+          status: (row as any).status,
+          address: (row as any).address ?? null,
+        });
+      }
       return row;
     }
     const { data: row, error } = await context.supabase
@@ -75,6 +84,13 @@ export const moveCalendarEvent = createServerFn({ method: "POST" })
       .from("calendar_events").update(patch).eq("id", id).select().maybeSingle();
     if (error) throw new Error("Не вдалося перенести подію");
     if (!row) throw new Error("Немає прав на перенесення цієї події");
+    if ((row as any).measurement_id) {
+      const { syncMeasurementFromEvent } = await import("./measurements.server");
+      await syncMeasurementFromEvent(context.supabase, (row as any).measurement_id, {
+        starts_at: (row as any).starts_at,
+        employee_id: (row as any).employee_id ?? null,
+      });
+    }
     return row;
   });
 
@@ -86,6 +102,10 @@ export const setCalendarEventStatus = createServerFn({ method: "POST" })
       .from("calendar_events").update({ status: data.status }).eq("id", data.id).select().maybeSingle();
     if (error) throw new Error("Не вдалося змінити статус");
     if (!row) throw new Error("Немає прав на зміну статусу");
+    if ((row as any).measurement_id) {
+      const { syncMeasurementFromEvent } = await import("./measurements.server");
+      await syncMeasurementFromEvent(context.supabase, (row as any).measurement_id, { status: data.status });
+    }
     return row;
   });
 
