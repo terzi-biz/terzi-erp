@@ -8,7 +8,7 @@
 
 export type CostClass =
   | "materials" | "works" | "logistics" | "subcontractors"
-  | "equipment" | "payroll" | "marketing" | "taxes" | "overhead" | "other";
+  | "equipment" | "payroll" | "marketing" | "taxes" | "overhead" | "financing" | "other";
 
 export const COST_CLASS_LABELS: Record<CostClass, string> = {
   materials: "Матеріали",
@@ -20,6 +20,7 @@ export const COST_CLASS_LABELS: Record<CostClass, string> = {
   marketing: "Маркетинг і реклама",
   taxes: "Податки і комісії",
   overhead: "Накладні",
+  financing: "Фінансові операції",
   other: "Інше",
 };
 
@@ -61,7 +62,7 @@ export function costClassOf(category: { name?: string | null; cost_class?: strin
 /** Класифікація, яку бачить і редагує фінансист у довіднику статей. */
 export const CANONICAL_COST_CLASSES = [
   "materials", "labour", "subcontract", "logistics", "equipment", "marketing",
-  "administrative", "tax", "bank", "communication", "other", "income", "transfer",
+  "administrative", "tax", "bank", "communication", "financing", "other", "income", "transfer",
 ] as const;
 
 export type CanonicalCostClass = (typeof CANONICAL_COST_CLASSES)[number];
@@ -77,6 +78,7 @@ export const CANONICAL_LABELS: Record<CanonicalCostClass, string> = {
   tax: "Податки",
   bank: "Банк і комісії",
   communication: "Звʼязок",
+  financing: "Фінансові операції",
   other: "Інше",
   income: "Дохід",
   transfer: "Переказ",
@@ -94,6 +96,7 @@ export const CANONICAL_TO_INTERNAL: Record<CanonicalCostClass, CostClass> = {
   tax: "taxes",
   bank: "taxes",
   communication: "overhead",
+  financing: "financing",
   other: "other",
   income: "other",
   transfer: "other",
@@ -109,6 +112,7 @@ const INTERNAL_TO_CANONICAL: Record<CostClass, CanonicalCostClass> = {
   marketing: "marketing",
   taxes: "tax",
   overhead: "administrative",
+  financing: "financing",
   other: "other",
 };
 
