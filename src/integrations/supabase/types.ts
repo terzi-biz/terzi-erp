@@ -941,6 +941,7 @@ export type Database = {
       clients: {
         Row: {
           address: string | null
+          company: string | null
           created_at: string
           crm_link: string | null
           email: string | null
@@ -953,12 +954,14 @@ export type Database = {
           owner_id: string
           phone: string | null
           phone_e164: string | null
+          roles: string[]
           source: string | null
           status: string
           updated_at: string
         }
         Insert: {
           address?: string | null
+          company?: string | null
           created_at?: string
           crm_link?: string | null
           email?: string | null
@@ -971,12 +974,14 @@ export type Database = {
           owner_id: string
           phone?: string | null
           phone_e164?: string | null
+          roles?: string[]
           source?: string | null
           status?: string
           updated_at?: string
         }
         Update: {
           address?: string | null
+          company?: string | null
           created_at?: string
           crm_link?: string | null
           email?: string | null
@@ -989,8 +994,51 @@ export type Database = {
           owner_id?: string
           phone?: string | null
           phone_e164?: string | null
+          roles?: string[]
           source?: string | null
           status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      close_reasons: {
+        Row: {
+          archived_at: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_negative: boolean
+          label: string
+          scope: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          archived_at?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_negative?: boolean
+          label: string
+          scope?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          archived_at?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_negative?: boolean
+          label?: string
+          scope?: string
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
@@ -1035,6 +1083,81 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      company_requisites: {
+        Row: {
+          address: string | null
+          archived_at: string | null
+          bank_name: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          email: string | null
+          iban: string | null
+          id: string
+          is_default: boolean
+          legal_name: string
+          notes: string | null
+          phone: string | null
+          registry_id: string | null
+          short_name: string | null
+          signer_name: string | null
+          signer_position: string | null
+          tax_group: string | null
+          tax_id: string | null
+          updated_at: string
+          valid_from: string
+          version: number
+        }
+        Insert: {
+          address?: string | null
+          archived_at?: string | null
+          bank_name?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          iban?: string | null
+          id?: string
+          is_default?: boolean
+          legal_name: string
+          notes?: string | null
+          phone?: string | null
+          registry_id?: string | null
+          short_name?: string | null
+          signer_name?: string | null
+          signer_position?: string | null
+          tax_group?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          version?: number
+        }
+        Update: {
+          address?: string | null
+          archived_at?: string | null
+          bank_name?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          iban?: string | null
+          id?: string
+          is_default?: boolean
+          legal_name?: string
+          notes?: string | null
+          phone?: string | null
+          registry_id?: string | null
+          short_name?: string | null
+          signer_name?: string | null
+          signer_position?: string | null
+          tax_group?: string | null
+          tax_id?: string | null
+          updated_at?: string
+          valid_from?: string
+          version?: number
+        }
+        Relationships: []
       }
       crew_bookings: {
         Row: {
