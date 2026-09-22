@@ -30,3 +30,11 @@
 - [x] Enable email/password and Google sign-in
 - [x] Keep profiles, roles and access approval flow
 - [x] Return OAuth through the public login page before opening protected destinations
+
+# Пакет А — збереження, довідники, контрагенти
+- [x] А0. Ідентичність production-коду (docs/audit/PRODUCTION_IDENTITY.md)
+- [x] А1. Перевірка збереження та версіонування кошторисів (snapshot / fork без перезапису історії)
+- [x] А2. Налаштування як єдина точка входу (вкладки довідників у /settings)
+- [x] А3. Реквізити ФОП (версіонування) і причини закриття (архівування)
+- [x] А4. Контрагент: компанія, кілька ролей, пошук за телефоном / іменем / компанією
+- [ ] Пакет Б. Інтеграції та атрибуція + звʼязки CRM / заміри / замовлення (очікує узгодження)

@@ -8,6 +8,7 @@ import { Pagination } from "@/components/Pagination";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { listClients, upsertClient, listClientManagers, type ClientListRow } from "@/lib/clients.functions";
+import { COUNTERPARTY_ROLES, COUNTERPARTY_ROLE_LABEL } from "@/lib/reference.schema";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,7 +59,8 @@ function ClientsPage() {
   const [fSource, setFSource] = useState("");
   const [fManager, setFManager] = useState("");
   const [form, setForm] = useState({
-    name: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "",
+    name: "", company: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "",
+    roles: ["client"] as string[],
     status: "lead" as "lead" | "active" | "done" | "archived",
   });
 
@@ -79,12 +81,14 @@ function ClientsPage() {
         ...form,
         manager_id: form.manager_id || null,
         source: form.source || null,
+        company: form.company || null,
+        roles: form.roles.length ? form.roles : ["client"],
       } as any,
     }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
       setOpen(false);
-      setForm({ name: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "", status: "lead" });
+      setForm({ name: "", company: "", phone: "", email: "", address: "", notes: "", source: "", manager_id: "", roles: ["client"], status: "lead" });
     },
   });
 
@@ -135,7 +139,7 @@ function ClientsPage() {
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4 mb-6">
         <div className="relative">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-          <input className={`${inp} pl-9`} placeholder="Пошук: ПІБ, телефон, email…" value={q} onChange={(e) => setQ(e.target.value)} />
+          <input className={`${inp} pl-9`} placeholder="Пошук: ПІБ, компанія, телефон, email…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
         <select className={inp} value={fStatus} onChange={(e) => setFStatus(e.target.value)}>
           <option value="">Усі статуси</option>
@@ -159,6 +163,24 @@ function ClientsPage() {
             <h2 className="font-black text-lg mb-4">Новий клієнт</h2>
             <div className="space-y-3">
               <input className={inp} placeholder="Назва / ПІБ" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <input className={inp} placeholder="Компанія" value={form.company} onChange={(e) => setForm({ ...form, company: e.target.value })} />
+              <div className="flex flex-wrap gap-3 text-xs">
+                {COUNTERPARTY_ROLES.map((role) => (
+                  <label key={role} className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={form.roles.includes(role)}
+                      onChange={(e) => setForm({
+                        ...form,
+                        roles: e.target.checked
+                          ? [...form.roles, role]
+                          : form.roles.filter((r) => r !== role),
+                      })}
+                    />
+                    {COUNTERPARTY_ROLE_LABEL[role]}
+                  </label>
+                ))}
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <input className={inp} placeholder="Телефон" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                 <input className={inp} placeholder="Email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
@@ -211,6 +233,15 @@ function ClientsPage() {
                   <tr key={c.id} className="border-t border-border/60 hover:bg-muted/30">
                     <td className="px-3 py-2 font-semibold">
                       <Link to="/clients/$id" params={{ id: c.id }} className="hover:text-primary">{c.name}</Link>
+                      {c.company && <div className="text-xs font-normal text-muted-foreground">{c.company}</div>}
+                      {(c.roles ?? []).filter((r) => r !== "client").length > 0 && (
+                        <div className="text-[11px] font-normal text-muted-foreground">
+                          {(c.roles ?? [])
+                            .filter((r) => r !== "client")
+                            .map((r) => COUNTERPARTY_ROLE_LABEL[r as keyof typeof COUNTERPARTY_ROLE_LABEL] ?? r)
+                            .join(" · ")}
+                        </div>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{c.phone ?? "—"}{c.email ? ` · ${c.email}` : ""}</td>
                     <td className="px-3 py-2 text-xs text-muted-foreground">{c.manager_display ?? "—"}{c.source ? ` · ${c.source}` : ""}</td>

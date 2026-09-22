@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { useAppStore } from "@/lib/store";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, Grid3x3, CheckCircle2, XCircle, Clock3 } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, UserCheck, Cable, Grid3x3, CheckCircle2, XCircle, Clock3, Building2, ListX } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
 import { useServerFn } from "@tanstack/react-start";
@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
 import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
+import { CloseReasonsAdmin, CompanyRequisitesAdmin } from "@/components/settings/ReferenceAdmin";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsPage,
@@ -26,7 +27,10 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "access";
+type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "requisites" | "reasons" | "access";
+
+/** Вкладки з числовими налаштуваннями калькулятора (мають панель збереження). */
+const CALC_TABS: Tab[] = ["screed", "roofing", "insulation", "demolition", "common"];
 
 const SCREED_GROUPS = [
   { title: "Норми витрат бригади", fields: [
@@ -194,6 +198,8 @@ function SettingsPage() {
     { id: "insulation", label: "Утеплення", icon: Snowflake },
     { id: "demolition", label: "Демонтаж", icon: Hammer },
     { id: "common", label: "Спільні", icon: Sliders },
+    { id: "requisites", label: "Реквізити ФОП", icon: Building2 },
+    { id: "reasons", label: "Причини закриття", icon: ListX },
     ...(canManageAccess ? [{ id: "access" as const, label: "Доступ", icon: UserCheck }] : []),
   ];
 
@@ -374,9 +380,9 @@ function SettingsPage() {
       </div>
 
 
-      {tab !== "access" && tab !== "grades" && tab !== "roofing_norms" && ActionsBar}
+      {CALC_TABS.includes(tab) && ActionsBar}
 
-      {tab !== "common" && tab !== "grades" && tab !== "roofing_norms" && tab !== "access" && (
+      {CALC_TABS.includes(tab) && tab !== "common" && (
         <div className="panel p-3 mb-4 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mr-2">
             <Upload className="w-3 h-3 inline mr-1" /> Імпорт прайсу постачальника:
@@ -408,6 +414,8 @@ function SettingsPage() {
         {tab === "access" && <AccessPanel />}
         {tab === "grades" && <ScreedGradesAdmin canEdit={canManageAccess} />}
         {tab === "roofing_norms" && <RoofingNormsAdmin canEdit={canManageAccess} />}
+        {tab === "requisites" && <CompanyRequisitesAdmin canEdit={canManageAccess} />}
+        {tab === "reasons" && <CloseReasonsAdmin canEdit={canManageAccess} />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
