@@ -40,12 +40,12 @@
 - [ ] Пакет Б. Інтеграції та атрибуція + звʼязки CRM / заміри / замовлення (очікує узгодження)
 
 # Finance Core v3 (план затверджено 22.09.2026)
-- [ ] Ф1. Версіоновані правила (finance_rules), реєстр активів, резерви, reason-коди — схема
-- [ ] Ф2. Канонічна таксономія cost_class + backfill 87 категорій
-- [ ] Ф3. Водоспад P&L (object → company → operating → distributable), Cash Flow окремо
-- [ ] Ф4. Рушій винагород ролей To-Be (attributed Eligible GP)
+- [x] Ф1. Версіоновані правила (finance_rules), реєстр активів, резерви, reason-коди — схема
+- [x] Ф2. Канонічна таксономія cost_class + backfill 87 категорій
+- [x] Ф3. Водоспад P&L (object → company → operating → distributable), Cash Flow окремо
+- [x] Ф4. Рушій винагород ролей To-Be (attributed Eligible GP)
 - [ ] Ф5. Амортизація з реєстру активів і CAPEX
-- [ ] Ф6. ФНЗ: ціль 2 місяці burn, гейт дивідендів
+- [x] Ф6. ФНЗ: ціль 2 місяці burn, гейт дивідендів
 - [ ] Ф7. Шість контролів звірки
 - [ ] Ф8. Сторінки: Finance Settings, Object Economy, Company P&L, Cash Flow, Payroll/KPI, Assets, Reconciliation, Simulator
 - [ ] Ф9. Shadow mode / backtest червень–серпень / pilot / switch
