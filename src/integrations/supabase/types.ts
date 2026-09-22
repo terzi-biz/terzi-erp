@@ -271,6 +271,123 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_depreciation: {
+        Row: {
+          allocation_basis: string
+          amount: number
+          asset_id: string
+          created_at: string
+          direction_key: string | null
+          engine_version: string
+          id: string
+          order_id: string | null
+          period: string
+          units: number | null
+        }
+        Insert: {
+          allocation_basis?: string
+          amount?: number
+          asset_id: string
+          created_at?: string
+          direction_key?: string | null
+          engine_version?: string
+          id?: string
+          order_id?: string | null
+          period: string
+          units?: number | null
+        }
+        Update: {
+          allocation_basis?: string
+          amount?: number
+          asset_id?: string
+          created_at?: string
+          direction_key?: string | null
+          engine_version?: string
+          id?: string
+          order_id?: string | null
+          period?: string
+          units?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          archived_at: string | null
+          asset_type: string
+          commissioned_at: string | null
+          created_at: string
+          currency: string
+          direction_key: string | null
+          id: string
+          inventory_no: string | null
+          life_units: number | null
+          method: string
+          name: string
+          notes: string | null
+          purchase_cost: number
+          responsible_id: string | null
+          salvage_value: number
+          status: string
+          updated_at: string
+          used_units: number
+        }
+        Insert: {
+          archived_at?: string | null
+          asset_type?: string
+          commissioned_at?: string | null
+          created_at?: string
+          currency?: string
+          direction_key?: string | null
+          id?: string
+          inventory_no?: string | null
+          life_units?: number | null
+          method?: string
+          name: string
+          notes?: string | null
+          purchase_cost?: number
+          responsible_id?: string | null
+          salvage_value?: number
+          status?: string
+          updated_at?: string
+          used_units?: number
+        }
+        Update: {
+          archived_at?: string | null
+          asset_type?: string
+          commissioned_at?: string | null
+          created_at?: string
+          currency?: string
+          direction_key?: string | null
+          id?: string
+          inventory_no?: string | null
+          life_units?: number | null
+          method?: string
+          name?: string
+          notes?: string | null
+          purchase_cost?: number
+          responsible_id?: string | null
+          salvage_value?: number
+          status?: string
+          updated_at?: string
+          used_units?: number
+        }
+        Relationships: []
+      }
       audit_logs: {
         Row: {
           action: string
@@ -2765,6 +2882,144 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      finance_reason_codes: {
+        Row: {
+          applies_to: string
+          archived_at: string | null
+          code: string
+          created_at: string
+          id: string
+          is_excluded_from_pnl: boolean
+          is_one_off: boolean
+          label: string
+          sort_order: number
+        }
+        Insert: {
+          applies_to?: string
+          archived_at?: string | null
+          code: string
+          created_at?: string
+          id?: string
+          is_excluded_from_pnl?: boolean
+          is_one_off?: boolean
+          label: string
+          sort_order?: number
+        }
+        Update: {
+          applies_to?: string
+          archived_at?: string | null
+          code?: string
+          created_at?: string
+          id?: string
+          is_excluded_from_pnl?: boolean
+          is_one_off?: boolean
+          label?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      finance_reserves: {
+        Row: {
+          closing_balance: number
+          created_at: string
+          created_by: string | null
+          engine_version: string
+          id: string
+          kind: string
+          notes: string | null
+          opening_balance: number
+          period: string
+          reason_code: string | null
+          target_amount: number
+          top_up: number
+          used: number
+        }
+        Insert: {
+          closing_balance?: number
+          created_at?: string
+          created_by?: string | null
+          engine_version?: string
+          id?: string
+          kind: string
+          notes?: string | null
+          opening_balance?: number
+          period: string
+          reason_code?: string | null
+          target_amount?: number
+          top_up?: number
+          used?: number
+        }
+        Update: {
+          closing_balance?: number
+          created_at?: string
+          created_by?: string | null
+          engine_version?: string
+          id?: string
+          kind?: string
+          notes?: string | null
+          opening_balance?: number
+          period?: string
+          reason_code?: string | null
+          target_amount?: number
+          top_up?: number
+          used?: number
+        }
+        Relationships: []
+      }
+      finance_rules: {
+        Row: {
+          archived_at: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          engine_version: string
+          id: string
+          label: string | null
+          notes: string | null
+          scope: string
+          unit: string | null
+          value_json: Json | null
+          value_num: number | null
+          value_text: string | null
+        }
+        Insert: {
+          archived_at?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          engine_version?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          scope: string
+          unit?: string | null
+          value_json?: Json | null
+          value_num?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          archived_at?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          engine_version?: string
+          id?: string
+          label?: string | null
+          notes?: string | null
+          scope?: string
+          unit?: string | null
+          value_json?: Json | null
+          value_num?: number | null
+          value_text?: string | null
+        }
+        Relationships: []
       }
       finance_tags: {
         Row: {

@@ -43,6 +43,13 @@
       "when": 1790041566847,
       "tag": "0005_package_a_reference_data",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790043994353,
+      "tag": "0006_finance_core_v3_foundation",
+      "breakpoints": true
     }
   ]
 }
