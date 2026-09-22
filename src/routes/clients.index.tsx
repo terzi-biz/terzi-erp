@@ -8,6 +8,7 @@ import { Pagination } from "@/components/Pagination";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
 import { listClients, upsertClient, listClientManagers, type ClientListRow } from "@/lib/clients.functions";
+import { COUNTERPARTY_ROLES, COUNTERPARTY_ROLE_LABEL } from "@/lib/reference.schema";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
 
