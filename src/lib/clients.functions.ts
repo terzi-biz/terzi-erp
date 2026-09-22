@@ -13,6 +13,8 @@ import { digits, likeTerm, pageQuerySchema, pageRange } from "./pagination";
 export type ClientListRow = {
   id: string;
   name: string;
+  company: string | null;
+  roles: string[];
   phone: string | null;
   phone_e164: string | null;
   email: string | null;
@@ -50,8 +52,16 @@ export const listClients = createServerFn({ method: "GET" })
     const term = likeTerm(p.q);
     if (term) {
       const num = digits(p.q);
-      const parts = [`name.ilike.*${term}*`, `phone.ilike.*${term}*`, `email.ilike.*${term}*`];
-      if (num.length >= 4) parts.push(`phone.ilike.*${num}*`);
+      const parts = [
+        `name.ilike.*${term}*`,
+        `company.ilike.*${term}*`,
+        `phone.ilike.*${term}*`,
+        `email.ilike.*${term}*`,
+      ];
+      if (num.length >= 4) {
+        parts.push(`phone.ilike.*${num}*`);
+        parts.push(`phone_e164.ilike.*${num}*`);
+      }
       q = q.or(parts.join(","));
     }
     if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); }
