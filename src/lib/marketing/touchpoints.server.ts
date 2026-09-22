@@ -55,12 +55,18 @@ export async function buildLeadTouchpoints(db: Db, opts: { limit?: number } = {}
   const limit = opts.limit ?? 10000;
   const channels = await channelIndex(db);
 
-  const { data: leadRows } = await db
-    .from("crm_leads")
-    .select("id, source, campaign, utm, created_at, marketing_channel_id, marketing_campaign_id, contact_id")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  const leads = (leadRows ?? []) as any[];
+  const leads: any[] = [];
+  const page = 1000;
+  for (let offset = 0; offset < limit; offset += page) {
+    const { data: chunk } = await db
+      .from("crm_leads")
+      .select("id, source, campaign, utm, created_at, marketing_channel_id, marketing_campaign_id, contact_id")
+      .order("created_at", { ascending: false })
+      .range(offset, offset + page - 1);
+    const rows = (chunk ?? []) as any[];
+    leads.push(...rows);
+    if (rows.length < page) break;
+  }
 
   const { data: existingRows } = await db
     .from("marketing_touchpoints")
