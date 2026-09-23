@@ -5,6 +5,7 @@
 import { payrollWorkItems as payrollWorkItemsFn } from "./brigade-economics";
 export const PAYROLL_SITE_ORIGIN = "https://terzi-payroll-kpi.terzi-deals.chatgpt.site";
 export const PAYROLL_ORDERS_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/orders`;
+export const PAYROLL_CATALOG_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/catalog`;
 export const PAYROLL_SUMMARY_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/summary`;
 export const PAYROLL_AUD = "terzi-payroll-kpi";
 export const PAYROLL_ISS = "TERZI_ERP";
@@ -206,4 +207,35 @@ export function parseSiteOverview(raw: unknown): SiteOverview | null {
     staffCount: sNum(o.staffCount), staffApproved: sNum(o.staffApproved), staffApprovedDue: sNum(o.staffApprovedDue),
     crewAccrued: sNum(o.crewAccrued), crewPaid: sNum(o.crewPaid), crewDue: sNum(o.crewDue), ordersCount: sNum(o.ordersCount),
   };
+}
+
+export type SiteRate = { code: string; label: string; unit: string | null; rate: number | null; clientRate: number | null; pricing: string | null; minimum: number | null };
+export type SiteBrigade = { id: string; name: string; kind: string | null; active: boolean; headcount: number | null; rates: SiteRate[] };
+export type SiteCatalog = { revision: string | null; updatedAt: string | null; brigades: SiteBrigade[] };
+/** Каталог бригад відомості. Некоректні записи відкидаються; невідомі числа → null. */
+export function parseSiteCatalog(raw: unknown): SiteCatalog | null {
+  if (!raw || typeof raw !== "object" || !Array.isArray((raw as any).brigades)) return null;
+  const r = raw as any;
+  const brigades: SiteBrigade[] = r.brigades
+    .filter((b: any) => b && typeof b.id === "string" && /^[A-Za-z0-9_-]{1,64}$/.test(b.id))
+    .map((b: any) => ({
+      id: b.id, name: sStr(b.name) ?? b.id, kind: sStr(b.kind), active: b.active === true, headcount: sNum(b.headcount),
+      rates: Array.isArray(b.rates) ? b.rates.filter((x: any) => x && typeof x.code === "string").map((x: any) => ({
+        code: x.code, label: sStr(x.label) ?? x.code, unit: sStr(x.unit), rate: sNum(x.rate), clientRate: sNum(x.clientRate), pricing: sStr(x.pricing), minimum: sNum(x.minimum),
+      })) : [],
+    }));
+  return { revision: r.revision != null ? String(r.revision) : null, updatedAt: sStr(r.updatedAt), brigades };
+}
+/** ERP-ключ для бригади з каталогу: існуючий алias, або безпечний slug з id. */
+export function erpKeyForSiteId(id: string): string {
+  const alias = Object.entries(PAYROLL_BRIGADE_MAP).find(([, v]) => v === id)?.[0];
+  if (alias) return alias;
+  const slug = id.toLowerCase().replace(/[^a-z0-9_]/g, "_").replace(/^[^a-z]+/, "");
+  return ("p_" + slug).slice(0, 47);
+}
+/** Зіставлення локальної бригади з каталогом: payroll_id, потім канонічний алias. Інших збігів немає. */
+export function matchSiteId(local: { key: string; payroll_id: string | null }, ids: Set<string>): string | null {
+  if (local.payroll_id && ids.has(local.payroll_id)) return local.payroll_id;
+  const a = PAYROLL_BRIGADE_MAP[local.key];
+  return a && ids.has(a) ? a : null;
 }

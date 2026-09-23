@@ -64,6 +64,18 @@ describe("brigade economics", () => {
     expect(full).toMatchObject({ revision: "3", planCrew: null, crewFact: 1200, act: true, paid: false });
     expect(full?.planLines[0]).toMatchObject({ quantity: 100, amount: null });
   });
+  it("site catalog: parsing, alias crew-alex, no fuzzy match", async () => {
+    const { parseSiteCatalog, matchSiteId, erpKeyForSiteId } = await import("@/lib/payroll-bridge");
+    const c = parseSiteCatalog({ revision: 1, brigades: [{ id: "crew-alex", name: "Льоша", active: true, rates: [{ code: "screed", rate: "x" }] }, { id: "bad id!" }, { id: "crew-new", name: "Нова", active: true }] });
+    expect(c?.brigades.map((b) => b.id)).toEqual(["crew-alex", "crew-new"]);
+    expect(c?.brigades[0].rates[0].rate).toBeNull();
+    const ids = new Set(["crew-alex", "crew-new"]);
+    expect(matchSiteId({ key: "screed_lesha", payroll_id: null }, ids)).toBe("crew-alex");
+    expect(matchSiteId({ key: "crew_new", payroll_id: null }, ids)).toBeNull();
+    expect(erpKeyForSiteId("crew-alex")).toBe("screed_lesha");
+    expect(erpKeyForSiteId("crew-new")).toBe("p_crew_new");
+    expect(parseSiteCatalog({ foo: 1 })).toBeNull();
+  });
   it("site month overview parsing: null not zero", async () => {
     const { parseSiteOverview } = await import("@/lib/payroll-bridge");
     expect(parseSiteOverview({ overview: { month: "2026-09", crewDue: 500, crewPaid: "x" } })).toMatchObject({ month: "2026-09", crewDue: 500, crewPaid: null, staffCount: null });
