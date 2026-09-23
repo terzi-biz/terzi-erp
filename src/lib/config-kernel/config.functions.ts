@@ -24,7 +24,8 @@ export const previewConfigDraft = createServerFn({ method: "POST" })
   .inputValidator((d) => target.parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    return (await lifecycleFor(context.userId)).preview(data);
+    const r = await (await lifecycleFor(context.userId)).preview(data);
+    return r ? (JSON.parse(JSON.stringify(r)) as { draftVersion: number; publishedVersion: number | null; changes: { path: string; before: any; after: any }[]; validation: { ok: boolean; errors?: string[] } }) : null;
   });
 
 export const publishConfig = createServerFn({ method: "POST" })
