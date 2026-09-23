@@ -85,6 +85,13 @@
       "when": 1790202075767,
       "tag": "0011_rls_sensitive_finance_tables_readonly",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1790202144499,
+      "tag": "0012_config_kernel",
+      "breakpoints": true
     }
   ]
 }

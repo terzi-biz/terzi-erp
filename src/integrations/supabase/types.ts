@@ -1695,6 +1695,63 @@ export type Database = {
         }
         Relationships: []
       }
+      config_entries: {
+        Row: {
+          based_on_version: number | null
+          change_note: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          key: string
+          kind: string
+          payload: Json
+          published_at: string | null
+          published_by: string | null
+          schema_version: number
+          scope_id: string
+          scope_type: string
+          sensitive: boolean
+          status: string
+          version: number
+        }
+        Insert: {
+          based_on_version?: number | null
+          change_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key: string
+          kind: string
+          payload?: Json
+          published_at?: string | null
+          published_by?: string | null
+          schema_version?: number
+          scope_id?: string
+          scope_type?: string
+          sensitive?: boolean
+          status?: string
+          version: number
+        }
+        Update: {
+          based_on_version?: number | null
+          change_note?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          key?: string
+          kind?: string
+          payload?: Json
+          published_at?: string | null
+          published_by?: string | null
+          schema_version?: number
+          scope_id?: string
+          scope_type?: string
+          sensitive?: boolean
+          status?: string
+          version?: number
+        }
+        Relationships: []
+      }
       crew_bookings: {
         Row: {
           address: string | null
