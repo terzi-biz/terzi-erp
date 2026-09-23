@@ -86,3 +86,34 @@ describe("Wave 2 dictionaries", () => {
     expect(resolveConfig("module_overlay", "screed", [], {}).value).toEqual({});
   });
 });
+
+describe("Wave 2 — формули кастомних полів", () => {
+  it("рахує детерміновано з пріоритетом операцій і дужками", () => {
+    const vals = { area: 10, price: 25, disc: 2 };
+    expect(evaluateFormula("area * price - disc", vals)).toBe(248);
+    expect(evaluateFormula("(area + disc) * price", vals)).toBe(300);
+    expect(evaluateFormula("area / disc", vals)).toBe(5);
+  });
+  it("повертає null (немає даних) замість нуля за відсутнього значення", () => {
+    expect(evaluateFormula("area * price", { area: null, price: 25 })).toBeNull();
+    expect(evaluateFormula("area / zero", { area: 10, zero: 0 })).toBeNull();
+  });
+  it("не виконує довільний код і невідомі ключі", () => {
+    expect(evaluateFormula("process.exit(1)", {})).toBeNull();
+    expect(evaluateFormula("area ** 2", { area: 3 })).toBeNull();
+    expect(formulaSyntaxError("area * ", ["area"])).not.toBeNull();
+    expect(formulaSyntaxError("area * 2", ["area"])).toBeNull();
+    expect(formulaSyntaxError("unknown * 2", ["area"])).not.toBeNull();
+  });
+  it("обчислює formula-поля запису лише з числових полів", () => {
+    const fields = [
+      { key: "area", def: { label_uk: "S", type: "number" } as any },
+      { key: "rate", def: { label_uk: "R", type: "money" } as any },
+      { key: "total", def: { label_uk: "T", type: "formula", formula: "area * rate" } as any },
+      { key: "other", def: { label_uk: "O", type: "formula", formula: "area * missing" } as any },
+    ];
+    const out = computeFormulaValues(fields, { area: 12, rate: 300 });
+    expect(out.total).toBe(3600);
+    expect(out.other).toBeNull();
+  });
+});
