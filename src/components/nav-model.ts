@@ -141,9 +141,20 @@ export const NAV_SECTIONS: NavSection[] = [
 ];
 
 /** Розділи, доступні набору ролей користувача. */
-export function navForRoles(roles: readonly string[]): NavSection[] {
-  return NAV_SECTIONS.filter((s) => !s.roles || s.roles.some((r) => roles.includes(r)));
+export function navForRoles(roles: readonly string[], moduleViews?: readonly ModuleNavView[]): NavSection[] {
+  const base = NAV_SECTIONS.filter((s) => !s.roles || s.roles.some((r) => roles.includes(r)));
+  if (!moduleViews) return base;
+  // Опублікований оверлей модулів змінює лише підпис/порядок/видимість; маршрути ті самі.
+  const moduleRoutes = new Set(MODULE_KEYS.map((m) => `/${m}`));
+  return base.map((s) => {
+    if (s.key !== "calc") return s;
+    const rest = s.children.filter((c) => !moduleRoutes.has(c.to));
+    const mods = moduleViews.filter((v) => v.visible && v.route && moduleRoutes.has(v.route)).map((v) => ({ to: v.route as string, label: v.label }));
+    return { ...s, children: [...rest, ...mods] };
+  });
 }
+
+export interface ModuleNavView { id: string; label: string; route: string | null; visible: boolean }
 
 /** Активний розділ за поточним шляхом. */
 export function activeSectionKey(pathname: string): string | null {

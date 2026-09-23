@@ -10,7 +10,10 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useContext, createContext, type ReactNode } from "react";
 import { TerziLogo } from "./TerziLogo";
-import { navForRoles, activeSectionKey, type NavSection } from "./nav-model";
+import { navForRoles, activeSectionKey, MODULE_KEYS, type NavSection } from "./nav-model";
+import { useModuleOverlays } from "@/lib/config-kernel/use-module-overlays";
+import { moduleViews } from "@/lib/config-kernel/module-overlay";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { buttonVariants } from "@/components/ui/button";
 import { TerziAiAssistant } from "./TerziAiAssistant";
 
@@ -64,7 +67,9 @@ function AppShellLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => { setMobileOpen(false); }, [loc.pathname, loc.searchStr]);
 
-  const sections: NavSection[] = navForRoles(roles);
+  const overlays = useModuleOverlays();
+  const isMobile = useIsMobile();
+  const sections: NavSection[] = navForRoles(roles, moduleViews(MODULE_KEYS, overlays, { roles, lang: lang as "ua" | "ru", mobile: isMobile }));
   const active = activeSectionKey(loc.pathname);
   const activeSection = sections.find((s) => s.key === active);
   const currentTab = (loc.search as Record<string, unknown> | undefined)?.tab;
