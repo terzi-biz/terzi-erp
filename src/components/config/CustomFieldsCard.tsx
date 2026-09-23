@@ -54,15 +54,17 @@ export function CustomFieldsCard({ entity, entityId }: { entity: Entity; entityI
       <div className="grid gap-2 sm:grid-cols-2">
         {fields.map((f: any) => (
           <FieldRow key={f.key} entity={entity} entityId={entityId} fieldKey={f.key} def={f.def}
-            value={q.data!.values[f.key]} dicts={q.data!.dictionaries} canEdit={q.data!.canEdit && !f.def.archived} lang={lang} />
+            value={q.data!.values[f.key]} computed={q.data!.computed?.[f.key] ?? null} employees={q.data!.employees ?? []}
+            dicts={q.data!.dictionaries} canEdit={q.data!.canEdit && !f.def.archived} lang={lang} />
         ))}
       </div>
     </div>
   );
 }
 
-function FieldRow({ entity, entityId, fieldKey, def, value, dicts, canEdit, lang }: {
+function FieldRow({ entity, entityId, fieldKey, def, value, computed, employees, dicts, canEdit, lang }: {
   entity: Entity; entityId: string; fieldKey: string; def: CustomFieldDef; value: unknown;
+  computed: number | null; employees: { id: string; label: string }[];
   dicts: Record<string, Dictionary>; canEdit: boolean; lang: "ua" | "ru";
 }) {
   const qc = useQueryClient();
@@ -102,6 +104,13 @@ function FieldRow({ entity, entityId, fieldKey, def, value, dicts, canEdit, lang
         </div>);
       case "tags": return <Input value={Array.isArray(draft) ? draft.join(", ") : draft ?? ""} onChange={(e) => setDraft(e.target.value)} placeholder="через кому" />;
       case "number": case "money": case "percentage": return <Input inputMode="decimal" value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
+      case "employee": return (
+        <select className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm" value={draft ?? ""} onChange={(e) => setDraft(e.target.value || null)}>
+          <option value="">—</option>
+          {employees.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+          {draft && !employees.some((p) => p.id === draft) && <option value={draft}>{String(draft)}</option>}
+        </select>);
+      case "file": case "image": return <Input inputMode="url" placeholder="https://…" value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
       case "date": return <Input type="date" value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
       case "datetime": return <Input type="datetime-local" value={draft ? String(draft).slice(0, 16) : ""} onChange={(e) => setDraft(e.target.value)} />;
       default: return <Input value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
@@ -124,7 +133,11 @@ function FieldRow({ entity, entityId, fieldKey, def, value, dicts, canEdit, lang
         </div>
       ) : (
         <div className="text-sm font-medium break-words">
-          {def.type === "formula" ? <span className="text-muted-foreground text-xs">Формула: обчислення буде доступне з Formula Engine</span>
+          {def.type === "formula" ? (
+            computed === null
+              ? <span className="text-muted-foreground text-xs">немає даних</span>
+              : <span title={def.formula}>{computed.toLocaleString("uk-UA", { maximumFractionDigits: 2 })}</span>)
+            : def.type === "employee" ? (value ? (employees.find((p) => p.id === value)?.label ?? String(value)) : "—")
             : (def.type === "file" || def.type === "image") && value ? <a className="underline" href={String(value)} target="_blank" rel="noreferrer">Відкрити</a>
             : display(def, value, label)}
         </div>

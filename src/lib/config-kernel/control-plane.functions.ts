@@ -55,7 +55,7 @@ export const getCustomFields = createServerFn({ method: "POST" })
   .inputValidator((d) => z.object({ entity: ENTITY, entityId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     const { requirePermission } = await import("@/lib/access.server");
-    const { CUSTOM_FIELD_ENTITIES, customFieldSchema } = await import("./custom-fields");
+    const { CUSTOM_FIELD_ENTITIES, customFieldSchema, computeFormulaValues } = await import("./custom-fields");
     const { dictionarySchema } = await import("./dictionaries");
     const actor = await requirePermission(context.userId, CUSTOM_FIELD_ENTITIES[data.entity].permissionModule, "view");
     let canEdit = true;
@@ -76,12 +76,18 @@ export const getCustomFields = createServerFn({ method: "POST" })
       for (const d of ds ?? []) { const p = dictionarySchema.safeParse(d.payload); if (p.success) dictionaries[d.key] = p.data; }
     }
     void actor;
-    return {
-      canEdit,
-      fields: fields.sort((a, b) => (a.def.order ?? 0) - (b.def.order ?? 0)),
-      values: Object.fromEntries((vals ?? []).map((v: any) => [v.field_key, v.value])) as Record<string, any>,
-      dictionaries,
-    };
+    const sorted = fields.sort((a, b) => (a.def.order ?? 0) - (b.def.order ?? 0));
+    const values = Object.fromEntries((vals ?? []).map((v: any) => [v.field_key, v.value])) as Record<string, any>;
+    // Формули обчислюються детерміновано на сервері з уже збережених числових полів.
+    const computed = computeFormulaValues(sorted, values);
+    let employees: { id: string; label: string }[] = [];
+    if (sorted.some((f) => f.def.type === "employee")) {
+      const { data: profs } = await sb.from("profiles").select("user_id,display_name,email").limit(500);
+      employees = (profs ?? [])
+        .map((p: any) => ({ id: String(p.user_id), label: String(p.display_name || p.email || p.user_id) }))
+        .sort((a: any, b: any) => a.label.localeCompare(b.label, "uk"));
+    }
+    return { canEdit, fields: sorted, values, computed, dictionaries, employees };
   });
 
 export const setCustomFieldValue = createServerFn({ method: "POST" })

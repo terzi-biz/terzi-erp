@@ -14,7 +14,7 @@ import { saveConfigDraft, previewConfigDraft, publishConfig } from "@/lib/config
 import { listConfigAdmin, discardConfigDraft, type AdminConfigRow } from "@/lib/config-kernel/control-plane.functions";
 import { TERZI_MODULES } from "@/lib/modules";
 import { ENTITIES } from "@/lib/config-kernel/registries";
-import { CUSTOM_FIELD_ENTITIES, CUSTOM_FIELD_TYPES, CUSTOM_FIELD_TYPE_LABEL, customKeyCollision, FIELD_KEY_RE, type CustomFieldEntity } from "@/lib/config-kernel/custom-fields";
+import { CUSTOM_FIELD_ENTITIES, CUSTOM_FIELD_TYPES, CUSTOM_FIELD_TYPE_LABEL, customKeyCollision, FIELD_KEY_RE, formulaSyntaxError, type CustomFieldEntity } from "@/lib/config-kernel/custom-fields";
 import { EXTERNAL_DICTIONARIES } from "@/lib/config-kernel/dictionaries";
 
 const SCOPE = { type: "company" as const, id: "terzi" };
@@ -219,6 +219,7 @@ function FieldsSection({ q }: { q: string }) {
 }
 
 function FieldEditor({ cfgKey, initial, hasDraft, published }: { cfgKey?: string; initial: any; hasDraft: boolean; published?: boolean }) {
+  const { data: allFields } = useKind("custom_field");
   const [entity, setEntity] = useState<CustomFieldEntity>((cfgKey?.split(".")[0] as CustomFieldEntity) ?? "order");
   const [field, setField] = useState(cfgKey?.split(".")[1] ?? "");
   const [f, setF] = useState<any>(initial ?? { label_uk: "", type: "text", order: 100 });
@@ -231,6 +232,10 @@ function FieldEditor({ cfgKey, initial, hasDraft, published }: { cfgKey?: string
     return { code: code.trim(), label_uk: (rest.join("=") || code).trim(), ...(archived ? { archived: true } : {}) };
   });
   const isSelect = f.type === "single_select" || f.type === "multi_select";
+  const numericKeys = [...new Set((allFields ?? [])
+    .filter((r) => r.key.startsWith(`${entity}.`) && ["number", "money", "percentage"].includes(r.payload?.type))
+    .map((r) => r.key.split(".")[1]!))];
+  const formulaErr = f.type === "formula" && (f.formula ?? "").trim() ? formulaSyntaxError(String(f.formula), numericKeys) : null;
   const payload: any = { label_uk: f.label_uk, type: f.type };
   if (f.label_ru) payload.label_ru = f.label_ru;
   if (f.help) payload.help = f.help;
@@ -271,12 +276,19 @@ function FieldEditor({ cfgKey, initial, hasDraft, published }: { cfgKey?: string
             {["order", "lead", "client", "contact", "estimate", "measurement"].map((x) => <option key={x} value={x}>{x}</option>)}
           </select></label>
       )}
-      {f.type === "formula" && <label className="text-xs space-y-1 block"><span>Формула (зберігається; обчислення — з Formula Engine)</span><Input value={f.formula ?? ""} onChange={(e) => setF({ ...f, formula: e.target.value })} /></label>}
+      {f.type === "formula" && (
+        <label className="text-xs space-y-1 block">
+          <span>Формула: числові кастомні поля цієї сутності та + - * / ( )</span>
+          <Input value={f.formula ?? ""} onChange={(e) => setF({ ...f, formula: e.target.value })} placeholder="area * price_per_m2" />
+          {formulaErr && <span className="text-destructive">{formulaErr}</span>}
+          <span className="block text-muted-foreground">Доступні ключі: {numericKeys.join(", ") || "немає числових полів"}</span>
+        </label>
+      )}
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" checked={!!f.required} onChange={(e) => setF({ ...f, required: e.target.checked })} />Обов'язкове</label>
         <label className="flex items-center gap-2"><Archive className="h-3.5 w-3.5" /><input type="checkbox" checked={!!f.archived} onChange={(e) => setF({ ...f, archived: e.target.checked })} />Архівувати (значення зберігаються)</label>
       </div>
-      {!keyErr && field ? <Lifecycle kind="custom_field" cfgKey={key} payload={payload} hasDraft={hasDraft} /> : <p className="text-xs text-muted-foreground">Вкажіть ключ поля.</p>}
+      {!keyErr && !formulaErr && field ? <Lifecycle kind="custom_field" cfgKey={key} payload={payload} hasDraft={hasDraft} /> : <p className="text-xs text-muted-foreground">Вкажіть ключ поля.</p>}
     </div>
   );
 }
