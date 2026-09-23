@@ -64,6 +64,13 @@
       "when": 1790180893832,
       "tag": "0008_marketing_calculator_snapshots",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790191690504,
+      "tag": "0009_payroll_bridge_sync_log",
+      "breakpoints": true
     }
   ]
 }
