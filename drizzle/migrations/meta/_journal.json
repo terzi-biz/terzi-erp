@@ -71,6 +71,13 @@
       "when": 1790191690504,
       "tag": "0009_payroll_bridge_sync_log",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790202052799,
+      "tag": "0010_rls_sensitive_finance_tables",
+      "breakpoints": true
     }
   ]
 }
