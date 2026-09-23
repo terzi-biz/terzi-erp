@@ -15,6 +15,7 @@ import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
 import { addLeadNote, upsertTask, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
+import { CustomFieldsCard } from "@/components/config/CustomFieldsCard";
 import { SourceTrace } from "@/components/crm/SourceTrace";
 import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 
@@ -239,6 +240,7 @@ export function LeadCardDialog({
               </div>
 
               <div className="flex-1 space-y-2 overflow-y-auto p-3">
+                {leadId ? <CustomFieldsCard entity="lead" entityId={leadId} /> : null}
                 {tab === "comments" ? (
                   comments.length ? comments.map((a: any) => (
                     <div key={a.id} className="rounded-md border border-border px-3 py-2">
