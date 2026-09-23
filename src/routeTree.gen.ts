@@ -50,6 +50,7 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as MarketingAnalyticsRouteImport } from './routes/marketing.analytics'
 import { Route as MarketingBudgetsRouteImport } from './routes/marketing.budgets'
+import { Route as MarketingCalculatorRouteImport } from './routes/marketing.calculator'
 import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campaigns'
 import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
 import { Route as MarketingCreativesRouteImport } from './routes/marketing.creatives'
@@ -298,6 +299,11 @@ const MarketingAnalyticsRoute = MarketingAnalyticsRouteImport.update({
 const MarketingBudgetsRoute = MarketingBudgetsRouteImport.update({
   id: '/marketing/budgets',
   path: '/marketing/budgets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingCalculatorRoute = MarketingCalculatorRouteImport.update({
+  id: '/marketing/calculator',
+  path: '/marketing/calculator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketingCampaignsRoute = MarketingCampaignsRouteImport.update({
@@ -563,6 +569,7 @@ export interface FileRoutesByFullPath {
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/calculator': typeof MarketingCalculatorRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
@@ -647,6 +654,7 @@ export interface FileRoutesByTo {
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/calculator': typeof MarketingCalculatorRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
@@ -733,6 +741,7 @@ export interface FileRoutesById {
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/calculator': typeof MarketingCalculatorRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
@@ -820,6 +829,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
+    | '/marketing/calculator'
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
@@ -904,6 +914,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
+    | '/marketing/calculator'
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
@@ -989,6 +1000,7 @@ export interface FileRouteTypes {
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
+    | '/marketing/calculator'
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
@@ -1075,6 +1087,7 @@ export interface RootRouteChildren {
   InviteTokenRoute: typeof InviteTokenRoute
   MarketingAnalyticsRoute: typeof MarketingAnalyticsRoute
   MarketingBudgetsRoute: typeof MarketingBudgetsRoute
+  MarketingCalculatorRoute: typeof MarketingCalculatorRoute
   MarketingCampaignsRoute: typeof MarketingCampaignsRoute
   MarketingChannelsRoute: typeof MarketingChannelsRoute
   MarketingCreativesRoute: typeof MarketingCreativesRoute
@@ -1400,6 +1413,13 @@ declare module '@tanstack/react-router' {
       path: '/marketing/budgets'
       fullPath: '/marketing/budgets'
       preLoaderRoute: typeof MarketingBudgetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/calculator': {
+      id: '/marketing/calculator'
+      path: '/marketing/calculator'
+      fullPath: '/marketing/calculator'
+      preLoaderRoute: typeof MarketingCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/marketing/campaigns': {
@@ -1767,6 +1787,7 @@ const rootRouteChildren: RootRouteChildren = {
   InviteTokenRoute: InviteTokenRoute,
   MarketingAnalyticsRoute: MarketingAnalyticsRoute,
   MarketingBudgetsRoute: MarketingBudgetsRoute,
+  MarketingCalculatorRoute: MarketingCalculatorRoute,
   MarketingCampaignsRoute: MarketingCampaignsRoute,
   MarketingChannelsRoute: MarketingChannelsRoute,
   MarketingCreativesRoute: MarketingCreativesRoute,
