@@ -128,6 +128,17 @@ describe("site catalog rate fallback", () => {
     expect(site.some((r) => r.brigade_key === "roofing_1")).toBe(false);
     expect(pv([row(50, "roofing_1", "roof_membrane")], site)[0]).toMatchObject({ rate: null, amount: null, rateSource: null });
   });
+  it("per_unit stays per_unit even with minimum=0; unknown pricing skipped", () => {
+    const cat = { brigades: [{ id: "crew-alex", active: true, rates: [
+      { code: "prime", unit: "м²", rate: 30, pricing: "per_unit", minimum: 0 },
+      { code: "weird", unit: "м²", rate: 10, pricing: "magic_scheme", minimum: null },
+    ] }] };
+    const rs = siteCatalogRates(cat, locals, { screed_lesha: "crew-alex" });
+    const prime = rs.find((r) => r.service_code === "prime")!;
+    expect(prime.pricing).toBe("per_unit");
+    expect(pv([row(50, "screed_lesha", "prime")], rs)[0]).toMatchObject({ amount: 1500 });
+    expect(rs.some((r) => r.service_code === "weird")).toBe(false);
+  });
   it("local ERP rate has priority; no secret → no site rates", () => {
     const local = { brigade_key: "screed_lesha", service_code: "screed_base", unit: "м²", rate: 100, effective_from: "2026-01-01", effective_to: null, active: true, source: "erp" as const };
     expect(pv([row(200)], [...site, local])[0]).toMatchObject({ amount: 20000, rateSource: "erp" });
