@@ -106,6 +106,13 @@
       "when": 1790203157953,
       "tag": "0014_brigades_order_work",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790204576296,
+      "tag": "0015_brigade_rate_pricing_schema",
+      "breakpoints": true
     }
   ]
 }
