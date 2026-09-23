@@ -93,7 +93,7 @@ export type PayrollSource = {
   };
   measurement?: { id: string; lead_id: string | null; area: number | null; status?: string | null } | null;
   /** Лише затверджений кошторис (approved_at != null) — план, не факт. */
-  approvedEstimate?: { id: string; total_client: number | null; total_cost: number | null; area: number | null } | null;
+  approvedEstimate?: { id: string; total_client: number | null; total_cost: number | null; area: number | null; internal_lines?: unknown } | null;
   booking?: { date: string; brigade_key: string | null } | null;
   /** Обсяги робіт об'єкта з ERP (order_work_volumes). Якщо є — мають пріоритет. */
   volumes?: import("./brigade-economics").VolumeRow[];
@@ -107,6 +107,27 @@ const kyivMonth = (iso: string) =>
 
 const num = (v: unknown): number | undefined =>
   typeof v === "number" && Number.isFinite(v) && v > 0 ? v : typeof v === "string" && Number(v) > 0 ? Number(v) : undefined;
+
+/**
+ * Інші прямі витрати плану БЕЗ праці — лише якщо склад кошторису повний і узгоджений:
+ * кожна cost відома, сума всіх рядків = total_cost (допуск округлення). Інакше undefined (omit).
+ */
+export function planOtherDirectCostsFrom(lines: unknown, totalCost: unknown): number | undefined {
+  if (!Array.isArray(lines) || lines.length === 0) return undefined;
+  const tc = typeof totalCost === "number" ? totalCost : typeof totalCost === "string" ? Number(totalCost) : NaN;
+  if (!Number.isFinite(tc) || tc <= 0) return undefined;
+  let all = 0, other = 0, labor = 0;
+  for (const l of lines as any[]) {
+    if (!l || typeof l !== "object" || typeof l.block !== "string" || !l.block) return undefined;
+    const c = typeof l.cost === "number" ? l.cost : typeof l.cost === "string" && l.cost.trim() !== "" ? Number(l.cost) : NaN;
+    if (!Number.isFinite(c) || c < 0) return undefined;
+    all += c;
+    if (l.block === "works") labor += c; else other += c;
+  }
+  if (labor <= 0) return undefined; // без трудових рядків розділення не доведене
+  if (Math.abs(all - tc) > Math.max(1, tc * 0.0005)) return undefined;
+  return Math.round(other * 100) / 100;
+}
 
 /** Будує DTO; повертає причину пропуску, якщо немає перевіреного місяця чи назви. */
 export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; workNote: string | null } | { skip: string } {
@@ -135,6 +156,13 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
     const w = payrollWorkItemsFn(src.volumes, src.payrollIds ?? PAYROLL_BRIGADE_MAP);
     if (w.plan.length) dto.planWorkItems = w.plan;
     if (w.fact.length) { dto.workItems = w.fact; dto.workVerified = true; }
+    const planRows = src.volumes.filter((v) => !v.voided && v.kind === "plan");
+    const ids = src.payrollIds ?? PAYROLL_BRIGADE_MAP;
+    const planFullyMapped = planRows.length > 0 && planRows.every((v) => !!ids[v.brigade_key] && v.quantity > 0);
+    if (planFullyMapped && dto.planDirectCosts !== undefined) {
+      const other = planOtherDirectCostsFrom(est?.internal_lines, est?.total_cost);
+      if (other !== undefined) dto.planOtherDirectCosts = other;
+    }
     const notes: string[] = [];
     if (!w.fact.length) notes.push(`${WORK_NOT_SENT}: немає підтвердженого факту виконання`);
     if (w.skipped) notes.push(`пропущено рядків без зіставленої бригади: ${w.skipped}`);
@@ -150,11 +178,15 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   else if (!booking?.brigade_key?.startsWith("screed_")) workNote = `${WORK_NOT_SENT}: для цього напрямку немає підтвердженого коду робіт`;
   else {
     dto.planWorkItems = [{ brigadeId: brigade, serviceCode: "screed_base", quantity: planArea }];
+    if (dto.planDirectCosts !== undefined) {
+      const other = planOtherDirectCostsFrom(est?.internal_lines, est?.total_cost);
+      if (other !== undefined) dto.planOtherDirectCosts = other;
+    }
     workNote = `${WORK_NOT_SENT}: виконання не підтверджене актом (передано лише план)`;
   }
   // workItems і фактичні фінполя (revenue/materials/subcontract/other/equipment/logistics)
   // не передаються: в ERP немає підтверджених актів/обсягів. planDirectCosts = total_cost
-  // кошторису як є (вже включає працю); planOtherDirectCosts не виділяється — склад невідомий.
+  // кошторису як є (вже включає працю); planOtherDirectCosts — лише при повному узгодженому складі.
   if (order.production_status === "handed_over" || order.production_status === "warranty") dto.closed = true;
   if (order.financial_status === "paid" || order.financial_status === "financially_closed") dto.paid = true;
   return { dto, workNote };

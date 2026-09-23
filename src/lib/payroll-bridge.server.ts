@@ -48,7 +48,7 @@ async function loadSource(orderId: string) {
   const [{ data: order }, { data: meas }, { data: est }, { data: booking }, { data: volumes }, { data: brigades }] = await Promise.all([
     db.from("orders").select("id,name,planned_start,ordered_at,production_status,financial_status").eq("id", orderId).maybeSingle(),
     db.from("order_measurements").select("id,lead_id,area,status,created_at").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    db.from("estimates").select("id,total_client,total_cost,area,approved_at").eq("order_id", orderId).not("approved_at", "is", null).order("approved_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("estimates").select("id,total_client,total_cost,area,approved_at,internal_lines").eq("order_id", orderId).not("approved_at", "is", null).order("approved_at", { ascending: false }).limit(1).maybeSingle(),
     db.from("crew_bookings").select("date,brigade_key").eq("order_id", orderId).order("date", { ascending: true }).limit(1).maybeSingle(),
     (db as any).from("order_work_volumes").select("id,brigade_key,service_code,kind,quantity,unit,source,period,confirmed,voided").eq("order_id", orderId),
     (db as any).from("brigades").select("key,payroll_id"),
