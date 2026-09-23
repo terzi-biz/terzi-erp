@@ -216,8 +216,9 @@ export function payrollWorkItems(volumes: VolumeRow[], payrollIds: Record<string
 /**
  * Ставки з каталогу відомості як read-only fallback (не записуються в brigade_work_rates).
  * Лише rate != null; зіставлення по payroll_id або канонічному алiасу; без вгадування за назвою.
- * minimum задано → max(minimum, qty × rate) (screed_base: 12 000 до 100 м², далі 110 ₴/м²);
- * невідома схема з мінімумом/порогом, яку не можна відтворити → ставку пропущено.
+ * pricing='screed_base' → fixed_until_threshold (поріг 100 м²): qty ≤ 100 → minimum (12 000),
+ * qty > 100 → qty × rate за весь обсяг (101 м² = 11 110). Інші коди: per_unit, навіть якщо
+ * minimum=0. Невідому схему pricing не вгадуємо → ставку пропущено.
  */
 export function siteCatalogRates(
   catalog: { brigades: { id: string; active: boolean; rates: { code: string; unit: string | null; rate: number | null; pricing: string | null; minimum: number | null }[] }[] } | null,
