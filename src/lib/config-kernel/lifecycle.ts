@@ -3,7 +3,7 @@
  * Логіка працює поверх абстрактного репозиторію (ConfigRepo), тож тестується без БД,
  * а серверна реалізація підставляє Supabase service-role.
  */
-import { CONFIG_KINDS, validateConfig, type ConfigKind } from "./kinds";
+import { CONFIG_KINDS, validateConfig, type ConfigKind, type ConfigPayload } from "./kinds";
 import { buildScopeChain, type ScopeContext, type ScopeRef } from "./scope";
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
@@ -154,7 +154,7 @@ export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: str
 export function resolveConfig<K extends ConfigKind>(
   kind: K,
   key: string,
-  entries: Pick<ConfigEntry, "kind" | "key" | "scope_type" | "scope_id" | "status" | "payload">[],
+  entries: (Pick<ConfigEntry, "kind" | "key" | "scope_type" | "scope_id" | "status"> & { payload: unknown })[],
   ctx: ScopeContext,
 ) {
   const def = CONFIG_KINDS[kind];
@@ -170,5 +170,5 @@ export function resolveConfig<K extends ConfigKind>(
     value = { ...value, ...(parsed.data as object) };
     source.push(`${s.type}:${s.id}`);
   }
-  return { value: value as ReturnType<typeof def.defaultFor>, source };
+  return { value: value as ConfigPayload<K>, source };
 }
