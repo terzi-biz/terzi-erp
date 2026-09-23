@@ -21,6 +21,7 @@ export const PAYROLL_BRIGADE_MAP: Record<string, string> = {
   roofing_2: "roofing_2",
   roofing_3: "roofing_3",
   roofing_4: "roofing_4",
+  general_1: "demo_students",
 };
 
 export function mapBrigade(key: string | null | undefined): string | undefined {

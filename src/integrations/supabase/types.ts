@@ -1029,9 +1029,12 @@ export type Database = {
           effective_from: string
           effective_to: string | null
           id: string
+          minimum_amount: number | null
           note: string | null
+          pricing: string
           rate: number
           service_code: string
+          threshold_qty: number | null
           unit: string
         }
         Insert: {
@@ -1042,9 +1045,12 @@ export type Database = {
           effective_from: string
           effective_to?: string | null
           id?: string
+          minimum_amount?: number | null
           note?: string | null
+          pricing?: string
           rate: number
           service_code: string
+          threshold_qty?: number | null
           unit: string
         }
         Update: {
@@ -1055,9 +1061,12 @@ export type Database = {
           effective_from?: string
           effective_to?: string | null
           id?: string
+          minimum_amount?: number | null
           note?: string | null
+          pricing?: string
           rate?: number
           service_code?: string
+          threshold_qty?: number | null
           unit?: string
         }
         Relationships: [

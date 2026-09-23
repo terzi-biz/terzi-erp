@@ -155,14 +155,14 @@ export const getOrderBrigadeEconomics = createServerFn({ method: "POST" })
       db.from("brigades").select("key,label,module,payroll_id,active"),
       db.from("order_brigades").select("brigade_key").eq("order_id", data.orderId),
       db.from("order_work_volumes").select("*").eq("order_id", data.orderId).order("created_at"),
-      db.from("brigade_work_rates").select("brigade_key,service_code,unit,rate,effective_from,effective_to,active"),
+      db.from("brigade_work_rates").select("brigade_key,service_code,unit,rate,effective_from,effective_to,active,pricing,minimum_amount,threshold_qty"),
       db.from("order_brigade_payouts").select("*").eq("order_id", data.orderId).order("created_at"),
       db.from("work_code_mappings").select("estimate_module,line_code,service_code,unit,active"),
     ]);
     if (!order) throw new Error("Об'єкт не знайдено");
     const num = (rows: any[] | null, f: string[]) => (rows ?? []).map((r) => { const o = { ...r }; for (const k of f) o[k] = Number(r[k]); return o; });
     const V = num(volumes, ["quantity"]);
-    const R = num(rates, ["rate"]);
+    const R = (rates ?? []).map((r: any) => ({ ...r, rate: Number(r.rate), minimum_amount: r.minimum_amount == null ? null : Number(r.minimum_amount), threshold_qty: r.threshold_qty == null ? null : Number(r.threshold_qty) }));
     const P = num(payouts, ["amount"]);
     const econ = computeEconomics({ estimate: est ?? null, volumes: V, rates: R, payouts: P, factRevenue: null, factNonLabor: null });
     const works = est ? mapEstimateWorks(est.module, est.internal_lines, (mappings ?? []) as any) : { mapped: [], unmapped: [] };
@@ -277,14 +277,19 @@ export const listRatesAndMappings = createServerFn({ method: "GET" })
 /** Нова ставка = новий рядок з датою дії; попередня закривається (історія не перезаписується). */
 export const addRate = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ brigadeKey: z.string().max(48), serviceCode: code, unit: z.string().min(1).max(16), rate: z.number().positive().max(1e6), effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), note: z.string().max(300).nullable() }).parse(d))
+  .inputValidator((d) => z.object({ brigadeKey: z.string().max(48), serviceCode: code, unit: z.string().min(1).max(16), rate: z.number().positive().max(1e6), effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), note: z.string().max(300).nullable(),
+    pricing: z.enum(["per_unit", "minimum", "fixed_until_threshold"]).default("per_unit"),
+    minimumAmount: z.number().min(0).max(1e8).nullable().default(null), thresholdQty: z.number().positive().max(1e7).nullable().default(null),
+  }).refine((x) => x.pricing === "per_unit" || x.minimumAmount !== null, "Для мінімуму/фіксу потрібна сума")
+    .refine((x) => x.pricing !== "fixed_until_threshold" || x.thresholdQty !== null, "Для фіксу потрібен поріг обсягу").parse(d))
   .handler(async ({ data, context }) => {
     const actor = await payroll(context.userId);
     const { db, writeAudit } = await ctx();
     const dayBefore = new Date(`${data.effectiveFrom}T00:00:00Z`); dayBefore.setUTCDate(dayBefore.getUTCDate() - 1);
     await db.from("brigade_work_rates").update({ effective_to: dayBefore.toISOString().slice(0, 10) })
       .eq("brigade_key", data.brigadeKey).eq("service_code", data.serviceCode).is("effective_to", null).lt("effective_from", data.effectiveFrom);
-    const row = { brigade_key: data.brigadeKey, service_code: data.serviceCode, unit: data.unit, rate: data.rate, effective_from: data.effectiveFrom, note: data.note, created_by: context.userId };
+    const row = { brigade_key: data.brigadeKey, service_code: data.serviceCode, unit: data.unit, rate: data.rate, effective_from: data.effectiveFrom, note: data.note, created_by: context.userId,
+      pricing: data.pricing, minimum_amount: data.pricing === "per_unit" ? null : data.minimumAmount, threshold_qty: data.pricing === "fixed_until_threshold" ? data.thresholdQty : null };
     const { error } = await db.from("brigade_work_rates").insert(row);
     if (error) throw new Error(error.message);
     await writeAudit(actor, { module: "staff", action: "brigade_rate.add", entityType: "brigade", entityId: data.brigadeKey, newValue: row, isCritical: true });

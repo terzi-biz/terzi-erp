@@ -13,6 +13,7 @@ import { getPayrollSiteSummary } from "@/lib/payroll-bridge.functions";
 
 const ND = "немає даних";
 const money = (v: number | null | undefined) => (v === null || v === undefined ? ND : `${v.toLocaleString("uk-UA", { maximumFractionDigits: 2 })} грн`);
+const pctS = (v: number | null | undefined) => (v === null || v === undefined ? ND : `${v.toLocaleString("uk-UA", { maximumFractionDigits: 2 })} %`);
 const qty = (v: number) => v.toLocaleString("uk-UA", { maximumFractionDigits: 3 });
 const sel = "h-9 rounded-md border border-input bg-background px-2 text-sm";
 
@@ -103,11 +104,18 @@ function Economics({ orderId, label }: { orderId: string; label: (k: string) => 
         <Stat l="Планова виручка (кошторис)" v={money(e.estimate.planRevenue)} />
         <Stat l="План матеріали/інші прямі (без праці)" v={e.estimate.compositionKnown ? money(e.estimate.planNonLabor) : `${ND} (склад кошторису невідомий)`} />
         <Stat l="План робіт бригад за ставками" v={money(e.plan.brigadeTotal)} />
-        <Stat l="Маржа план" v={money(e.plan.margin)} note={e.plan.marginBasis} />
+        <Stat l="Валовий прибуток план" v={money(e.plan.gross)} note={e.plan.grossBasis} />
+        <Stat l="Маржа план, %" v={pctS(e.plan.marginPct)} note="Валовий прибуток / виручка × 100" />
         <Stat l="Факт нараховано за ставками (підтв. обсяги)" v={money(e.fact.accruedByRate)} note="Розрахунок, не виплата" />
-        <Stat l="Факт виплачено бригадам (підтв.)" v={money(e.fact.payouts)} note={e.fact.unconfirmedPayouts ? `Не підтверджено: ${money(e.fact.unconfirmedPayouts)}` : undefined} />
         <Stat l="Факт виручка" v={money(e.fact.revenue)} />
-        <Stat l="Маржа факт" v={money(e.fact.margin)} note={e.fact.marginBasis} />
+        <Stat l="Валовий прибуток факт" v={money(e.fact.gross)} note={e.fact.grossBasis} />
+        <Stat l="Маржа факт, %" v={pctS(e.fact.marginPct)} note="Валовий прибуток / виручка × 100" />
+      </div>
+      <h4 className="font-semibold">Взаєморозрахунки з бригадами (не впливають на прибуток)</h4>
+      <div className="grid gap-2 sm:grid-cols-3">
+        <Stat l="Нараховано (підтв. обсяги)" v={money(e.fact.settlement.accrued)} />
+        <Stat l="Виплачено (підтв.)" v={money(e.fact.settlement.paid)} note={e.fact.settlement.unconfirmedPayouts ? `Не підтверджено: ${money(e.fact.settlement.unconfirmedPayouts)}` : undefined} />
+        <Stat l="Залишок до виплати" v={money(e.fact.settlement.due)} />
       </div>
       {e.estimate.estimateLabor !== null && <p className="text-muted-foreground">Праця всередині кошторису: {money(e.estimate.estimateLabor)} — у маржі план не віднімається вдруге.</p>}
       {!d.estimate && <p className="text-muted-foreground">Затвердженого кошторису немає.</p>}
@@ -212,13 +220,13 @@ function SiteSummary({ orderId }: { orderId: string }) {
             <Stat l="План прямі (повний кошторис)" v={money(r.summary.planDirectCosts)} />
             <Stat l="План бригади" v={money(r.summary.planCrew)} />
             <Stat l="План вал" v={money(r.summary.planGross)} />
-            <Stat l="Маржа план" v={money(r.summary.planMargin)} />
+            <Stat l="Маржа план (як у відомості)" v={money(r.summary.planMargin)} />
             <Stat l="Відхилення" v={money(r.summary.variance)} />
             <Stat l="Факт виручка" v={money(r.summary.revenue)} />
             <Stat l="Факт прямі" v={money(r.summary.directCosts)} />
             <Stat l="Факт бригади" v={money(r.summary.crewFact)} />
             <Stat l="Факт вал" v={money(r.summary.gross)} />
-            <Stat l="Маржа факт" v={money(r.summary.margin)} />
+            <Stat l="Маржа факт (як у відомості)" v={money(r.summary.margin)} />
             <Stat l="Виплачено бригаді" v={money(r.summary.crewPaid)} />
           </div>
           {(r.summary.planLines.length > 0 || r.summary.factLines.length > 0) && (
