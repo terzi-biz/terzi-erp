@@ -71,7 +71,9 @@ export function diffPayload(before: unknown, after: unknown, path = "$"): { path
   return JSON.stringify(before) === JSON.stringify(after) ? [] : [{ path, before, after }];
 }
 
-export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: string) {
+export type BeforePublish = (t: ConfigTarget, payload: unknown) => Promise<void>;
+
+export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: string, beforePublish?: BeforePublish) {
   return {
     /** Створює або оновлює єдину чернетку цілі. Драфт не бачить runtime. */
     async saveDraft(t: ConfigTarget, payload: unknown, note?: string | null) {
@@ -112,6 +114,7 @@ export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: str
       const d = draft(vs);
       if (!d) throw new Error("Немає чернетки для публікації");
       assertValid(t, d.payload);
+      if (beforePublish) await beforePublish(t, d.payload);
       const p = published(vs);
       if (p) await repo.update(p.id, { status: "superseded" });
       const res = await repo.update(d.id, {
@@ -128,6 +131,7 @@ export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: str
       const src = vs.find((v) => v.version === toVersion && v.status !== "draft" && v.status !== "discarded");
       if (!src) throw new Error(`Версію ${toVersion} не знайдено серед опублікованих`);
       const clean = assertValid(t, src.payload) as JsonValue;
+      if (beforePublish) await beforePublish(t, clean);
       const d = draft(vs);
       if (d) await repo.update(d.id, { status: "discarded" });
       const p = published(vs);

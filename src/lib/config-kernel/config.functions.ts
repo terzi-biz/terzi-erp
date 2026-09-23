@@ -15,7 +15,7 @@ export const saveConfigDraft = createServerFn({ method: "POST" })
   .inputValidator((d) => target.extend({ payload: z.unknown(), note: z.string().max(500).nullish() }).parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    const lc = await lifecycleFor(context.userId);
+    const lc = await lifecycleFor(context.userId, data.scope);
     return lc.saveDraft(data, data.payload, data.note);
   });
 
@@ -24,7 +24,7 @@ export const previewConfigDraft = createServerFn({ method: "POST" })
   .inputValidator((d) => target.parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    const r = await (await lifecycleFor(context.userId)).preview(data);
+    const r = await (await lifecycleFor(context.userId, data.scope)).preview(data);
     return r ? (JSON.parse(JSON.stringify(r)) as { draftVersion: number; publishedVersion: number | null; changes: { path: string; before: any; after: any }[]; validation: { ok: boolean; errors?: string[] } }) : null;
   });
 
@@ -33,7 +33,7 @@ export const publishConfig = createServerFn({ method: "POST" })
   .inputValidator((d) => target.extend({ note: z.string().max(500).nullish() }).parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    return (await lifecycleFor(context.userId)).publish(data, data.note);
+    return (await lifecycleFor(context.userId, data.scope)).publish(data, data.note);
   });
 
 export const rollbackConfig = createServerFn({ method: "POST" })
@@ -41,7 +41,7 @@ export const rollbackConfig = createServerFn({ method: "POST" })
   .inputValidator((d) => target.extend({ toVersion: z.number().int().positive(), note: z.string().max(500).nullish() }).parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    return (await lifecycleFor(context.userId)).rollback(data, data.toVersion, data.note);
+    return (await lifecycleFor(context.userId, data.scope)).rollback(data, data.toVersion, data.note);
   });
 
 export const listConfigVersions = createServerFn({ method: "POST" })

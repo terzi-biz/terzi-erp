@@ -38,7 +38,7 @@ export const discardConfigDraft = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    await (await lifecycleFor(context.userId)).discardDraft(data);
+    await (await lifecycleFor(context.userId, data.scope)).discardDraft(data);
     return { ok: true };
   });
 
