@@ -59,6 +59,10 @@ export function PayrollBridgePanel({ showSettings = true }: { showSettings?: boo
               : <span className="inline-flex items-center gap-1 text-destructive"><ShieldAlert className="w-4 h-4" />Потрібне налаштування серверного секрету</span>}
           </div>
           <div><span className="text-muted-foreground">Остання успішна відправка: </span>{fmt(s.lastSent?.created_at)}</div>
+          {s.lastSent && (
+            <div className="sm:col-span-2"><span className="text-muted-foreground">Обсяг робіт: </span>
+              {s.workNotSent ? <span className="text-destructive">Обсяг роботи не передано (див. журнал)</span> : "передано"}</div>
+          )}
           <div className="sm:col-span-2"><span className="text-muted-foreground">Остання помилка: </span>
             {s.lastError ? `${fmt(s.lastError.created_at)} — ${s.lastError.message ?? ""}` : "—"}</div>
         </div>
@@ -69,7 +73,7 @@ export function PayrollBridgePanel({ showSettings = true }: { showSettings?: boo
           <div className="rounded border border-dashed p-3 text-sm space-y-1">
             <div className="font-semibold">Як безпечно встановити секрет</div>
             <ol className="list-decimal ml-5 space-y-0.5">
-              <li>Згенеруйте випадкове значення (≥ 32 символи) у менеджері паролів.</li>
+              <li>Згенеруйте випадкове значення (мінімум 32 байти, інакше вважається не налаштованим) у менеджері паролів.</li>
               <li>Внесіть те саме значення як секрет на боці відомості Payroll KPI.</li>
               <li>Додайте його в ERP: Налаштування проєкту → Secrets → ім'я <code>PAYROLL_BRIDGE_SECRET</code>.</li>
               <li>Не вставляйте секрет у чат, код, таблиці, URL чи змінні з префіксом VITE_.</li>
