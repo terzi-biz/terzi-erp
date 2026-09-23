@@ -37,3 +37,12 @@ export const resendPayrollOrder = createServerFn({ method: "POST" })
     if (!bridgeConfigured()) return { status: "skipped" as const, message: "Потрібне налаштування серверного секрету" };
     return syncOrderToPayroll(data.orderId, "manual", context.userId);
   });
+
+export const getPayrollSiteSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({ orderId: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { requirePayrollAccess, fetchSiteSummary } = await import("./payroll-bridge.server");
+    await requirePayrollAccess(context.userId);
+    return fetchSiteSummary(data.orderId, context.userId);
+  });

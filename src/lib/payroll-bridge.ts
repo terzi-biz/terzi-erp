@@ -5,6 +5,7 @@
 import { payrollWorkItems as payrollWorkItemsFn } from "./brigade-economics";
 export const PAYROLL_SITE_ORIGIN = "https://terzi-payroll-kpi.terzi-deals.chatgpt.site";
 export const PAYROLL_ORDERS_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/orders`;
+export const PAYROLL_SUMMARY_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/summary`;
 export const PAYROLL_AUD = "terzi-payroll-kpi";
 export const PAYROLL_ISS = "TERZI_ERP";
 export const PAYROLL_TOKEN_TTL_SEC = 10 * 60;
@@ -70,6 +71,8 @@ export type PayrollOrderDTO = {
   workItems?: { brigadeId: string; serviceCode: string; quantity: number }[];
   /** Планові прямі витрати БЕЗ фонду бригад — лише при відомому складі кошторису. */
   planOtherDirectCosts?: number;
+  /** true лише разом із workItems з підтверджених ERP-рядків факту. */
+  workVerified?: boolean;
   closed?: boolean;
   paid?: boolean;
 };
@@ -129,7 +132,7 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   if (src.volumes && src.volumes.some((v) => !v.voided)) {
     const w = payrollWorkItemsFn(src.volumes, src.payrollIds ?? PAYROLL_BRIGADE_MAP);
     if (w.plan.length) dto.planWorkItems = w.plan;
-    if (w.fact.length) dto.workItems = w.fact;
+    if (w.fact.length) { dto.workItems = w.fact; dto.workVerified = true; }
     const notes: string[] = [];
     if (!w.fact.length) notes.push(`${WORK_NOT_SENT}: немає підтвердженого факту виконання`);
     if (w.skipped) notes.push(`пропущено рядків без зіставленої бригади: ${w.skipped}`);
@@ -153,4 +156,22 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   if (order.production_status === "handed_over" || order.production_status === "warranty") dto.closed = true;
   if (order.financial_status === "paid" || order.financial_status === "financially_closed") dto.paid = true;
   return { dto, workNote };
+}
+
+export type SiteSummary = {
+  planCrew: number | null; crewFact: number | null; planGross: number | null; gross: number | null;
+  planMargin: number | null; margin: number | null; verified: boolean; paid: boolean; closed: boolean;
+};
+/** Невідоме/некоректне число → null (не 0). Прапорці — лише явне true. */
+export function parseSiteSummary(raw: unknown): SiteSummary | null {
+  if (!raw || typeof raw !== "object") return null;
+  const o = ((raw as any).summary && typeof (raw as any).summary === "object" ? (raw as any).summary : raw) as Record<string, unknown>;
+  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const keys = ["planCrew", "crewFact", "planGross", "gross", "planMargin", "margin"] as const;
+  if (!keys.some((k) => k in o) && !("verified" in o)) return null;
+  return {
+    planCrew: n(o.planCrew), crewFact: n(o.crewFact), planGross: n(o.planGross), gross: n(o.gross),
+    planMargin: n(o.planMargin), margin: n(o.margin),
+    verified: o.verified === true, paid: o.paid === true, closed: o.closed === true,
+  };
 }

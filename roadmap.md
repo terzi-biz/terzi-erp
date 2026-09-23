@@ -72,4 +72,4 @@
 - [x] brigades directory, order_brigades, rates, mappings, work volumes, payouts
 - [ ] Operations calendar grid still uses the built-in brigade list (new brigades not shown there)
 - [ ] Confirmed fact revenue / non-labor costs per order not wired (fact margin = no data)
-- [ ] Fact return from Payroll Site — blocked: waiting for receiver spec
+- [x] Fact return from Payroll Site via GET /api/erp/summary (read-only display)
