@@ -76,7 +76,7 @@ export const getMarketingCalculatorFacts = createServerFn({ method: "POST" })
     const [withChannel, withCampaign, withUtm] = await Promise.all([
       cnt(db.from("crm_leads").select("id", { count: "exact", head: true }).gte("created_at", convFrom).lt("created_at", convTo).not("marketing_channel_id", "is", null)),
       cnt(db.from("crm_leads").select("id", { count: "exact", head: true }).gte("created_at", convFrom).lt("created_at", convTo).not("marketing_campaign_id", "is", null)),
-      cnt(db.from("crm_leads").select("id", { count: "exact", head: true }).gte("created_at", convFrom).lt("created_at", convTo).not("utm", "is", null)),
+      cnt(db.from("crm_leads").select("id", { count: "exact", head: true }).gte("created_at", convFrom).lt("created_at", convTo).not("utm", "is", null).not("utm", "eq", "{}")),
     ]);
     const { data: soldAll } = await db.from("orders").select("id").in("commercial_status", CONTRACT_STATUSES as any).gte("created_at", convFrom).lt("created_at", convTo).limit(5000);
     const soldLinked = (soldAll ?? []).filter((o) => attrOrderIds.has(o.id)).length;
