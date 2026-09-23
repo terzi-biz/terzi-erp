@@ -56,3 +56,7 @@
 
 # Security prerequisite — RLS on finance/payroll tables
 - [x] Enable RLS + finance-only read policies on 13 sensitive tables
+
+# Control Plane
+- [x] Wave 1 — Kernel: config_entries, scope chain, lifecycle, zod kinds, flags, registries contracts
+- [ ] Wave 2 — Registries/fields/dictionaries (awaiting approval)
