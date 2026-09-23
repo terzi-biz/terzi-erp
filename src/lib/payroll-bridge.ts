@@ -1,0 +1,111 @@
+/**
+ * Міст ERP → TERZI Payroll KPI. Чисті (детерміновані) функції:
+ * підпис токена HMAC-SHA256 і побудова DTO замовлення. Без секретів і мережі.
+ */
+export const PAYROLL_SITE_ORIGIN = "https://terzi-payroll-kpi.terzi-deals.chatgpt.site";
+export const PAYROLL_ORDERS_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/orders`;
+export const PAYROLL_AUD = "terzi-payroll-kpi";
+export const PAYROLL_ISS = "TERZI_ERP";
+export const PAYROLL_TOKEN_TTL_SEC = 10 * 60;
+
+export type PayrollScope = "payroll:read" | "payroll:write" | "payroll:admin" | "payroll:sync";
+
+/** ERP brigade key → id приймача. Невідомі ключі не передаються. */
+export const PAYROLL_BRIGADE_MAP: Record<string, string> = {
+  screed_lesha: "crew-alex",
+  screed_vitya: "screed_vitya",
+  roofing_1: "roofing_1",
+  roofing_2: "roofing_2",
+  roofing_3: "roofing_3",
+  roofing_4: "roofing_4",
+};
+
+export function mapBrigade(key: string | null | undefined): string | undefined {
+  return key ? PAYROLL_BRIGADE_MAP[key] : undefined;
+}
+
+function b64url(bytes: Uint8Array): string {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+export function base64UrlJson(obj: unknown): string {
+  return b64url(new TextEncoder().encode(JSON.stringify(obj)));
+}
+
+export async function signPayrollToken(
+  secret: string,
+  sub: string,
+  scopes: PayrollScope[],
+  nowSec: number = Math.floor(Date.now() / 1000),
+  ttlSec: number = PAYROLL_TOKEN_TTL_SEC,
+): Promise<{ token: string; exp: number }> {
+  if (!secret) throw new Error("secret missing");
+  const exp = nowSec + Math.min(Math.max(ttlSec, 300), 900);
+  const payload = base64UrlJson({ aud: PAYROLL_AUD, iss: PAYROLL_ISS, sub, exp, scopes });
+  const key = await crypto.subtle.importKey(
+    "raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"],
+  );
+  const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(payload)));
+  return { token: `${payload}.${b64url(sig)}`, exp };
+}
+
+export type PayrollOrderDTO = {
+  orderId: string;
+  month: string;
+  name: string;
+  leadId?: string;
+  measurementId?: string;
+  estimateId?: string;
+  brigadeId?: string;
+  planRevenue?: number;
+  planDirectCosts?: number;
+  planArea?: number;
+  workDate?: string;
+  closed?: boolean;
+  paid?: boolean;
+};
+
+export type PayrollSource = {
+  order: {
+    id: string; name: string | null; planned_start: string | null; ordered_at: string | null;
+    production_status: string | null; financial_status: string | null;
+  };
+  measurement?: { id: string; lead_id: string | null; area: number | null } | null;
+  /** Лише затверджений кошторис (approved_at != null) — план, не факт. */
+  approvedEstimate?: { id: string; total_client: number | null; total_cost: number | null; area: number | null } | null;
+  booking?: { date: string; brigade_key: string | null } | null;
+};
+
+const kyivMonth = (iso: string) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv", year: "numeric", month: "2-digit" })
+    .format(new Date(iso)).slice(0, 7);
+
+const num = (v: unknown): number | undefined =>
+  typeof v === "number" && Number.isFinite(v) && v > 0 ? v : typeof v === "string" && Number(v) > 0 ? Number(v) : undefined;
+
+/** Будує DTO; повертає причину пропуску, якщо немає перевіреного місяця чи назви. */
+export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO } | { skip: string } {
+  const { order, measurement, approvedEstimate: est, booking } = src;
+  const name = order.name?.trim();
+  if (!name) return { skip: "Об'єкт без назви" };
+  const dateSrc = booking?.date ?? order.planned_start ?? order.ordered_at;
+  if (!dateSrc) return { skip: "Немає дати робіт / планового старту — місяць невідомий" };
+  const dto: PayrollOrderDTO = { orderId: order.id, month: kyivMonth(dateSrc), name };
+  if (measurement?.id) dto.measurementId = measurement.id;
+  if (measurement?.lead_id) dto.leadId = measurement.lead_id;
+  if (est?.id) {
+    dto.estimateId = est.id;
+    const r = num(est.total_client); if (r !== undefined) dto.planRevenue = r;
+    const c = num(est.total_cost); if (c !== undefined) dto.planDirectCosts = c;
+  }
+  const area = num(est?.area) ?? num(measurement?.area);
+  if (area !== undefined) dto.planArea = area;
+  if (booking?.date) dto.workDate = booking.date.slice(0, 10);
+  const brigade = mapBrigade(booking?.brigade_key);
+  if (brigade) dto.brigadeId = brigade;
+  if (order.production_status === "handed_over" || order.production_status === "warranty") dto.closed = true;
+  if (order.financial_status === "paid" || order.financial_status === "financially_closed") dto.paid = true;
+  return { dto };
+}
