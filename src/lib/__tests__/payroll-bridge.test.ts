@@ -60,8 +60,8 @@ describe("payroll workItems & secret", () => {
 import { buildPayrollOrder as bpo, planOtherDirectCostsFrom } from "@/lib/payroll-bridge";
 describe("planOtherDirectCosts (audit)", () => {
   const order = { id: "o", name: "O", planned_start: "2026-09-10T08:00:00Z", ordered_at: null, production_status: null, financial_status: null };
-  const vol = { id: "1", brigade_key: "screed_lesha", service_code: "screed_base", kind: "plan" as const, quantity: 200, unit: "м²", period: "2026-09", confirmed: false, voided: false } as any;
-  const full = [{ block: "materials", cost: 10000, quantity: 1 }, { block: "works", cost: 70000, quantity: 200 }];
+  const vol = { id: "1", brigade_key: "screed_lesha", service_code: "screed_base", kind: "plan" as const, quantity: 200, unit: "м²", period: "2026-09", confirmed: false, voided: false, source: "estimate", source_ref: "estimate:e:W1" } as any;
+  const full = [{ block: "materials", cost: 10000, quantity: 1 }, { block: "works", code: "W1", unit: "м²", cost: 70000, quantity: 200 }];
   const est = (lines: unknown) => ({ id: "e", total_client: 120000, total_cost: 80000, area: 200, internal_lines: lines });
   const gross = (d: any) => d.planRevenue - (d.planOtherDirectCosts !== undefined ? d.planOtherDirectCosts + 200 * 110 : d.planDirectCosts);
   it("complete structure → 10000, GP = 88000", () => {
@@ -71,15 +71,39 @@ describe("planOtherDirectCosts (audit)", () => {
     expect("dto" in r && r.dto.workItems).toBeUndefined();
   });
   it("incomplete → omit, GP = 40000", () => {
-    for (const lines of [[{ block: "materials", cost: 10000 }, { block: "works", cost: null }], [{ block: "materials", cost: 10000 }, { block: "works", cost: 60000 }], null]) {
+    for (const lines of [[{ block: "materials", cost: 10000 }, { block: "works", code: "W1", quantity: 200, cost: null }], [{ block: "materials", cost: 10000 }, { block: "works", code: "W1", quantity: 200, cost: 60000 }], null]) {
       const r = bpo({ order, approvedEstimate: est(lines), volumes: [vol], payrollIds: { screed_lesha: "crew-alex" } });
       expect("dto" in r && r.dto.planOtherDirectCosts).toBeUndefined();
       expect("dto" in r && gross(r.dto)).toBe(40000);
     }
   });
   it("unmapped plan brigade → omit; rounding tolerance ok", () => {
-    const r = bpo({ order, approvedEstimate: est(full), volumes: [vol, { ...vol, id: "2", brigade_key: "x" }], payrollIds: { screed_lesha: "crew-alex" } });
+    const r = bpo({ order, approvedEstimate: est(full), volumes: [vol, { ...vol, id: "2", brigade_key: "x", source_ref: "estimate:e:W2" }], payrollIds: { screed_lesha: "crew-alex" } });
     expect("dto" in r && r.dto.planOtherDirectCosts).toBeUndefined();
     expect(planOtherDirectCostsFrom([{ block: "materials", cost: 10000.4 }, { block: "works", cost: 70000 }], 80000)).toBe(10000.4);
+  });
+});
+
+describe("planOtherDirectCosts: 1:1 coverage of estimate works", () => {
+  const order = { id: "o", name: "O", planned_start: "2026-09-10T08:00:00Z", ordered_at: null, production_status: null, financial_status: null };
+  const lines = [{ block: "materials", cost: 10000 }, { block: "works", code: "W1", quantity: 200, unit: "м²", cost: 22000 }, { block: "works", code: "W2", quantity: 50, unit: "м", cost: 28000 }, { block: "works", code: "W3", quantity: 10, unit: "шт", cost: 20000 }];
+  const est = { id: "e", total_client: 120000, total_cost: 80000, area: 200, internal_lines: lines };
+  const v = (code: string, q: number, extra: any = {}) => ({ id: code, brigade_key: "screed_lesha", service_code: "screed_base", kind: "plan", quantity: q, unit: null, period: "2026-09", confirmed: false, voided: false, source: "estimate", source_ref: `estimate:e:${code}`, ...extra }) as any;
+  const run = (vols: any[]) => { const r = bpo({ order, approvedEstimate: est, volumes: vols, payrollIds: { screed_lesha: "crew-alex" } }); return "dto" in r ? r.dto : null; };
+  it("3 work lines, only 1 imported → omit", () => {
+    const d = run([v("W1", 200)]);
+    expect(d?.planOtherDirectCosts).toBeUndefined();
+    expect(d?.planDirectCosts).toBe(80000);
+  });
+  it("all 3 covered → 10000", () => expect(run([v("W1", 200), v("W2", 50), v("W3", 10)])?.planOtherDirectCosts).toBe(10000));
+  it("duplicate / wrong qty / manual / other estimate → omit", () => {
+    expect(run([v("W1", 200), v("W1", 200, { id: "d" }), v("W3", 10)])?.planOtherDirectCosts).toBeUndefined();
+    expect(run([v("W1", 199), v("W2", 50), v("W3", 10)])?.planOtherDirectCosts).toBeUndefined();
+    expect(run([v("W1", 200), v("W2", 50), v("W3", 10), v("M", 5, { source: "manual", source_ref: null })])?.planOtherDirectCosts).toBeUndefined();
+    expect(run([v("W1", 200), v("W2", 50), v("W3", 10, { source_ref: "estimate:old:W3" })])?.planOtherDirectCosts).toBeUndefined();
+  });
+  it("measurement-only plan → omit", () => {
+    const r = bpo({ order, approvedEstimate: est, measurement: { id: "m", area: 200, status: "completed", lead_id: null } as any, booking: { date: "2026-09-10", brigade_key: "screed_lesha" } });
+    expect("dto" in r && r.dto.planOtherDirectCosts).toBeUndefined();
   });
 });

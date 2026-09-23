@@ -129,6 +129,36 @@ export function planOtherDirectCostsFrom(lines: unknown, totalCost: unknown): nu
   return Math.round(other * 100) / 100;
 }
 
+/**
+ * Доведене 1:1 покриття: кожен рядок block='works' затвердженого кошторису має рівно один
+ * живий плановий рядок з source='estimate', source_ref=estimate:<id>:<code>, тим самим обсягом
+ * і одиницею; жодних інших планових рядків (ручних, із заміру, з іншого кошторису), без дублів.
+ */
+export function estimateWorksFullyCovered(lines: unknown, estimateId: string | undefined, planRows: { source: string; source_ref?: string | null; quantity: number; unit: string | null }[]): boolean {
+  if (!estimateId || !Array.isArray(lines)) return false;
+  const works = (lines as any[]).filter((l) => l && l.block === "works");
+  if (works.length === 0 || planRows.length !== works.length) return false;
+  const byCode = new Map<string, { qty: number; unit: string | null }>();
+  for (const l of works) {
+    const code = typeof l.code === "string" || typeof l.code === "number" ? String(l.code) : "";
+    const q = Number(l.qty ?? l.quantity);
+    if (!code || byCode.has(code) || !Number.isFinite(q) || q <= 0) return false;
+    byCode.set(code, { qty: q, unit: typeof l.unit === "string" ? l.unit : null });
+  }
+  const prefix = `estimate:${estimateId}:`;
+  const seen = new Set<string>();
+  for (const r of planRows) {
+    if (r.source !== "estimate" || !r.source_ref?.startsWith(prefix)) return false;
+    const code = r.source_ref.slice(prefix.length);
+    const l = byCode.get(code);
+    if (!l || seen.has(code)) return false;
+    seen.add(code);
+    if (Math.abs(l.qty - r.quantity) > 1e-6) return false;
+    if (l.unit && r.unit && l.unit !== r.unit) return false;
+  }
+  return seen.size === byCode.size;
+}
+
 /** Будує DTO; повертає причину пропуску, якщо немає перевіреного місяця чи назви. */
 export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; workNote: string | null } | { skip: string } {
   const { order, measurement, approvedEstimate: est, booking } = src;
@@ -158,7 +188,8 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
     if (w.fact.length) { dto.workItems = w.fact; dto.workVerified = true; }
     const planRows = src.volumes.filter((v) => !v.voided && v.kind === "plan");
     const ids = src.payrollIds ?? PAYROLL_BRIGADE_MAP;
-    const planFullyMapped = planRows.length > 0 && planRows.every((v) => !!ids[v.brigade_key] && v.quantity > 0);
+    const planFullyMapped = planRows.length > 0 && planRows.every((v) => !!ids[v.brigade_key] && v.quantity > 0)
+      && estimateWorksFullyCovered(est?.internal_lines, est?.id, planRows);
     if (planFullyMapped && dto.planDirectCosts !== undefined) {
       const other = planOtherDirectCostsFrom(est?.internal_lines, est?.total_cost);
       if (other !== undefined) dto.planOtherDirectCosts = other;
@@ -178,10 +209,7 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   else if (!booking?.brigade_key?.startsWith("screed_")) workNote = `${WORK_NOT_SENT}: для цього напрямку немає підтвердженого коду робіт`;
   else {
     dto.planWorkItems = [{ brigadeId: brigade, serviceCode: "screed_base", quantity: planArea }];
-    if (dto.planDirectCosts !== undefined) {
-      const other = planOtherDirectCostsFrom(est?.internal_lines, est?.total_cost);
-      if (other !== undefined) dto.planOtherDirectCosts = other;
-    }
+    // Без ERP-рядків кошторису покриття робіт не доведене → planOtherDirectCosts не передається.
     workNote = `${WORK_NOT_SENT}: виконання не підтверджене актом (передано лише план)`;
   }
   // workItems і фактичні фінполя (revenue/materials/subcontract/other/equipment/logistics)

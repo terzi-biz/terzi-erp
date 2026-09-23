@@ -7,6 +7,7 @@ export type VolumeRow = {
   id: string; brigade_key: string; service_code: string; kind: "plan" | "fact";
   quantity: number; unit: string | null; source: string; period: string;
   confirmed: boolean; voided: boolean;
+  source_ref?: string | null;
 };
 export type RateRow = {
   brigade_key: string; service_code: string; unit: string; rate: number;
