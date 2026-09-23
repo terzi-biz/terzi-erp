@@ -167,6 +167,7 @@ function ObjectDetailPage() {
             {tab === "estimates" && <EstimatesTab o={o} />}
             {tab === "contracts" && <ComingSoon text="Формування договору за шаблоном буде підключено у Хвилі 2. Тимчасово використовуйте кошториси зі статусом «Договір»." />}
             {tab === "finance" && <FinanceTab o={o} />}
+            {tab === "sources" && <SourceTrace orderId={o.id} />}
             {tab === "comments" && <CommentsTab o={o} />}
             {tab === "tasks" && <TasksTab o={o} />}
             {tab === "calls" && <CallsTab o={o} />}
