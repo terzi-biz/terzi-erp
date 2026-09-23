@@ -158,20 +158,52 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   return { dto, workNote };
 }
 
+export type SiteLine = { brigadeId: string; serviceCode: string; quantity: number | null; unit: string | null; amount: number | null };
 export type SiteSummary = {
-  planCrew: number | null; crewFact: number | null; planGross: number | null; gross: number | null;
-  planMargin: number | null; margin: number | null; verified: boolean; paid: boolean; closed: boolean;
+  revision: string | null; updatedAt: string | null; month: string | null; brigadeIds: string[];
+  planRevenue: number | null; planDirectCosts: number | null; planCrew: number | null; planGross: number | null; planMargin: number | null;
+  revenue: number | null; directCosts: number | null; crewFact: number | null; gross: number | null; margin: number | null;
+  variance: number | null; crewPaid: number | null;
+  verified: boolean; closed: boolean; act: boolean; paid: boolean;
+  planLines: SiteLine[]; factLines: SiteLine[];
 };
-/** Невідоме/некоректне число → null (не 0). Прапорці — лише явне true. */
+export type SiteOverview = {
+  revision: string | null; updatedAt: string | null; month: string;
+  staffCount: number | null; staffApproved: number | null; staffApprovedDue: number | null;
+  crewAccrued: number | null; crewPaid: number | null; crewDue: number | null; ordersCount: number | null;
+};
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+function lines(v: unknown): SiteLine[] {
+  return Array.isArray(v) ? v.filter((l) => l && typeof l === "object").map((l: any) => ({
+    brigadeId: String(l.brigadeId ?? ""), serviceCode: String(l.serviceCode ?? ""),
+    quantity: num(l.quantity), unit: str(l.unit), amount: num(l.amount),
+  })) : [];
+}
+/** Невідоме/некоректне число → null (не 0). Прапорці — лише явне true. Підтримує {order:{...}} і пласку форму. */
 export function parseSiteSummary(raw: unknown): SiteSummary | null {
   if (!raw || typeof raw !== "object") return null;
-  const o = ((raw as any).summary && typeof (raw as any).summary === "object" ? (raw as any).summary : raw) as Record<string, unknown>;
-  const n = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-  const keys = ["planCrew", "crewFact", "planGross", "gross", "planMargin", "margin"] as const;
+  const r = raw as any;
+  const o = (r.order && typeof r.order === "object" ? r.order : r.summary && typeof r.summary === "object" ? r.summary : r) as Record<string, any>;
+  const keys = ["planCrew", "crewFact", "planGross", "gross", "planMargin", "margin", "planRevenue", "revenue"];
   if (!keys.some((k) => k in o) && !("verified" in o)) return null;
   return {
-    planCrew: n(o.planCrew), crewFact: n(o.crewFact), planGross: n(o.planGross), gross: n(o.gross),
-    planMargin: n(o.planMargin), margin: n(o.margin),
-    verified: o.verified === true, paid: o.paid === true, closed: o.closed === true,
+    revision: r.revision != null ? String(r.revision) : null, updatedAt: str(r.updatedAt), month: str(o.month),
+    brigadeIds: Array.isArray(o.brigadeIds) ? o.brigadeIds.map(String) : [],
+    planRevenue: num(o.planRevenue), planDirectCosts: num(o.planDirectCosts), planCrew: num(o.planCrew), planGross: num(o.planGross), planMargin: num(o.planMargin),
+    revenue: num(o.revenue), directCosts: num(o.directCosts), crewFact: num(o.crewFact), gross: num(o.gross), margin: num(o.margin),
+    variance: num(o.variance), crewPaid: num(o.crewPaid),
+    verified: o.verified === true, closed: o.closed === true, act: o.act === true, paid: o.paid === true,
+    planLines: lines(o.planLines), factLines: lines(o.factLines),
+  };
+}
+export function parseSiteOverview(raw: unknown): SiteOverview | null {
+  if (!raw || typeof raw !== "object") return null;
+  const r = raw as any; const o = r.overview;
+  if (!o || typeof o !== "object" || typeof o.month !== "string") return null;
+  return {
+    revision: r.revision != null ? String(r.revision) : null, updatedAt: str(r.updatedAt), month: o.month,
+    staffCount: num(o.staffCount), staffApproved: num(o.staffApproved), staffApprovedDue: num(o.staffApprovedDue),
+    crewAccrued: num(o.crewAccrued), crewPaid: num(o.crewPaid), crewDue: num(o.crewDue), ordersCount: num(o.ordersCount),
   };
 }

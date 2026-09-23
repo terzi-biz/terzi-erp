@@ -60,5 +60,13 @@ describe("brigade economics", () => {
     const { parseSiteSummary } = await import("@/lib/payroll-bridge");
     expect(parseSiteSummary({ planCrew: 5000, crewFact: "x", verified: "yes" })).toMatchObject({ planCrew: 5000, crewFact: null, verified: false, paid: false });
     expect(parseSiteSummary({ foo: 1 })).toBeNull();
+    const full = parseSiteSummary({ revision: 3, updatedAt: "2026-09-23T10:00:00Z", order: { orderId: "x", planCrew: null, crewFact: 1200, act: true, paid: "true", planLines: [{ brigadeId: "crew-alex", serviceCode: "screed", quantity: 100, unit: "m2", amount: null }] } });
+    expect(full).toMatchObject({ revision: "3", planCrew: null, crewFact: 1200, act: true, paid: false });
+    expect(full?.planLines[0]).toMatchObject({ quantity: 100, amount: null });
+  });
+  it("site month overview parsing: null not zero", async () => {
+    const { parseSiteOverview } = await import("@/lib/payroll-bridge");
+    expect(parseSiteOverview({ overview: { month: "2026-09", crewDue: 500, crewPaid: "x" } })).toMatchObject({ month: "2026-09", crewDue: 500, crewPaid: null, staffCount: null });
+    expect(parseSiteOverview({ overview: {} })).toBeNull();
   });
 });
