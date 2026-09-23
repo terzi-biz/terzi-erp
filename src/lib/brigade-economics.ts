@@ -119,7 +119,7 @@ export function mapEstimateWorks(module: string | null, lines: unknown, mappings
   const unmapped: { code: string; name: string; reason: string }[] = [];
   for (const l of arr.filter((x) => x.block === "works")) {
     const code = String(l.code ?? "");
-    const qty = finite(l.qty);
+    const qty = finite(l.qty ?? (l as any).quantity);
     const m = mappings.find((x) => x.active && x.estimate_module === module && x.line_code === code);
     if (!m) unmapped.push({ code, name: l.name ?? code, reason: "немає маппінгу коду роботи" });
     else if (qty === null || qty <= 0) unmapped.push({ code, name: l.name ?? code, reason: "немає кількості" });
