@@ -14,6 +14,7 @@ import {
 } from "@/lib/measurement-status";
 import { crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
+import { SourceTrace } from "@/components/crm/SourceTrace";
 
 export const MEASUREMENT_STATUS_TONE: Record<MeasurementStatus, string> = {
   planned: "bg-muted text-muted-foreground",
@@ -274,6 +275,8 @@ export function MeasurementCard({
           <section className="space-y-2 rounded-lg border border-border p-3">
             <CallsPlayerList measurementId={row.id} title="Дзвінки по заміру" limit={10} />
           </section>
+
+          <SourceTrace measurementId={row.id} orderId={row.order_id ?? null} leadId={row.lead_id ?? null} />
 
 
 

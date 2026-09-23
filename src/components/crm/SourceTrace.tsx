@@ -84,7 +84,7 @@ export function SourceTrace(props: { orderId?: string | null; leadId?: string | 
             {data.convertedToOrder ? "Замовлення" : "Замовлення немає"}
           </Badge>
         </div>
-        <Row label="Лід" value={data.leadId ? <Link to="/crm/leads" className="text-primary hover:underline">{data.leadTitle ?? data.leadId.slice(0, 8)}</Link> : "немає даних"} />
+        <Row label="Лід" value={data.leadId ? <Link to="/crm/leads" search={{ lead: data.leadId } as never} className="text-primary hover:underline">{data.leadTitle ?? data.leadId.slice(0, 8)}</Link> : "немає даних"} />
         <Row label="Створено лід" value={dt(data.leadCreatedAt)} />
         <Row label="Замір" value={data.measurementId ? `${data.measurementStatus ?? "—"} · ${dt(data.measurementScheduledAt)}` : "немає даних"} />
         <Row
