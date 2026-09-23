@@ -13,7 +13,9 @@ export const getSettingsAccess = createServerFn({ method: "GET" })
     const actor = await loadActor(context.userId);
     let canManageSettings = false;
     try { await requirePermission(context.userId, "settings", "manage_settings"); canManageSettings = true; } catch { /* немає права */ }
-    return { canManageSettings, canManageAccess: !!actor.canManage };
+    let canManageFinanceRules = false;
+    try { await requirePermission(context.userId, "finance", "manage_settings"); canManageFinanceRules = true; } catch { /* немає права */ }
+    return { canManageSettings, canManageFinanceRules, canManageAccess: !!actor.canManage };
   });
 
 /** Опубліковані company-wide перевизначення калькуляторів (порожньо = дефолти рушія). */

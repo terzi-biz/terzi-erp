@@ -38,16 +38,76 @@ export const discardConfigDraft = createServerFn({ method: "POST" })
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { lifecycleFor } = await import("./config.server");
-    await (await lifecycleFor(context.userId)).discardDraft(data);
+    await (await lifecycleFor(context.userId, data.scope)).discardDraft(data);
     return { ok: true };
   });
 
-async function publishedDefs(sb: any, entity: string) {
-  const { data } = await sb.from("config_entries")
-    .select("key,payload,version,scope_type")
+const ROW_COLS = "kind,key,scope_type,scope_id,status,payload,version";
+
+/** Опубліковані визначення полів сутності, зведені по ключу за ланцюгом скоупів актора (без дублів). */
+async function resolvedDefs(sb: any, entity: string, roleKey: string | null) {
+  const { resolveAllByKey } = await import("./scoped");
+  const { data } = await sb.from("config_entries").select(ROW_COLS)
     .eq("kind", "custom_field").eq("status", "published").like("key", `${entity}.%`);
-  return (data ?? []) as { key: string; payload: any; version: number; scope_type: string }[];
+  const m = resolveAllByKey("custom_field", data ?? [], { roleKey });
+  return [...m.entries()].map(([key, r]) => ({ key, payload: r.value, version: r.version ?? 1 }));
 }
+
+/** Ролі для селектора скоупу (джерело — access_roles). */
+export const listConfigScopeRoles = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { requireConfigManager } = await import("./config.server");
+    const { admin } = await import("@/lib/access.server");
+    await requireConfigManager(context.userId);
+    const { data } = await ((await admin()) as any).from("access_roles").select("key,name,is_active").order("sort_order");
+    return ((data ?? []) as { key: string; name: string; is_active: boolean }[]).filter((r) => r.is_active).map((r) => ({ key: r.key, name: r.name }));
+  });
+
+/** Повна історія версій ключа у скоупі (для history/rollback). */
+export const listConfigHistory = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) => z.object({
+    kind: z.enum(["module_overlay", "custom_field", "dictionary"]), key: z.string().min(1).max(128),
+    scope: z.object({ type: z.enum(SCOPE_CHAIN), id: z.string().max(128) }),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    const { requireConfigManager } = await import("./config.server");
+    const { admin } = await import("@/lib/access.server");
+    await requireConfigManager(context.userId);
+    const db = (await admin()) as any;
+    const { data: rows, error } = await db.from("config_entries")
+      .select("id,version,status,change_note,created_at,created_by,published_at,published_by,based_on_version")
+      .eq("kind", data.kind).eq("key", data.key).eq("scope_type", data.scope.type).eq("scope_id", data.scope.id)
+      .order("version", { ascending: false });
+    if (error) throw new Error(error.message);
+    const ids = [...new Set((rows ?? []).flatMap((r: any) => [r.created_by, r.published_by]).filter(Boolean))];
+    const names: Record<string, string> = {};
+    if (ids.length) {
+      const { data: profs } = await db.from("profiles").select("user_id,display_name,email").in("user_id", ids);
+      for (const p of profs ?? []) names[p.user_id] = p.display_name || p.email || p.user_id;
+    }
+    return (rows ?? []).map((r: any) => ({
+      id: r.id as string, version: r.version as number, status: r.status as string, note: (r.change_note ?? null) as string | null,
+      createdAt: r.created_at as string, publishedAt: (r.published_at ?? null) as string | null,
+      author: r.created_by ? (names[r.created_by] ?? null) : null, publisher: r.published_by ? (names[r.published_by] ?? null) : null,
+      basedOn: (r.based_on_version ?? null) as number | null,
+    }));
+  });
+
+/** Runtime: оверлеї модулів, резолвлені з роллю актора (company → role). */
+export const getModuleOverlays = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { loadActor } = await import("@/lib/access.server");
+    const { resolveAllByKey } = await import("./scoped");
+    const actor = await loadActor(context.userId);
+    const { data } = await (context.supabase as any).from("config_entries").select(ROW_COLS)
+      .eq("kind", "module_overlay").eq("status", "published");
+    const out: Record<string, any> = {};
+    for (const [k, r] of resolveAllByKey("module_overlay", data ?? [], { roleKey: actor.roleKey })) out[k] = r.value;
+    return out;
+  });
 
 /** Runtime: визначення + значення кастомних полів запису (права — як на саму сутність). */
 export const getCustomFields = createServerFn({ method: "POST" })
@@ -61,7 +121,7 @@ export const getCustomFields = createServerFn({ method: "POST" })
     let canEdit = true;
     try { await requirePermission(context.userId, CUSTOM_FIELD_ENTITIES[data.entity].permissionModule, "edit"); } catch { canEdit = false; }
     const sb = context.supabase as any;
-    const defsRaw = await publishedDefs(sb, data.entity);
+    const defsRaw = await resolvedDefs(sb, data.entity, actor.roleKey ?? null);
     const fields = defsRaw
       .map((r) => ({ key: r.key.split(".")[1], version: r.version, def: customFieldSchema.safeParse(r.payload) }))
       .filter((f) => f.def.success)
@@ -71,11 +131,13 @@ export const getCustomFields = createServerFn({ method: "POST" })
     const dictCodes = [...new Set(fields.map((f) => f.def.dictionary).filter(Boolean))] as string[];
     const dictionaries: Record<string, any> = {};
     if (dictCodes.length) {
-      const { data: ds } = await sb.from("config_entries").select("key,payload")
+      const { resolveAllByKey } = await import("./scoped");
+      const { data: ds } = await sb.from("config_entries").select(ROW_COLS)
         .eq("kind", "dictionary").eq("status", "published").in("key", dictCodes);
-      for (const d of ds ?? []) { const p = dictionarySchema.safeParse(d.payload); if (p.success) dictionaries[d.key] = p.data; }
+      for (const [k, r] of resolveAllByKey("dictionary", ds ?? [], { roleKey: actor.roleKey ?? null })) {
+        const p = dictionarySchema.safeParse(r.value); if (p.success) dictionaries[k] = p.data;
+      }
     }
-    void actor;
     const sorted = fields.sort((a, b) => (a.def.order ?? 0) - (b.def.order ?? 0));
     const values = Object.fromEntries((vals ?? []).map((v: any) => [v.field_key, v.value])) as Record<string, any>;
     // Формули обчислюються детерміновано на сервері з уже збережених числових полів.
@@ -103,9 +165,7 @@ export const setCustomFieldValue = createServerFn({ method: "POST" })
     const ent = CUSTOM_FIELD_ENTITIES[data.entity];
     const actor = await requirePermission(context.userId, ent.permissionModule, "edit");
     const db = (await admin()) as any;
-    const { data: defRow } = await db.from("config_entries").select("payload,version")
-      .eq("kind", "custom_field").eq("status", "published").eq("key", `${data.entity}.${data.field}`)
-      .order("version", { ascending: false }).limit(1).maybeSingle();
+    const defRow = (await resolvedDefs(db, data.entity, actor.roleKey ?? null)).find((d) => d.key === `${data.entity}.${data.field}`);
     const def = customFieldSchema.safeParse(defRow?.payload);
     if (!def.success) throw new Error("Поле не опубліковане або невалідне");
     if (def.data.archived) throw new Error("Поле архівоване — редагування недоступне");
@@ -118,7 +178,7 @@ export const setCustomFieldValue = createServerFn({ method: "POST" })
     if (findSecretLike(r.value).length) throw new Error("Значення схоже на секрет — збереження заборонено");
     const { error } = await db.from("custom_field_values").upsert({
       entity_type: data.entity, entity_id: data.entityId, field_key: data.field,
-      value: r.value, definition_version: defRow.version, updated_by: context.userId,
+      value: r.value, definition_version: defRow!.version, updated_by: context.userId,
     }, { onConflict: "entity_type,entity_id,field_key" });
     if (error) throw new Error(error.message);
     await writeAudit(actor, {

@@ -32,7 +32,10 @@ export const saveCompanyRequisite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => companyRequisiteInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { data: prev, error: e0 } = await context.supabase
+    const { requirePermission, admin } = await import("@/lib/access.server");
+    await requirePermission(context.userId, "settings", "manage_settings");
+    const db = (await admin()) as any; // права перевірено канонічно вище
+    const { data: prev, error: e0 } = await db
       .from("company_requisites")
       .select("version")
       .eq("code", data.code)
@@ -42,7 +45,7 @@ export const saveCompanyRequisite = createServerFn({ method: "POST" })
     if (e0) { console.error("saveCompanyRequisite:prev", e0); throw new Error("Не вдалося зчитати попередню версію"); }
 
     const version = (prev?.version ?? 0) + 1;
-    const { data: out, error } = await context.supabase
+    const { data: out, error } = await db
       .from("company_requisites")
       .insert({ ...data, version, created_by: context.userId })
       .select()
@@ -50,7 +53,7 @@ export const saveCompanyRequisite = createServerFn({ method: "POST" })
     if (error) { console.error("saveCompanyRequisite", error); throw new Error("Не вдалося зберегти реквізити"); }
 
     if (data.is_default) {
-      await context.supabase
+      await db
         .from("company_requisites")
         .update({ is_default: false })
         .neq("code", data.code)
@@ -64,7 +67,10 @@ export const archiveCompanyRequisite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => archiveInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { requirePermission, admin } = await import("@/lib/access.server");
+    await requirePermission(context.userId, "settings", "manage_settings");
+    const db = (await admin()) as any; // права перевірено канонічно вище
+    const { error } = await db
       .from("company_requisites")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.id);
@@ -88,10 +94,13 @@ export const saveCloseReason = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => closeReasonInput.parse(d))
   .handler(async ({ data, context }) => {
+    const { requirePermission, admin } = await import("@/lib/access.server");
+    await requirePermission(context.userId, "settings", "manage_settings");
+    const db = (await admin()) as any; // права перевірено канонічно вище
     const { id, ...fields } = data;
     const { data: out, error } = id
-      ? await context.supabase.from("close_reasons").update(fields).eq("id", id).select().single()
-      : await context.supabase.from("close_reasons").insert({ ...fields, created_by: context.userId }).select().single();
+      ? await db.from("close_reasons").update(fields).eq("id", id).select().single()
+      : await db.from("close_reasons").insert({ ...fields, created_by: context.userId }).select().single();
     if (error) { console.error("saveCloseReason", error); throw new Error("Не вдалося зберегти причину закриття"); }
     return out;
   });
@@ -100,7 +109,10 @@ export const archiveCloseReason = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => archiveInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { error } = await context.supabase
+    const { requirePermission, admin } = await import("@/lib/access.server");
+    await requirePermission(context.userId, "settings", "manage_settings");
+    const db = (await admin()) as any; // права перевірено канонічно вище
+    const { error } = await db
       .from("close_reasons")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.id);

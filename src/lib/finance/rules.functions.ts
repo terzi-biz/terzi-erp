@@ -55,11 +55,14 @@ export const saveFinanceRule = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => financeRuleInput.parse(d))
   .handler(async ({ data, context }) => {
+    const { requirePermission, admin } = await import("@/lib/access.server");
+    await requirePermission(context.userId, "finance", "manage_settings");
+    const db = (await admin()) as any; // права перевірено канонічно вище
     const prevEnd = new Date(`${data.effective_from}T00:00:00Z`);
     prevEnd.setUTCDate(prevEnd.getUTCDate() - 1);
     const closeOn = prevEnd.toISOString().slice(0, 10);
 
-    const { error: eClose } = await context.supabase
+    const { error: eClose } = await db
       .from("finance_rules")
       .update({ effective_to: closeOn })
       .eq("scope", data.scope)
@@ -68,7 +71,7 @@ export const saveFinanceRule = createServerFn({ method: "POST" })
       .lt("effective_from", data.effective_from);
     if (eClose) { console.error("saveFinanceRule.close", eClose); throw new Error("Не вдалося закрити попередню версію"); }
 
-    const { data: row, error } = await context.supabase
+    const { data: row, error } = await db
       .from("finance_rules")
       .insert({
         scope: data.scope,
@@ -85,7 +88,7 @@ export const saveFinanceRule = createServerFn({ method: "POST" })
       .single();
     if (error) { console.error("saveFinanceRule", error); throw new Error("Не вдалося зберегти правило"); }
 
-    await context.supabase.from("audit_logs").insert({
+    await db.from("audit_logs").insert({
       action: "finance_rule_saved",
       entity_type: "finance_rules",
       entity_id: row.id,
