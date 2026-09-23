@@ -8387,6 +8387,50 @@ export type Database = {
           },
         ]
       }
+      payroll_sync_log: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          http_status: number | null
+          id: string
+          message: string | null
+          order_id: string
+          payload_hash: string | null
+          status: string
+          trigger: string
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          http_status?: number | null
+          id?: string
+          message?: string | null
+          order_id: string
+          payload_hash?: string | null
+          status: string
+          trigger: string
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          http_status?: number | null
+          id?: string
+          message?: string | null
+          order_id?: string
+          payload_hash?: string | null
+          status?: string
+          trigger?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_sync_log_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       price_history: {
         Row: {
           changed_by: string | null

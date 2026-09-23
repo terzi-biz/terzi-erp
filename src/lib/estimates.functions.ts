@@ -291,6 +291,7 @@ export const saveEstimate = createServerFn({ method: "POST" })
     } else {
       await logAudit(context.supabase, context.userId, out.id, "created", { number: out.number, module: out.module });
     }
+    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(out.order_id, "estimate", context.userId); } catch { /* не блокує ERP */ }
     return out;
   });
 

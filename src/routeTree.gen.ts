@@ -46,6 +46,7 @@ import { Route as CrmIntakeRouteImport } from './routes/crm.intake'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmMeasurementsRouteImport } from './routes/crm.measurements'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
+import { Route as FinancePayrollKpiRouteImport } from './routes/finance_.payroll-kpi'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as MarketingAnalyticsRouteImport } from './routes/marketing.analytics'
@@ -279,6 +280,11 @@ const CrmMeasurementsRoute = CrmMeasurementsRouteImport.update({
 const CrmTasksRoute = CrmTasksRouteImport.update({
   id: '/crm/tasks',
   path: '/crm/tasks',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FinancePayrollKpiRoute = FinancePayrollKpiRouteImport.update({
+  id: '/finance_/payroll-kpi',
+  path: '/finance/payroll-kpi',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
@@ -566,6 +572,7 @@ export interface FileRoutesByFullPath {
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
   '/crm/tasks': typeof CrmTasksRoute
+  '/finance/payroll-kpi': typeof FinancePayrollKpiRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
@@ -651,6 +658,7 @@ export interface FileRoutesByTo {
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
   '/crm/tasks': typeof CrmTasksRoute
+  '/finance/payroll-kpi': typeof FinancePayrollKpiRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
@@ -738,6 +746,7 @@ export interface FileRoutesById {
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
   '/crm/tasks': typeof CrmTasksRoute
+  '/finance_/payroll-kpi': typeof FinancePayrollKpiRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
@@ -826,6 +835,7 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/measurements'
     | '/crm/tasks'
+    | '/finance/payroll-kpi'
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
@@ -911,6 +921,7 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/measurements'
     | '/crm/tasks'
+    | '/finance/payroll-kpi'
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
@@ -997,6 +1008,7 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/measurements'
     | '/crm/tasks'
+    | '/finance_/payroll-kpi'
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
@@ -1084,6 +1096,7 @@ export interface RootRouteChildren {
   CrmLeadsRoute: typeof CrmLeadsRoute
   CrmMeasurementsRoute: typeof CrmMeasurementsRoute
   CrmTasksRoute: typeof CrmTasksRoute
+  FinancePayrollKpiRoute: typeof FinancePayrollKpiRoute
   InviteTokenRoute: typeof InviteTokenRoute
   MarketingAnalyticsRoute: typeof MarketingAnalyticsRoute
   MarketingBudgetsRoute: typeof MarketingBudgetsRoute
@@ -1385,6 +1398,13 @@ declare module '@tanstack/react-router' {
       path: '/crm/tasks'
       fullPath: '/crm/tasks'
       preLoaderRoute: typeof CrmTasksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finance_/payroll-kpi': {
+      id: '/finance_/payroll-kpi'
+      path: '/finance/payroll-kpi'
+      fullPath: '/finance/payroll-kpi'
+      preLoaderRoute: typeof FinancePayrollKpiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/invite/$token': {
@@ -1784,6 +1804,7 @@ const rootRouteChildren: RootRouteChildren = {
   CrmLeadsRoute: CrmLeadsRoute,
   CrmMeasurementsRoute: CrmMeasurementsRoute,
   CrmTasksRoute: CrmTasksRoute,
+  FinancePayrollKpiRoute: FinancePayrollKpiRoute,
   InviteTokenRoute: InviteTokenRoute,
   MarketingAnalyticsRoute: MarketingAnalyticsRoute,
   MarketingBudgetsRoute: MarketingBudgetsRoute,

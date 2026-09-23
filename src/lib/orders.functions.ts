@@ -176,6 +176,7 @@ export const saveOrder = createServerFn({ method: "POST" })
           .insert(services.map((s) => ({ order_id: out.id, service: s })));
       }
     }
+    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(out.id, "order", context.userId); } catch { /* не блокує ERP */ }
     return out;
   });
 
@@ -399,6 +400,7 @@ export const saveOrderMeasurement = createServerFn({ method: "POST" })
         await context.supabase.from("orders").update({ commercial_status: "measurement_done" }).eq("id", data.order_id);
       }
     }
+    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(data.order_id, "measurement", context.userId); } catch { /* не блокує ERP */ }
     return out;
   });
 
@@ -412,6 +414,7 @@ export const linkEstimateToOrder = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("estimates").update({ order_id: data.order_id }).eq("id", data.estimate_id);
     if (error) { console.error("linkEstimateToOrder", error); throw new Error("Не вдалося прив'язати кошторис"); }
+    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(data.order_id, "estimate", context.userId); } catch { /* не блокує ERP */ }
     return { ok: true };
   });
 
