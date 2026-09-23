@@ -28,3 +28,26 @@ describe("payroll bridge", () => {
     expect("dto" in r && r.dto).toEqual({ orderId: "o1", month: "2026-09", name: "Об'єкт", estimateId: "e", workDate: "2026-09-30" });
   });
 });
+
+describe("payroll workItems & secret", () => {
+  const order = { id: "o1", name: "O", planned_start: "2026-09-10T08:00:00Z", ordered_at: null, production_status: null, financial_status: null };
+  it("secret needs >=32 bytes", async () => {
+    const { isValidBridgeSecret } = await import("../payroll-bridge");
+    expect(isValidBridgeSecret("a".repeat(31))).toBe(false);
+    expect(isValidBridgeSecret("a".repeat(32))).toBe(true);
+    expect(isValidBridgeSecret(null)).toBe(false);
+  });
+  it("sends screed_base only with mapped brigade + completed measurement area", () => {
+    const r = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "screed_lesha" }, measurement: { id: "m", lead_id: null, area: 120, status: "done" } });
+    expect("dto" in r && r.dto.workItems).toEqual([{ brigadeId: "crew-alex", serviceCode: "screed_base", quantity: 120 }]);
+  });
+  it("omits workItems with note when data unverified", () => {
+    const planned = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "screed_vitya" }, measurement: { id: "m", lead_id: null, area: 120, status: "planned" } });
+    expect("dto" in planned && planned.dto.workItems).toBeUndefined();
+    expect("dto" in planned && planned.workNote).toMatch(/Обсяг роботи не передано/);
+    const roof = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "roofing_1" }, measurement: { id: "m", lead_id: null, area: 50, status: "done" } });
+    expect("dto" in roof && roof.dto.workItems).toBeUndefined();
+    const noBrig = buildPayrollOrder({ order, measurement: { id: "m", lead_id: null, area: 50, status: "done" } });
+    expect("dto" in noBrig && noBrig.dto.workItems).toBeUndefined();
+  });
+});

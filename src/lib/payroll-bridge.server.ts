@@ -1,19 +1,34 @@
-import { admin, canViewInternalPrices, loadActor } from "./access.server";
+import { admin, loadActor } from "./access.server";
 import { sha256Hex } from "./integrations/signature.server";
 import {
-  PAYROLL_ORDERS_ENDPOINT, PAYROLL_SITE_ORIGIN, buildPayrollOrder, signPayrollToken, type PayrollScope,
+  PAYROLL_ORDERS_ENDPOINT, PAYROLL_SITE_ORIGIN, buildPayrollOrder, isValidBridgeSecret, signPayrollToken, type PayrollScope,
 } from "./payroll-bridge";
 
 function secret(): string | null {
   const s = process.env["PAYROLL_BRIDGE_SECRET"];
-  return s && s.length >= 16 ? s : null;
+  return isValidBridgeSecret(s) ? s : null;
 }
 
 export function bridgeConfigured() { return secret() !== null; }
 
+const PAYROLL_ROLE_KEYS = ["owner", "admin", "director", "finance"];
+const PAYROLL_LEGACY_ROLES = ["admin", "director", "finance"];
+
+/** Строго: owner або роль admin/director/finance (user_access.role_key активний чи legacy user_roles). Без overrides і finance:view. */
 export async function requirePayrollAccess(userId: string) {
-  if (!(await canViewInternalPrices(userId))) throw new Error("Доступ лише для власника або фінансової ролі");
-  return loadActor(userId);
+  const actor = await loadActor(userId);
+  if (actor.isOwner) return actor;
+  const db = await admin();
+  const [{ data: access }, { data: roles }] = await Promise.all([
+    db.from("user_access").select("role_key,status,access_expires_at").eq("user_id", userId).maybeSingle(),
+    db.from("user_roles").select("role").eq("user_id", userId),
+  ]);
+  const accessOk = !!access && access.status === "active"
+    && (!access.access_expires_at || new Date(access.access_expires_at) > new Date())
+    && PAYROLL_ROLE_KEYS.includes(access.role_key ?? "");
+  const legacyOk = (!access || access.status === "active") && (roles ?? []).some((r: any) => PAYROLL_LEGACY_ROLES.includes(r.role));
+  if (!accessOk && !legacyOk) throw new Error("Доступ лише для власника або ролі admin/director/finance");
+  return actor;
 }
 
 export async function issueOpenUrl(userId: string) {
@@ -32,7 +47,7 @@ async function loadSource(orderId: string) {
   const db = await admin();
   const [{ data: order }, { data: meas }, { data: est }, { data: booking }] = await Promise.all([
     db.from("orders").select("id,name,planned_start,ordered_at,production_status,financial_status").eq("id", orderId).maybeSingle(),
-    db.from("order_measurements").select("id,lead_id,area,created_at").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("order_measurements").select("id,lead_id,area,status,created_at").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     db.from("estimates").select("id,total_client,total_cost,area,approved_at").eq("order_id", orderId).not("approved_at", "is", null).order("approved_at", { ascending: false }).limit(1).maybeSingle(),
     db.from("crew_bookings").select("date,brigade_key").eq("order_id", orderId).order("date", { ascending: true }).limit(1).maybeSingle(),
   ]);
@@ -71,8 +86,9 @@ export async function syncOrderToPayroll(orderId: string | null | undefined, tri
       await log(orderId, trigger, "error", { http: res.status, message, hash, actor: actorId });
       return { status: "error" as const, message };
     }
-    await log(orderId, trigger, "sent", { http: res.status, hash, actor: actorId });
-    return { status: "sent" as const, message: "Надіслано" };
+    const message = built.workNote ? `Надіслано. ${built.workNote}` : "Надіслано з обсягом робіт";
+    await log(orderId, trigger, "sent", { http: res.status, hash, actor: actorId, message });
+    return { status: "sent" as const, message };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Невідома помилка";
     await log(orderId, trigger, "error", { message, actor: actorId }).catch(() => {});
@@ -88,7 +104,9 @@ export async function bridgeStatus(userId: string) {
     db.from("payroll_sync_log").select("created_at,order_id,message,http_status").eq("status", "error").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     db.from("payroll_sync_log").select("id,created_at,order_id,trigger,status,http_status,message,orders:order_id(name,number)").order("created_at", { ascending: false }).limit(20),
   ]);
+  const { data: lastWork } = await db.from("payroll_sync_log").select("message").eq("status", "sent").order("created_at", { ascending: false }).limit(1).maybeSingle();
   return {
+    workNotSent: !!lastWork?.message?.includes("Обсяг роботи не передано"),
     configured: bridgeConfigured(), siteUrl: PAYROLL_SITE_ORIGIN, endpoint: PAYROLL_ORDERS_ENDPOINT,
     lastSent: lastSent ?? null, lastError: lastError ?? null, recent: (recent ?? []) as any[],
   };

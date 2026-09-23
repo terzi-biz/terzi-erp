@@ -63,16 +63,24 @@ export type PayrollOrderDTO = {
   planDirectCosts?: number;
   planArea?: number;
   workDate?: string;
+  workItems?: { brigadeId: string; serviceCode: string; quantity: number }[];
   closed?: boolean;
   paid?: boolean;
 };
+
+/** Мінімальна довжина секрету в байтах (вимога приймача). */
+export const PAYROLL_SECRET_MIN_BYTES = 32;
+export function isValidBridgeSecret(s: string | null | undefined): s is string {
+  return !!s && new TextEncoder().encode(s).length >= PAYROLL_SECRET_MIN_BYTES;
+}
+export const WORK_NOT_SENT = "Обсяг роботи не передано";
 
 export type PayrollSource = {
   order: {
     id: string; name: string | null; planned_start: string | null; ordered_at: string | null;
     production_status: string | null; financial_status: string | null;
   };
-  measurement?: { id: string; lead_id: string | null; area: number | null } | null;
+  measurement?: { id: string; lead_id: string | null; area: number | null; status?: string | null } | null;
   /** Лише затверджений кошторис (approved_at != null) — план, не факт. */
   approvedEstimate?: { id: string; total_client: number | null; total_cost: number | null; area: number | null } | null;
   booking?: { date: string; brigade_key: string | null } | null;
@@ -86,7 +94,7 @@ const num = (v: unknown): number | undefined =>
   typeof v === "number" && Number.isFinite(v) && v > 0 ? v : typeof v === "string" && Number(v) > 0 ? Number(v) : undefined;
 
 /** Будує DTO; повертає причину пропуску, якщо немає перевіреного місяця чи назви. */
-export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO } | { skip: string } {
+export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; workNote: string | null } | { skip: string } {
   const { order, measurement, approvedEstimate: est, booking } = src;
   const name = order.name?.trim();
   if (!name) return { skip: "Об'єкт без назви" };
@@ -105,7 +113,14 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO } 
   if (booking?.date) dto.workDate = booking.date.slice(0, 10);
   const brigade = mapBrigade(booking?.brigade_key);
   if (brigade) dto.brigadeId = brigade;
+  // workItems — лише за підтвердженої бригади й достовірної площі завершеного заміру.
+  let workNote: string | null = null;
+  const measArea = measurement && ["done", "completed"].includes(measurement.status ?? "") ? num(measurement.area) : undefined;
+  if (!brigade) workNote = `${WORK_NOT_SENT}: бригаду не призначено або не зіставлено`;
+  else if (measArea === undefined) workNote = `${WORK_NOT_SENT}: немає достовірної площі завершеного заміру`;
+  else if (!booking?.brigade_key?.startsWith("screed_")) workNote = `${WORK_NOT_SENT}: для цього напрямку немає підтвердженого коду робіт`;
+  else dto.workItems = [{ brigadeId: brigade, serviceCode: "screed_base", quantity: measArea }];
   if (order.production_status === "handed_over" || order.production_status === "warranty") dto.closed = true;
   if (order.financial_status === "paid" || order.financial_status === "financially_closed") dto.paid = true;
-  return { dto };
+  return { dto, workNote };
 }
