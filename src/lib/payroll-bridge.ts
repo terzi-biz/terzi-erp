@@ -154,7 +154,9 @@ export function estimateWorksFullyCovered(lines: unknown, estimateId: string | u
     if (!l || seen.has(code)) return false;
     seen.add(code);
     if (Math.abs(l.qty - r.quantity) > 1e-6) return false;
-    if (l.unit && r.unit && l.unit !== r.unit) return false;
+    const lu = typeof l.unit === "string" ? l.unit.trim().toLowerCase() : "";
+    const ru = typeof r.unit === "string" ? r.unit.trim().toLowerCase() : "";
+    if (lu !== ru) return false;
   }
   return seen.size === byCode.size;
 }

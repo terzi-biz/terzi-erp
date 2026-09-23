@@ -95,7 +95,11 @@ describe("planOtherDirectCosts: 1:1 coverage of estimate works", () => {
     expect(d?.planOtherDirectCosts).toBeUndefined();
     expect(d?.planDirectCosts).toBe(80000);
   });
-  it("all 3 covered → 10000", () => expect(run([v("W1", 200), v("W2", 50), v("W3", 10)])?.planOtherDirectCosts).toBe(10000));
+  it("all 3 covered (units match) → 10000", () => expect(run([v("W1", 200, { unit: "м²" }), v("W2", 50, { unit: "м" }), v("W3", 10, { unit: "шт" })])?.planOtherDirectCosts).toBe(10000));
+  it("missing or mismatched plan unit vs estimate unit → omit", () => {
+    expect(run([v("W1", 200), v("W2", 50, { unit: "м" }), v("W3", 10, { unit: "шт" })])?.planOtherDirectCosts).toBeUndefined();
+    expect(run([v("W1", 200, { unit: "м" }), v("W2", 50, { unit: "м" }), v("W3", 10, { unit: "шт" })])?.planOtherDirectCosts).toBeUndefined();
+  });
   it("duplicate / wrong qty / manual / other estimate → omit", () => {
     expect(run([v("W1", 200), v("W1", 200, { id: "d" }), v("W3", 10)])?.planOtherDirectCosts).toBeUndefined();
     expect(run([v("W1", 199), v("W2", 50), v("W3", 10)])?.planOtherDirectCosts).toBeUndefined();
