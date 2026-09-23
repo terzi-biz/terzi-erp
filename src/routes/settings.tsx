@@ -188,6 +188,7 @@ function SettingsPage() {
   const accessQ = useQuery({ queryKey: ["settings-access"], queryFn: () => accessFn(), staleTime: 60_000 });
   const canManageSettings = accessQ.data?.canManageSettings === true;
   const canManageAccess = accessQ.data?.canManageAccess === true;
+  const canManageFinanceRules = accessQ.data?.canManageFinanceRules === true;
 
   const effective = useCalcSettings();
   const saveFn = useServerFn(saveCalcSettings);
@@ -395,7 +396,7 @@ function SettingsPage() {
           {tab === "roofing_norms" && <RoofingNormsAdmin canEdit={canManageSettings} />}
           {tab === "requisites" && <CompanyRequisitesAdmin canEdit={canManageSettings} />}
           {tab === "reasons" && <CloseReasonsAdmin canEdit={canManageSettings} />}
-          {tab === "finance_rules" && <FinanceRulesAdmin canEdit={canManageSettings} />}
+          {tab === "finance_rules" && <FinanceRulesAdmin canEdit={canManageFinanceRules} />}
           {tab === "payroll_bridge" && <PayrollBridgePanel />}
           {tab === "control_center" && <ControlCenterAdmin canEdit={canManageSettings} />}
           {tab === "screed" && SCREED_GROUPS.map((g) => (

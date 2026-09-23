@@ -178,7 +178,7 @@ export const setCustomFieldValue = createServerFn({ method: "POST" })
     if (findSecretLike(r.value).length) throw new Error("Значення схоже на секрет — збереження заборонено");
     const { error } = await db.from("custom_field_values").upsert({
       entity_type: data.entity, entity_id: data.entityId, field_key: data.field,
-      value: r.value, definition_version: defRow.version, updated_by: context.userId,
+      value: r.value, definition_version: defRow!.version, updated_by: context.userId,
     }, { onConflict: "entity_type,entity_id,field_key" });
     if (error) throw new Error(error.message);
     await writeAudit(actor, {
