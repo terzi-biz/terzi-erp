@@ -2528,6 +2528,42 @@ export type Database = {
           },
         ]
       }
+      custom_field_values: {
+        Row: {
+          created_at: string
+          definition_version: number | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id: string
+          updated_at: string
+          updated_by: string | null
+          value: Json | null
+        }
+        Insert: {
+          created_at?: string
+          definition_version?: number | null
+          entity_id: string
+          entity_type: string
+          field_key: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json | null
+        }
+        Update: {
+          created_at?: string
+          definition_version?: number | null
+          entity_id?: string
+          entity_type?: string
+          field_key?: string
+          id?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: Json | null
+        }
+        Relationships: []
+      }
       data_audit_runs: {
         Row: {
           affected_count: number

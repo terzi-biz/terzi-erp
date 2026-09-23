@@ -5,6 +5,8 @@
  */
 import { z } from "zod";
 import { TERZI_MODULES, type ModuleId } from "@/lib/modules";
+import { customFieldSchema, validateCustomFieldKey, customFieldTransitionErrors } from "./custom-fields";
+import { dictionarySchema, validateDictionaryKey, dictionaryTransitionErrors } from "./dictionaries";
 
 const MODULE_IDS = TERZI_MODULES.map((m) => m.id) as [ModuleId, ...ModuleId[]];
 
@@ -14,7 +16,12 @@ export const flagSchema = z.object({ enabled: z.boolean(), note: z.string().max(
 /** Оверлей модуля: лише презентаційні/доступні поля; id/маршрути/рушії лишаються в коді. */
 export const moduleOverlaySchema = z
   .object({
+    /** Legacy (Wave 1) = UA-підпис. */
     label: z.string().min(1).max(80).optional(),
+    label_uk: z.string().min(1).max(80).optional(),
+    label_ru: z.string().min(1).max(80).optional(),
+    desktop: z.boolean().optional(),
+    mobile: z.boolean().optional(),
     active: z.boolean().optional(),
     order: z.number().int().min(0).max(1000).optional(),
     roles: z.array(z.string().min(1).max(64)).max(50).optional(),
@@ -37,6 +44,23 @@ export const CONFIG_KINDS = {
     validateKey: (key: string) => (MODULE_IDS as string[]).includes(key),
     /** Порожній оверлей = значення з src/lib/modules.ts. */
     defaultFor: (_key: string) => ({}) as z.infer<typeof moduleOverlaySchema>,
+  },
+  custom_field: {
+    label: "Кастомне поле",
+    schema: customFieldSchema,
+    sensitive: false,
+    /** Ключ `<entity>.<field_key>`; колізія з core-колонкою відхиляється. */
+    validateKey: validateCustomFieldKey,
+    defaultFor: (_key: string) => null as unknown as z.infer<typeof customFieldSchema>,
+    guardTransition: customFieldTransitionErrors,
+  },
+  dictionary: {
+    label: "Довідник",
+    schema: dictionarySchema,
+    sensitive: false,
+    validateKey: validateDictionaryKey,
+    defaultFor: (_key: string) => null as unknown as z.infer<typeof dictionarySchema>,
+    guardTransition: dictionaryTransitionErrors,
   },
 } as const;
 

@@ -63,7 +63,12 @@ export type PayrollOrderDTO = {
   planDirectCosts?: number;
   planArea?: number;
   workDate?: string;
+  /** Планові рядки (з кошторису/заміру) — лише при перевіреному маппінгу бригади. */
+  planWorkItems?: { brigadeId: string; serviceCode: string; quantity: number }[];
+  /** Тільки підтверджене виконання (акти/прийняті обсяги). Інакше — omit. */
   workItems?: { brigadeId: string; serviceCode: string; quantity: number }[];
+  /** Планові прямі витрати БЕЗ фонду бригад — лише при відомому складі кошторису. */
+  planOtherDirectCosts?: number;
   closed?: boolean;
   paid?: boolean;
 };
@@ -113,13 +118,20 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   if (booking?.date) dto.workDate = booking.date.slice(0, 10);
   const brigade = mapBrigade(booking?.brigade_key);
   if (brigade) dto.brigadeId = brigade;
-  // workItems — лише за підтвердженої бригади й достовірної площі завершеного заміру.
+  // Завершений замір ≠ виконані роботи: з нього — лише planWorkItems.
   let workNote: string | null = null;
   const measArea = measurement && ["done", "completed"].includes(measurement.status ?? "") ? num(measurement.area) : undefined;
+  const planArea = num(est?.area) ?? measArea;
   if (!brigade) workNote = `${WORK_NOT_SENT}: бригаду не призначено або не зіставлено`;
-  else if (measArea === undefined) workNote = `${WORK_NOT_SENT}: немає достовірної площі завершеного заміру`;
+  else if (planArea === undefined) workNote = `${WORK_NOT_SENT}: немає достовірної площі кошторису/заміру`;
   else if (!booking?.brigade_key?.startsWith("screed_")) workNote = `${WORK_NOT_SENT}: для цього напрямку немає підтвердженого коду робіт`;
-  else dto.workItems = [{ brigadeId: brigade, serviceCode: "screed_base", quantity: measArea }];
+  else {
+    dto.planWorkItems = [{ brigadeId: brigade, serviceCode: "screed_base", quantity: planArea }];
+    workNote = `${WORK_NOT_SENT}: виконання не підтверджене актом (передано лише план)`;
+  }
+  // workItems і фактичні фінполя (revenue/materials/subcontract/other/equipment/logistics)
+  // не передаються: в ERP немає підтверджених актів/обсягів. planDirectCosts = total_cost
+  // кошторису як є (вже включає працю); planOtherDirectCosts не виділяється — склад невідомий.
   if (order.production_status === "handed_over" || order.production_status === "warranty") dto.closed = true;
   if (order.financial_status === "paid" || order.financial_status === "financially_closed") dto.paid = true;
   return { dto, workNote };

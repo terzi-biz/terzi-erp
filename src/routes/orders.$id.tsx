@@ -1,3 +1,4 @@
+import { CustomFieldsCard } from "@/components/config/CustomFieldsCard";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -441,6 +442,8 @@ function OverviewTab({ o }: { o: any }) {
           {m.internal_note}
         </div>
       )}
+
+      <CustomFieldsCard entity="order" entityId={o.id} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <StatBox label="Кошторисів" value={String((o.estimates ?? []).length)} />

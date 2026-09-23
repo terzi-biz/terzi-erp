@@ -37,13 +37,18 @@ describe("payroll workItems & secret", () => {
     expect(isValidBridgeSecret("a".repeat(32))).toBe(true);
     expect(isValidBridgeSecret(null)).toBe(false);
   });
-  it("sends screed_base only with mapped brigade + completed measurement area", () => {
-    const r = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "screed_lesha" }, measurement: { id: "m", lead_id: null, area: 120, status: "done" } });
-    expect("dto" in r && r.dto.workItems).toEqual([{ brigadeId: "crew-alex", serviceCode: "screed_base", quantity: 120 }]);
+  it("completed measurement → only planWorkItems, never workItems; estimate cost not split", () => {
+    const r = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "screed_lesha" }, measurement: { id: "m", lead_id: null, area: 120, status: "done" }, approvedEstimate: { id: "e", total_client: 100000, total_cost: 60000, area: null } });
+    expect("dto" in r && r.dto.planWorkItems).toEqual([{ brigadeId: "crew-alex", serviceCode: "screed_base", quantity: 120 }]);
+    expect("dto" in r && r.dto.workItems).toBeUndefined();
+    expect("dto" in r && r.dto.planDirectCosts).toBe(60000);
+    expect("dto" in r && r.dto.planOtherDirectCosts).toBeUndefined();
+    expect("dto" in r && r.workNote).toMatch(/не підтверджене актом/);
   });
   it("omits workItems with note when data unverified", () => {
     const planned = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "screed_vitya" }, measurement: { id: "m", lead_id: null, area: 120, status: "planned" } });
     expect("dto" in planned && planned.dto.workItems).toBeUndefined();
+    expect("dto" in planned && planned.dto.planWorkItems).toBeUndefined();
     expect("dto" in planned && planned.workNote).toMatch(/Обсяг роботи не передано/);
     const roof = buildPayrollOrder({ order, booking: { date: "2026-09-12", brigade_key: "roofing_1" }, measurement: { id: "m", lead_id: null, area: 50, status: "done" } });
     expect("dto" in roof && roof.dto.workItems).toBeUndefined();

@@ -15,6 +15,7 @@ import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
 import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
 import { CloseReasonsAdmin, CompanyRequisitesAdmin } from "@/components/settings/ReferenceAdmin";
 import { FinanceRulesAdmin } from "@/components/settings/FinanceRulesAdmin";
+import { ControlCenterAdmin } from "@/components/settings/ControlCenterAdmin";
 import { PayrollBridgePanel } from "@/components/settings/PayrollBridgePanel";
 
 export const Route = createFileRoute("/settings")({
@@ -29,7 +30,7 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "requisites" | "reasons" | "finance_rules" | "payroll_bridge" | "access";
+type Tab = "screed" | "grades" | "roofing" | "roofing_norms" | "insulation" | "demolition" | "common" | "requisites" | "reasons" | "finance_rules" | "payroll_bridge" | "control_center" | "access";
 
 /** Вкладки з числовими налаштуваннями калькулятора (мають панель збереження). */
 const CALC_TABS: Tab[] = ["screed", "roofing", "insulation", "demolition", "common"];
@@ -204,6 +205,7 @@ function SettingsPage() {
     { id: "reasons", label: "Причини закриття", icon: ListX },
     { id: "finance_rules", label: "Фінансові правила", icon: Sliders },
     { id: "payroll_bridge", label: "Зарплата і KPI / інтеграція", icon: Cable },
+    { id: "control_center", label: "Конфігурація: модулі, поля, довідники", icon: Grid3x3 },
     ...(canManageAccess ? [{ id: "access" as const, label: "Доступ", icon: UserCheck }] : []),
   ];
 
@@ -422,6 +424,7 @@ function SettingsPage() {
         {tab === "reasons" && <CloseReasonsAdmin canEdit={canManageAccess} />}
         {tab === "finance_rules" && <FinanceRulesAdmin canEdit={canManageAccess} />}
         {tab === "payroll_bridge" && <PayrollBridgePanel />}
+        {tab === "control_center" && <ControlCenterAdmin canEdit={canManageAccess} />}
         {tab === "screed" && SCREED_GROUPS.map((g) => (
           <Group key={g.title} title={g.title} fields={g.fields}
             getVal={(k) => (draft.settings as unknown as Record<string, number>)[k]}
