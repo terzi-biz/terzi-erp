@@ -186,6 +186,7 @@ function Economics({ orderId, label }: { orderId: string; label: (k: string) => 
         </section>
       )}
       <p className="text-muted-foreground">{d.factNote}</p>
+      {d.rateStatus && <p className="text-muted-foreground">{d.rateStatus.note}</p>}
       <SiteSummary orderId={orderId} />
     </div>
   );
