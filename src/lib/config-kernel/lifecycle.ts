@@ -78,6 +78,12 @@ export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: str
       const clean = assertValid(t, payload) as JsonValue;
       const vs = await repo.listVersions(t);
       const d = draft(vs);
+      const guard = (CONFIG_KINDS as any)[t.kind]?.guardTransition as ((a: unknown, b: unknown) => string[]) | undefined;
+      const pub = published(vs);
+      if (guard && pub) {
+        const errs = guard(pub.payload, clean);
+        if (errs.length) throw new ConfigValidationError(errs);
+      }
       const sensitive = CONFIG_KINDS[t.kind as ConfigKind].sensitive;
       const res = d
         ? await repo.update(d.id, { payload: clean, change_note: note ?? d.change_note })
@@ -159,6 +165,7 @@ export function resolveConfig<K extends ConfigKind>(
 ) {
   const def = CONFIG_KINDS[kind];
   let value: any = def.defaultFor(key);
+  if (value === null) value = undefined;
   const source: string[] = ["code"];
   for (const s of buildScopeChain(ctx)) {
     const e = entries.find(
@@ -167,8 +174,8 @@ export function resolveConfig<K extends ConfigKind>(
     if (!e) continue;
     const parsed = def.schema.safeParse(e.payload);
     if (!parsed.success) continue; // невалідний запис ігнорується → безпечний fallback
-    value = { ...value, ...(parsed.data as object) };
+    value = value === undefined ? parsed.data : { ...value, ...(parsed.data as object) };
     source.push(`${s.type}:${s.id}`);
   }
-  return { value: value as ConfigPayload<K>, source };
+  return { value: (value ?? null) as ConfigPayload<K>, source };
 }
