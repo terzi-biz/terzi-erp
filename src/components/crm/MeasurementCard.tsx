@@ -275,6 +275,8 @@ export function MeasurementCard({
             <CallsPlayerList measurementId={row.id} title="Дзвінки по заміру" limit={10} />
           </section>
 
+          <SourceTrace measurementId={row.id} orderId={row.order_id ?? null} leadId={row.lead_id ?? null} />
+
 
 
           <button
