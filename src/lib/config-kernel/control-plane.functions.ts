@@ -79,7 +79,7 @@ export const getCustomFields = createServerFn({ method: "POST" })
     return {
       canEdit,
       fields: fields.sort((a, b) => (a.def.order ?? 0) - (b.def.order ?? 0)),
-      values: Object.fromEntries((vals ?? []).map((v: any) => [v.field_key, v.value])) as Record<string, unknown>,
+      values: Object.fromEntries((vals ?? []).map((v: any) => [v.field_key, v.value])) as Record<string, any>,
       dictionaries,
     };
   });
@@ -120,5 +120,5 @@ export const setCustomFieldValue = createServerFn({ method: "POST" })
       entityLabel: data.field, orderId: data.entity === "order" ? data.entityId : null,
       oldValue: prev?.value ?? null, newValue: r.value,
     });
-    return { ok: true, value: r.value };
+    return { ok: true, value: r.value as any };
   });

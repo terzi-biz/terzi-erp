@@ -14,7 +14,7 @@ export function useModuleOverlays(): Record<string, ModuleOverlay | null> {
         .select("kind,key,scope_type,scope_id,status,payload")
         .eq("kind", "module_overlay").eq("status", "published");
       if (error) return {};
-      const keys = [...new Set((rows ?? []).map((r: any) => r.key as string))];
+      const keys: string[] = [...new Set<string>((rows ?? []).map((r: any) => String(r.key)))];
       const out: Record<string, ModuleOverlay | null> = {};
       for (const k of keys) out[k] = resolveConfig("module_overlay", k, rows ?? [], {}).value;
       return out;
