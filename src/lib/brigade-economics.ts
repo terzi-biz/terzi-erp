@@ -216,8 +216,9 @@ export function payrollWorkItems(volumes: VolumeRow[], payrollIds: Record<string
 /**
  * Ставки з каталогу відомості як read-only fallback (не записуються в brigade_work_rates).
  * Лише rate != null; зіставлення по payroll_id або канонічному алiасу; без вгадування за назвою.
- * minimum задано → max(minimum, qty × rate) (screed_base: 12 000 до 100 м², далі 110 ₴/м²);
- * невідома схема з мінімумом/порогом, яку не можна відтворити → ставку пропущено.
+ * pricing='screed_base' → fixed_until_threshold (поріг 100 м²): qty ≤ 100 → minimum (12 000),
+ * qty > 100 → qty × rate за весь обсяг (101 м² = 11 110). Інші коди: per_unit, навіть якщо
+ * minimum=0. Невідому схему pricing не вгадуємо → ставку пропущено.
  */
 export function siteCatalogRates(
   catalog: { brigades: { id: string; active: boolean; rates: { code: string; unit: string | null; rate: number | null; pricing: string | null; minimum: number | null }[] }[] } | null,
@@ -234,10 +235,19 @@ export function siteCatalogRates(
       if (r.rate === null || !Number.isFinite(r.rate) || r.rate < 0) continue;
       const p = (r.pricing ?? "").toLowerCase();
       let pricing: string;
-      if (r.minimum !== null) pricing = "minimum";
-      else if (p === "" || p === "per_unit" || p === "unit" || p === "per_m2" || p === "rate") pricing = "per_unit";
-      else continue;
-      out.push({ brigade_key: l.key, service_code: r.code, unit: r.unit ?? "", rate: r.rate, effective_from: "0000-01-01", effective_to: null, active: true, pricing, minimum_amount: r.minimum, threshold_qty: null, source: "site" });
+      let minimum: number | null = null;
+      let threshold: number | null = null;
+      if (p === "screed_base") {
+        if (r.minimum === null || !Number.isFinite(r.minimum) || r.minimum <= 0) continue;
+        pricing = "fixed_until_threshold";
+        minimum = r.minimum;
+        threshold = 100;
+      } else if (p === "" || p === "per_unit" || p === "unit" || p === "per_m2" || p === "rate") {
+        pricing = "per_unit";
+      } else {
+        continue;
+      }
+      out.push({ brigade_key: l.key, service_code: r.code, unit: r.unit ?? "", rate: r.rate, effective_from: "0000-01-01", effective_to: null, active: true, pricing, minimum_amount: minimum, threshold_qty: threshold, source: "site" });
     }
   }
   return out;
