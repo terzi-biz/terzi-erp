@@ -172,12 +172,12 @@ export type SiteOverview = {
   staffCount: number | null; staffApproved: number | null; staffApprovedDue: number | null;
   crewAccrued: number | null; crewPaid: number | null; crewDue: number | null; ordersCount: number | null;
 };
-const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
-const str = (v: unknown) => (typeof v === "string" && v ? v : null);
+const sNum = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+const sStr = (v: unknown) => (typeof v === "string" && v ? v : null);
 function lines(v: unknown): SiteLine[] {
   return Array.isArray(v) ? v.filter((l) => l && typeof l === "object").map((l: any) => ({
     brigadeId: String(l.brigadeId ?? ""), serviceCode: String(l.serviceCode ?? ""),
-    quantity: num(l.quantity), unit: str(l.unit), amount: num(l.amount),
+    quantity: sNum(l.quantity), unit: sStr(l.unit), amount: sNum(l.amount),
   })) : [];
 }
 /** Невідоме/некоректне число → null (не 0). Прапорці — лише явне true. Підтримує {order:{...}} і пласку форму. */
@@ -188,11 +188,11 @@ export function parseSiteSummary(raw: unknown): SiteSummary | null {
   const keys = ["planCrew", "crewFact", "planGross", "gross", "planMargin", "margin", "planRevenue", "revenue"];
   if (!keys.some((k) => k in o) && !("verified" in o)) return null;
   return {
-    revision: r.revision != null ? String(r.revision) : null, updatedAt: str(r.updatedAt), month: str(o.month),
+    revision: r.revision != null ? String(r.revision) : null, updatedAt: sStr(r.updatedAt), month: sStr(o.month),
     brigadeIds: Array.isArray(o.brigadeIds) ? o.brigadeIds.map(String) : [],
-    planRevenue: num(o.planRevenue), planDirectCosts: num(o.planDirectCosts), planCrew: num(o.planCrew), planGross: num(o.planGross), planMargin: num(o.planMargin),
-    revenue: num(o.revenue), directCosts: num(o.directCosts), crewFact: num(o.crewFact), gross: num(o.gross), margin: num(o.margin),
-    variance: num(o.variance), crewPaid: num(o.crewPaid),
+    planRevenue: sNum(o.planRevenue), planDirectCosts: sNum(o.planDirectCosts), planCrew: sNum(o.planCrew), planGross: sNum(o.planGross), planMargin: sNum(o.planMargin),
+    revenue: sNum(o.revenue), directCosts: sNum(o.directCosts), crewFact: sNum(o.crewFact), gross: sNum(o.gross), margin: sNum(o.margin),
+    variance: sNum(o.variance), crewPaid: sNum(o.crewPaid),
     verified: o.verified === true, closed: o.closed === true, act: o.act === true, paid: o.paid === true,
     planLines: lines(o.planLines), factLines: lines(o.factLines),
   };
@@ -202,8 +202,8 @@ export function parseSiteOverview(raw: unknown): SiteOverview | null {
   const r = raw as any; const o = r.overview;
   if (!o || typeof o !== "object" || typeof o.month !== "string") return null;
   return {
-    revision: r.revision != null ? String(r.revision) : null, updatedAt: str(r.updatedAt), month: o.month,
-    staffCount: num(o.staffCount), staffApproved: num(o.staffApproved), staffApprovedDue: num(o.staffApprovedDue),
-    crewAccrued: num(o.crewAccrued), crewPaid: num(o.crewPaid), crewDue: num(o.crewDue), ordersCount: num(o.ordersCount),
+    revision: r.revision != null ? String(r.revision) : null, updatedAt: sStr(r.updatedAt), month: o.month,
+    staffCount: sNum(o.staffCount), staffApproved: sNum(o.staffApproved), staffApprovedDue: sNum(o.staffApprovedDue),
+    crewAccrued: sNum(o.crewAccrued), crewPaid: sNum(o.crewPaid), crewDue: sNum(o.crewDue), ordersCount: sNum(o.ordersCount),
   };
 }
