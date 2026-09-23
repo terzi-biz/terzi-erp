@@ -115,21 +115,45 @@ export async function bridgeStatus(userId: string) {
   };
 }
 
-/** Читає зведення відомості по об'єкту (GET /api/erp/summary). Токен — лише на сервері. */
-export async function fetchSiteSummary(orderId: string, actorId: string) {
+async function siteGet(query: string, actorId: string) {
   const s = secret();
-  if (!s) return { ok: false as const, reason: "Потрібне налаштування серверного секрету" };
+  if (!s) return { kind: "unconfigured" as const };
+  const { token } = await signPayrollToken(s, actorId, ["payroll:sync"]);
+  const res = await fetch(`${PAYROLL_SUMMARY_ENDPOINT}?${query}`, {
+    headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000),
+  });
+  return { kind: "response" as const, res };
+}
+function httpReason(status: number, what: string) {
+  if (status === 401 || status === 403) return `Відомість відмовила в доступі (HTTP ${status}) — перевірте спільний секрет і scope payroll:sync`;
+  if (status === 404) return what;
+  return `Відомість відповіла HTTP ${status}`;
+}
+
+/** Зведення відомості по об'єкту (GET /api/erp/summary?orderId). Токен — лише на сервері. */
+export async function fetchSiteSummary(orderId: string, actorId: string) {
   try {
-    const { token } = await signPayrollToken(s, actorId, ["payroll:sync"]);
-    const res = await fetch(`${PAYROLL_SUMMARY_ENDPOINT}?orderId=${encodeURIComponent(orderId)}`, {
-      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000),
-    });
-    if (res.status === 404) return { ok: false as const, reason: "У відомості немає даних по цьому об'єкту" };
-    if (!res.ok) return { ok: false as const, reason: `Відомість відповіла HTTP ${res.status}` };
+    const r = await siteGet(`orderId=${encodeURIComponent(orderId)}`, actorId);
+    if (r.kind === "unconfigured") return { ok: false as const, code: "unconfigured" as const, reason: "Потрібне налаштування серверного секрету" };
+    if (!r.res.ok) return { ok: false as const, code: r.res.status === 404 ? "not_synced" as const : "http" as const, status: r.res.status, reason: httpReason(r.res.status, "Об'єкт ще не синхронізовано з відомістю") };
     const { parseSiteSummary } = await import("./payroll-bridge");
-    const parsed = parseSiteSummary(await res.json().catch(() => null));
-    return parsed ? { ok: true as const, summary: parsed, fetchedAt: new Date().toISOString() } : { ok: false as const, reason: "Невідомий формат відповіді відомості" };
+    const parsed = parseSiteSummary(await r.res.json().catch(() => null));
+    return parsed ? { ok: true as const, summary: parsed, fetchedAt: new Date().toISOString() } : { ok: false as const, code: "format" as const, reason: "Невідомий формат відповіді відомості" };
   } catch (e) {
-    return { ok: false as const, reason: e instanceof Error ? e.message : "Помилка зв'язку" };
+    return { ok: false as const, code: "network" as const, reason: e instanceof Error ? e.message : "Помилка зв'язку" };
+  }
+}
+
+/** Огляд місяця (GET /api/erp/summary?month=YYYY-MM). */
+export async function fetchSiteOverview(month: string, actorId: string) {
+  try {
+    const r = await siteGet(`month=${encodeURIComponent(month)}`, actorId);
+    if (r.kind === "unconfigured") return { ok: false as const, code: "unconfigured" as const, reason: "Потрібен серверний секрет" };
+    if (!r.res.ok) return { ok: false as const, code: "http" as const, status: r.res.status, reason: httpReason(r.res.status, `У відомості немає даних за ${month}`) };
+    const { parseSiteOverview } = await import("./payroll-bridge");
+    const parsed = parseSiteOverview(await r.res.json().catch(() => null));
+    return parsed ? { ok: true as const, overview: parsed } : { ok: false as const, code: "format" as const, reason: "Невідомий формат відповіді відомості" };
+  } catch (e) {
+    return { ok: false as const, code: "network" as const, reason: e instanceof Error ? e.message : "Помилка зв'язку" };
   }
 }

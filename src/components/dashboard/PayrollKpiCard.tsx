@@ -6,6 +6,7 @@ import { Wallet, ChevronRight } from "lucide-react";
 import { getPayrollDashboardSummary } from "@/lib/brigades.functions";
 
 const ND = "немає даних";
+const m = (v: number | null) => (v === null ? ND : `${v.toLocaleString("uk-UA")} грн`);
 export function PayrollKpiCard() {
   const fn = useServerFn(getPayrollDashboardSummary);
   const { data } = useQuery({ queryKey: ["payroll-dashboard"], queryFn: () => fn(), staleTime: 60_000, retry: false });
@@ -23,6 +24,17 @@ export function PayrollKpiCard() {
         <div><small className="block text-muted-foreground">Виплат без підтвердження</small><b>{data.unconfirmedPayouts}</b></div>
         <div><small className="block text-muted-foreground">Факт обсягів без підтвердження</small><b>{data.unconfirmedFact}</b></div>
         <div><small className="block text-muted-foreground">Остання відправка</small><b>{dt(data.lastSent)}</b>{data.lastError && <span className="block text-destructive">Помилка {dt(data.lastError.at)}</span>}</div>
+      </div>
+      <div className="mt-3 border-t border-border pt-2 text-xs">
+        <small className="block text-muted-foreground">Відомість Payroll KPI за {data.month} (довідково)</small>
+        {!data.site.ok ? <span className="text-muted-foreground">{data.site.reason}</span> : (
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {([["Персонал / затверджено", `${data.site.overview.staffCount ?? ND} / ${data.site.overview.staffApproved ?? ND}`],
+               ["До виплати персоналу", m(data.site.overview.staffApprovedDue)], ["Нараховано бригадам", m(data.site.overview.crewAccrued)],
+               ["Виплачено бригадам", m(data.site.overview.crewPaid)], ["Борг бригадам", m(data.site.overview.crewDue)],
+               ["Об'єктів", String(data.site.overview.ordersCount ?? ND)]] as const).map(([l, v]) => <div key={l}><small className="block text-muted-foreground">{l}</small><b>{v}</b></div>)}
+          </div>
+        )}
       </div>
     </Link>
   );

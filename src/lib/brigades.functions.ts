@@ -257,8 +257,9 @@ export const getPayrollDashboardSummary = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     try { await payroll(context.userId); } catch { return null; }
     const { db } = await ctx();
-    const { bridgeConfigured } = await import("./payroll-bridge.server");
+    const { bridgeConfigured, fetchSiteOverview } = await import("./payroll-bridge.server");
     const month = kyivMonth(new Date());
+    const sitePromise = fetchSiteOverview(month, context.userId);
     const [{ count: unconfirmedFact }, { data: pays }, { count: planOrders }, { data: lastSent }, { data: lastError }] = await Promise.all([
       db.from("order_work_volumes").select("id", { count: "exact", head: true }).eq("kind", "fact").eq("confirmed", false).eq("voided", false),
       db.from("order_brigade_payouts").select("amount,confirmed").eq("period", month).eq("voided", false),
@@ -267,8 +268,9 @@ export const getPayrollDashboardSummary = createServerFn({ method: "GET" })
       db.from("payroll_sync_log").select("created_at,message").eq("status", "error").order("created_at", { ascending: false }).limit(1).maybeSingle(),
     ]);
     const confirmed = ((pays ?? []) as any[]).filter((p) => p.confirmed);
+    const site = await sitePromise;
     return {
-      month, configured: bridgeConfigured(),
+      month, configured: bridgeConfigured(), site,
       confirmedPayouts: confirmed.length ? confirmed.reduce((s, p) => s + Number(p.amount), 0) : null,
       unconfirmedPayouts: ((pays ?? []) as any[]).filter((p) => !p.confirmed).length,
       unconfirmedFact: unconfirmedFact ?? 0, planRows: planOrders ?? 0,
