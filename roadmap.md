@@ -59,7 +59,8 @@
 
 # Control Plane
 - [x] Wave 1 — Kernel: config_entries, scope chain, lifecycle, zod kinds, flags, registries contracts
-- [ ] Wave 2 — Registries/fields/dictionaries (awaiting approval)
+- [x] Wave 2 — Registries/fields/dictionaries (module overlays, custom fields, dictionaries, Settings Control Center)
+- [x] Wave 2 — детерміноване обчислення formula-полів + вибір співробітника у кастомних полях
 
 ## Payroll bridge contract v2 (open)
 - [x] planWorkItems from estimate/measurement only with verified brigade mapping
