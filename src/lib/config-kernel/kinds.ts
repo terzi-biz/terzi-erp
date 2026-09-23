@@ -6,6 +6,7 @@
 import { z } from "zod";
 import { TERZI_MODULES, type ModuleId } from "@/lib/modules";
 import { customFieldSchema, validateCustomFieldKey, customFieldTransitionErrors } from "./custom-fields";
+import { calcSettingsSchema, calcSettingsKeyErrors, isCalcSettingsKey } from "./calc-settings";
 import { dictionarySchema, validateDictionaryKey, dictionaryTransitionErrors } from "./dictionaries";
 
 const MODULE_IDS = TERZI_MODULES.map((m) => m.id) as [ModuleId, ...ModuleId[]];
@@ -62,6 +63,15 @@ export const CONFIG_KINDS = {
     defaultFor: (_key: string) => null as unknown as z.infer<typeof dictionarySchema>,
     guardTransition: dictionaryTransitionErrors,
   },
+  calc_settings: {
+    label: "Налаштування калькулятора",
+    schema: calcSettingsSchema,
+    sensitive: false,
+    validateKey: isCalcSettingsKey,
+    /** Порожнє перевизначення = дефолти рушія. */
+    defaultFor: (_key: string) => ({}) as Record<string, number>,
+    payloadErrors: calcSettingsKeyErrors,
+  },
 } as const;
 
 export type ConfigKind = keyof typeof CONFIG_KINDS;
@@ -100,6 +110,8 @@ export function validateConfig(kind: string, key: string, payload: unknown): Val
   const def = CONFIG_KINDS[kind];
   const errors: string[] = [];
   if (!def.validateKey(key)) errors.push(`Недопустимий ключ «${key}» для ${kind}`);
+  const extra = (def as { payloadErrors?: (k: string, p: unknown) => string[] }).payloadErrors;
+  if (extra) errors.push(...extra(key, payload));
   const secrets = findSecretLike(payload);
   if (secrets.length) errors.push(`Конфігурація не може містити секрети: ${secrets.join(", ")}`);
   const parsed = def.schema.safeParse(payload);

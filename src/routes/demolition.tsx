@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAppStore } from "@/lib/store";
+import { useCalcSettings } from "@/lib/useCalcSettings";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { useInternalAccess } from "@/lib/useInternalAccess";
@@ -76,7 +77,8 @@ function DemolitionPage() {
   const { profile } = useAuth();
   // Внутрішні ціни (собівартість/маржа) — лише за наявності права на сервері.
   const { isInternal } = useInternalAccess();
-  const { demolitionCoeffs, branding } = useAppStore();
+  const { branding } = useAppStore();
+  const { demolitionCoeffs } = useCalcSettings();
   const search = Route.useSearch();
   const draft = useEstimateDraft<DemolitionInput, { targetMargin: number; amort: AmortSettings }>({
     module: "demolition",
