@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useAppStore } from "@/lib/store";
+import { useCalcSettings } from "@/lib/useCalcSettings";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { useInternalAccess } from "@/lib/useInternalAccess";
@@ -164,7 +165,8 @@ function RubPage() {
   const { profile } = useAuth();
   // Внутрішні ціни (собівартість/маржа) — лише за наявності права на сервері.
   const { isInternal } = useInternalAccess();
-  const { roofingCoeffs, branding } = useAppStore();
+  const { branding } = useAppStore();
+  const { roofingCoeffs } = useCalcSettings();
   const search = Route.useSearch();
   const draft = useEstimateDraft<RoofingInput, { targetMargin: number; amort: AmortSettings }>({
     module: "roofing_rub",

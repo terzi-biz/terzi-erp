@@ -7,6 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useT } from "@/lib/i18n";
 import { useAppStore } from "@/lib/store";
+import { useCalcSettings } from "@/lib/useCalcSettings";
 import { useAuth } from "@/lib/auth";
 import { useModulePricing } from "@/lib/usePricing";
 import { useInternalAccess } from "@/lib/useInternalAccess";
@@ -193,7 +194,8 @@ function ScreedPage() {
   const { profile } = useAuth();
   // Внутрішні ціни (собівартість/маржа) — лише за наявності права на сервері.
   const { isInternal } = useInternalAccess();
-  const { settings, branding } = useAppStore();
+  const { branding } = useAppStore();
+  const { settings } = useCalcSettings();
   const search = Route.useSearch();
   const draft = useEstimateDraft<ScreedInput, { targetMargin: number; amort: AmortSettings }>({
     module: "screed",

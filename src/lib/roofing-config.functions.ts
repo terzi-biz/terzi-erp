@@ -22,13 +22,8 @@ export const saveRoofingConfig = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => roofingConfigPayloadSchema.parse(data))
   .handler(async ({ data, context }) => {
-    const { data: roles, error: roleError } = await context.supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", context.userId);
-    if (roleError) throw new Error("Не вдалося перевірити права доступу");
-    const canEdit = (roles ?? []).some((r) => r.role === "admin" || r.role === "director");
-    if (!canEdit) throw new Error("Редагування доступне лише адміністраторам і директорам");
+    const { requireConfigManager } = await import("@/lib/config-kernel/config.server");
+    await requireConfigManager(context.userId);
 
     const { error } = await context.supabase
       .from("roofing_config")
