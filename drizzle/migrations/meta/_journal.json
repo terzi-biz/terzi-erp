@@ -57,6 +57,13 @@
       "when": 1790180336690,
       "tag": "0007_tzi_ai_assistant_chats",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790180893832,
+      "tag": "0008_marketing_calculator_snapshots",
+      "breakpoints": true
     }
   ]
 }

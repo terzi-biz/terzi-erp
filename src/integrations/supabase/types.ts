@@ -6019,6 +6019,45 @@ export type Database = {
           },
         ]
       }
+      marketing_calculator_snapshots: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string | null
+          engine_version: string
+          id: string
+          inputs: Json
+          outputs: Json
+          plan_month: string
+          sources: Json
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          engine_version: string
+          id?: string
+          inputs: Json
+          outputs: Json
+          plan_month: string
+          sources?: Json
+          version: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string | null
+          engine_version?: string
+          id?: string
+          inputs?: Json
+          outputs?: Json
+          plan_month?: string
+          sources?: Json
+          version?: number
+        }
+        Relationships: []
+      }
       marketing_campaign_creatives: {
         Row: {
           campaign_id: string

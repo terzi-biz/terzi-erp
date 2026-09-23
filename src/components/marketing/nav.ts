@@ -7,6 +7,7 @@ export const MARKETING_NAV: { to: string; label: string }[] = [
   { to: "/marketing/funnels", label: "Воронки" },
   { to: "/marketing/landing", label: "Лендінги та форми" },
   { to: "/marketing/budgets", label: "Бюджети" },
+  { to: "/marketing/calculator", label: "Маркетинговий калькулятор" },
   { to: "/marketing/analytics", label: "Аналітика" },
   { to: "/marketing/recommendations", label: "Рекомендації AI" },
   { to: "/marketing/integrations", label: "Інтеграції" },
