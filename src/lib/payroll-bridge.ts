@@ -121,7 +121,8 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   const area = num(est?.area) ?? num(measurement?.area);
   if (area !== undefined) dto.planArea = area;
   if (booking?.date) dto.workDate = booking.date.slice(0, 10);
-  const brigade = (src.payrollIds && booking?.brigade_key ? src.payrollIds[booking.brigade_key] ?? undefined : undefined) ?? mapBrigade(booking?.brigade_key);
+  const fromDir = src.payrollIds && booking?.brigade_key ? src.payrollIds[booking.brigade_key] : undefined;
+  const brigade = fromDir || mapBrigade(booking?.brigade_key);
   if (brigade) dto.brigadeId = brigade;
   // Завершений замір ≠ виконані роботи: з нього — лише planWorkItems.
   let workNote: string | null = null;
