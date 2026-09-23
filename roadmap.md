@@ -53,3 +53,6 @@
 # Наступний запит користувача (черга)
 - [ ] Єдиний ланцюг: лід → картка клієнта → замір → календар → замовлення (двосторонні оновлення)
 - [ ] Калькулятори: скачування закупівельного листа і відправка постачальнику
+
+# Security prerequisite — RLS on finance/payroll tables
+- [x] Enable RLS + finance-only read policies on 13 sensitive tables
