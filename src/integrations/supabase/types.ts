@@ -325,6 +325,135 @@ export type Database = {
           },
         ]
       }
+      asset_depreciation_entries: {
+        Row: {
+          asset_id: string
+          created_at: string
+          depreciation_amount: number
+          id: string
+          maintenance_amount: number
+          note: string | null
+          order_id: string | null
+          period: string
+          source: string | null
+          status: string
+          usage_qty: number | null
+          usage_unit: string | null
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          depreciation_amount?: number
+          id?: string
+          maintenance_amount?: number
+          note?: string | null
+          order_id?: string | null
+          period: string
+          source?: string | null
+          status?: string
+          usage_qty?: number | null
+          usage_unit?: string | null
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          depreciation_amount?: number
+          id?: string
+          maintenance_amount?: number
+          note?: string | null
+          order_id?: string | null
+          period?: string
+          source?: string | null
+          status?: string
+          usage_qty?: number | null
+          usage_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_depreciation_entries_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "asset_register"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "asset_depreciation_entries_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_register: {
+        Row: {
+          age_months_at_purchase: number | null
+          asset_code: string | null
+          capacity_unit: string | null
+          category: string
+          condition_at_purchase: string | null
+          created_at: string
+          depreciation_method: string
+          direction: string | null
+          id: string
+          name: string
+          note: string | null
+          planned_capacity: number | null
+          purchase_cost: number | null
+          purchase_currency: string | null
+          purchase_date: string | null
+          salvage_value: number
+          source: string | null
+          status: string
+          updated_at: string
+          useful_life_months: number | null
+        }
+        Insert: {
+          age_months_at_purchase?: number | null
+          asset_code?: string | null
+          capacity_unit?: string | null
+          category: string
+          condition_at_purchase?: string | null
+          created_at?: string
+          depreciation_method?: string
+          direction?: string | null
+          id?: string
+          name: string
+          note?: string | null
+          planned_capacity?: number | null
+          purchase_cost?: number | null
+          purchase_currency?: string | null
+          purchase_date?: string | null
+          salvage_value?: number
+          source?: string | null
+          status?: string
+          updated_at?: string
+          useful_life_months?: number | null
+        }
+        Update: {
+          age_months_at_purchase?: number | null
+          asset_code?: string | null
+          capacity_unit?: string | null
+          category?: string
+          condition_at_purchase?: string | null
+          created_at?: string
+          depreciation_method?: string
+          direction?: string | null
+          id?: string
+          name?: string
+          note?: string | null
+          planned_capacity?: number | null
+          purchase_cost?: number | null
+          purchase_currency?: string | null
+          purchase_date?: string | null
+          salvage_value?: number
+          source?: string | null
+          status?: string
+          updated_at?: string
+          useful_life_months?: number | null
+        }
+        Relationships: []
+      }
       assets: {
         Row: {
           archived_at: string | null
@@ -917,6 +1046,65 @@ export type Database = {
           },
         ]
       }
+      cash_reserve_policy: {
+        Row: {
+          created_at: string
+          current_reserve: number | null
+          dividend_gate_open: boolean
+          id: string
+          normalized_fixed_burn: number
+          note: string | null
+          period: string
+          reserve_gap: number | null
+          reserve_months: number
+          scheme_version_id: string | null
+          source: string | null
+          status: string
+          target_reserve: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_reserve?: number | null
+          dividend_gate_open?: boolean
+          id?: string
+          normalized_fixed_burn?: number
+          note?: string | null
+          period: string
+          reserve_gap?: number | null
+          reserve_months?: number
+          scheme_version_id?: string | null
+          source?: string | null
+          status?: string
+          target_reserve?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_reserve?: number | null
+          dividend_gate_open?: boolean
+          id?: string
+          normalized_fixed_burn?: number
+          note?: string | null
+          period?: string
+          reserve_gap?: number | null
+          reserve_months?: number
+          scheme_version_id?: string | null
+          source?: string | null
+          status?: string
+          target_reserve?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_reserve_policy_scheme_version_id_fkey"
+            columns: ["scheme_version_id"]
+            isOneToOne: false
+            referencedRelation: "compensation_scheme_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       catalog_items: {
         Row: {
           buy_price: number
@@ -1273,6 +1461,119 @@ export type Database = {
           updated_at?: string
           valid_from?: string
           version?: number
+        }
+        Relationships: []
+      }
+      compensation_role_rules: {
+        Row: {
+          created_at: string
+          display_name: string
+          fixed_currency: string
+          fixed_reference: number | null
+          gates: Json
+          guarantee_floor: number
+          holdback_percent: number
+          id: string
+          max_kpi_count: number
+          personal_weight: number
+          role_key: string
+          rule_config: Json
+          scheme_version_id: string
+          source_note: string | null
+          status: string
+          team_weight: number
+          updated_at: string
+          variable_driver: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          fixed_currency?: string
+          fixed_reference?: number | null
+          gates?: Json
+          guarantee_floor?: number
+          holdback_percent?: number
+          id?: string
+          max_kpi_count?: number
+          personal_weight?: number
+          role_key: string
+          rule_config?: Json
+          scheme_version_id: string
+          source_note?: string | null
+          status?: string
+          team_weight?: number
+          updated_at?: string
+          variable_driver?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          fixed_currency?: string
+          fixed_reference?: number | null
+          gates?: Json
+          guarantee_floor?: number
+          holdback_percent?: number
+          id?: string
+          max_kpi_count?: number
+          personal_weight?: number
+          role_key?: string
+          rule_config?: Json
+          scheme_version_id?: string
+          source_note?: string | null
+          status?: string
+          team_weight?: number
+          updated_at?: string
+          variable_driver?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "compensation_role_rules_scheme_version_id_fkey"
+            columns: ["scheme_version_id"]
+            isOneToOne: false
+            referencedRelation: "compensation_scheme_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      compensation_scheme_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          is_shadow: boolean
+          name: string
+          status: string
+          updated_at: string
+          version_code: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          is_shadow?: boolean
+          name: string
+          status?: string
+          updated_at?: string
+          version_code: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          is_shadow?: boolean
+          name?: string
+          status?: string
+          updated_at?: string
+          version_code?: string
         }
         Relationships: []
       }
@@ -2216,6 +2517,75 @@ export type Database = {
         }
         Relationships: []
       }
+      eligible_gross_profit_attribution: {
+        Row: {
+          attribution_share: number
+          created_at: string
+          eligibility_status: string
+          eligible_gross_profit: number
+          employee_id: string | null
+          id: string
+          object_economics_id: string
+          period: string
+          reason_code: string | null
+          reason_note: string | null
+          responsibility_code: string | null
+          role_key: string
+          source: string
+          source_payload: Json
+          updated_at: string
+        }
+        Insert: {
+          attribution_share?: number
+          created_at?: string
+          eligibility_status?: string
+          eligible_gross_profit?: number
+          employee_id?: string | null
+          id?: string
+          object_economics_id: string
+          period: string
+          reason_code?: string | null
+          reason_note?: string | null
+          responsibility_code?: string | null
+          role_key: string
+          source?: string
+          source_payload?: Json
+          updated_at?: string
+        }
+        Update: {
+          attribution_share?: number
+          created_at?: string
+          eligibility_status?: string
+          eligible_gross_profit?: number
+          employee_id?: string | null
+          id?: string
+          object_economics_id?: string
+          period?: string
+          reason_code?: string | null
+          reason_note?: string | null
+          responsibility_code?: string | null
+          role_key?: string
+          source?: string
+          source_payload?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "eligible_gross_profit_attribution_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "eligible_gross_profit_attribution_object_economics_id_fkey"
+            columns: ["object_economics_id"]
+            isOneToOne: false
+            referencedRelation: "object_economics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entity_status_history: {
         Row: {
           changed_at: string
@@ -2757,6 +3127,121 @@ export type Database = {
           },
         ]
       }
+      finance_core_settings: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          note: string | null
+          scheme_version_id: string | null
+          setting_key: string
+          source: string | null
+          status: string
+          unit: string | null
+          updated_at: string
+          value_numeric: number | null
+          value_text: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          note?: string | null
+          scheme_version_id?: string | null
+          setting_key: string
+          source?: string | null
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          note?: string | null
+          scheme_version_id?: string | null
+          setting_key?: string
+          source?: string | null
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          value_numeric?: number | null
+          value_text?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_core_settings_scheme_version_id_fkey"
+            columns: ["scheme_version_id"]
+            isOneToOne: false
+            referencedRelation: "compensation_scheme_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_cost_class_map: {
+        Row: {
+          allocation_method: string | null
+          category_id: string | null
+          category_name: string
+          created_at: string
+          id: string
+          is_capex: boolean
+          is_direct_cost: boolean
+          normalized_class: string
+          note: string | null
+          pnl_layer: string
+          source: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          allocation_method?: string | null
+          category_id?: string | null
+          category_name: string
+          created_at?: string
+          id?: string
+          is_capex?: boolean
+          is_direct_cost?: boolean
+          normalized_class: string
+          note?: string | null
+          pnl_layer: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          allocation_method?: string | null
+          category_id?: string | null
+          category_name?: string
+          created_at?: string
+          id?: string
+          is_capex?: boolean
+          is_direct_cost?: boolean
+          normalized_class?: string
+          note?: string | null
+          pnl_layer?: string
+          source?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_cost_class_map_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: true
+            referencedRelation: "finance_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       finance_counterparties: {
         Row: {
           archived: boolean
@@ -2822,6 +3307,98 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      finance_monthly_snapshots: {
+        Row: {
+          cash_inflow: number
+          ceo_variable: number
+          created_at: string
+          data_quality: number
+          direct_cost: number
+          distributable_profit: number
+          fixed_opex: number
+          fixed_payroll: number
+          gross_margin: number
+          gross_profit: number
+          id: string
+          marketing_spend: number
+          operating_profit_after_ceo: number
+          operating_profit_before_ceo: number
+          owner_dividend: number
+          period: string
+          recognized_revenue: number
+          reserve_topup: number
+          retained_profit: number
+          scheme_version_id: string | null
+          source_payload: Json
+          status: string
+          tax_reserve: number
+          updated_at: string
+          variable_compensation: number
+        }
+        Insert: {
+          cash_inflow?: number
+          ceo_variable?: number
+          created_at?: string
+          data_quality?: number
+          direct_cost?: number
+          distributable_profit?: number
+          fixed_opex?: number
+          fixed_payroll?: number
+          gross_margin?: number
+          gross_profit?: number
+          id?: string
+          marketing_spend?: number
+          operating_profit_after_ceo?: number
+          operating_profit_before_ceo?: number
+          owner_dividend?: number
+          period: string
+          recognized_revenue?: number
+          reserve_topup?: number
+          retained_profit?: number
+          scheme_version_id?: string | null
+          source_payload?: Json
+          status?: string
+          tax_reserve?: number
+          updated_at?: string
+          variable_compensation?: number
+        }
+        Update: {
+          cash_inflow?: number
+          ceo_variable?: number
+          created_at?: string
+          data_quality?: number
+          direct_cost?: number
+          distributable_profit?: number
+          fixed_opex?: number
+          fixed_payroll?: number
+          gross_margin?: number
+          gross_profit?: number
+          id?: string
+          marketing_spend?: number
+          operating_profit_after_ceo?: number
+          operating_profit_before_ceo?: number
+          owner_dividend?: number
+          period?: string
+          recognized_revenue?: number
+          reserve_topup?: number
+          retained_profit?: number
+          scheme_version_id?: string | null
+          source_payload?: Json
+          status?: string
+          tax_reserve?: number
+          updated_at?: string
+          variable_compensation?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "finance_monthly_snapshots_scheme_version_id_fkey"
+            columns: ["scheme_version_id"]
+            isOneToOne: false
+            referencedRelation: "compensation_scheme_versions"
             referencedColumns: ["id"]
           },
         ]
@@ -2916,6 +3493,66 @@ export type Database = {
           is_one_off?: boolean
           label?: string
           sort_order?: number
+        }
+        Relationships: []
+      }
+      finance_reconciliation_issues: {
+        Row: {
+          amount: number | null
+          created_at: string
+          description: string
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          issue_type: string
+          owner_user_id: string | null
+          period: string | null
+          reason_code: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          source: string | null
+          source_detail: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          created_at?: string
+          description: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          issue_type: string
+          owner_user_id?: string | null
+          period?: string | null
+          reason_code?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source?: string | null
+          source_detail?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          created_at?: string
+          description?: string
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          issue_type?: string
+          owner_user_id?: string | null
+          period?: string | null
+          reason_code?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          source?: string | null
+          source_detail?: Json
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -4620,6 +5257,87 @@ export type Database = {
           },
         ]
       }
+      kpi_results_shadow: {
+        Row: {
+          actual: number | null
+          created_at: string
+          employee_id: string | null
+          gate_status: string
+          id: string
+          kpi_code: string
+          kpi_index: number
+          kpi_name: string
+          period: string
+          personal_bonus: number
+          role_key: string
+          scheme_version_id: string
+          score: number | null
+          source: string | null
+          source_payload: Json
+          status: string
+          target: number | null
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          actual?: number | null
+          created_at?: string
+          employee_id?: string | null
+          gate_status?: string
+          id?: string
+          kpi_code: string
+          kpi_index: number
+          kpi_name: string
+          period: string
+          personal_bonus?: number
+          role_key: string
+          scheme_version_id: string
+          score?: number | null
+          source?: string | null
+          source_payload?: Json
+          status?: string
+          target?: number | null
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          actual?: number | null
+          created_at?: string
+          employee_id?: string | null
+          gate_status?: string
+          id?: string
+          kpi_code?: string
+          kpi_index?: number
+          kpi_name?: string
+          period?: string
+          personal_bonus?: number
+          role_key?: string
+          scheme_version_id?: string
+          score?: number | null
+          source?: string | null
+          source_payload?: Json
+          status?: string
+          target?: number | null
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kpi_results_shadow_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kpi_results_shadow_scheme_version_id_fkey"
+            columns: ["scheme_version_id"]
+            isOneToOne: false
+            referencedRelation: "compensation_scheme_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       landing_pages: {
         Row: {
           created_at: string
@@ -6020,6 +6738,123 @@ export type Database = {
         }
         Relationships: []
       }
+      object_economics: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          data_completeness: number
+          direct_cost_total: number
+          direct_labor_cost: number
+          equipment_depreciation: number
+          finance_project_id: string | null
+          fuel_cost: number
+          gross_margin: number
+          gross_profit: number
+          id: string
+          material_cost: number
+          object_logistics_cost: number
+          order_id: string | null
+          other_direct_cost: number
+          paid_revenue: number
+          period: string
+          plan_direct_cost: number | null
+          plan_revenue: number | null
+          production_overhead_allocated: number
+          recognized_revenue: number
+          reconciliation_status: string
+          responsible_label: string | null
+          source: string
+          source_external_key: string | null
+          source_payload: Json
+          source_project_name: string | null
+          status: string
+          subcontract_cost: number
+          updated_at: string
+          vehicle_depreciation: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          data_completeness?: number
+          direct_cost_total?: number
+          direct_labor_cost?: number
+          equipment_depreciation?: number
+          finance_project_id?: string | null
+          fuel_cost?: number
+          gross_margin?: number
+          gross_profit?: number
+          id?: string
+          material_cost?: number
+          object_logistics_cost?: number
+          order_id?: string | null
+          other_direct_cost?: number
+          paid_revenue?: number
+          period: string
+          plan_direct_cost?: number | null
+          plan_revenue?: number | null
+          production_overhead_allocated?: number
+          recognized_revenue?: number
+          reconciliation_status?: string
+          responsible_label?: string | null
+          source?: string
+          source_external_key?: string | null
+          source_payload?: Json
+          source_project_name?: string | null
+          status?: string
+          subcontract_cost?: number
+          updated_at?: string
+          vehicle_depreciation?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          data_completeness?: number
+          direct_cost_total?: number
+          direct_labor_cost?: number
+          equipment_depreciation?: number
+          finance_project_id?: string | null
+          fuel_cost?: number
+          gross_margin?: number
+          gross_profit?: number
+          id?: string
+          material_cost?: number
+          object_logistics_cost?: number
+          order_id?: string | null
+          other_direct_cost?: number
+          paid_revenue?: number
+          period?: string
+          plan_direct_cost?: number | null
+          plan_revenue?: number | null
+          production_overhead_allocated?: number
+          recognized_revenue?: number
+          reconciliation_status?: string
+          responsible_label?: string | null
+          source?: string
+          source_external_key?: string | null
+          source_payload?: Json
+          source_project_name?: string | null
+          status?: string
+          subcontract_cost?: number
+          updated_at?: string
+          vehicle_depreciation?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "object_economics_finance_project_id_fkey"
+            columns: ["finance_project_id"]
+            isOneToOne: false
+            referencedRelation: "finance_projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "object_economics_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_assignments: {
         Row: {
           created_at: string
@@ -7310,6 +8145,87 @@ export type Database = {
             columns: ["employee_id"]
             isOneToOne: false
             referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payroll_shadow_calculations: {
+        Row: {
+          accrued_total: number
+          calculation_detail: Json
+          created_at: string
+          employee_id: string | null
+          employee_label: string | null
+          fixed_reference: number
+          guarantee_floor: number
+          holdback: number
+          id: string
+          pay_now: number
+          period: string
+          personal_variable: number
+          role_key: string
+          role_variable: number
+          scheme_version_id: string
+          source: string
+          status: string
+          team_variable: number
+          updated_at: string
+        }
+        Insert: {
+          accrued_total?: number
+          calculation_detail?: Json
+          created_at?: string
+          employee_id?: string | null
+          employee_label?: string | null
+          fixed_reference?: number
+          guarantee_floor?: number
+          holdback?: number
+          id?: string
+          pay_now?: number
+          period: string
+          personal_variable?: number
+          role_key: string
+          role_variable?: number
+          scheme_version_id: string
+          source?: string
+          status?: string
+          team_variable?: number
+          updated_at?: string
+        }
+        Update: {
+          accrued_total?: number
+          calculation_detail?: Json
+          created_at?: string
+          employee_id?: string | null
+          employee_label?: string | null
+          fixed_reference?: number
+          guarantee_floor?: number
+          holdback?: number
+          id?: string
+          pay_now?: number
+          period?: string
+          personal_variable?: number
+          role_key?: string
+          role_variable?: number
+          scheme_version_id?: string
+          source?: string
+          status?: string
+          team_variable?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payroll_shadow_calculations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "payroll_employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payroll_shadow_calculations_scheme_version_id_fkey"
+            columns: ["scheme_version_id"]
+            isOneToOne: false
+            referencedRelation: "compensation_scheme_versions"
             referencedColumns: ["id"]
           },
         ]
