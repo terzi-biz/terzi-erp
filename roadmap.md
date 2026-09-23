@@ -67,3 +67,9 @@
 - [x] planOtherDirectCosts excludes brigade fund; don't double-count labor in approved total_cost
 - [x] actual revenue/materials/subcontract/other/equipment/logistics only if confirmed
 - [ ] Fact return endpoint — blocked: waiting for receiver spec from user
+
+## Orders ↔ brigades ↔ estimate ↔ payroll (done, limits)
+- [x] brigades directory, order_brigades, rates, mappings, work volumes, payouts
+- [ ] Operations calendar grid still uses the built-in brigade list (new brigades not shown there)
+- [ ] Confirmed fact revenue / non-labor costs per order not wired (fact margin = no data)
+- [ ] Fact return from Payroll Site — blocked: waiting for receiver spec
