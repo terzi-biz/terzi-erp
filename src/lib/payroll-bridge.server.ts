@@ -1,7 +1,7 @@
 import { admin, loadActor } from "./access.server";
 import { sha256Hex } from "./integrations/signature.server";
 import {
-  PAYROLL_ORDERS_ENDPOINT, PAYROLL_SITE_ORIGIN, buildPayrollOrder, isValidBridgeSecret, signPayrollToken, type PayrollScope,
+  PAYROLL_ORDERS_ENDPOINT, PAYROLL_SUMMARY_ENDPOINT, PAYROLL_SITE_ORIGIN, buildPayrollOrder, isValidBridgeSecret, signPayrollToken, type PayrollScope,
 } from "./payroll-bridge";
 
 function secret(): string | null {
@@ -113,4 +113,23 @@ export async function bridgeStatus(userId: string) {
     configured: bridgeConfigured(), siteUrl: PAYROLL_SITE_ORIGIN, endpoint: PAYROLL_ORDERS_ENDPOINT,
     lastSent: lastSent ?? null, lastError: lastError ?? null, recent: (recent ?? []) as any[],
   };
+}
+
+/** Читає зведення відомості по об'єкту (GET /api/erp/summary). Токен — лише на сервері. */
+export async function fetchSiteSummary(orderId: string, actorId: string) {
+  const s = secret();
+  if (!s) return { ok: false as const, reason: "Потрібне налаштування серверного секрету" };
+  try {
+    const { token } = await signPayrollToken(s, actorId, ["payroll:sync"]);
+    const res = await fetch(`${PAYROLL_SUMMARY_ENDPOINT}?orderId=${encodeURIComponent(orderId)}`, {
+      headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000),
+    });
+    if (res.status === 404) return { ok: false as const, reason: "У відомості немає даних по цьому об'єкту" };
+    if (!res.ok) return { ok: false as const, reason: `Відомість відповіла HTTP ${res.status}` };
+    const { parseSiteSummary } = await import("./payroll-bridge");
+    const parsed = parseSiteSummary(await res.json().catch(() => null));
+    return parsed ? { ok: true as const, summary: parsed, fetchedAt: new Date().toISOString() } : { ok: false as const, reason: "Невідомий формат відповіді відомості" };
+  } catch (e) {
+    return { ok: false as const, reason: e instanceof Error ? e.message : "Помилка зв'язку" };
+  }
 }

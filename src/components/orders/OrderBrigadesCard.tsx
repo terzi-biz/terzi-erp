@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import {
   getOrderBrigades, setOrderBrigades, getOrderBrigadeEconomics, pullPlanVolumes, addWorkVolume, setRecordState, addPayout,
 } from "@/lib/brigades.functions";
+import { getPayrollSiteSummary } from "@/lib/payroll-bridge.functions";
 
 const ND = "немає даних";
 const money = (v: number | null | undefined) => (v === null || v === undefined ? ND : `${v.toLocaleString("uk-UA", { maximumFractionDigits: 2 })} грн`);
@@ -169,6 +170,7 @@ function Economics({ orderId, label }: { orderId: string; label: (k: string) => 
         </section>
       )}
       <p className="text-muted-foreground">{d.factNote}</p>
+      <SiteSummary orderId={orderId} />
     </div>
   );
 }
@@ -185,5 +187,29 @@ function Table({ rows }: { rows: React.ReactNode[] }) {
         <tbody>{rows}</tbody>
       </table>
     </div>
+  );
+}
+
+function SiteSummary({ orderId }: { orderId: string }) {
+  const fn = useServerFn(getPayrollSiteSummary);
+  const q = useQuery({ queryKey: ["payroll-site-summary", orderId], queryFn: () => fn({ data: { orderId } }), staleTime: 60_000, retry: false });
+  const r = q.data;
+  return (
+    <section className="space-y-2 border-t border-border pt-3">
+      <h4 className="font-semibold">Дані відомості Payroll KPI (довідково, не змінюють ERP)</h4>
+      {!r ? <p className="text-muted-foreground">Завантаження…</p> : !r.ok ? <p className="text-muted-foreground">{r.reason}</p> : (
+        <>
+          <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat l="План бригади" v={money(r.summary.planCrew)} />
+            <Stat l="Факт бригади" v={money(r.summary.crewFact)} />
+            <Stat l="План вал" v={money(r.summary.planGross)} />
+            <Stat l="Факт вал" v={money(r.summary.gross)} />
+            <Stat l="Маржа план" v={money(r.summary.planMargin)} />
+            <Stat l="Маржа факт" v={money(r.summary.margin)} />
+          </div>
+          <p className="text-muted-foreground">Виконання підтверджене: {r.summary.verified ? "так" : "ні"} · Оплачено: {r.summary.paid ? "так" : "ні"} · Закрито: {r.summary.closed ? "так" : "ні"} · оновлено {new Date(r.fetchedAt).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}</p>
+        </>
+      )}
+    </section>
   );
 }

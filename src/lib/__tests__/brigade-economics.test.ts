@@ -51,5 +51,14 @@ describe("brigade economics", () => {
     const r = buildPayrollOrder({ order, volumes: [v({})], payrollIds: ids });
     expect("dto" in r && r.dto.workItems).toBeUndefined();
     expect("dto" in r && r.dto.planWorkItems).toHaveLength(1);
+    expect("dto" in r && r.dto.workVerified).toBeUndefined();
+    const f = buildPayrollOrder({ order, volumes: [v({ kind: "fact", confirmed: true })], payrollIds: ids });
+    expect("dto" in f && f.dto.workVerified).toBe(true);
+    expect("dto" in f && f.dto.planOtherDirectCosts).toBeUndefined();
+  });
+  it("site summary parsing: unknown → null, flags only explicit true", async () => {
+    const { parseSiteSummary } = await import("@/lib/payroll-bridge");
+    expect(parseSiteSummary({ planCrew: 5000, crewFact: "x", verified: "yes" })).toMatchObject({ planCrew: 5000, crewFact: null, verified: false, paid: false });
+    expect(parseSiteSummary({ foo: 1 })).toBeNull();
   });
 });
