@@ -56,3 +56,30 @@ describe("payroll workItems & secret", () => {
     expect("dto" in noBrig && noBrig.dto.workItems).toBeUndefined();
   });
 });
+
+import { buildPayrollOrder as bpo, planOtherDirectCostsFrom } from "@/lib/payroll-bridge";
+describe("planOtherDirectCosts (audit)", () => {
+  const order = { id: "o", name: "O", planned_start: "2026-09-10T08:00:00Z", ordered_at: null, production_status: null, financial_status: null };
+  const vol = { id: "1", brigade_key: "screed_lesha", service_code: "screed_base", kind: "plan" as const, quantity: 200, unit: "м²", period: "2026-09", confirmed: false, voided: false } as any;
+  const full = [{ block: "materials", cost: 10000, quantity: 1 }, { block: "works", cost: 70000, quantity: 200 }];
+  const est = (lines: unknown) => ({ id: "e", total_client: 120000, total_cost: 80000, area: 200, internal_lines: lines });
+  const gross = (d: any) => d.planRevenue - (d.planOtherDirectCosts !== undefined ? d.planOtherDirectCosts + 200 * 110 : d.planDirectCosts);
+  it("complete structure → 10000, GP = 88000", () => {
+    const r = bpo({ order, approvedEstimate: est(full), volumes: [vol], payrollIds: { screed_lesha: "crew-alex" } });
+    expect("dto" in r && r.dto.planOtherDirectCosts).toBe(10000);
+    expect("dto" in r && gross(r.dto)).toBe(88000);
+    expect("dto" in r && r.dto.workItems).toBeUndefined();
+  });
+  it("incomplete → omit, GP = 40000", () => {
+    for (const lines of [[{ block: "materials", cost: 10000 }, { block: "works", cost: null }], [{ block: "materials", cost: 10000 }, { block: "works", cost: 60000 }], null]) {
+      const r = bpo({ order, approvedEstimate: est(lines), volumes: [vol], payrollIds: { screed_lesha: "crew-alex" } });
+      expect("dto" in r && r.dto.planOtherDirectCosts).toBeUndefined();
+      expect("dto" in r && gross(r.dto)).toBe(40000);
+    }
+  });
+  it("unmapped plan brigade → omit; rounding tolerance ok", () => {
+    const r = bpo({ order, approvedEstimate: est(full), volumes: [vol, { ...vol, id: "2", brigade_key: "x" }], payrollIds: { screed_lesha: "crew-alex" } });
+    expect("dto" in r && r.dto.planOtherDirectCosts).toBeUndefined();
+    expect(planOtherDirectCostsFrom([{ block: "materials", cost: 10000.4 }, { block: "works", cost: 70000 }], 80000)).toBe(10000.4);
+  });
+});
