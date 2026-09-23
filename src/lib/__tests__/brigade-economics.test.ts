@@ -114,7 +114,7 @@ describe("brigade economics", () => {
 import { siteCatalogRates, priceVolumes as pv } from "@/lib/brigade-economics";
 describe("site catalog rate fallback", () => {
   const catalog = { brigades: [
-    { id: "crew-alex", active: true, rates: [{ code: "screed_base", unit: "м²", rate: 110, pricing: "fixed_minimum", minimum: 12000 }] },
+    { id: "crew-alex", active: true, rates: [{ code: "screed_base", unit: "м²", rate: 110, pricing: "screed_base", minimum: 12000 }] },
     { id: "roof-1", active: true, rates: [{ code: "roof_membrane", unit: "м²", rate: null, pricing: null, minimum: null }] },
   ] };
   const locals = [{ key: "screed_lesha", payroll_id: null }, { key: "roofing_1", payroll_id: "roof-1" }];
@@ -122,7 +122,7 @@ describe("site catalog rate fallback", () => {
   const row = (q: number, k = "screed_lesha", c = "screed_base") => ({ id: String(q), brigade_key: k, service_code: c, kind: "plan" as const, quantity: q, unit: "м²", source: "manual", period: "2026-09", confirmed: false, voided: false });
   it("screed_base 40/100/101/200 м² from site", () => {
     expect([40, 100, 101, 200].map((q) => pv([row(q)], site)[0])).toMatchObject([
-      { amount: 12000, rateSource: "site" }, { amount: 12000 }, { amount: 12000 }, { amount: 22000 }]);
+      { amount: 12000, rateSource: "site" }, { amount: 12000 }, { amount: 11110 }, { amount: 22000 }]);
   });
   it("roof rate null → not configured", () => {
     expect(site.some((r) => r.brigade_key === "roofing_1")).toBe(false);
