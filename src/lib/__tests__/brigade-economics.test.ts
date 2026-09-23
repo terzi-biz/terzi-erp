@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeEconomics, mapEstimateWorks, payrollWorkItems, rateFor, type VolumeRow } from "@/lib/brigade-economics";
+import { computeEconomics, amountByRate, pct, mapEstimateWorks, payrollWorkItems, rateFor, type VolumeRow } from "@/lib/brigade-economics";
 import { buildPayrollOrder } from "@/lib/payroll-bridge";
 
 const v = (p: Partial<VolumeRow>): VolumeRow => ({ id: Math.random().toString(), brigade_key: "screed_lesha", service_code: "screed_base", kind: "plan", quantity: 100, unit: "м²", source: "estimate", period: "2026-09", confirmed: false, voided: false, ...p });
@@ -11,27 +11,55 @@ describe("brigade economics", () => {
     const e = computeEconomics({ estimate: null, volumes: [v({})], rates: [], payouts: [], factRevenue: null, factNonLabor: null });
     expect(e.plan.lines[0].amount).toBeNull();
     expect(e.plan.brigadeTotal).toBeNull();
-    expect(e.plan.margin).toBeNull();
+    expect(e.plan.gross).toBeNull();
+    expect(e.plan.marginPct).toBeNull();
   });
   it("known composition: revenue − non-labor − brigade plan; estimate labor not subtracted twice", () => {
     const e = computeEconomics({ estimate: { total_client: 60000, total_cost: 38000, internal_lines: lines }, volumes: [v({})], rates: [rate], payouts: [], factRevenue: null, factNonLabor: null });
     expect(e.estimate.estimateLabor).toBe(8000);
     expect(e.plan.brigadeTotal).toBe(5000);
-    expect(e.plan.margin).toBe(60000 - 30000 - 5000);
+    expect(e.plan.gross).toBe(25000);
+    expect(e.plan.marginPct).toBe(41.67);
   });
   it("unknown composition: revenue − total_cost, brigade not subtracted", () => {
     const e = computeEconomics({ estimate: { total_client: 60000, total_cost: 38000, internal_lines: null }, volumes: [v({})], rates: [rate], payouts: [], factRevenue: null, factNonLabor: null });
-    expect(e.plan.margin).toBe(22000);
+    expect(e.plan.gross).toBe(22000);
+    expect(e.plan.marginPct).toBe(36.67);
   });
   it("fact uses only confirmed rows and payouts; plan never counted as fact", () => {
     const e = computeEconomics({ estimate: null, volumes: [v({}), v({ kind: "fact", quantity: 40 }), v({ kind: "fact", quantity: 60, confirmed: true }), v({ kind: "fact", quantity: 5, confirmed: true, voided: true })], rates: [rate],
       payouts: [{ brigade_key: "screed_lesha", amount: 1000, period: "2026-09", confirmed: false, voided: false }], factRevenue: null, factNonLabor: null });
     expect(e.fact.lines).toHaveLength(1);
     expect(e.fact.accruedByRate).toBe(3000);
-    expect(e.fact.payouts).toBeNull();
-    expect(e.fact.unconfirmedPayouts).toBe(1000);
-    expect(e.fact.margin).toBeNull();
+    expect(e.fact.settlement.paid).toBeNull();
+    expect(e.fact.settlement.unconfirmedPayouts).toBe(1000);
+    expect(e.fact.gross).toBeNull();
     expect(e.diff[0]).toMatchObject({ plan: 100, fact: 60, delta: -40 });
+  });
+  it("screed_base: до 100 м² фікс 12 000 ₴, понад 100 м² — 110 ₴/м²", () => {
+    const sb = { ...rate, rate: 110, pricing: "fixed_until_threshold", minimum_amount: 12000, threshold_qty: 100 };
+    expect(amountByRate(sb, 40)).toBe(12000);
+    expect(amountByRate(sb, 100)).toBe(12000);
+    expect(amountByRate(sb, 101)).toBe(11110);
+    expect(amountByRate(sb, 150)).toBe(16500);
+    expect(amountByRate({ ...sb, minimum_amount: null }, 50)).toBeNull();
+    expect(amountByRate({ ...rate, pricing: "minimum", minimum_amount: 3000 }, 10)).toBe(3000);
+    expect(amountByRate({ ...rate, pricing: "mystery" }, 10)).toBeNull();
+    // фікс на сумарний обсяг, а не на кожен рядок
+    const e = computeEconomics({ estimate: null, volumes: [v({ quantity: 30 }), v({ quantity: 50 })], rates: [sb], payouts: [], factRevenue: null, factNonLabor: null });
+    expect(e.plan.brigadeTotal).toBe(12000);
+    expect(e.plan.lines.map((l) => l.amount)).toEqual([4500, 7500]);
+  });
+  it("fact gross uses accrued, not payouts; payout date does not change gross", () => {
+    const base = { estimate: null, volumes: [v({ kind: "fact", quantity: 60, confirmed: true })], rates: [rate], factRevenue: 10000, factNonLabor: 4000 };
+    const a = computeEconomics({ ...base, payouts: [] });
+    const b = computeEconomics({ ...base, payouts: [{ brigade_key: "screed_lesha", amount: 2500, period: "2026-09", confirmed: true, voided: false }] });
+    expect(a.fact.gross).toBe(3000);
+    expect(b.fact.gross).toBe(3000);
+    expect(b.fact.marginPct).toBe(30);
+    expect(b.fact.settlement).toMatchObject({ accrued: 3000, paid: 2500, due: 500 });
+    expect(pct(100, 0)).toBeNull();
+    expect(pct(100, null)).toBeNull();
   });
   it("rate by effective period", () => {
     const rs = [rate, { ...rate, rate: 60, effective_from: "2026-09-01" }];

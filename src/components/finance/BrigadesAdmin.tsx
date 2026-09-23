@@ -25,7 +25,8 @@ export function BrigadesAdmin() {
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   const [nb, setNb] = useState({ key: "", label: "", module: "general" as (typeof MODULES)[number], payroll_id: "" });
-  const [nr, setNr] = useState({ brigadeKey: "", serviceCode: "", unit: "м²", rate: "", effectiveFrom: "" });
+  const [nr, setNr] = useState({ brigadeKey: "", serviceCode: "", unit: "м²", rate: "", effectiveFrom: "", pricing: "per_unit" as "per_unit" | "minimum" | "fixed_until_threshold", minimum: "", threshold: "" });
+  const n = (x: string) => (x.trim() === "" ? null : Number(x.replace(",", ".")));
   const [nm, setNm] = useState({ estimateModule: "", lineCode: "", serviceCode: "", unit: "" });
   if (rm.isError) return null;
   const brigades = b.data ?? [];
@@ -54,16 +55,19 @@ export function BrigadesAdmin() {
       <section className="rounded-lg border border-border bg-card p-3 space-y-2">
         <h3 className="font-semibold text-sm">Ставки робіт бригад (зарплатні, не ціна клієнту)</h3>
         {(rm.data?.rates ?? []).length === 0 ? <p className="text-xs text-muted-foreground">Ставок ще немає — вартість робіт показується як «немає даних».</p> : (rm.data?.rates ?? []).map((r) => (
-          <div key={r.id} className="text-xs">{brigades.find((x) => x.key === r.brigade_key)?.label ?? r.brigade_key} · <span className="font-mono">{r.service_code}</span> · {r.rate} грн/{r.unit} · з {r.effective_from.split("-").reverse().join(".")}{r.effective_to ? ` по ${r.effective_to.split("-").reverse().join(".")}` : ""}</div>
+          <div key={r.id} className="text-xs">{brigades.find((x) => x.key === r.brigade_key)?.label ?? r.brigade_key} · <span className="font-mono">{r.service_code}</span> · {r.rate} грн/{r.unit}{(r as any).pricing === "minimum" ? ` · мінімум ${(r as any).minimum_amount} грн` : (r as any).pricing === "fixed_until_threshold" ? ` · до ${(r as any).threshold_qty} ${r.unit} фікс ${(r as any).minimum_amount} грн, понад — ставка за весь обсяг` : ""} · з {r.effective_from.split("-").reverse().join(".")}{r.effective_to ? ` по ${r.effective_to.split("-").reverse().join(".")}` : ""}</div>
         ))}
         <div className="grid gap-2 grid-cols-2 lg:grid-cols-6 items-end pt-2">
           <select className={sel} value={nr.brigadeKey} onChange={(e) => setNr({ ...nr, brigadeKey: e.target.value })}><option value="">Бригада…</option>{brigades.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</select>
           <Input className="h-9" placeholder="код роботи" value={nr.serviceCode} onChange={(e) => setNr({ ...nr, serviceCode: e.target.value.trim() })} />
           <Input className="h-9" placeholder="од." value={nr.unit} onChange={(e) => setNr({ ...nr, unit: e.target.value })} />
           <Input className="h-9" inputMode="decimal" placeholder="ставка, грн" value={nr.rate} onChange={(e) => setNr({ ...nr, rate: e.target.value })} />
+          <select className={sel} value={nr.pricing} onChange={(e) => setNr({ ...nr, pricing: e.target.value as any })}><option value="per_unit">За одиницю</option><option value="minimum">Не менше мінімуму</option><option value="fixed_until_threshold">Фікс до порогу</option></select>
+          {nr.pricing !== "per_unit" && <Input className="h-9" inputMode="decimal" placeholder={nr.pricing === "minimum" ? "мінімум, грн" : "фікс, грн"} value={nr.minimum} onChange={(e) => setNr({ ...nr, minimum: e.target.value })} />}
+          {nr.pricing === "fixed_until_threshold" && <Input className="h-9" inputMode="decimal" placeholder="поріг обсягу" value={nr.threshold} onChange={(e) => setNr({ ...nr, threshold: e.target.value })} />}
           <Input className="h-9" type="date" value={nr.effectiveFrom} onChange={(e) => setNr({ ...nr, effectiveFrom: e.target.value })} />
-          <Button size="sm" disabled={!nr.brigadeKey || !nr.serviceCode || !nr.effectiveFrom || !(Number(nr.rate.replace(",", ".")) > 0)}
-            onClick={() => act.mutate(() => addR({ data: { brigadeKey: nr.brigadeKey, serviceCode: nr.serviceCode, unit: nr.unit, rate: Number(nr.rate.replace(",", ".")), effectiveFrom: nr.effectiveFrom, note: null } }))}>Нова ставка</Button>
+          <Button size="sm" disabled={!nr.brigadeKey || !nr.serviceCode || !nr.effectiveFrom || !(Number(nr.rate.replace(",", ".")) > 0) || (nr.pricing !== "per_unit" && n(nr.minimum) === null) || (nr.pricing === "fixed_until_threshold" && !((n(nr.threshold) ?? 0) > 0))}
+            onClick={() => act.mutate(() => addR({ data: { brigadeKey: nr.brigadeKey, serviceCode: nr.serviceCode, unit: nr.unit, rate: Number(nr.rate.replace(",", ".")), effectiveFrom: nr.effectiveFrom, note: null, pricing: nr.pricing, minimumAmount: nr.pricing === "per_unit" ? null : n(nr.minimum), thresholdQty: nr.pricing === "fixed_until_threshold" ? n(nr.threshold) : null } }))}>Нова ставка</Button>
         </div>
       </section>
 
