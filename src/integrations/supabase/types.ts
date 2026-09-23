@@ -205,6 +205,124 @@ export type Database = {
           },
         ]
       }
+      ai_conversations: {
+        Row: {
+          archived_at: string | null
+          context_path: string | null
+          created_at: string
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          archived_at?: string | null
+          context_path?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          archived_at?: string | null
+          context_path?: string | null
+          created_at?: string
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ai_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          links: Json
+          role: string
+          tools: string[]
+          user_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          links?: Json
+          role: string
+          tools?: string[]
+          user_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          links?: Json
+          role?: string
+          tools?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_usage_log: {
+        Row: {
+          conversation_id: string | null
+          created_at: string
+          filters: Json | null
+          id: string
+          latency_ms: number | null
+          model: string | null
+          role_key: string | null
+          status: string
+          tools: string[]
+          user_id: string
+        }
+        Insert: {
+          conversation_id?: string | null
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role_key?: string | null
+          status: string
+          tools?: string[]
+          user_id: string
+        }
+        Update: {
+          conversation_id?: string | null
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          latency_ms?: number | null
+          model?: string | null
+          role_key?: string | null
+          status?: string
+          tools?: string[]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_usage_log_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analytics_targets: {
         Row: {
           id: string
