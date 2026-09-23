@@ -99,6 +99,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: "/finance", label: "Звірка", search: { tab: "reconcile" } },
       { to: "/finance", label: "Finmap", search: { tab: "finmap" } },
       { to: "/finance", label: "ФОТ і KPI", search: { tab: "payroll" } },
+      { to: "/finance/payroll-kpi", label: "Зарплата і KPI" },
       { to: "/finance", label: "Дебіторка", search: { tab: "receivables" } },
       { to: "/finance", label: "Кредиторка", search: { tab: "payables" } },
       { to: "/finance", label: "Каса по проєктах", search: { tab: "projects" } },
