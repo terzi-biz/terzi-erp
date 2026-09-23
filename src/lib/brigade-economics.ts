@@ -13,6 +13,8 @@ export type RateRow = {
   effective_from: string; effective_to: string | null; active: boolean;
   /** per_unit (за замовч.) | minimum | fixed_until_threshold */
   pricing?: string | null; minimum_amount?: number | null; threshold_qty?: number | null;
+  /** erp — довідник ERP (пріоритет); site — каталог відомості (лише читання, не записується). */
+  source?: "erp" | "site";
 };
 export type PayoutRow = { brigade_key: string; amount: number; period: string; confirmed: boolean; voided: boolean };
 export type EstimateLine = { block?: string; code?: string; name?: string; qty?: number; unit?: string; cost?: number };
@@ -26,10 +28,10 @@ export function rateFor(rates: RateRow[], brigade: string, service: string, peri
   const d = `${period}-01`;
   return rates
     .filter((r) => r.active && r.brigade_key === brigade && r.service_code === service && r.effective_from <= d && (!r.effective_to || r.effective_to >= d))
-    .sort((a, b) => b.effective_from.localeCompare(a.effective_from))[0] ?? null;
+    .sort((a, b) => ((a.source === "site" ? 1 : 0) - (b.source === "site" ? 1 : 0)) || b.effective_from.localeCompare(a.effective_from))[0] ?? null;
 }
 
-export type LineAmount = { row: VolumeRow; rate: number | null; amount: number | null };
+export type LineAmount = { row: VolumeRow; rate: number | null; amount: number | null; rateSource?: "erp" | "site" | null };
 
 /**
  * Сума за схемою ставки. Невідома/неповна схема → null (не 0).
@@ -63,15 +65,15 @@ export function priceVolumes(rows: VolumeRow[], rates: RateRow[]): LineAmount[] 
   for (const grp of groups.values()) {
     const f = grp[0];
     const rt = rateFor(rates, f.brigade_key, f.service_code, f.period);
-    if (!rt) { for (const row of grp) out.set(row, { row, rate: null, amount: null }); continue; }
+    if (!rt) { for (const row of grp) out.set(row, { row, rate: null, amount: null, rateSource: null }); continue; }
     const totalQty = grp.reduce((s, r) => s + r.quantity, 0);
     const total = amountByRate(rt, totalQty);
-    if (total === null || totalQty <= 0) { for (const row of grp) out.set(row, { row, rate: rt.rate, amount: total === null ? null : 0 }); continue; }
+    if (total === null || totalQty <= 0) { for (const row of grp) out.set(row, { row, rate: rt.rate, amount: total === null ? null : 0, rateSource: rt.source ?? "erp" }); continue; }
     let rest = total;
     grp.forEach((row, i) => {
       const a = i === grp.length - 1 ? r2(rest) : r2((total * row.quantity) / totalQty);
       rest = r2(rest - a);
-      out.set(row, { row, rate: rt.rate, amount: a });
+      out.set(row, { row, rate: rt.rate, amount: a, rateSource: rt.source ?? "erp" });
     });
   }
   return rows.map((r) => out.get(r)!);
@@ -208,4 +210,34 @@ export function payrollWorkItems(volumes: VolumeRow[], payrollIds: Record<string
   const fact = live.filter((v) => v.kind === "fact" && v.confirmed).map(toItem).filter((x): x is NonNullable<typeof x> => !!x);
   const skipped = live.filter((v) => !payrollIds[v.brigade_key]).length;
   return { plan, fact, skipped };
+}
+
+/**
+ * Ставки з каталогу відомості як read-only fallback (не записуються в brigade_work_rates).
+ * Лише rate != null; зіставлення по payroll_id або канонічному алiасу; без вгадування за назвою.
+ * minimum задано → max(minimum, qty × rate) (screed_base: 12 000 до 100 м², далі 110 ₴/м²);
+ * невідома схема з мінімумом/порогом, яку не можна відтворити → ставку пропущено.
+ */
+export function siteCatalogRates(
+  catalog: { brigades: { id: string; active: boolean; rates: { code: string; unit: string | null; rate: number | null; pricing: string | null; minimum: number | null }[] }[] } | null,
+  locals: { key: string; payroll_id: string | null }[],
+  alias: Record<string, string | null | undefined>,
+): RateRow[] {
+  if (!catalog) return [];
+  const out: RateRow[] = [];
+  for (const l of locals) {
+    const sid = l.payroll_id ?? alias[l.key] ?? null;
+    const b = sid ? catalog.brigades.find((x) => x.id === sid && x.active) : undefined;
+    if (!b) continue;
+    for (const r of b.rates) {
+      if (r.rate === null || !Number.isFinite(r.rate) || r.rate < 0) continue;
+      const p = (r.pricing ?? "").toLowerCase();
+      let pricing: string;
+      if (r.minimum !== null) pricing = "minimum";
+      else if (p === "" || p === "per_unit" || p === "unit" || p === "per_m2" || p === "rate") pricing = "per_unit";
+      else continue;
+      out.push({ brigade_key: l.key, service_code: r.code, unit: r.unit ?? "", rate: r.rate, effective_from: "0000-01-01", effective_to: null, active: true, pricing, minimum_amount: r.minimum, threshold_qty: null, source: "site" });
+    }
+  }
+  return out;
 }
