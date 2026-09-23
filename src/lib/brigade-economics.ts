@@ -11,6 +11,8 @@ export type VolumeRow = {
 export type RateRow = {
   brigade_key: string; service_code: string; unit: string; rate: number;
   effective_from: string; effective_to: string | null; active: boolean;
+  /** per_unit (за замовч.) | minimum | fixed_until_threshold */
+  pricing?: string | null; minimum_amount?: number | null; threshold_qty?: number | null;
 };
 export type PayoutRow = { brigade_key: string; amount: number; period: string; confirmed: boolean; voided: boolean };
 export type EstimateLine = { block?: string; code?: string; name?: string; qty?: number; unit?: string; cost?: number };
@@ -29,11 +31,56 @@ export function rateFor(rates: RateRow[], brigade: string, service: string, peri
 
 export type LineAmount = { row: VolumeRow; rate: number | null; amount: number | null };
 
+/**
+ * Сума за схемою ставки. Невідома/неповна схема → null (не 0).
+ * fixed_until_threshold: qty ≤ threshold → фікс minimum_amount; qty > threshold → qty × rate
+ * (напр. screed_base: до 100 м² — 12 000 ₴, понад 100 м² — 110 ₴/м² за всю площу).
+ */
+export function amountByRate(rt: RateRow, quantity: number): number | null {
+  const mode = rt.pricing ?? "per_unit";
+  const min = finite(rt.minimum_amount);
+  const thr = finite(rt.threshold_qty);
+  if (mode === "per_unit") return r2(rt.rate * quantity);
+  if (mode === "minimum") return min === null ? null : r2(Math.max(min, rt.rate * quantity));
+  if (mode === "fixed_until_threshold") {
+    if (min === null || thr === null || thr <= 0) return null;
+    return quantity <= thr ? r2(min) : r2(rt.rate * quantity);
+  }
+  return null;
+}
+
+/**
+ * Суми по рядках. Фікс/мінімум застосовується до сумарного обсягу бригади×коду×періоду,
+ * а не до кожного рядка окремо; сума розподіляється пропорційно обсягу.
+ */
 export function priceVolumes(rows: VolumeRow[], rates: RateRow[]): LineAmount[] {
-  return rows.map((row) => {
-    const rt = rateFor(rates, row.brigade_key, row.service_code, row.period);
-    return { row, rate: rt?.rate ?? null, amount: rt ? r2(rt.rate * row.quantity) : null };
-  });
+  const groups = new Map<string, VolumeRow[]>();
+  for (const row of rows) {
+    const k = `${row.brigade_key}|${row.service_code}|${row.period}`;
+    groups.set(k, [...(groups.get(k) ?? []), row]);
+  }
+  const out = new Map<VolumeRow, LineAmount>();
+  for (const grp of groups.values()) {
+    const f = grp[0];
+    const rt = rateFor(rates, f.brigade_key, f.service_code, f.period);
+    if (!rt) { for (const row of grp) out.set(row, { row, rate: null, amount: null }); continue; }
+    const totalQty = grp.reduce((s, r) => s + r.quantity, 0);
+    const total = amountByRate(rt, totalQty);
+    if (total === null || totalQty <= 0) { for (const row of grp) out.set(row, { row, rate: rt.rate, amount: total === null ? null : 0 }); continue; }
+    let rest = total;
+    grp.forEach((row, i) => {
+      const a = i === grp.length - 1 ? r2(rest) : r2((total * row.quantity) / totalQty);
+      rest = r2(rest - a);
+      out.set(row, { row, rate: rt.rate, amount: a });
+    });
+  }
+  return rows.map((r) => out.get(r)!);
+}
+
+/** Відсоток лише при відомій додатній виручці: gross / revenue × 100. */
+export function pct(gross: number | null, revenue: number | null): number | null {
+  if (gross === null || revenue === null || revenue <= 0) return null;
+  return r2((gross / revenue) * 100);
 }
 
 /** Сума, або null якщо хоч один елемент невідомий чи список порожній. */
@@ -80,8 +127,14 @@ export function mapEstimateWorks(module: string | null, lines: unknown, mappings
 
 export type Economics = {
   estimate: EstimateSplit;
-  plan: { lines: LineAmount[]; brigadeTotal: number | null; margin: number | null; marginBasis: string };
-  fact: { lines: LineAmount[]; accruedByRate: number | null; payouts: number | null; unconfirmedPayouts: number; revenue: number | null; margin: number | null; marginBasis: string };
+  /** gross — валова прибуток у ₴; marginPct — gross/revenue×100 (%). */
+  plan: { lines: LineAmount[]; brigadeTotal: number | null; gross: number | null; marginPct: number | null; grossBasis: string };
+  fact: {
+    lines: LineAmount[]; accruedByRate: number | null; revenue: number | null;
+    gross: number | null; marginPct: number | null; grossBasis: string;
+    /** Взаєморозрахунки з бригадами — не впливають на валовий прибуток. */
+    settlement: { accrued: number | null; paid: number | null; unconfirmedPayouts: number; due: number | null };
+  };
   diff: { brigade_key: string; service_code: string; plan: number; fact: number; delta: number }[];
 };
 
@@ -99,14 +152,14 @@ export function computeEconomics(input: {
   const factLines = priceVolumes(live.filter((v) => v.kind === "fact" && v.confirmed), input.rates);
   const planBrigade = sumKnown(planLines.map((l) => l.amount));
 
-  let planMargin: number | null = null;
+  let planGross: number | null = null;
   let planBasis = "Немає даних: немає затвердженого кошторису";
   if (est.planRevenue !== null) {
     if (est.compositionKnown && planBrigade !== null) {
-      planMargin = r2(est.planRevenue - (est.planNonLabor as number) - planBrigade);
+      planGross = r2(est.planRevenue - (est.planNonLabor as number) - planBrigade);
       planBasis = "Виручка − матеріали/інші прямі (без праці кошторису) − план робіт бригад за ставками";
     } else if (est.planTotalCost !== null) {
-      planMargin = r2(est.planRevenue - est.planTotalCost);
+      planGross = r2(est.planRevenue - est.planTotalCost);
       planBasis = "Виручка − собівартість кошторису (праця вже всередині; бригада повторно не віднімається)";
     }
   }
@@ -115,11 +168,12 @@ export function computeEconomics(input: {
   const confirmedPay = livePay.filter((p) => p.confirmed);
   const payouts = confirmedPay.length ? r2(confirmedPay.reduce((s, p) => s + p.amount, 0)) : null;
   const unconfirmedPayouts = r2(livePay.filter((p) => !p.confirmed).reduce((s, p) => s + p.amount, 0));
-  let factMargin: number | null = null;
-  let factBasis = "Немає даних: потрібні підтверджені виручка, прямі витрати і виплати бригадам";
-  if (input.factRevenue !== null && input.factNonLabor !== null && payouts !== null) {
-    factMargin = r2(input.factRevenue - input.factNonLabor - payouts);
-    factBasis = "Підтверджена виручка − підтверджені прямі витрати − підтверджені виплати бригадам";
+  const accrued = sumKnown(factLines.map((l) => l.amount));
+  let factGross: number | null = null;
+  let factBasis = "Немає даних: потрібні підтверджені виручка, прямі витрати і нарахування бригадам за ставками";
+  if (input.factRevenue !== null && input.factNonLabor !== null && accrued !== null) {
+    factGross = r2(input.factRevenue - input.factNonLabor - accrued);
+    factBasis = "Підтверджена виручка − підтверджені прямі витрати − нараховано бригадам за підтвердженими обсягами (виплати не впливають)";
   }
 
   const key = (l: LineAmount) => `${l.row.brigade_key}|${l.row.service_code}`;
@@ -133,8 +187,12 @@ export function computeEconomics(input: {
 
   return {
     estimate: est,
-    plan: { lines: planLines, brigadeTotal: planBrigade, margin: planMargin, marginBasis: planBasis },
-    fact: { lines: factLines, accruedByRate: sumKnown(factLines.map((l) => l.amount)), payouts, unconfirmedPayouts, revenue: input.factRevenue, margin: factMargin, marginBasis: factBasis },
+    plan: { lines: planLines, brigadeTotal: planBrigade, gross: planGross, marginPct: pct(planGross, est.planRevenue), grossBasis: planBasis },
+    fact: {
+      lines: factLines, accruedByRate: accrued, revenue: input.factRevenue,
+      gross: factGross, marginPct: pct(factGross, input.factRevenue), grossBasis: factBasis,
+      settlement: { accrued, paid: payouts, unconfirmedPayouts, due: accrued !== null ? r2(accrued - (payouts ?? 0)) : null },
+    },
     diff,
   };
 }
