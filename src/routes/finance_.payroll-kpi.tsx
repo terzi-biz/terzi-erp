@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { BrigadesAdmin } from "@/components/finance/BrigadesAdmin";
 import { PayrollBridgePanel, PayrollOpenButton } from "@/components/settings/PayrollBridgePanel";
 
 export const Route = createFileRoute("/finance_/payroll-kpi")({
@@ -23,9 +24,13 @@ function PayrollKpiPage() {
           <h1 className="text-2xl font-bold">Зарплата і KPI</h1>
           <p className="text-sm text-muted-foreground">Відомість відкривається без повторного входу — доступ за правами ERP (власник / фінанси).</p>
         </div>
-        <PayrollOpenButton />
+        <div className="flex flex-wrap gap-2">
+          <Link to="/" className="inline-flex h-9 items-center rounded-md border border-border px-3 text-sm hover:bg-muted">← Дашборд</Link>
+          <PayrollOpenButton />
+        </div>
       </div>
       <PayrollBridgePanel showSettings={false} />
+      <BrigadesAdmin />
     </div>
   );
 }
