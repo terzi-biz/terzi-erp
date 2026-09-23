@@ -24,8 +24,11 @@ export const saveRoofingConfig = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { requireConfigManager } = await import("@/lib/config-kernel/config.server");
     await requireConfigManager(context.userId);
+    // Права перевірено канонічно вище; запис service role, щоб override працював незалежно від legacy RLS.
+    const { admin } = await import("@/lib/access.server");
+    const db = (await admin()) as any;
 
-    const { error } = await context.supabase
+    const { error } = await db
       .from("roofing_config")
       .upsert({ id: "default", payload: data, updated_by: context.userId, updated_at: new Date().toISOString() });
     if (error) throw new Error("Не вдалося зберегти нормативи покрівлі");
