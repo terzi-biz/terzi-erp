@@ -74,3 +74,6 @@
 - [ ] Operations calendar grid still uses the built-in brigade list (new brigades not shown there)
 - [ ] Confirmed fact revenue / non-labor costs per order not wired (fact margin = no data)
 - [x] Fact return from Payroll Site via GET /api/erp/summary (read-only display)
+
+- [ ] Wave 3 Control Plane — Layouts/Views, Workflows, Event/Action/Rule engine, Permission overlay, Settings UI (Draft→Preview→Publish→Rollback). Backlog order/crew/payroll не змішувати.
+- [x] Site summary GET /api/erp/summary (orderId + month) — серверно в картці замовлення і дашборді, 403/404 чесно.
