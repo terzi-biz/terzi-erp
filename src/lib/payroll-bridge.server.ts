@@ -1,7 +1,7 @@
 import { admin, loadActor } from "./access.server";
 import { sha256Hex } from "./integrations/signature.server";
 import {
-  PAYROLL_ORDERS_ENDPOINT, PAYROLL_SUMMARY_ENDPOINT, PAYROLL_SITE_ORIGIN, buildPayrollOrder, isValidBridgeSecret, signPayrollToken, type PayrollScope,
+  PAYROLL_ORDERS_ENDPOINT, PAYROLL_SUMMARY_ENDPOINT, PAYROLL_CATALOG_ENDPOINT, PAYROLL_SITE_ORIGIN, buildPayrollOrder, isValidBridgeSecret, signPayrollToken, type PayrollScope,
 } from "./payroll-bridge";
 
 function secret(): string | null {
@@ -155,5 +155,21 @@ export async function fetchSiteOverview(month: string, actorId: string) {
     return parsed ? { ok: true as const, overview: parsed } : { ok: false as const, code: "format" as const, reason: "Невідомий формат відповіді відомості" };
   } catch (e) {
     return { ok: false as const, code: "network" as const, reason: e instanceof Error ? e.message : "Помилка зв'язку" };
+  }
+}
+
+/** Каталог бригад/розцінок відомості (GET /api/erp/catalog). Токен — лише на сервері. */
+export async function fetchSiteCatalog(actorId: string) {
+  const s = secret();
+  if (!s) return { ok: false as const, code: "unconfigured" as const, reason: "Зв'язок з відомістю вимкнено (немає серверного секрету) — показано локальний довідник ERP, синхронізації немає" };
+  try {
+    const { token } = await signPayrollToken(s, actorId, ["payroll:sync"]);
+    const res = await fetch(PAYROLL_CATALOG_ENDPOINT, { headers: { Authorization: `Bearer ${token}`, Accept: "application/json" }, signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return { ok: false as const, code: "http" as const, status: res.status, reason: res.status === 401 || res.status === 403 ? `Відомість відмовила в доступі до каталогу (HTTP ${res.status}) — показано локальний довідник` : `Каталог відомості недоступний (HTTP ${res.status}) — показано локальний довідник` };
+    const { parseSiteCatalog } = await import("./payroll-bridge");
+    const catalog = parseSiteCatalog(await res.json().catch(() => null));
+    return catalog ? { ok: true as const, catalog } : { ok: false as const, code: "format" as const, reason: "Невідомий формат каталогу — показано локальний довідник" };
+  } catch (e) {
+    return { ok: false as const, code: "network" as const, reason: `Каталог відомості недоступний (${e instanceof Error ? e.message : "помилка зв'язку"}) — показано локальний довідник` };
   }
 }

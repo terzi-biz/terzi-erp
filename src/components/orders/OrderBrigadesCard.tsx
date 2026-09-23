@@ -28,24 +28,32 @@ export function OrderBrigadesCard({ orderId }: { orderId: string }) {
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   if (!q.data) return null;
-  const { brigades, assigned, canEdit, canSeeEconomics } = q.data;
+  const { brigades, options, catalogStatus, assigned, canEdit, canSeeEconomics } = q.data;
   const cur = draft ?? assigned;
-  const label = (k: string) => brigades.find((b) => b.key === k)?.label ?? k;
+  const list = options ?? brigades.map((b) => ({ key: b.key, label: b.label, siteId: b.payroll_id, source: "local_only" as const, active: b.active, headcount: null, rates: [], pendingLocal: false }));
+  const label = (k: string) => list.find((b) => b.key === k)?.label ?? brigades.find((b) => b.key === k)?.label ?? k;
   return (
     <div className="rounded-lg border border-border bg-card p-3 space-y-3">
       <div className="flex items-center gap-2 text-[10px] uppercase tracking-wider text-muted-foreground"><HardHat className="h-3.5 w-3.5" />Бригади об'єкта</div>
       <div className="flex flex-wrap gap-2">
-        {brigades.filter((b) => b.active || cur.includes(b.key)).map((b) => {
+        {list.filter((b) => b.active || cur.includes(b.key)).map((b) => {
           const on = cur.includes(b.key);
+          const hint = [b.source === "local_only" && options ? "Лише в ERP — не зіставлено з відомістю, у відомість не передається" : null,
+            b.pendingLocal ? "Нова бригада з відомості — буде додана в ERP при збереженні" : null,
+            b.headcount !== null ? `Склад: ${b.headcount}` : null,
+            ...b.rates.map((r) => `${r.label}: ${r.rate ?? "немає даних"} грн/${r.unit ?? "од."}`)].filter(Boolean).join("\n");
           return (
-            <button key={b.key} type="button" disabled={!canEdit}
+            <button key={b.key} type="button" disabled={!canEdit} title={hint || undefined}
               onClick={() => setDraft(on ? cur.filter((k) => k !== b.key) : [...cur, b.key])}
               className={`rounded-full border px-3 py-1 text-xs ${on ? "border-primary bg-primary text-primary-foreground" : "border-border"} disabled:opacity-60`}>
-              {b.label}
+              {b.label}{b.source === "local_only" && options ? " · лише ERP" : ""}{b.pendingLocal ? " · нова" : ""}
             </button>
           );
         })}
       </div>
+      <p className="text-[11px] text-muted-foreground">{catalogStatus.ok
+        ? `Довідник бригад — каталог відомості Payroll KPI${catalogStatus.revision ? `, ревізія ${catalogStatus.revision}` : ""}${catalogStatus.updatedAt ? `, оновлено ${new Date(catalogStatus.updatedAt).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}` : ""}`
+        : catalogStatus.reason}</p>
       {draft && <div className="flex gap-2"><Button size="sm" onClick={() => m.mutate(draft)} disabled={m.isPending}>Зберегти</Button><Button size="sm" variant="ghost" onClick={() => setDraft(null)}>Скасувати</Button></div>}
       {!cur.length && <p className="text-xs text-muted-foreground">Бригади не призначено. Бронювання в календарі для цього об'єкта будуть обмежені призначеними бригадами.</p>}
       {canSeeEconomics && assigned.length > 0 && <Economics orderId={orderId} label={label} />}

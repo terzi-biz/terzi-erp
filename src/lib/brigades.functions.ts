@@ -47,6 +47,30 @@ export const upsertBrigade = createServerFn({ method: "POST" })
     return { ok: true };
   });
 
+export type CatalogBrigadeOption = {
+  key: string; label: string; siteId: string | null; source: "catalog" | "local_only"; active: boolean;
+  headcount: number | null; rates: { code: string; label: string; unit: string | null; rate: number | null }[]; pendingLocal: boolean;
+};
+/** Об'єднаний список: каталог відомості канонічний; локальні без зіставлення — «лише ERP». Розцінки клієнта не повертаються. */
+async function buildBrigadeOptions(local: BrigadeRow[], actorId: string, withRates: boolean) {
+  const { fetchSiteCatalog } = await import("./payroll-bridge.server");
+  const { matchSiteId, erpKeyForSiteId } = await import("./payroll-bridge");
+  const cat = await fetchSiteCatalog(actorId);
+  if (!cat.ok) return { catalogStatus: { ok: false as const, reason: cat.reason }, options: null as CatalogBrigadeOption[] | null };
+  const ids = new Set(cat.catalog.brigades.map((b) => b.id));
+  const byId = new Map<string, BrigadeRow>();
+  for (const l of local) { const id = matchSiteId(l, ids); if (id && !byId.has(id)) byId.set(id, l); }
+  const matchedKeys = new Set([...byId.values()].map((l) => l.key));
+  const options: CatalogBrigadeOption[] = cat.catalog.brigades.map((b) => {
+    const l = byId.get(b.id);
+    return { key: l?.key ?? `site:${b.id}`, label: b.name, siteId: b.id, source: "catalog", active: b.active, headcount: b.headcount, pendingLocal: !l,
+      rates: withRates ? b.rates.map((r) => ({ code: r.code, label: r.label, unit: r.unit, rate: r.rate })) : [] };
+  });
+  for (const l of local) if (!matchedKeys.has(l.key)) options.push({ key: l.key, label: l.label, siteId: null, source: "local_only", active: l.active, headcount: null, rates: [], pendingLocal: false });
+  void erpKeyForSiteId;
+  return { catalogStatus: { ok: true as const, revision: cat.catalog.revision, updatedAt: cat.catalog.updatedAt }, options };
+}
+
 export const getOrderBrigades = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ orderId: uuid }).parse(d))
@@ -60,7 +84,8 @@ export const getOrderBrigades = createServerFn({ method: "POST" })
     try { const { requirePermission } = await ctx(); await requirePermission(context.userId, "orders", "edit"); } catch { canEdit = false; }
     let canSeeEconomics = true;
     try { await payroll(context.userId); } catch { canSeeEconomics = false; }
-    return { brigades: (all ?? []) as BrigadeRow[], assigned: ((assigned ?? []) as any[]).map((r) => r.brigade_key as string), canEdit, canSeeEconomics };
+    const { catalogStatus, options } = await buildBrigadeOptions((all ?? []) as BrigadeRow[], context.userId, canSeeEconomics);
+    return { brigades: (all ?? []) as BrigadeRow[], options, catalogStatus, assigned: ((assigned ?? []) as any[]).map((r) => r.brigade_key as string), canEdit, canSeeEconomics };
   });
 
 export const setOrderBrigades = createServerFn({ method: "POST" })
@@ -69,7 +94,35 @@ export const setOrderBrigades = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { requirePermission, db, writeAudit } = await ctx();
     const actor = await requirePermission(context.userId, "orders", "edit");
-    const keys = [...new Set(data.brigadeKeys)];
+    let keys = [...new Set(data.brigadeKeys)];
+    const siteKeys = keys.filter((k) => k.startsWith("site:"));
+    if (siteKeys.length) {
+      // Нова бригада з каталогу відомості: перевіряємо на сервері і створюємо локальний запис із payroll_id.
+      const { fetchSiteCatalog } = await import("./payroll-bridge.server");
+      const { erpKeyForSiteId } = await import("./payroll-bridge");
+      const cat = await fetchSiteCatalog(context.userId);
+      if (!cat.ok) throw new Error(cat.reason);
+      for (const sk of siteKeys) {
+        const id = sk.slice(5);
+        const b = cat.catalog.brigades.find((x) => x.id === id && x.active);
+        if (!b) throw new Error(`Бригади ${id} немає в каталозі відомості або вона неактивна`);
+        const key = erpKeyForSiteId(id);
+        const { data: exists } = await db.from("brigades").select("key,payroll_id").eq("key", key).maybeSingle();
+        if (exists && exists.payroll_id && exists.payroll_id !== id) throw new Error(`Ключ ${key} уже зіставлено з іншою бригадою`);
+        const kind = (b.kind ?? "").toLowerCase();
+        const module = (MODULES as readonly string[]).includes(kind) ? kind : "general";
+        const row = { key, label: b.name.slice(0, 80), module, payroll_id: id, active: true, sort_order: 1000, notes: "З каталогу відомості" };
+        if (!exists) {
+          const { error } = await db.from("brigades").insert(row);
+          if (error) throw new Error(error.message);
+          await writeAudit(actor, { module: "staff", action: "brigade.create_from_catalog", entityType: "brigade", entityId: key, entityLabel: row.label, newValue: row });
+        } else if (!exists.payroll_id) {
+          await db.from("brigades").update({ payroll_id: id, active: true }).eq("key", key);
+        }
+        keys = keys.map((k) => (k === sk ? key : k));
+      }
+      keys = [...new Set(keys)];
+    }
     if (keys.length) {
       const { data: found } = await db.from("brigades").select("key").in("key", keys).eq("active", true);
       if ((found ?? []).length !== keys.length) throw new Error("Невідома або неактивна бригада");
