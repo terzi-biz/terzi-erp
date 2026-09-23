@@ -1,7 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { BRIGADES } from "./brigades";
 
 const rangeInput = z.object({
   fromISO: z.string(),
@@ -32,14 +31,22 @@ const upsertInput = z.object({
   client: z.string().max(200).optional().nullable(),
   address: z.string().max(300).optional().nullable(),
   notes: z.string().max(2000).optional().nullable(),
+  order_id: z.string().uuid().optional().nullable(),
 });
 
 export const upsertBooking = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => upsertInput.parse(d))
   .handler(async ({ data, context }) => {
-    const brigade = BRIGADES.find((b) => b.key === data.brigade_key);
-    if (!brigade) throw new Error("Невідома бригада");
+    // Довідник бригад у БД (brigades) — єдине джерело; неактивні не призначаються.
+    const sb = context.supabase as any;
+    const { data: brigade } = await sb.from("brigades").select("key,label,module,active").eq("key", data.brigade_key).maybeSingle();
+    if (!brigade || !brigade.active) throw new Error("Невідома або неактивна бригада");
+    if (data.order_id) {
+      const { data: assigned } = await sb.from("order_brigades").select("brigade_key").eq("order_id", data.order_id);
+      const keys = ((assigned ?? []) as any[]).map((r) => r.brigade_key);
+      if (keys.length && !keys.includes(brigade.key)) throw new Error("Бригаду не призначено на цей об'єкт");
+    }
 
     const payload = {
       brigade_key: brigade.key,
@@ -50,6 +57,7 @@ export const upsertBooking = createServerFn({ method: "POST" })
       client: data.client ?? null,
       address: data.address ?? null,
       notes: data.notes ?? null,
+      ...(data.order_id !== undefined ? { order_id: data.order_id } : {}),
     };
 
     if (data.id) {
