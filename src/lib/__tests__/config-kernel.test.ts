@@ -97,3 +97,41 @@ describe("config kernel", () => {
     expect(diffPayload({ a: 1 }, { a: 1 })).toEqual([]);
   });
 });
+
+import { resolveAllByKey, dictionaryRefError, roleTypeConflict } from "@/lib/config-kernel/scoped";
+
+describe("scope-aware control plane", () => {
+  const f = (scope_type: "company" | "role", scope_id: string, payload: any, version = 1) =>
+    ({ kind: "custom_field", key: "order.object_class", scope_type, scope_id, status: "published", payload, version });
+  const base = { label_uk: "Клас", type: "text" };
+
+  it("одне поле на ключ незалежно від кількості скоупів; роль перемагає company", () => {
+    const rows = [f("company", "terzi", base, 2), f("role", "sales_manager", { ...base, label_uk: "Клас (продажі)" }, 1)];
+    const sales = resolveAllByKey("custom_field", rows, { roleKey: "sales_manager" });
+    expect(sales.size).toBe(1);
+    expect(sales.get("order.object_class")!.value.label_uk).toBe("Клас (продажі)");
+    const fin = resolveAllByKey("custom_field", rows, { roleKey: "finance" });
+    expect(fin.get("order.object_class")!.value.label_uk).toBe("Клас");
+    expect(fin.get("order.object_class")!.version).toBe(2);
+  });
+  it("без рольового оверлею — як раніше; лише роль без company не видно іншим", () => {
+    expect(resolveAllByKey("custom_field", [f("company", "terzi", base)], { roleKey: null }).get("order.object_class")!.value).toEqual(base);
+    expect(resolveAllByKey("custom_field", [f("role", "foreman", base)], { roleKey: "finance" }).size).toBe(0);
+  });
+  it("посилання на довідник: має бути опублікований generic у скоупі цілі", () => {
+    const d = (scope_type: string, scope_id: string) => ({ kind: "dictionary", key: "object_class", scope_type, scope_id, status: "published", payload: { label_uk: "Клас", items: [{ code: "a", label_uk: "A" }] } });
+    const company = { type: "company" as const, id: "terzi" };
+    const role = { type: "role" as const, id: "sales_manager" };
+    expect(dictionaryRefError("object_class", [], company)).toMatch(/не опубліковано/);
+    expect(dictionaryRefError("object_class", [d("company", "terzi")], company)).toBeNull();
+    expect(dictionaryRefError("object_class", [d("role", "sales_manager")], company)).toMatch(/не опубліковано/);
+    expect(dictionaryRefError("object_class", [d("role", "sales_manager")], role)).toBeNull();
+    expect(dictionaryRefError("close_reasons", [], company)).toMatch(/не generic/);
+    expect(dictionaryRefError(undefined, [], company)).toBeNull();
+  });
+  it("роль не змінює тип поля компанії", () => {
+    expect(roleTypeConflict({ type: "role", id: "x" }, { type: "number" }, { type: "text" })).toMatch(/Тип/);
+    expect(roleTypeConflict({ type: "role", id: "x" }, { type: "text" }, { type: "text" })).toBeNull();
+    expect(roleTypeConflict({ type: "company", id: "terzi" }, { type: "number" }, { type: "text" })).toBeNull();
+  });
+});

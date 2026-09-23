@@ -117,7 +117,7 @@ function HistoryPanel({ kind, cfgKey, onChanged }: { kind: Kind; cfgKey: string;
       <table className="w-full min-w-[560px] text-xs">
         <thead className="bg-muted/50 text-muted-foreground"><tr><th className="p-1.5 text-left">Версія</th><th className="p-1.5 text-left">Стан</th><th className="p-1.5 text-left">Хто / коли</th><th className="p-1.5 text-left">Примітка</th><th className="p-1.5" /></tr></thead>
         <tbody>
-          {rows.map((r) => (
+          {rows.map((r: any) => (
             <tr key={r.id} className="border-t border-border">
               <td className="p-1.5 font-mono">v{r.version}{r.basedOn ? ` ← v${r.basedOn}` : ""}</td>
               <td className="p-1.5">{STATUS_UA[r.status] ?? r.status}</td>
