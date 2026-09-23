@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { validateConfig } from "@/lib/config-kernel/kinds";
 import { createLifecycle, resolveConfig, type ConfigEntry, type ConfigRepo } from "@/lib/config-kernel/lifecycle";
-import { validateCustomFieldKey, validateFieldValue, CORE_COLUMNS } from "@/lib/config-kernel/custom-fields";
+import { validateCustomFieldKey, validateFieldValue, CORE_COLUMNS, evaluateFormula, formulaSyntaxError, computeFormulaValues } from "@/lib/config-kernel/custom-fields";
 import { dictionaryLabel, selectableItems } from "@/lib/config-kernel/dictionaries";
 import { moduleViews } from "@/lib/config-kernel/module-overlay";
 import { navForRoles, MODULE_KEYS } from "@/components/nav-model";
