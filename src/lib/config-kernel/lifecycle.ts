@@ -6,6 +6,8 @@
 import { CONFIG_KINDS, validateConfig, type ConfigKind } from "./kinds";
 import { buildScopeChain, type ScopeContext, type ScopeRef } from "./scope";
 
+export type JsonValue = string | number | boolean | null | JsonValue[] | { [k: string]: JsonValue };
+
 export type ConfigStatus = "draft" | "published" | "superseded" | "discarded";
 
 export interface ConfigEntry {
@@ -16,7 +18,7 @@ export interface ConfigEntry {
   scope_id: string;
   version: number;
   status: ConfigStatus;
-  payload: unknown;
+  payload: JsonValue;
   schema_version: number;
   sensitive: boolean;
   based_on_version: number | null;
@@ -73,7 +75,7 @@ export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: str
   return {
     /** Створює або оновлює єдину чернетку цілі. Драфт не бачить runtime. */
     async saveDraft(t: ConfigTarget, payload: unknown, note?: string | null) {
-      const clean = assertValid(t, payload);
+      const clean = assertValid(t, payload) as JsonValue;
       const vs = await repo.listVersions(t);
       const d = draft(vs);
       const sensitive = CONFIG_KINDS[t.kind as ConfigKind].sensitive;
@@ -119,7 +121,7 @@ export function createLifecycle(repo: ConfigRepo, audit: AuditSink, actorId: str
       const vs = await repo.listVersions(t);
       const src = vs.find((v) => v.version === toVersion && v.status !== "draft" && v.status !== "discarded");
       if (!src) throw new Error(`Версію ${toVersion} не знайдено серед опублікованих`);
-      const clean = assertValid(t, src.payload);
+      const clean = assertValid(t, src.payload) as JsonValue;
       const d = draft(vs);
       if (d) await repo.update(d.id, { status: "discarded" });
       const p = published(vs);
