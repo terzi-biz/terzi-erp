@@ -1020,6 +1020,92 @@ export type Database = {
         }
         Relationships: []
       }
+      brigade_work_rates: {
+        Row: {
+          active: boolean
+          brigade_key: string
+          created_at: string
+          created_by: string | null
+          effective_from: string
+          effective_to: string | null
+          id: string
+          note: string | null
+          rate: number
+          service_code: string
+          unit: string
+        }
+        Insert: {
+          active?: boolean
+          brigade_key: string
+          created_at?: string
+          created_by?: string | null
+          effective_from: string
+          effective_to?: string | null
+          id?: string
+          note?: string | null
+          rate: number
+          service_code: string
+          unit: string
+        }
+        Update: {
+          active?: boolean
+          brigade_key?: string
+          created_at?: string
+          created_by?: string | null
+          effective_from?: string
+          effective_to?: string | null
+          id?: string
+          note?: string | null
+          rate?: number
+          service_code?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "brigade_work_rates_brigade_key_fkey"
+            columns: ["brigade_key"]
+            isOneToOne: false
+            referencedRelation: "brigades"
+            referencedColumns: ["key"]
+          },
+        ]
+      }
+      brigades: {
+        Row: {
+          active: boolean
+          created_at: string
+          key: string
+          label: string
+          module: string
+          notes: string | null
+          payroll_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          key: string
+          label: string
+          module: string
+          notes?: string | null
+          payroll_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          key?: string
+          label?: string
+          module?: string
+          notes?: string | null
+          payroll_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           address: string | null
@@ -7140,6 +7226,108 @@ export type Database = {
           },
         ]
       }
+      order_brigade_payouts: {
+        Row: {
+          amount: number
+          brigade_key: string
+          confirmed: boolean
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          order_id: string
+          period: string
+          source: string
+          source_ref: string | null
+          voided: boolean
+        }
+        Insert: {
+          amount: number
+          brigade_key: string
+          confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          order_id: string
+          period: string
+          source: string
+          source_ref?: string | null
+          voided?: boolean
+        }
+        Update: {
+          amount?: number
+          brigade_key?: string
+          confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          order_id?: string
+          period?: string
+          source?: string
+          source_ref?: string | null
+          voided?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_brigade_payouts_brigade_key_fkey"
+            columns: ["brigade_key"]
+            isOneToOne: false
+            referencedRelation: "brigades"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "order_brigade_payouts_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_brigades: {
+        Row: {
+          brigade_key: string
+          created_at: string
+          created_by: string | null
+          order_id: string
+        }
+        Insert: {
+          brigade_key: string
+          created_at?: string
+          created_by?: string | null
+          order_id: string
+        }
+        Update: {
+          brigade_key?: string
+          created_at?: string
+          created_by?: string | null
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_brigades_brigade_key_fkey"
+            columns: ["brigade_key"]
+            isOneToOne: false
+            referencedRelation: "brigades"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "order_brigades_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_comments: {
         Row: {
           author_id: string | null
@@ -7476,6 +7664,84 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "object_status_history_object_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_work_volumes: {
+        Row: {
+          brigade_key: string
+          confirmed: boolean
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          kind: string
+          note: string | null
+          order_id: string
+          period: string
+          quantity: number
+          service_code: string
+          source: string
+          source_ref: string | null
+          unit: string | null
+          updated_at: string
+          voided: boolean
+        }
+        Insert: {
+          brigade_key: string
+          confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind: string
+          note?: string | null
+          order_id: string
+          period: string
+          quantity: number
+          service_code: string
+          source: string
+          source_ref?: string | null
+          unit?: string | null
+          updated_at?: string
+          voided?: boolean
+        }
+        Update: {
+          brigade_key?: string
+          confirmed?: boolean
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          kind?: string
+          note?: string | null
+          order_id?: string
+          period?: string
+          quantity?: number
+          service_code?: string
+          source?: string
+          source_ref?: string | null
+          unit?: string | null
+          updated_at?: string
+          voided?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_work_volumes_brigade_key_fkey"
+            columns: ["brigade_key"]
+            isOneToOne: false
+            referencedRelation: "brigades"
+            referencedColumns: ["key"]
+          },
+          {
+            foreignKeyName: "order_work_volumes_order_id_fkey"
             columns: ["order_id"]
             isOneToOne: false
             referencedRelation: "orders"
@@ -9879,6 +10145,42 @@ export type Database = {
           name?: string
           responsible_id?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      work_code_mappings: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          estimate_module: string
+          id: string
+          line_code: string
+          note: string | null
+          service_code: string
+          unit: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          estimate_module: string
+          id?: string
+          line_code: string
+          note?: string | null
+          service_code: string
+          unit?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          estimate_module?: string
+          id?: string
+          line_code?: string
+          note?: string | null
+          service_code?: string
+          unit?: string | null
         }
         Relationships: []
       }
