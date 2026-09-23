@@ -62,8 +62,8 @@
 - [ ] Wave 2 — Registries/fields/dictionaries (awaiting approval)
 
 ## Payroll bridge contract v2 (open)
-- [ ] planWorkItems from estimate/measurement only with verified brigade mapping
-- [ ] workItems only from confirmed acts/volumes (completed measurement ≠ done work) — omit otherwise
-- [ ] planOtherDirectCosts excludes brigade fund; don't double-count labor in approved total_cost
-- [ ] actual revenue/materials/subcontract/other/equipment/logistics only if confirmed
+- [x] planWorkItems from estimate/measurement only with verified brigade mapping
+- [x] workItems only from confirmed acts/volumes (completed measurement ≠ done work) — omit otherwise
+- [x] planOtherDirectCosts excludes brigade fund; don't double-count labor in approved total_cost
+- [x] actual revenue/materials/subcontract/other/equipment/logistics only if confirmed
 - [ ] Fact return endpoint — blocked: waiting for receiver spec from user
