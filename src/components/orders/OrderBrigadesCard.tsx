@@ -200,14 +200,29 @@ function SiteSummary({ orderId }: { orderId: string }) {
       {!r ? <p className="text-muted-foreground">Завантаження…</p> : !r.ok ? <p className="text-muted-foreground">{r.reason}</p> : (
         <>
           <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <Stat l="План виручка" v={money(r.summary.planRevenue)} />
+            <Stat l="План прямі (повний кошторис)" v={money(r.summary.planDirectCosts)} />
             <Stat l="План бригади" v={money(r.summary.planCrew)} />
-            <Stat l="Факт бригади" v={money(r.summary.crewFact)} />
             <Stat l="План вал" v={money(r.summary.planGross)} />
-            <Stat l="Факт вал" v={money(r.summary.gross)} />
             <Stat l="Маржа план" v={money(r.summary.planMargin)} />
+            <Stat l="Відхилення" v={money(r.summary.variance)} />
+            <Stat l="Факт виручка" v={money(r.summary.revenue)} />
+            <Stat l="Факт прямі" v={money(r.summary.directCosts)} />
+            <Stat l="Факт бригади" v={money(r.summary.crewFact)} />
+            <Stat l="Факт вал" v={money(r.summary.gross)} />
             <Stat l="Маржа факт" v={money(r.summary.margin)} />
+            <Stat l="Виплачено бригаді" v={money(r.summary.crewPaid)} />
           </div>
-          <p className="text-muted-foreground">Виконання підтверджене: {r.summary.verified ? "так" : "ні"} · Оплачено: {r.summary.paid ? "так" : "ні"} · Закрито: {r.summary.closed ? "так" : "ні"} · оновлено {new Date(r.fetchedAt).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}</p>
+          {(r.summary.planLines.length > 0 || r.summary.factLines.length > 0) && (
+            <div className="grid gap-2 md:grid-cols-2">
+              {([["План робіт", r.summary.planLines], ["Факт робіт", r.summary.factLines]] as const).map(([t, ls]) => (
+                <div key={t}><b>{t}</b>{ls.length === 0 ? <p className="text-muted-foreground">немає даних</p> : (
+                  <ul className="text-xs">{ls.map((l, i) => <li key={i}>{l.brigadeId} · {l.serviceCode} · {l.quantity ?? "немає даних"} {l.unit ?? ""} · {money(l.amount)}</li>)}</ul>
+                )}</div>
+              ))}
+            </div>
+          )}
+          <p className="text-muted-foreground">Виконання підтверджене: {r.summary.verified ? "так" : "ні"} · Акт: {r.summary.act ? "так" : "ні"} · Оплачено: {r.summary.paid ? "так" : "ні"} · Закрито: {r.summary.closed ? "так" : "ні"} · ревізія {r.summary.revision ?? "—"} · оновлено у відомості {r.summary.updatedAt ? new Date(r.summary.updatedAt).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" }) : "—"}</p>
         </>
       )}
     </section>
