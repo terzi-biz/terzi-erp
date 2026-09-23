@@ -78,6 +78,13 @@
       "when": 1790202052799,
       "tag": "0010_rls_sensitive_finance_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790202075767,
+      "tag": "0011_rls_sensitive_finance_tables_readonly",
+      "breakpoints": true
     }
   ]
 }
