@@ -164,12 +164,20 @@ export const getOrderBrigadeEconomics = createServerFn({ method: "POST" })
     const V = num(volumes, ["quantity"]);
     const R = (rates ?? []).map((r: any) => ({ ...r, rate: Number(r.rate), minimum_amount: r.minimum_amount == null ? null : Number(r.minimum_amount), threshold_qty: r.threshold_qty == null ? null : Number(r.threshold_qty) }));
     const P = num(payouts, ["amount"]);
-    const econ = computeEconomics({ estimate: est ?? null, volumes: V, rates: R, payouts: P, factRevenue: null, factNonLabor: null });
+    // Fallback: ставки з каталогу відомості (read-only). Локальна ставка з effective date має пріоритет.
+    const { siteCatalogRates } = await import("./brigade-economics");
+    const { fetchSiteCatalog } = await import("./payroll-bridge.server");
+    const { PAYROLL_BRIGADE_MAP } = await import("./payroll-bridge");
+    const cat = await fetchSiteCatalog(context.userId);
+    const siteR = cat.ok ? siteCatalogRates(cat.catalog, (brigades ?? []) as any, PAYROLL_BRIGADE_MAP) : [];
+    const rateStatus = cat.ok ? { ok: true, note: `Ставки: ERP (пріоритет), інакше — з відомості${cat.catalog.revision ? ` (версія ${cat.catalog.revision})` : ""}` }
+      : { ok: false, note: cat.code === "unconfigured" ? "Ставки з відомості недоступні (немає серверного секрету) — без ставки ERP: ставка не налаштована" : `${cat.reason}; без ставки ERP: ставка не налаштована` };
+    const econ = computeEconomics({ estimate: est ?? null, volumes: V, rates: [...R.map((r: any) => ({ ...r, source: "erp" as const })), ...siteR], payouts: P, factRevenue: null, factNonLabor: null });
     const works = est ? mapEstimateWorks(est.module, est.internal_lines, (mappings ?? []) as any) : { mapped: [], unmapped: [] };
     return JSON.parse(JSON.stringify({
       order, estimate: est ? { id: est.id, number: est.number, module: est.module, approved_at: est.approved_at } : null,
       measurement: meas ?? null, brigades: brigades ?? [], assigned: ((assigned ?? []) as any[]).map((r) => r.brigade_key),
-      volumes: V, payouts: P, econ, estimateWorks: works,
+      volumes: V, payouts: P, econ, estimateWorks: works, rateStatus,
       defaultPeriod: kyivMonth(order.planned_start ? new Date(order.planned_start) : new Date()),
       factNote: "Фактична виручка і прямі витрати по об'єкту ще не підтверджені в ERP — факт. маржа: немає даних",
     })) as any;

@@ -110,3 +110,28 @@ describe("brigade economics", () => {
     expect(parseSiteOverview({ overview: {} })).toBeNull();
   });
 });
+
+import { siteCatalogRates, priceVolumes as pv } from "@/lib/brigade-economics";
+describe("site catalog rate fallback", () => {
+  const catalog = { brigades: [
+    { id: "crew-alex", active: true, rates: [{ code: "screed_base", unit: "м²", rate: 110, pricing: "fixed_minimum", minimum: 12000 }] },
+    { id: "roof-1", active: true, rates: [{ code: "roof_membrane", unit: "м²", rate: null, pricing: null, minimum: null }] },
+  ] };
+  const locals = [{ key: "screed_lesha", payroll_id: null }, { key: "roofing_1", payroll_id: "roof-1" }];
+  const site = siteCatalogRates(catalog, locals, { screed_lesha: "crew-alex" });
+  const row = (q: number, k = "screed_lesha", c = "screed_base") => ({ id: String(q), brigade_key: k, service_code: c, kind: "plan" as const, quantity: q, unit: "м²", source: "manual", period: "2026-09", confirmed: false, voided: false });
+  it("screed_base 40/100/101/200 м² from site", () => {
+    expect([40, 100, 101, 200].map((q) => pv([row(q)], site)[0])).toMatchObject([
+      { amount: 12000, rateSource: "site" }, { amount: 12000 }, { amount: 12000 }, { amount: 22000 }]);
+  });
+  it("roof rate null → not configured", () => {
+    expect(site.some((r) => r.brigade_key === "roofing_1")).toBe(false);
+    expect(pv([row(50, "roofing_1", "roof_membrane")], site)[0]).toMatchObject({ rate: null, amount: null, rateSource: null });
+  });
+  it("local ERP rate has priority; no secret → no site rates", () => {
+    const local = { brigade_key: "screed_lesha", service_code: "screed_base", unit: "м²", rate: 100, effective_from: "2026-01-01", effective_to: null, active: true, source: "erp" as const };
+    expect(pv([row(200)], [...site, local])[0]).toMatchObject({ amount: 20000, rateSource: "erp" });
+    expect(siteCatalogRates(null, locals, {})).toEqual([]);
+    expect(pv([row(200)], [])[0].amount).toBeNull();
+  });
+});

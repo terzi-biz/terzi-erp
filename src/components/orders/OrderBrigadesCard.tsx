@@ -89,7 +89,7 @@ function Economics({ orderId, label }: { orderId: string; label: (k: string) => 
       <td className="py-1 pr-2">{label(l.row.brigade_key)}</td>
       <td className="pr-2 font-mono">{l.row.service_code}</td>
       <td className="pr-2 text-right">{qty(l.row.quantity)} {l.row.unit ?? ""}</td>
-      <td className="pr-2 text-right">{l.rate === null ? ND : `${l.rate} грн`}</td>
+      <td className="pr-2 text-right">{l.rate === null ? "ставка не налаштована" : `${l.rate} грн`}{l.rate !== null && <span className="ml-1 text-[10px] text-muted-foreground">({l.rateSource === "site" ? "відомість" : "ERP"})</span>}</td>
       <td className="pr-2 text-right">{money(l.amount)}</td>
       <td className="pr-2 text-muted-foreground">{l.row.source} · {l.row.period}{fact ? " · підтв." : ""}</td>
       <td><button type="button" aria-label="Анулювати" className="text-muted-foreground hover:text-destructive" onClick={() => act.mutate(() => stateFn({ data: { table: "order_work_volumes", id: l.row.id, action: "void" } }))}><Ban className="h-3.5 w-3.5" /></button></td>
@@ -186,6 +186,7 @@ function Economics({ orderId, label }: { orderId: string; label: (k: string) => 
         </section>
       )}
       <p className="text-muted-foreground">{d.factNote}</p>
+      {d.rateStatus && <p className="text-muted-foreground">{d.rateStatus.note}</p>}
       <SiteSummary orderId={orderId} />
     </div>
   );
