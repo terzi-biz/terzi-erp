@@ -1,3 +1,4 @@
+import { OrderBrigadesCard } from "@/components/orders/OrderBrigadesCard";
 import { CustomFieldsCard } from "@/components/config/CustomFieldsCard";
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -444,6 +445,8 @@ function OverviewTab({ o }: { o: any }) {
       )}
 
       <CustomFieldsCard entity="order" entityId={o.id} />
+
+      <OrderBrigadesCard orderId={o.id} />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
         <StatBox label="Кошторисів" value={String((o.estimates ?? []).length)} />

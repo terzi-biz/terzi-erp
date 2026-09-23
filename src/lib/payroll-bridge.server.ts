@@ -45,13 +45,16 @@ export async function issueOpenUrl(userId: string) {
 
 async function loadSource(orderId: string) {
   const db = await admin();
-  const [{ data: order }, { data: meas }, { data: est }, { data: booking }] = await Promise.all([
+  const [{ data: order }, { data: meas }, { data: est }, { data: booking }, { data: volumes }, { data: brigades }] = await Promise.all([
     db.from("orders").select("id,name,planned_start,ordered_at,production_status,financial_status").eq("id", orderId).maybeSingle(),
     db.from("order_measurements").select("id,lead_id,area,status,created_at").eq("order_id", orderId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     db.from("estimates").select("id,total_client,total_cost,area,approved_at").eq("order_id", orderId).not("approved_at", "is", null).order("approved_at", { ascending: false }).limit(1).maybeSingle(),
     db.from("crew_bookings").select("date,brigade_key").eq("order_id", orderId).order("date", { ascending: true }).limit(1).maybeSingle(),
+    (db as any).from("order_work_volumes").select("id,brigade_key,service_code,kind,quantity,unit,source,period,confirmed,voided").eq("order_id", orderId),
+    (db as any).from("brigades").select("key,payroll_id"),
   ]);
-  return { order, meas, est, booking };
+  const payrollIds = Object.fromEntries(((brigades ?? []) as any[]).map((b) => [b.key, b.payroll_id]));
+  return { order, meas, est, booking, volumes: ((volumes ?? []) as any[]).map((v) => ({ ...v, quantity: Number(v.quantity) })), payrollIds };
 }
 
 async function log(orderId: string, trigger: string, status: "sent" | "error" | "skipped", extra: { http?: number; message?: string; hash?: string; actor?: string | null }) {
@@ -68,9 +71,9 @@ export async function syncOrderToPayroll(orderId: string | null | undefined, tri
   try {
     const s = secret();
     if (!s) return { status: "skipped" as const, message: "Секрет не налаштовано" };
-    const { order, meas, est, booking } = await loadSource(orderId);
+    const { order, meas, est, booking, volumes, payrollIds } = await loadSource(orderId);
     if (!order) return { status: "skipped" as const, message: "Об'єкт не знайдено" };
-    const built = buildPayrollOrder({ order: order as any, measurement: meas as any, approvedEstimate: est as any, booking: booking as any });
+    const built = buildPayrollOrder({ order: order as any, measurement: meas as any, approvedEstimate: est as any, booking: booking as any, volumes, payrollIds });
     if ("skip" in built) { await log(orderId, trigger, "skipped", { message: built.skip, actor: actorId }); return { status: "skipped" as const, message: built.skip }; }
     const body = JSON.stringify({ orders: [built.dto] });
     const hash = await sha256Hex(body);

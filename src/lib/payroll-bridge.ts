@@ -2,6 +2,7 @@
  * Міст ERP → TERZI Payroll KPI. Чисті (детерміновані) функції:
  * підпис токена HMAC-SHA256 і побудова DTO замовлення. Без секретів і мережі.
  */
+import { payrollWorkItems as payrollWorkItemsFn } from "./brigade-economics";
 export const PAYROLL_SITE_ORIGIN = "https://terzi-payroll-kpi.terzi-deals.chatgpt.site";
 export const PAYROLL_ORDERS_ENDPOINT = `${PAYROLL_SITE_ORIGIN}/api/erp/orders`;
 export const PAYROLL_AUD = "terzi-payroll-kpi";
@@ -89,6 +90,10 @@ export type PayrollSource = {
   /** Лише затверджений кошторис (approved_at != null) — план, не факт. */
   approvedEstimate?: { id: string; total_client: number | null; total_cost: number | null; area: number | null } | null;
   booking?: { date: string; brigade_key: string | null } | null;
+  /** Обсяги робіт об'єкта з ERP (order_work_volumes). Якщо є — мають пріоритет. */
+  volumes?: import("./brigade-economics").VolumeRow[];
+  /** brigade_key → id бригади в приймачі (з довідника brigades). */
+  payrollIds?: Record<string, string | null | undefined>;
 };
 
 const kyivMonth = (iso: string) =>
@@ -116,10 +121,23 @@ export function buildPayrollOrder(src: PayrollSource): { dto: PayrollOrderDTO; w
   const area = num(est?.area) ?? num(measurement?.area);
   if (area !== undefined) dto.planArea = area;
   if (booking?.date) dto.workDate = booking.date.slice(0, 10);
-  const brigade = mapBrigade(booking?.brigade_key);
+  const fromDir = src.payrollIds && booking?.brigade_key ? src.payrollIds[booking.brigade_key] : undefined;
+  const brigade = fromDir || mapBrigade(booking?.brigade_key);
   if (brigade) dto.brigadeId = brigade;
   // Завершений замір ≠ виконані роботи: з нього — лише planWorkItems.
   let workNote: string | null = null;
+  if (src.volumes && src.volumes.some((v) => !v.voided)) {
+    const w = payrollWorkItemsFn(src.volumes, src.payrollIds ?? PAYROLL_BRIGADE_MAP);
+    if (w.plan.length) dto.planWorkItems = w.plan;
+    if (w.fact.length) dto.workItems = w.fact;
+    const notes: string[] = [];
+    if (!w.fact.length) notes.push(`${WORK_NOT_SENT}: немає підтвердженого факту виконання`);
+    if (w.skipped) notes.push(`пропущено рядків без зіставленої бригади: ${w.skipped}`);
+    workNote = notes.length ? notes.join("; ") : null;
+    if (order.production_status === "handed_over" || order.production_status === "warranty") dto.closed = true;
+    if (order.financial_status === "paid" || order.financial_status === "financially_closed") dto.paid = true;
+    return { dto, workNote };
+  }
   const measArea = measurement && ["done", "completed"].includes(measurement.status ?? "") ? num(measurement.area) : undefined;
   const planArea = num(est?.area) ?? measArea;
   if (!brigade) workNote = `${WORK_NOT_SENT}: бригаду не призначено або не зіставлено`;
