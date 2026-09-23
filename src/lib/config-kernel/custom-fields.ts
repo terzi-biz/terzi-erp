@@ -146,3 +146,130 @@ export function validateFieldValue(def: CustomFieldDef, raw: unknown, previous?:
     }
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Детерміноване обчислення формул кастомних полів.                    */
+/* Дозволено: числа, ключі числових кастомних полів, + - * / ( ).      */
+/* Жодного eval, жодного доступу до бізнес-цін — лише значення полів.  */
+/* ------------------------------------------------------------------ */
+
+type Tok = { t: "num"; v: number } | { t: "op"; v: string } | { t: "par"; v: "(" | ")" };
+
+function tokenize(src: string, vars: Record<string, number | null>): Tok[] | null {
+  const out: Tok[] = [];
+  let i = 0;
+  while (i < src.length) {
+    const c = src[i]!;
+    if (c === " ") { i++; continue; }
+    if (c === "(" || c === ")") { out.push({ t: "par", v: c }); i++; continue; }
+    if ("+-*/".includes(c)) { out.push({ t: "op", v: c }); i++; continue; }
+    if (/[0-9.]/.test(c)) {
+      const m = /^[0-9]+(\.[0-9]+)?/.exec(src.slice(i));
+      if (!m) return null;
+      out.push({ t: "num", v: Number(m[0]) }); i += m[0].length; continue;
+    }
+    if (/[a-z_]/.test(c)) {
+      const m = /^[a-z][a-z0-9_]*/.exec(src.slice(i));
+      if (!m) return null;
+      const v = vars[m[0]];
+      if (v === undefined || v === null || !Number.isFinite(v)) return null; // немає даних
+      out.push({ t: "num", v }); i += m[0].length; continue;
+    }
+    return null;
+  }
+  return out;
+}
+
+/** Рекурсивний спуск: expr = term (+|- term)*, term = factor (*|/ factor)*. */
+function parseExpr(toks: Tok[], pos: { i: number }): number | null {
+  let left = parseTerm(toks, pos);
+  if (left === null) return null;
+  while (pos.i < toks.length) {
+    const t = toks[pos.i]!;
+    if (t.t !== "op" || (t.v !== "+" && t.v !== "-")) break;
+    pos.i++;
+    const right = parseTerm(toks, pos);
+    if (right === null) return null;
+    left = t.v === "+" ? left + right : left - right;
+  }
+  return left;
+}
+
+function parseTerm(toks: Tok[], pos: { i: number }): number | null {
+  let left = parseFactor(toks, pos);
+  if (left === null) return null;
+  while (pos.i < toks.length) {
+    const t = toks[pos.i]!;
+    if (t.t !== "op" || (t.v !== "*" && t.v !== "/")) break;
+    pos.i++;
+    const right = parseFactor(toks, pos);
+    if (right === null) return null;
+    if (t.v === "/" && right === 0) return null; // ділення на нуль → немає даних
+    left = t.v === "*" ? left * right : left / right;
+  }
+  return left;
+}
+
+function parseFactor(toks: Tok[], pos: { i: number }): number | null {
+  const t = toks[pos.i];
+  if (!t) return null;
+  if (t.t === "op" && (t.v === "-" || t.v === "+")) {
+    pos.i++;
+    const v = parseFactor(toks, pos);
+    return v === null ? null : t.v === "-" ? -v : v;
+  }
+  if (t.t === "num") { pos.i++; return t.v; }
+  if (t.t === "par" && t.v === "(") {
+    pos.i++;
+    const v = parseExpr(toks, pos);
+    const close = toks[pos.i];
+    if (v === null || !close || close.t !== "par" || close.v !== ")") return null;
+    pos.i++;
+    return v;
+  }
+  return null;
+}
+
+/** Синтаксична перевірка формули (без значень) — для адмінки. */
+export function formulaSyntaxError(formula: string, knownKeys: readonly string[]): string | null {
+  const keys = Object.fromEntries(knownKeys.map((k) => [k, 1]));
+  const toks = tokenize(formula, keys);
+  if (!toks || !toks.length) return "Дозволені лише числа, ключі числових полів та + - * / ( )";
+  const pos = { i: 0 };
+  const v = parseExpr(toks, pos);
+  return v === null || pos.i !== toks.length ? "Некоректний вираз" : null;
+}
+
+/**
+ * Обчислення формули за значеннями числових кастомних полів запису.
+ * null = «немає даних» (жодного 0 замість відсутнього значення).
+ */
+export function evaluateFormula(formula: string, numericValues: Record<string, number | null>): number | null {
+  const toks = tokenize(formula, numericValues);
+  if (!toks || !toks.length) return null;
+  const pos = { i: 0 };
+  const v = parseExpr(toks, pos);
+  if (v === null || pos.i !== toks.length || !Number.isFinite(v)) return null;
+  return v;
+}
+
+const NUMERIC_TYPES: readonly CustomFieldType[] = ["number", "money", "percentage"];
+
+/** Обчислює всі formula-поля запису з уже прочитаних значень. */
+export function computeFormulaValues(
+  fields: readonly { key: string; def: CustomFieldDef }[],
+  values: Record<string, unknown>,
+): Record<string, number | null> {
+  const nums: Record<string, number | null> = {};
+  for (const f of fields) {
+    if (!NUMERIC_TYPES.includes(f.def.type)) continue;
+    const v = values[f.key];
+    nums[f.key] = typeof v === "number" && Number.isFinite(v) ? v : null;
+  }
+  const out: Record<string, number | null> = {};
+  for (const f of fields) {
+    if (f.def.type !== "formula" || !f.def.formula) continue;
+    out[f.key] = evaluateFormula(f.def.formula, nums);
+  }
+  return out;
+}
