@@ -111,6 +111,11 @@ function FieldRow({ entity, entityId, fieldKey, def, value, computed, employees,
           {draft && !employees.some((p) => p.id === draft) && <option value={draft}>{String(draft)}</option>}
         </select>);
       case "file": case "image": return <Input inputMode="url" placeholder="https://…" value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
+      case "relation": return (
+        <div className="space-y-1">
+          <Input value={draft ?? ""} onChange={(e) => setDraft(e.target.value.trim() || null)} placeholder="ID запису (UUID)" className="font-mono" />
+          <p className="text-[11px] text-muted-foreground">Зв'язок зберігається як ID запису ({def.relation_entity ?? "запис"}). Вибір зі списку поки недоступний.</p>
+        </div>);
       case "date": return <Input type="date" value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
       case "datetime": return <Input type="datetime-local" value={draft ? String(draft).slice(0, 16) : ""} onChange={(e) => setDraft(e.target.value)} />;
       default: return <Input value={draft ?? ""} onChange={(e) => setDraft(e.target.value)} />;
@@ -137,6 +142,7 @@ function FieldRow({ entity, entityId, fieldKey, def, value, computed, employees,
             computed === null
               ? <span className="text-muted-foreground text-xs">немає даних</span>
               : <span title={def.formula}>{computed.toLocaleString("uk-UA", { maximumFractionDigits: 2 })}</span>)
+            : def.type === "relation" ? (value ? <span className="font-mono text-xs" title="ID пов'язаного запису">ID: {String(value)}</span> : "—")
             : def.type === "employee" ? (value ? (employees.find((p) => p.id === value)?.label ?? String(value)) : "—")
             : (def.type === "file" || def.type === "image") && value ? <a className="underline" href={String(value)} target="_blank" rel="noreferrer">Відкрити</a>
             : display(def, value, label)}

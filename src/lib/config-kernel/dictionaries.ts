@@ -11,17 +11,19 @@ export interface ExternalDictionary {
   table: string;
   /** Де редагується авторитетне джерело. */
   adminHint: string;
+  /** Маршрут авторитетного розділу (якщо існує). */
+  adminRoute?: "/settings" | "/clients" | "/marketing/channels" | "/crm" | "/marketing/leads" | "/warehouse";
   archivable: boolean;
 }
 
 /** Існуючі авторитетні довідники ERP (джерело правди — їхні таблиці). */
 export const EXTERNAL_DICTIONARIES: readonly ExternalDictionary[] = [
-  { code: "close_reasons", label: "Причини закриття", table: "close_reasons", adminHint: "Налаштування → Причини закриття", archivable: true },
-  { code: "client_groups", label: "Групи клієнтів", table: "client_groups", adminHint: "Клієнти", archivable: false },
-  { code: "crm_sources", label: "Джерела / канали CRM", table: "marketing_channels", adminHint: "Маркетинг → Канали", archivable: true },
-  { code: "crm_pipelines", label: "Воронки CRM", table: "crm_pipelines", adminHint: "CRM → Воронки", archivable: true },
-  { code: "lead_reasons", label: "Причини дискваліфікації лідів", table: "marketing_lead_reasons", adminHint: "Маркетинг", archivable: true },
-  { code: "units", label: "Одиниці виміру складу", table: "stock_item_pack_units", adminHint: "Склад", archivable: false },
+  { code: "close_reasons", label: "Причини закриття", table: "close_reasons", adminHint: "Налаштування → Компанія → Причини закриття", adminRoute: "/settings", archivable: true },
+  { code: "client_groups", label: "Групи клієнтів", table: "client_groups", adminHint: "Клієнти", adminRoute: "/clients", archivable: false },
+  { code: "crm_sources", label: "Джерела / канали CRM", table: "marketing_channels", adminHint: "Маркетинг → Канали", adminRoute: "/marketing/channels", archivable: true },
+  { code: "crm_pipelines", label: "Воронки CRM", table: "crm_pipelines", adminHint: "CRM → Воронки", adminRoute: "/crm", archivable: true },
+  { code: "lead_reasons", label: "Причини дискваліфікації лідів", table: "marketing_lead_reasons", adminHint: "Маркетинг → Ліди", adminRoute: "/marketing/leads", archivable: true },
+  { code: "units", label: "Одиниці виміру складу", table: "stock_item_pack_units", adminHint: "Склад", adminRoute: "/warehouse", archivable: false },
 ];
 
 const EXTERNAL_CODES = new Set(EXTERNAL_DICTIONARIES.map((d) => d.code));

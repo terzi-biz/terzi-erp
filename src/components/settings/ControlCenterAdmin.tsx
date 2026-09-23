@@ -2,22 +2,26 @@
  * Settings Control Center (Wave 2): модулі, сутності й поля, довідники.
  * Усі зміни — через config kernel: чернетка → перегляд змін → публікація.
  */
-import { useMemo, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Plus, Archive, Eye, Send, Save, Trash2, Boxes, Database, ListTree } from "lucide-react";
+import { Search, Plus, Archive, Eye, Send, Save, Trash2, Boxes, Database, ListTree, History, Undo2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { saveConfigDraft, previewConfigDraft, publishConfig } from "@/lib/config-kernel/config.functions";
-import { listConfigAdmin, discardConfigDraft, type AdminConfigRow } from "@/lib/config-kernel/control-plane.functions";
+import { saveConfigDraft, previewConfigDraft, publishConfig, rollbackConfig } from "@/lib/config-kernel/config.functions";
+import { listConfigAdmin, discardConfigDraft, listConfigScopeRoles, listConfigHistory, type AdminConfigRow } from "@/lib/config-kernel/control-plane.functions";
 import { TERZI_MODULES } from "@/lib/modules";
 import { ENTITIES } from "@/lib/config-kernel/registries";
 import { CUSTOM_FIELD_ENTITIES, CUSTOM_FIELD_TYPES, CUSTOM_FIELD_TYPE_LABEL, customKeyCollision, FIELD_KEY_RE, formulaSyntaxError, type CustomFieldEntity } from "@/lib/config-kernel/custom-fields";
 import { EXTERNAL_DICTIONARIES } from "@/lib/config-kernel/dictionaries";
 
-const SCOPE = { type: "company" as const, id: "terzi" };
+type Scope = { type: "company" | "role"; id: string };
+const COMPANY: Scope = { type: "company", id: "terzi" };
+const ScopeCtx = createContext<Scope>(COMPANY);
+const useScope = () => useContext(ScopeCtx);
 type Kind = "module_overlay" | "custom_field" | "dictionary";
 type Section = "modules" | "fields" | "dictionaries";
 
@@ -29,10 +33,10 @@ function useKind(kind: Kind) {
 }
 
 /** Поточний стан ключа: чернетка (якщо є) поверх опублікованого. */
-function byKey(rows: AdminConfigRow[] | undefined) {
+function byKey(rows: AdminConfigRow[] | undefined, scope: Scope) {
   const m = new Map<string, { draft?: AdminConfigRow; published?: AdminConfigRow }>();
   for (const r of rows ?? []) {
-    if (r.scope_type !== SCOPE.type || r.scope_id !== SCOPE.id) continue;
+    if (r.scope_type !== scope.type || r.scope_id !== scope.id) continue;
     const e = m.get(r.key) ?? {};
     if (r.status === "draft") e.draft = r; else e.published = r;
     m.set(r.key, e);
@@ -40,7 +44,8 @@ function byKey(rows: AdminConfigRow[] | undefined) {
   return m;
 }
 
-function StatusBadge({ e }: { e?: { draft?: AdminConfigRow; published?: AdminConfigRow } }) {
+function StatusBadge({ e, inherited }: { e?: { draft?: AdminConfigRow; published?: AdminConfigRow }; inherited?: boolean }) {
+  if (!e && inherited) return <span className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground">успадковано від компанії</span>;
   if (!e) return <span className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground">код за замовчуванням</span>;
   return (
     <span className="flex gap-1">
@@ -57,8 +62,10 @@ function Lifecycle({ kind, cfgKey, payload, hasDraft, onDone }: { kind: Kind; cf
   const prev = useServerFn(previewConfigDraft);
   const pub = useServerFn(publishConfig);
   const disc = useServerFn(discardConfigDraft);
+  const scope = useScope();
   const [diff, setDiff] = useState<Awaited<ReturnType<typeof prev>> | null>(null);
-  const target = { kind, key: cfgKey, scope: SCOPE };
+  const [showHistory, setShowHistory] = useState(false);
+  const target = { kind, key: cfgKey, scope };
   const refresh = () => { qc.invalidateQueries({ queryKey: ["config-admin", kind] }); qc.invalidateQueries({ queryKey: ["config"] }); qc.invalidateQueries({ queryKey: ["custom-fields"] }); };
   const err = (e: any) => toast.error(e?.message ?? "Помилка");
   const mSave = useMutation({ mutationFn: () => save({ data: { ...target, payload } }), onSuccess: () => { toast.success("Чернетку збережено"); setDiff(null); refresh(); }, onError: err });
@@ -72,7 +79,9 @@ function Lifecycle({ kind, cfgKey, payload, hasDraft, onDone }: { kind: Kind; cf
         <Button size="sm" variant="outline" onClick={() => mPrev.mutate()} disabled={!hasDraft || mPrev.isPending}><Eye className="h-3.5 w-3.5 mr-1" />Переглянути зміни</Button>
         <Button size="sm" onClick={() => mPub.mutate()} disabled={!hasDraft || mPub.isPending}><Send className="h-3.5 w-3.5 mr-1" />Опублікувати</Button>
         {hasDraft && <Button size="sm" variant="ghost" onClick={() => mDisc.mutate()}><Trash2 className="h-3.5 w-3.5 mr-1" />Скасувати чернетку</Button>}
+        <Button size="sm" variant="ghost" onClick={() => setShowHistory(!showHistory)}><History className="h-3.5 w-3.5 mr-1" />Історія</Button>
       </div>
+      {showHistory && <HistoryPanel kind={kind} cfgKey={cfgKey} onChanged={refresh} />}
       {diff && (
         <div className="rounded-md border border-border bg-muted/40 p-2 text-xs space-y-1">
           <div className="font-semibold">Чернетка v{diff.draftVersion} проти {diff.publishedVersion ? `v${diff.publishedVersion}` : "коду за замовчуванням"}</div>
@@ -86,8 +95,65 @@ function Lifecycle({ kind, cfgKey, payload, hasDraft, onDone }: { kind: Kind; cf
   );
 }
 
+const fmtDt = (v: string | null) => v ? new Intl.DateTimeFormat("uk-UA", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Kyiv" }).format(new Date(v)) : "—";
+const STATUS_UA: Record<string, string> = { draft: "чернетка", published: "опубліковано", superseded: "попередня", discarded: "скасована" };
+
+/** Історія версій ключа у поточному скоупі + rollback через існуючий lifecycle. */
+function HistoryPanel({ kind, cfgKey, onChanged }: { kind: Kind; cfgKey: string; onChanged: () => void }) {
+  const scope = useScope();
+  const hist = useServerFn(listConfigHistory);
+  const rb = useServerFn(rollbackConfig);
+  const q = useQuery({ queryKey: ["config-history", kind, cfgKey, scope.type, scope.id], queryFn: () => hist({ data: { kind, key: cfgKey, scope } }) });
+  const m = useMutation({
+    mutationFn: (v: number) => rb({ data: { kind, key: cfgKey, scope, toVersion: v } }),
+    onSuccess: () => { toast.success("Відкат виконано — створено нову опубліковану версію"); q.refetch(); onChanged(); },
+    onError: (e: any) => toast.error(e?.message ?? "Помилка"),
+  });
+  if (q.isLoading) return <div className="text-xs text-muted-foreground">Завантаження історії…</div>;
+  const rows = q.data ?? [];
+  if (!rows.length) return <div className="text-xs text-muted-foreground">Версій у цьому скоупі ще немає — діє код за замовчуванням.</div>;
+  return (
+    <div className="rounded-md border border-border overflow-x-auto">
+      <table className="w-full min-w-[560px] text-xs">
+        <thead className="bg-muted/50 text-muted-foreground"><tr><th className="p-1.5 text-left">Версія</th><th className="p-1.5 text-left">Стан</th><th className="p-1.5 text-left">Хто / коли</th><th className="p-1.5 text-left">Примітка</th><th className="p-1.5" /></tr></thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.id} className="border-t border-border">
+              <td className="p-1.5 font-mono">v{r.version}{r.basedOn ? ` ← v${r.basedOn}` : ""}</td>
+              <td className="p-1.5">{STATUS_UA[r.status] ?? r.status}</td>
+              <td className="p-1.5">{r.publisher ?? r.author ?? "—"} · {fmtDt(r.publishedAt ?? r.createdAt)}</td>
+              <td className="p-1.5 text-muted-foreground">{r.note ?? ""}</td>
+              <td className="p-1.5 text-right">
+                {r.status === "superseded" && <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => { if (confirm(`Відкотити до v${r.version}? Буде створено нову версію.`)) m.mutate(r.version); }}><Undo2 className="h-3 w-3 mr-1" />Відкотити</Button>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function ScopeSelector({ scope, onChange }: { scope: Scope; onChange: (s: Scope) => void }) {
+  const fn = useServerFn(listConfigScopeRoles);
+  const { data: roles } = useQuery({ queryKey: ["config-scope-roles"], queryFn: () => fn(), staleTime: 5 * 60_000 });
+  const value = scope.type === "company" ? "company" : `role:${scope.id}`;
+  return (
+    <label className="text-xs flex flex-wrap items-center gap-2">
+      <span className="font-semibold">Рівень налаштування:</span>
+      <select className="h-9 rounded-md border border-input bg-background px-2 text-sm" value={value}
+        onChange={(e) => onChange(e.target.value === "company" ? COMPANY : { type: "role", id: e.target.value.slice(5) })}>
+        <option value="company">Компанія (усі)</option>
+        {(roles ?? []).map((r) => <option key={r.key} value={`role:${r.key}`}>Роль: {r.name}</option>)}
+      </select>
+      {scope.type === "role" && <span className="text-muted-foreground">Перевизначає налаштування компанії лише для цієї ролі.</span>}
+    </label>
+  );
+}
+
 export function ControlCenterAdmin({ canEdit }: { canEdit: boolean }) {
   const [section, setSection] = useState<Section>("modules");
+  const [scope, setScope] = useState<Scope>(COMPANY);
   const [q, setQ] = useState("");
   const cards: { id: Section; label: string; icon: typeof Boxes; hint: string }[] = [
     { id: "modules", label: "Модулі", icon: Boxes, hint: "Підписи UA/RU, активність, порядок, ролі, пристрої" },
@@ -96,7 +162,9 @@ export function ControlCenterAdmin({ canEdit }: { canEdit: boolean }) {
   ];
   if (!canEdit) return <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">Керування конфігурацією доступне адміністратору (право «Керування налаштуваннями»).</div>;
   return (
+    <ScopeCtx.Provider value={scope}>
     <div className="space-y-4">
+      <ScopeSelector scope={scope} onChange={setScope} />
       <div className="grid gap-2 sm:grid-cols-3">
         {cards.map((c) => (
           <button key={c.id} type="button" onClick={() => setSection(c.id)}
@@ -114,26 +182,30 @@ export function ControlCenterAdmin({ canEdit }: { canEdit: boolean }) {
       {section === "fields" && <FieldsSection q={q} />}
       {section === "dictionaries" && <DictionariesSection q={q} />}
     </div>
+    </ScopeCtx.Provider>
   );
 }
 
 /* ---------------- Modules ---------------- */
 function ModulesSection({ q }: { q: string }) {
   const { data } = useKind("module_overlay");
-  const map = useMemo(() => byKey(data), [data]);
+  const scope = useScope();
+  const map = useMemo(() => byKey(data, scope), [data, scope]);
+  const base = useMemo(() => byKey(data, COMPANY), [data]);
   const [open, setOpen] = useState<string | null>(null);
   const list = TERZI_MODULES.filter((m) => !q || `${m.id} ${m.label}`.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="space-y-2">
       {list.map((m) => {
         const e = map.get(m.id);
+        const b = scope.type === "role" ? base.get(m.id) : undefined;
         return (
           <div key={m.id} className="rounded-lg border border-border bg-card">
             <button type="button" className="w-full flex flex-wrap items-center justify-between gap-2 p-3 text-left" onClick={() => setOpen(open === m.id ? null : m.id)}>
               <div><div className="font-medium text-sm">{m.label}</div><div className="text-xs text-muted-foreground font-mono">{m.id} · {m.route ?? "без маршруту"}</div></div>
-              <StatusBadge e={e} />
+              <StatusBadge e={e} inherited={!!b?.published} />
             </button>
-            {open === m.id && <ModuleEditor id={m.id} codeLabel={m.label} codeActive={m.active} initial={(e?.draft ?? e?.published)?.payload ?? {}} hasDraft={!!e?.draft} />}
+            {open === m.id && <ModuleEditor key={`${scope.type}:${scope.id}`} id={m.id} codeLabel={m.label} codeActive={m.active} initial={(e?.draft ?? e?.published ?? b?.published)?.payload ?? {}} hasDraft={!!e?.draft} />}
           </div>
         );
       })}
@@ -178,10 +250,13 @@ function ModuleEditor({ id, codeLabel, codeActive, initial, hasDraft }: { id: st
 /* ---------------- Fields ---------------- */
 function FieldsSection({ q }: { q: string }) {
   const { data } = useKind("custom_field");
-  const map = useMemo(() => byKey(data), [data]);
+  const scope = useScope();
+  const map = useMemo(() => byKey(data, scope), [data, scope]);
+  const base = useMemo(() => byKey(data, COMPANY), [data]);
   const [open, setOpen] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
-  const keys = [...map.keys()].filter((k) => !q || `${k} ${JSON.stringify((map.get(k)!.draft ?? map.get(k)!.published)?.payload)}`.toLowerCase().includes(q.toLowerCase()));
+  const allKeys = [...new Set([...base.keys(), ...map.keys()])].sort();
+  const keys = allKeys.filter((k) => !q || `${k} ${JSON.stringify(((map.get(k) ?? base.get(k))!.draft ?? (map.get(k) ?? base.get(k))!.published)?.payload)}`.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="space-y-3">
       <div className="rounded-lg border border-border bg-card p-3">
@@ -196,11 +271,13 @@ function FieldsSection({ q }: { q: string }) {
         </div>
       </div>
       <Button size="sm" onClick={() => { setCreating(!creating); setOpen(null); }}><Plus className="h-4 w-4 mr-1" />Нове поле</Button>
-      {creating && <div className="rounded-lg border border-primary/40 bg-card"><FieldEditor initial={null} hasDraft={false} /></div>}
+      {creating && scope.type === "company" && <div className="rounded-lg border border-primary/40 bg-card"><FieldEditor initial={null} hasDraft={false} /></div>}
+      {creating && scope.type === "role" && <div className="text-xs text-muted-foreground">Нові поля створюються на рівні компанії; для ролі можна лише перевизначити назву, порядок, обов'язковість чи архів.</div>}
       {keys.length === 0 && !creating && <div className="text-sm text-muted-foreground">Кастомних полів ще немає.</div>}
       {keys.map((k) => {
-        const e = map.get(k)!;
-        const p = (e.draft ?? e.published)!.payload;
+        const e = map.get(k);
+        const b = base.get(k);
+        const p = (e?.draft ?? e?.published ?? b?.draft ?? b?.published)!.payload;
         return (
           <div key={k} className="rounded-lg border border-border bg-card">
             <button type="button" className="w-full flex flex-wrap items-center justify-between gap-2 p-3 text-left" onClick={() => setOpen(open === k ? null : k)}>
@@ -208,9 +285,9 @@ function FieldsSection({ q }: { q: string }) {
                 <div className="font-medium text-sm">{p.label_uk}{p.archived ? " (архів)" : ""}</div>
                 <div className="text-xs text-muted-foreground font-mono">{k} · {CUSTOM_FIELD_TYPE_LABEL[p.type as keyof typeof CUSTOM_FIELD_TYPE_LABEL] ?? p.type}</div>
               </div>
-              <StatusBadge e={e} />
+              <StatusBadge e={e} inherited={scope.type === "role" && !!b?.published} />
             </button>
-            {open === k && <FieldEditor cfgKey={k} initial={p} hasDraft={!!e.draft} published={!!e.published} />}
+            {open === k && <FieldEditor key={`${scope.type}:${scope.id}`} cfgKey={k} initial={p} hasDraft={!!e?.draft} published={!!e?.published || !!b?.published} />}
           </div>
         );
       })}
@@ -296,7 +373,8 @@ function FieldEditor({ cfgKey, initial, hasDraft, published }: { cfgKey?: string
 /* ---------------- Dictionaries ---------------- */
 function DictionariesSection({ q }: { q: string }) {
   const { data } = useKind("dictionary");
-  const map = useMemo(() => byKey(data), [data]);
+  const scope = useScope();
+  const map = useMemo(() => byKey(data, scope), [data, scope]);
   const [open, setOpen] = useState<string | null>(null);
   const [newCode, setNewCode] = useState("");
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
@@ -308,7 +386,9 @@ function DictionariesSection({ q }: { q: string }) {
           {EXTERNAL_DICTIONARIES.filter((d) => match(`${d.code} ${d.label}`)).map((d) => (
             <div key={d.code} className="text-xs flex justify-between gap-2 rounded border border-border px-2 py-1.5">
               <span>{d.label} <span className="font-mono text-muted-foreground">{d.table}</span></span>
-              <span className="text-muted-foreground">{d.adminHint}</span>
+              {d.adminRoute
+                ? <Link to={d.adminRoute} className="text-primary inline-flex items-center gap-1 hover:underline">{d.adminHint}<ExternalLink className="h-3 w-3" /></Link>
+                : <span className="text-muted-foreground">{d.adminHint}</span>}
             </div>
           ))}
         </div>
@@ -327,7 +407,7 @@ function DictionariesSection({ q }: { q: string }) {
               <div><div className="font-medium text-sm">{p.label_uk}</div><div className="text-xs text-muted-foreground font-mono">{k} · {p.items?.length ?? 0} ел.</div></div>
               <StatusBadge e={e} />
             </button>
-            {open === k && <DictionaryEditor code={k} initial={p} hasDraft={!!e.draft} />}
+            {open === k && <DictionaryEditor key={`${scope.type}:${scope.id}`} code={k} initial={p} hasDraft={!!e.draft} />}
           </div>
         );
       })}
