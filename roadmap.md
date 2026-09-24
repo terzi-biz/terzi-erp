@@ -123,3 +123,6 @@
 - [ ] Real checks for TikTok, OLX, WhatsApp, Viber, Telegram — blocked: no tokens; GTM has only container id (no API test possible without Google Tag Manager access)
 - [ ] Instagram/Facebook split of Meta; Telegram/Viber/OLX leads on dashboard — blocked on accounts
 - [ ] Dashboard: actual leads per ad source (clicks → заявка) — needs lead attribution (0 of 2205 leads attributed now)
+- [x] W2.1 dry-run conversion pipeline (no provider sends)
+- [ ] W2.2 Google/Meta adapters in test mode — blocked: provider rows, conversion actions, META_PIXEL_ID, consent record
+- [ ] W2.3 hooks: measurement completed (2 paths), estimate, saveOrder, Finmap payment_received, keyCRM stage changes

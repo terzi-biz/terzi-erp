@@ -149,6 +149,10 @@ export const upsertLead = createServerFn({ method: "POST" })
         lead_id: out.id, actor_id: context.userId, kind: id ? "update" : "created",
         body: id ? "Лід оновлено" : "Лід створено",
       });
+      if (!id) {
+        const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
+        await safeEmitConversion({ kind: "lead_created", leadId: out.id, sourceType: "crm_leads", sourceId: out.id });
+      }
     }
     return out;
   });
@@ -174,6 +178,17 @@ export const moveLeadStage = createServerFn({ method: "POST" })
       body: `Етап змінено на «${stage?.name ?? ""}»`,
       from_stage_id: prev?.stage_id ?? null, to_stage_id: data.stage_id,
     });
+    // W2.1: best-effort dry-run конверсія (qualified/lost); помилка не ламає переміщення.
+    {
+      const { safeEmitConversion, classifyStageMove } = await import("@/lib/marketing/conversion-events.server");
+      await safeEmitConversion({ kind: "lead_qualified", leadId: data.id, sourceType: "crm_lead_stage", sourceId: data.id }, async () => {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        const cls = await classifyStageMove(supabaseAdmin as never, prev?.stage_id ?? null, data.stage_id);
+        if (!cls) return;
+        const { emitConversionEvent } = await import("@/lib/marketing/conversion-events.server");
+        await emitConversionEvent(supabaseAdmin as never, { kind: cls === "lost" ? "lead_lost" : "lead_qualified", leadId: data.id, sourceType: "crm_leads", sourceId: data.id });
+      });
+    }
     return out;
   });
 
@@ -379,6 +394,10 @@ export const convertRequestToLead = createServerFn({ method: "POST" })
       lead_id: lead.id, actor_id: context.userId, kind: "created",
       body: `Лід створено зі звернення (${req.channel})`,
     });
+    {
+      const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
+      await safeEmitConversion({ kind: "lead_created", leadId: lead.id, sourceType: "crm_leads", sourceId: lead.id });
+    }
     return { lead_id: lead.id };
   });
 
@@ -513,5 +532,9 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
       lead_id: lead.id, actor_id: context.userId, kind: "converted",
       body: `Створено замовлення ${order.number ?? ""}`.trim(),
     });
+    {
+      const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
+      await safeEmitConversion({ kind: "order_created", leadId: data.lead_id, sourceType: "orders", sourceId: order.id as string });
+    }
     return { order_id: order.id as string, number: order.number as string | null, created: true };
   });

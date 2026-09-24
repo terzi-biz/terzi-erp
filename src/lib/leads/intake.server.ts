@@ -256,6 +256,10 @@ export async function handleLeadIntake(
         console.error("intake touchpoint failed", (e as Error).message);
       }
     }
+    if (leadId && isNewLead) {
+      const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
+      await safeEmitConversion({ kind: "lead_created", leadId, sourceType: "crm_leads", sourceId: leadId, occurredAt: touchAt });
+    }
 
     // 5. Заявка (звернення)
     const { data: req, error: reqErr } = await admin
