@@ -1,7 +1,7 @@
 /**
  * Єдина інформаційна архітектура бокового меню (Prompt №3).
  *
- * Перший рівень — рівно 8 розділів. Нічого не видалено функціонально:
+ * Перший рівень — рівно 9 розділів. Нічого не видалено функціонально:
  * матеріали, роботи, логістика, обладнання, інтеграції, конструктор напрямків
  * тощо перенесені у відповідні підрозділи.
  */
@@ -125,17 +125,24 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/settings",
     roles: ["admin", "director", "finance"],
     children: [
-      { to: "/settings", label: "Загальні, податки, документи" },
+      { to: "/settings", label: "Огляд налаштувань" },
+      { to: "/settings/company", label: "Організація і компанії" },
+      { to: "/branding", label: "Брендинг" },
+      { to: "/settings/norms", label: "Норми і коефіцієнти" },
       { to: "/materials", label: "Каталог матеріалів" },
       { to: "/works", label: "Роботи" },
       { to: "/logistics", label: "Логістика" },
       { to: "/equipment", label: "Обладнання і амортизація" },
       { to: "/directions-editor", label: "Напрямки (конструктор)" },
+      { to: "/settings/finance", label: "Фінансові правила" },
+      { to: "/settings/sales-plan", label: "План продажів" },
+      { to: "/settings/access", label: "Доступи і безпека" },
       { to: "/access", label: "Користувачі та ролі" },
+      { to: "/settings/integrations", label: "Інтеграції (хаб)" },
       { to: "/integrations", label: "Інтеграції, API, webhooks" },
       { to: "/crm/intake", label: "Вхідні ліди (API webhook)" },
-
-      { to: "/branding", label: "Брендинг" },
+      { to: "/data-exchange", label: "Обмін даними" },
+      { to: "/settings/system", label: "Система і модулі" },
     ],
   },
 ];

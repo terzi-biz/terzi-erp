@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Cable, ArrowLeftRight, ArrowRight } from "lucide-react";
+import { Cable, ArrowLeftRight, ArrowRight, Megaphone, Webhook } from "lucide-react";
 
 export const Route = createFileRoute("/settings/integrations")({
   component: IntegrationsSettingsPage,
@@ -25,6 +25,16 @@ function IntegrationsSettingsPage() {
         <ArrowLeftRight className="w-5 h-5 text-primary shrink-0 mt-0.5" />
         <div><div className="font-bold text-sm flex items-center gap-1">Обмін даними <ArrowRight className="w-3.5 h-3.5" /></div>
           <p className="text-xs text-muted-foreground mt-1">Імпорт і експорт даних ERP.</p></div>
+      </Link>
+      <Link to="/crm/intake" className="panel p-4 flex items-start gap-3 hover:border-primary transition-colors">
+        <Webhook className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div><div className="font-bold text-sm flex items-center gap-1">Вхідні ліди (API webhook) <ArrowRight className="w-3.5 h-3.5" /></div>
+          <p className="text-xs text-muted-foreground mt-1">Канали приймання та журнал вхідних заявок.</p></div>
+      </Link>
+      <Link to="/marketing/integrations" className="panel p-4 flex items-start gap-3 hover:border-primary transition-colors">
+        <Megaphone className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+        <div><div className="font-bold text-sm flex items-center gap-1">Маркетинг: інтеграції <ArrowRight className="w-3.5 h-3.5" /></div>
+          <p className="text-xs text-muted-foreground mt-1">Підключення маркетингових джерел і рекламних каналів.</p></div>
       </Link>
     </div>
   );
