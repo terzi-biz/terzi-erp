@@ -116,3 +116,10 @@
 - [ ] Реальні ставки бригад (крім screed_base — потрібні від власника)
 - [x] PAYROLL_BRIDGE_SECRET збережено
 - [ ] Google Ads → дашборд конверсій (блок: у Google Ads не прийнято доступ керуючого акаунта)
+
+## Queue (24.09)
+- [x] Meta Ads → marketing dashboard (scheduled sync + 30-day backfill)
+- [ ] Rules «коли/якщо/то» on order stage change with log (Control Center) — separate large task
+- [ ] Real checks for TikTok, OLX, WhatsApp, Viber, Telegram — blocked: no tokens; GTM has only container id (no API test possible without Google Tag Manager access)
+- [ ] Instagram/Facebook split of Meta; Telegram/Viber/OLX leads on dashboard — blocked on accounts
+- [ ] Dashboard: actual leads per ad source (clicks → заявка) — needs lead attribution (0 of 2205 leads attributed now)
