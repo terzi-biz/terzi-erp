@@ -56,8 +56,9 @@ export async function assertWritableScope(scope: { type: string; id: string }) {
   if (scope.type === "company" && scope.id !== COMPANY_ID) throw new Error("Невідома компанія");
   if (scope.type === "role") {
     const db = (await admin()) as any;
-    const { data } = await db.from("access_roles").select("key").eq("key", scope.id).maybeSingle();
+    const { data } = await db.from("access_roles").select("key,is_active").eq("key", scope.id).maybeSingle();
     if (!data) throw new Error(`Роль «${scope.id}» не знайдена в довіднику ролей`);
+    if (data.is_active !== true) throw new Error(`Роль «${scope.id}» неактивна — її налаштування не редагуються`);
   }
 }
 
