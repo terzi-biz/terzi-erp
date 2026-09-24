@@ -26,8 +26,11 @@ async function logSync(db: Db, r: SyncResult, mode: string, ms: number, userId?:
     fetched: r.fetched, inserted: r.inserted, updated: r.updated, skipped: r.skipped,
     duration_ms: Math.round(ms), message: r.message ?? null, started_by: userId ?? null,
   });
+  // Зберігаємо наявний курсор: upsert без cursor не повинен його обнуляти.
+  const { data: prevState } = await db.from("finmap_sync_state").select("cursor").eq("entity", r.entity).maybeSingle();
   await db.from("finmap_sync_state").upsert({
     entity: r.entity,
+    cursor: prevState?.cursor ?? null,
     last_sync_at: new Date().toISOString(),
     ...(r.status === "ok" ? { last_success_at: new Date().toISOString(), last_error: null } : { last_error: r.message ?? "помилка" }),
     items_total: r.fetched,
@@ -334,8 +337,11 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
     fetched += ops.length;
 
     const ids = ops.map((o) => o.id);
-    const { data: existing } = await db.from("finance_transactions").select("finmap_id").in("finmap_id", ids);
+    const { data: existing } = await db.from("finance_transactions").select("finmap_id,match_status").in("finmap_id", ids);
     const known = new Set((existing ?? []).map((e: any) => e.finmap_id));
+    // Ручні/підтверджені статуси зв'язку resync не перетирає.
+    const KEEP_STATUS = new Set(["matched", "manual", "ignored"]);
+    const statusById = new Map<string, string | null>((existing ?? []).map((e: any) => [e.finmap_id as string, (e.match_status as string | null) ?? null]));
 
     const rows = ops.map((o) => {
       const proj = (o.projectIds ?? []).map((p) => prById.get(p)).find(Boolean) as any;
@@ -373,7 +379,11 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
         source: o.externalId?.startsWith("terzi:") ? "terzi" : "finmap",
         external_id: o.externalId ?? null,
         payload: o as any,
-        match_status: proj?.order_id || cp?.client_id ? "matched" : "unmatched",
+        match_status: (() => {
+          const prev = statusById.get(o.id);
+          if (prev && KEEP_STATUS.has(prev)) return prev;
+          return proj?.order_id || cp?.client_id ? "matched" : "unmatched";
+        })(),
         sync_status: "synced",
         synced_at: new Date().toISOString(),
       };
