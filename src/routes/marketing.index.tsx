@@ -171,6 +171,9 @@ function MarketingOverview() {
             <KpiCard label="CTR" value={fmtPct(view.d.ctr)} />
             <KpiCard label="CPC" value={fmtMoney(view.d.cpc)} />
             <KpiCard label="CPM" value={fmtMoney(view.d.cpm)} />
+            <KpiCard label="Конверсії (дані реклами)" value={fmtNum(view.sum.conversions)} hint="як рахує рекламний кабінет" />
+            <KpiCard label="Конверсія клік → конверсія" value={view.sum.clicks > 0 ? fmtPct((view.sum.conversions / view.sum.clicks) * 100) : "—"} />
+            <KpiCard label="Ціна конверсії" value={view.sum.conversions > 0 ? fmtMoney(view.sum.spend / view.sum.conversions) : "—"} />
             <KpiCard label="Звернення" value={fmtNum(view.requests)} />
             <KpiCard label="CPL" value={fmtMoney(view.d.cpl)} />
             <KpiCard label="Цільові ліди" value={fmtNum(view.qualified)}

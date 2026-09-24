@@ -29,6 +29,19 @@ export const Route = createFileRoute("/api/public/marketing/sync")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { syncLeadAttribution } = await import("@/lib/marketing/attribution.server");
+        let googleAds: unknown = null;
+        try {
+          const { syncGoogleAdsMetrics, googleAdsMissing } = await import("@/lib/integrations/foundation/google-ads.server");
+          if (!googleAdsMissing().length) {
+            const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 7));
+            const kyiv = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv" }).format(d);
+            const to = new Date();
+            const from = new Date(to.getTime() - (days - 1) * 86_400_000);
+            googleAds = await syncGoogleAdsMetrics({ from: kyiv(from), to: kyiv(to) });
+          } else googleAds = { skipped: "not_configured" };
+        } catch (e) {
+          googleAds = { error: e instanceof Error ? e.message : "google ads sync failed" };
+        }
         const attribution = await syncLeadAttribution(supabaseAdmin as never);
 
         let alerts: unknown = null;
@@ -49,7 +62,7 @@ export const Route = createFileRoute("/api/public/marketing/sync")({
           is_critical: false,
         } as never);
 
-        return Response.json({ ok: true, attribution, alerts, recommendations });
+        return Response.json({ ok: true, googleAds, attribution, alerts, recommendations });
       },
     },
   },

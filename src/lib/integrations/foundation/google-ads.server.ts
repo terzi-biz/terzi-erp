@@ -26,7 +26,17 @@ export function googleAdsEnv() {
   };
 }
 
+/** Підключення через Lovable connector (рекомендовано): без власного OAuth і developer token. */
+export function googleAdsGateway() {
+  const env = process.env as Record<string, string | undefined>;
+  const lovable = env.LOVABLE_API_KEY ?? null;
+  const conn = env.GOOGLE_ADS_API_KEY ?? null;
+  const customerId = (env.GOOGLE_ADS_CUSTOMER_ID ?? "").replace(/\D/g, "") || null;
+  return lovable && conn && customerId ? { lovable, conn, customerId } : null;
+}
+
 export function googleAdsMissing(): string[] {
+  if (googleAdsGateway()) return [];
   const e = googleAdsEnv();
   const missing: string[] = [];
   if (!e.clientId) missing.push("GOOGLE_OAUTH_CLIENT_ID");
@@ -62,7 +72,32 @@ export async function googleAccessToken(): Promise<string> {
   return String(json.access_token);
 }
 
+async function gaqlGateway(g: NonNullable<ReturnType<typeof googleAdsGateway>>, query: string): Promise<any[]> {
+  const rows: any[] = [];
+  let pageToken: string | undefined;
+  let guard = 0;
+  do {
+    const res = await fetch(`https://connector-gateway.lovable.dev/google_ads/v25/customers/${g.customerId}/googleAds:search`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${g.lovable}`, "X-Connection-Api-Key": g.conn },
+      body: JSON.stringify({ query, ...(pageToken ? { pageToken } : {}) }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      console.error(`Google Ads gateway [${res.status}]: ${body.slice(0, 500)}`);
+      throw new Error(`Google Ads API [${res.status}]: ${body.slice(0, 300)}`);
+    }
+    const json = (await res.json()) as any;
+    rows.push(...((json?.results ?? []) as any[]));
+    pageToken = json?.nextPageToken;
+    guard += 1;
+  } while (pageToken && guard < 20);
+  return rows;
+}
+
 async function gaqlSearch(query: string): Promise<any[]> {
+  const g = googleAdsGateway();
+  if (g) return gaqlGateway(g, query);
   const { developerToken, customerId, loginCustomerId } = googleAdsEnv();
   const missing = googleAdsMissing();
   if (missing.length) throw new Error(`Google Ads: не задано ${missing.join(", ")}`);
@@ -105,8 +140,8 @@ export async function googleAdsTestConnection(): Promise<GoogleAdsAccount> {
   );
   const c = rows[0]?.customer ?? {};
   return {
-    id: String(c.id ?? googleAdsEnv().customerId),
-    name: String(c.descriptiveName ?? `Google Ads ${googleAdsEnv().customerId}`),
+    id: String(c.id ?? googleAdsGateway()?.customerId ?? googleAdsEnv().customerId),
+    name: String(c.descriptiveName ?? `Google Ads ${googleAdsGateway()?.customerId ?? googleAdsEnv().customerId}`),
     currency: String(c.currencyCode ?? "UAH"),
     timezone: c.timeZone ? String(c.timeZone) : null,
     active: String(c.status ?? "ENABLED") === "ENABLED",
