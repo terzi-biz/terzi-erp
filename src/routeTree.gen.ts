@@ -78,7 +78,14 @@ import { Route as ReportsMarketingRouteImport } from './routes/reports.marketing
 import { Route as ReportsOperationsRouteImport } from './routes/reports.operations'
 import { Route as ReportsTasksRouteImport } from './routes/reports.tasks'
 import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsAccessRouteImport } from './routes/settings.access'
+import { Route as SettingsCompanyRouteImport } from './routes/settings.company'
+import { Route as SettingsFinanceRouteImport } from './routes/settings.finance'
+import { Route as SettingsIntegrationsRouteImport } from './routes/settings.integrations'
+import { Route as SettingsNormsRouteImport } from './routes/settings.norms'
 import { Route as SettingsSalesPlanRouteImport } from './routes/settings.sales-plan'
+import { Route as SettingsSystemRouteImport } from './routes/settings.system'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -445,9 +452,44 @@ const ReportsTelephonyRoute = ReportsTelephonyRouteImport.update({
   path: '/telephony',
   getParentRoute: () => ReportsRoute,
 } as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAccessRoute = SettingsAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsCompanyRoute = SettingsCompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsFinanceRoute = SettingsFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsIntegrationsRoute = SettingsIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsNormsRoute = SettingsNormsRouteImport.update({
+  id: '/norms',
+  path: '/norms',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsSalesPlanRoute = SettingsSalesPlanRouteImport.update({
   id: '/sales-plan',
   path: '/sales-plan',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSystemRoute = SettingsSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
   getParentRoute: () => SettingsRoute,
 } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
@@ -612,7 +654,13 @@ export interface FileRoutesByFullPath {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/access': typeof SettingsAccessRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/finance': typeof SettingsFinanceRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
+  '/settings/norms': typeof SettingsNormsRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
+  '/settings/system': typeof SettingsSystemRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -621,6 +669,7 @@ export interface FileRoutesByFullPath {
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -661,7 +710,6 @@ export interface FileRoutesByTo {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRouteWithChildren
   '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -700,7 +748,13 @@ export interface FileRoutesByTo {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/access': typeof SettingsAccessRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/finance': typeof SettingsFinanceRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
+  '/settings/norms': typeof SettingsNormsRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
+  '/settings/system': typeof SettingsSystemRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -709,6 +763,7 @@ export interface FileRoutesByTo {
   '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
   '/reports': typeof ReportsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -790,7 +845,13 @@ export interface FileRoutesById {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/access': typeof SettingsAccessRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/finance': typeof SettingsFinanceRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
+  '/settings/norms': typeof SettingsNormsRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
+  '/settings/system': typeof SettingsSystemRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -799,6 +860,7 @@ export interface FileRoutesById {
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
   '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -881,7 +943,13 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/access'
+    | '/settings/company'
+    | '/settings/finance'
+    | '/settings/integrations'
+    | '/settings/norms'
     | '/settings/sales-plan'
+    | '/settings/system'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -890,6 +958,7 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/production/'
     | '/reports/'
+    | '/settings/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -930,7 +999,6 @@ export interface FileRouteTypes {
     | '/roofing_pvc'
     | '/roofing_rub'
     | '/screed'
-    | '/settings'
     | '/warehouse'
     | '/works'
     | '/.mcp/list-tools'
@@ -969,7 +1037,13 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/access'
+    | '/settings/company'
+    | '/settings/finance'
+    | '/settings/integrations'
+    | '/settings/norms'
     | '/settings/sales-plan'
+    | '/settings/system'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -978,6 +1052,7 @@ export interface FileRouteTypes {
     | '/orders'
     | '/production'
     | '/reports'
+    | '/settings'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -1058,7 +1133,13 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/access'
+    | '/settings/company'
+    | '/settings/finance'
+    | '/settings/integrations'
+    | '/settings/norms'
     | '/settings/sales-plan'
+    | '/settings/system'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -1067,6 +1148,7 @@ export interface FileRouteTypes {
     | '/orders/'
     | '/production/'
     | '/reports/'
+    | '/settings/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -1650,11 +1732,60 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsTelephonyRouteImport
       parentRoute: typeof ReportsRoute
     }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/access': {
+      id: '/settings/access'
+      path: '/access'
+      fullPath: '/settings/access'
+      preLoaderRoute: typeof SettingsAccessRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/company': {
+      id: '/settings/company'
+      path: '/company'
+      fullPath: '/settings/company'
+      preLoaderRoute: typeof SettingsCompanyRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/finance': {
+      id: '/settings/finance'
+      path: '/finance'
+      fullPath: '/settings/finance'
+      preLoaderRoute: typeof SettingsFinanceRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/integrations': {
+      id: '/settings/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof SettingsIntegrationsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/norms': {
+      id: '/settings/norms'
+      path: '/norms'
+      fullPath: '/settings/norms'
+      preLoaderRoute: typeof SettingsNormsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/sales-plan': {
       id: '/settings/sales-plan'
       path: '/sales-plan'
       fullPath: '/settings/sales-plan'
       preLoaderRoute: typeof SettingsSalesPlanRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/system': {
+      id: '/settings/system'
+      path: '/system'
+      fullPath: '/settings/system'
+      preLoaderRoute: typeof SettingsSystemRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/.lovable/oauth/consent': {
@@ -1809,11 +1940,25 @@ const ReportsRouteWithChildren =
   ReportsRoute._addFileChildren(ReportsRouteChildren)
 
 interface SettingsRouteChildren {
+  SettingsAccessRoute: typeof SettingsAccessRoute
+  SettingsCompanyRoute: typeof SettingsCompanyRoute
+  SettingsFinanceRoute: typeof SettingsFinanceRoute
+  SettingsIntegrationsRoute: typeof SettingsIntegrationsRoute
+  SettingsNormsRoute: typeof SettingsNormsRoute
   SettingsSalesPlanRoute: typeof SettingsSalesPlanRoute
+  SettingsSystemRoute: typeof SettingsSystemRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
 }
 
 const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccessRoute: SettingsAccessRoute,
+  SettingsCompanyRoute: SettingsCompanyRoute,
+  SettingsFinanceRoute: SettingsFinanceRoute,
+  SettingsIntegrationsRoute: SettingsIntegrationsRoute,
+  SettingsNormsRoute: SettingsNormsRoute,
   SettingsSalesPlanRoute: SettingsSalesPlanRoute,
+  SettingsSystemRoute: SettingsSystemRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
 }
 
 const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
