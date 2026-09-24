@@ -181,6 +181,7 @@ function MarketingOverview() {
             <KpiCard label="Конверсії (дані реклами)" value={fmtNum(view.sum.conversions)} hint="як рахує рекламний кабінет" />
             <KpiCard label="Конверсія клік → конверсія" value={view.sum.clicks > 0 ? fmtPct((view.sum.conversions / view.sum.clicks) * 100) : "—"} />
             <KpiCard label="Ціна конверсії" value={view.sum.conversions > 0 ? fmtMoney(view.sum.spend / view.sum.conversions) : "—"} />
+            <KpiCard label="Клік → заявка CRM" value={view.sum.clicks > 0 ? fmtPct((view.attributedRequests / view.sum.clicks) * 100) : "—"} hint={`заявок з кампаній: ${view.attributedRequests}`} />
             <KpiCard label="Звернення" value={fmtNum(view.requests)} />
             <KpiCard label="CPL" value={fmtMoney(view.d.cpl)} />
             <KpiCard label="Цільові ліди" value={fmtNum(view.qualified)}
@@ -234,20 +235,46 @@ function MarketingOverview() {
               </div>
             </Panel>
 
-            <Panel title="Кампанії за витратою">
+            <div className="lg:col-span-2">
+            <Panel title="Заявки й конверсії по кампаніях" action={<span className="text-[10px] text-muted-foreground">конверсії — з рекламного кабінету, заявки — з CRM</span>}>
               {view.byCampaign.length ? (
-                <div className="space-y-1.5">
-                  {view.byCampaign.slice(0, 8).map(([id, v]) => (
-                    <div key={id} className="flex items-center justify-between text-xs border-b border-border/60 pb-1.5">
-                      <span className="truncate">{campaignName(id)}</span>
-                      <span className="tabular-nums shrink-0 ml-2">
-                        {fmtMoney(v.spend)} · {v.requests} звернень {v.requests === 0 && v.spend > 0 ? <span className="text-destructive font-bold">без результату</span> : null}
-                      </span>
-                    </div>
-                  ))}
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="text-muted-foreground">
+                      <tr>
+                        <th className="text-left py-1">Кампанія</th><th className="text-left">Канал</th>
+                        <th className="text-right">Витрата</th><th className="text-right">Кліки</th>
+                        <th className="text-right">Конверсії</th><th className="text-right">Клік → конв.</th>
+                        <th className="text-right">Заявки CRM</th><th className="text-right">Клік → заявка</th>
+                        <th className="text-right">Цільові</th><th className="text-right">CPL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {view.byCampaign.slice(0, 20).map(([id, v]) => (
+                        <tr key={id} className="border-t border-border/60">
+                          <td className="py-1.5 max-w-[220px] truncate">{campaignName(id)}</td>
+                          <td>{v.channelId ? channelName(v.channelId) : "—"}</td>
+                          <td className="text-right tabular-nums">{fmtMoney(v.spend)}</td>
+                          <td className="text-right tabular-nums">{fmtNum(v.clicks)}</td>
+                          <td className="text-right tabular-nums">{fmtNum(v.conversions)}</td>
+                          <td className="text-right tabular-nums">{v.clicks ? fmtPct((v.conversions / v.clicks) * 100) : "—"}</td>
+                          <td className="text-right tabular-nums font-semibold">
+                            {v.requests}{v.requests === 0 && v.spend > 0 ? <span className="ml-1 text-destructive">немає прив'язаних</span> : null}
+                          </td>
+                          <td className="text-right tabular-nums">{v.clicks ? fmtPct((v.requests / v.clicks) * 100) : "—"}</td>
+                          <td className="text-right tabular-nums">{v.qualified}</td>
+                          <td className="text-right tabular-nums">{v.requests && v.spend ? fmtMoney(v.spend / v.requests) : "—"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="mt-2 text-[10px] text-muted-foreground">
+                    Заявок з прив'язкою до кампанії: {fmtNum(view.attributedRequests)} з {fmtNum(view.requests)}. Заявки без мітки кампанії (UTM / click ID) не приписуються жодній кампанії.
+                  </p>
                 </div>
-              ) : <EmptyState text="Немає витрат за період" />}
+              ) : <EmptyState text="Немає даних по кампаніях за період" />}
             </Panel>
+            </div>
 
             <Panel title="Нові необроблені ліди" action={<Link to="/marketing/leads" className="text-xs text-primary font-semibold">Усі ліди</Link>}>
               {view.unhandled.length ? (
