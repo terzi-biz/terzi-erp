@@ -108,7 +108,7 @@ function Lifecycle({ kind, cfgKey, payload, hasDraft, onDone }: { kind: Kind; cf
         {hasDraft && <Button size="sm" variant="ghost" onClick={() => mDisc.mutate()}><Trash2 className="h-3.5 w-3.5 mr-1" />Скасувати чернетку</Button>}
         <Button size="sm" variant="ghost" onClick={() => setShowHistory(!showHistory)}><History className="h-3.5 w-3.5 mr-1" />Історія</Button>
       </div>
-      <NoteDialog open={confirmPub} title="Опублікувати чернетку?" pending={mPub.isPending}
+      <NoteDialog open={confirmPub} required title="Опублікувати чернетку?" pending={mPub.isPending}
         description={`Зміни «${cfgKey}» набудуть чинності для ${scope.type === "company" ? "всієї компанії" : `ролі ${scope.id}`}. Попередня версія лишиться в історії.`}
         onCancel={() => setConfirmPub(false)} onConfirm={(n) => mPub.mutate(n)} />
       {showHistory && <HistoryPanel kind={kind} cfgKey={cfgKey} onChanged={refresh} />}
