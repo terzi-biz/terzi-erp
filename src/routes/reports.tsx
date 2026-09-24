@@ -12,6 +12,7 @@ export const REPORT_TABS = [
   { to: "/reports/tasks", label: "Задачі" },
   { to: "/reports/telephony", label: "Телефонія" },
   { to: "/reports/finmap", label: "Finmap" },
+  { to: "/reports/counterparties", label: "Контрагенти" },
   { to: "/reports/marketing", label: "Marketing" },
   { to: "/reports/operations", label: "Operations" },
   { to: "/reports/finance", label: "Finance" },
