@@ -42,6 +42,19 @@ export const Route = createFileRoute("/api/public/marketing/sync")({
         } catch (e) {
           googleAds = { error: e instanceof Error ? e.message : "google ads sync failed" };
         }
+        let metaAds: unknown = null;
+        try {
+          if (process.env["META_ADS_ACCESS_TOKEN"] && process.env["META_ADS_ACCOUNT_ID"]) {
+            const { syncMetaInsights } = await import("@/lib/integrations/foundation/meta-ads.server");
+            const days = Math.min(90, Math.max(1, Number(new URL(request.url).searchParams.get("days")) || 7));
+            const kyiv = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/Kyiv" }).format(d);
+            const to = new Date();
+            const from = new Date(to.getTime() - (days - 1) * 86_400_000);
+            metaAds = await syncMetaInsights({ from: kyiv(from), to: kyiv(to) });
+          } else metaAds = { skipped: "not_configured" };
+        } catch (e) {
+          metaAds = { error: e instanceof Error ? e.message : "meta ads sync failed" };
+        }
         const attribution = await syncLeadAttribution(supabaseAdmin as never);
 
         let alerts: unknown = null;
@@ -62,7 +75,7 @@ export const Route = createFileRoute("/api/public/marketing/sync")({
           is_critical: false,
         } as never);
 
-        return Response.json({ ok: true, googleAds, attribution, alerts, recommendations });
+        return Response.json({ ok: true, googleAds, metaAds, attribution, alerts, recommendations });
       },
     },
   },
