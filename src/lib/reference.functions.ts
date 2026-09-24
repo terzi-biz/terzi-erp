@@ -32,8 +32,8 @@ export const saveCompanyRequisite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => companyRequisiteInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { requirePermission, admin } = await import("@/lib/access.server");
-    await requirePermission(context.userId, "settings", "manage_settings");
+    const { requirePermission, admin, writeAudit } = await import("@/lib/access.server");
+    const actor = await requirePermission(context.userId, "settings", "manage_settings");
     const db = (await admin()) as any; // права перевірено канонічно вище
     const { data: prev, error: e0 } = await db
       .from("company_requisites")
@@ -59,6 +59,7 @@ export const saveCompanyRequisite = createServerFn({ method: "POST" })
         .neq("code", data.code)
         .is("archived_at", null);
     }
+    await writeAudit(actor, { module: "settings", action: "company_requisite.save", entityType: "company_requisite", entityId: String(out.id), entityLabel: `${data.code} v${version}`, oldValue: null, newValue: out, reason: null, isCritical: false }).catch((e) => console.error("audit", e));
     return out;
   });
 
@@ -67,14 +68,15 @@ export const archiveCompanyRequisite = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => archiveInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { requirePermission, admin } = await import("@/lib/access.server");
-    await requirePermission(context.userId, "settings", "manage_settings");
+    const { requirePermission, admin, writeAudit } = await import("@/lib/access.server");
+    const actor = await requirePermission(context.userId, "settings", "manage_settings");
     const db = (await admin()) as any; // права перевірено канонічно вище
     const { error } = await db
       .from("company_requisites")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.id);
     if (error) { console.error("archiveCompanyRequisite", error); throw new Error("Не вдалося змінити стан запису"); }
+    await writeAudit(actor, { module: "settings", action: "company_requisite.archive", entityType: "company_requisite", entityId: data.id, entityLabel: null, oldValue: null, newValue: { archived: data.archived }, reason: null, isCritical: false }).catch((e) => console.error("audit", e));
     return { ok: true };
   });
 
@@ -94,14 +96,15 @@ export const saveCloseReason = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => closeReasonInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { requirePermission, admin } = await import("@/lib/access.server");
-    await requirePermission(context.userId, "settings", "manage_settings");
+    const { requirePermission, admin, writeAudit } = await import("@/lib/access.server");
+    const actor = await requirePermission(context.userId, "settings", "manage_settings");
     const db = (await admin()) as any; // права перевірено канонічно вище
     const { id, ...fields } = data;
     const { data: out, error } = id
       ? await db.from("close_reasons").update(fields).eq("id", id).select().single()
       : await db.from("close_reasons").insert({ ...fields, created_by: context.userId }).select().single();
     if (error) { console.error("saveCloseReason", error); throw new Error("Не вдалося зберегти причину закриття"); }
+    await writeAudit(actor, { module: "settings", action: "close_reason.save", entityType: "close_reason", entityId: String(out.id), entityLabel: null, oldValue: null, newValue: out, reason: null, isCritical: false }).catch((e) => console.error("audit", e));
     return out;
   });
 
@@ -109,14 +112,15 @@ export const archiveCloseReason = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => archiveInput.parse(d))
   .handler(async ({ data, context }) => {
-    const { requirePermission, admin } = await import("@/lib/access.server");
-    await requirePermission(context.userId, "settings", "manage_settings");
+    const { requirePermission, admin, writeAudit } = await import("@/lib/access.server");
+    const actor = await requirePermission(context.userId, "settings", "manage_settings");
     const db = (await admin()) as any; // права перевірено канонічно вище
     const { error } = await db
       .from("close_reasons")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
       .eq("id", data.id);
     if (error) { console.error("archiveCloseReason", error); throw new Error("Не вдалося змінити стан запису"); }
+    await writeAudit(actor, { module: "settings", action: "close_reason.archive", entityType: "close_reason", entityId: data.id, entityLabel: null, oldValue: null, newValue: { archived: data.archived }, reason: null, isCritical: false }).catch((e) => console.error("audit", e));
     return { ok: true };
   });
 
