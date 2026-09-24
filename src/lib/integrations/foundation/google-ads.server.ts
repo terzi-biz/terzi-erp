@@ -12,7 +12,7 @@
  */
 import process from "node:process";
 
-const API_VERSION = "v25";
+export const API_VERSION = "v25";
 
 export function googleAdsEnv() {
   const env = process.env as Record<string, string | undefined>;
