@@ -201,6 +201,8 @@ export async function handleLeadIntake(
       leadId = (openLead as { id: string } | null)?.id ?? null;
     }
 
+    const touchAt = attribution.last_touch_at ?? new Date().toISOString();
+    const isNewLead = !leadId;
     if (!leadId) {
       const { data: pipe } = await admin
         .from("crm_pipelines").select("id")
@@ -237,7 +239,22 @@ export async function handleLeadIntake(
       if (error) throw error;
       leadId = (lead as { id: string } | null)?.id ?? null;
     } else {
-      await admin.from("crm_leads").update({ last_touch_at: new Date().toISOString() }).eq("id", leadId);
+      // Існуючий лід: first-touch атрибуція (utm, first_touch_at) не перезаписується.
+      await admin.from("crm_leads").update({ last_touch_at: touchAt }).eq("id", leadId);
+    }
+
+    // 4b. Точка дотику з атрибуцією (click id окремо). Помилка не блокує заявку.
+    if (leadId) {
+      try {
+        const { recordIntakeTouchpoint } = await import("@/lib/marketing/touchpoints.server");
+        await recordIntakeTouchpoint(admin as never, {
+          leadId, contactId, isNewLead, occurredAt: touchAt,
+          utm: { ...(payload.utm ?? {}), ...attributionJson },
+          source: payload.source ?? provider, campaign: payload.campaign ?? null,
+        });
+      } catch (e) {
+        console.error("intake touchpoint failed", (e as Error).message);
+      }
     }
 
     // 5. Заявка (звернення)
