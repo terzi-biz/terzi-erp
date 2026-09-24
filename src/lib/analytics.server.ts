@@ -1,3 +1,4 @@
+import { isQualifyingTransition } from "@/lib/crm/qualification";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Sb = SupabaseClient<any, any, any>;
@@ -57,7 +58,7 @@ function dashboardOverviewFromData(d: Awaited<ReturnType<typeof loadDashboardDat
   for (const a of d.activities) {
     const from = stageById.get(a.from_stage_id); const to = stageById.get(a.to_stage_id);
     const initial = from ? initialByPipeline.get(from.pipeline_id) : null;
-    if (from && to && initial?.id === from.id && n(to.sort_order) > n(from.sort_order)) progressed.add(a.lead_id);
+    if (isQualifyingTransition(from, to, initial?.id)) progressed.add(a.lead_id);
   }
   const qualified = (l: any) => {
     return progressed.has(l.id);
@@ -156,7 +157,7 @@ export async function drilldown(sb: Sb, p: DrilldownParams): Promise<DrilldownRo
 async function dashboardOverviewFromLoaded(d: any, p: DrilldownParams) {
   const stageById = new Map<string, any>(d.stages.map((s: any) => [s.id, s]));
   const initial = new Map<string, any>(); d.stages.slice().sort((a: any, b: any) => n(a.sort_order) - n(b.sort_order)).forEach((s: any) => { if (!initial.has(s.pipeline_id)) initial.set(s.pipeline_id, s); });
-  const progressed = new Set(d.activities.filter((a: any) => { const x = stageById.get(a.from_stage_id); const y = stageById.get(a.to_stage_id); return x && y && initial.get(x.pipeline_id)?.id === x.id && n(y.sort_order) > n(x.sort_order); }).map((a: any) => a.lead_id));
+  const progressed = new Set(d.activities.filter((a: any) => { const x = stageById.get(a.from_stage_id); const y = stageById.get(a.to_stage_id); return isQualifyingTransition(x, y, initial.get(x?.pipeline_id)?.id); }).map((a: any) => a.lead_id));
   const isQualified = (l: any) => progressed.has(l.id);
   const leads = d.leads.filter((l: any) => inRange(l.created_at, p.from, p.to) && (!p.pipelineId || l.pipeline_id === p.pipelineId) && (!p.source || normalizedSource(l.source) === p.source) && (!p.managerId || l.assigned_to === p.managerId) && (!p.direction || l.direction === p.direction) && (!p.orderId || l.order_id === p.orderId) && (!p.status || l.status === p.status));
   const leadIds = new Set(leads.map((l: any) => l.id)); const orderIds = new Set(leads.map((l: any) => l.order_id).filter(Boolean));
