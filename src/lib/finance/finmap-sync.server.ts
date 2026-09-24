@@ -337,11 +337,13 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
     fetched += ops.length;
 
     const ids = ops.map((o) => o.id);
-    const { data: existing } = await db.from("finance_transactions").select("finmap_id,match_status").in("finmap_id", ids);
+    const { data: existing } = await db.from("finance_transactions")
+      .select("finmap_id,match_status,order_id,client_id")
+      .in("finmap_id", ids);
     const known = new Set((existing ?? []).map((e: any) => e.finmap_id));
-    // Ручні/підтверджені статуси зв'язку resync не перетирає.
-    const KEEP_STATUS = new Set(["matched", "manual", "ignored"]);
-    const statusById = new Map<string, string | null>((existing ?? []).map((e: any) => [e.finmap_id as string, (e.match_status as string | null) ?? null]));
+    // Ручні/підтверджені зв'язки resync не перетирає.
+    const prevById = new Map<string, any>((existing ?? []).map((e: any) => [e.finmap_id as string, e]));
+    const KEEP = new Set(["matched", "manual", "ignored"]);
 
     const rows = ops.map((o) => {
       const proj = (o.projectIds ?? []).map((p) => prById.get(p)).find(Boolean) as any;
@@ -373,15 +375,23 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
         category_id: catById.get(o.categoryId ?? "") ?? null,
         counterparty_id: cp?.id ?? null,
         finance_project_id: proj?.id ?? null,
-        order_id: proj?.order_id ?? null,
-        client_id: cp?.client_id ?? null,
+        order_id: (() => {
+          const prev = prevById.get(o.id);
+          if (prev && KEEP.has(prev.match_status) && prev.order_id) return prev.order_id;
+          return proj?.order_id ?? null;
+        })(),
+        client_id: (() => {
+          const prev = prevById.get(o.id);
+          if (prev && KEEP.has(prev.match_status) && prev.client_id) return prev.client_id;
+          return cp?.client_id ?? null;
+        })(),
         comment: o.comment ?? null,
         source: o.externalId?.startsWith("terzi:") ? "terzi" : "finmap",
         external_id: o.externalId ?? null,
         payload: o as any,
         match_status: (() => {
-          const prev = statusById.get(o.id);
-          if (prev && KEEP_STATUS.has(prev)) return prev;
+          const prev = prevById.get(o.id);
+          if (prev && KEEP.has(prev.match_status)) return prev.match_status;
           return proj?.order_id || cp?.client_id ? "matched" : "unmatched";
         })(),
         sync_status: "synced",
