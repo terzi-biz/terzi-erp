@@ -9104,6 +9104,65 @@ export type Database = {
           },
         ]
       }
+      sales_plan_managers: {
+        Row: {
+          month: string
+          target: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          month: string
+          target?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          month?: string
+          target?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_plan_managers_month_fkey"
+            columns: ["month"]
+            isOneToOne: false
+            referencedRelation: "sales_plan_months"
+            referencedColumns: ["month"]
+          },
+        ]
+      }
+      sales_plan_months: {
+        Row: {
+          admin_unlocked: boolean
+          company_target: number
+          created_by: string | null
+          locked_at: string | null
+          month: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          admin_unlocked?: boolean
+          company_target?: number
+          created_by?: string | null
+          locked_at?: string | null
+          month: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          admin_unlocked?: boolean
+          company_target?: number
+          created_by?: string | null
+          locked_at?: string | null
+          month?: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       screed_config: {
         Row: {
           created_at: string
