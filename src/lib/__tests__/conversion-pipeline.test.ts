@@ -25,7 +25,7 @@ describe("conversion pipeline W2.1", () => {
     expect(buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", click: {} }).ready).toBe(false);
   });
   it("no consent => no hashed identity", () => {
-    const d = buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", click: { fbclid: "F" }, phoneE164: "+380501234567", email: "a@b.c" });
+    const d = buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", click: { fbclid: "F" }, fbclidAt: "2026-09-20T08:00:00Z", phoneE164: "+380501234567", email: "a@b.c" });
     expect((d.payload as any).user_data).not.toHaveProperty("ph");
     expect((d.payload as any).user_data).not.toHaveProperty("em");
     expect(buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", click: {}, phoneE164: "+380501234567" }).ready).toBe(false);
