@@ -161,3 +161,17 @@ export function classifyCandidates(
   for (const l of metaLeads) meta.add(l.id);
   return { dryRun: true as const, googleCandidates: google.size, metaCandidates: meta.size, rejectedNoIdentity: rejected };
 }
+
+/** Класифікація переходу етапу за канонічним правилом кваліфікації. */
+export async function classifyStageMove(db: Db, fromStageId: string | null, toStageId: string): Promise<"qualified" | "lost" | null> {
+  const { data: to } = await db.from("crm_stages").select("id, pipeline_id, sort_order, is_lost, is_active").eq("id", toStageId).maybeSingle();
+  if (!to) return null;
+  if ((to as any).is_lost) return "lost";
+  if (!fromStageId) return null;
+  const { data: stages } = await db.from("crm_stages").select("id, pipeline_id, sort_order, is_lost, is_active").eq("pipeline_id", (to as any).pipeline_id);
+  const list = ((stages ?? []) as any[]).filter((s) => s.is_active !== false);
+  const { isQualifyingTransition, initialStageByPipeline } = await import("@/lib/crm/qualification");
+  const initial = initialStageByPipeline(list).get(String((to as any).pipeline_id ?? ""));
+  const from = list.find((s) => s.id === fromStageId) ?? null;
+  return isQualifyingTransition(from, to as any, initial?.id) ? "qualified" : null;
+}
