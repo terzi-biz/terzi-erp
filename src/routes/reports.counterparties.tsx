@@ -25,7 +25,7 @@ export const Route = createFileRoute("/reports/counterparties")({
 });
 
 function CounterpartiesReport() {
-  const period = useReportPeriod();
+  const { period } = useReportPeriod();
   const [search, setSearch] = useState("");
   const fn = useServerFn(listCounterpartyLedger);
   const { data, isLoading } = useQuery({
@@ -35,7 +35,7 @@ function CounterpartiesReport() {
 
   return (
     <div className="space-y-4">
-      <PeriodBar {...period} />
+      <PeriodBar />
 
       {isLoading ? (
         <div className="panel p-6 text-sm text-muted-foreground inline-flex items-center gap-2">
