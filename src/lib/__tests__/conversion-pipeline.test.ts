@@ -4,7 +4,7 @@ import { isQualifyingTransition } from "../crm/qualification";
 import { emitConversionEvent, safeEmitConversion, classifyCandidates, resolveSendMode } from "../marketing/conversion-events.server";
 
 const sha = (s: string) => `h(${s})`;
-const base = { sourceType: "crm_leads", sourceId: "L1", occurredAt: "2026-09-24T10:00:00Z", adUserDataConsent: "unknown" as const, origin: "crm" as const, sha256: sha };
+const base = { sourceType: "crm_leads", sourceId: "L1", occurredAt: "2026-09-24T10:00:00Z", adUserDataConsent: "unknown" as const, origin: "crm" as const, sha256: sha, clickAt: { gclid: "2026-09-20T00:00:00Z", gbraid: "2026-09-20T00:00:00Z", wbraid: "2026-09-20T00:00:00Z" } };
 
 describe("conversion pipeline W2.1", () => {
   it("idempotency key stable and distinct", () => {
@@ -16,12 +16,13 @@ describe("conversion pipeline W2.1", () => {
   });
   it("google click id priority, none invented", () => {
     expect(pickGoogleClickId({ gclid: "G", gbraid: "B", wbraid: "W" })).toEqual({ type: "gclid", value: "G" });
-    expect(pickGoogleClickId({ gbraid: "B", wbraid: "W" })).toEqual({ type: "gbraid", value: "B" });
+    expect(pickGoogleClickId({ gbraid: "B", wbraid: "W" })).toEqual({ type: "wbraid", value: "W" });
+    expect(pickGoogleClickId({ gbraid: "B", wbraid: "W" }, "APP")).toEqual({ type: "gbraid", value: "B" });
     expect(pickGoogleClickId({ wbraid: "W" })).toEqual({ type: "wbraid", value: "W" });
     expect(pickGoogleClickId({})).toBeNull();
     const d = buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", click: { gbraid: "B", wbraid: "W" } });
-    expect(d.payload).toMatchObject({ click_id_type: "gbraid", gbraid: "B" });
-    expect(d.payload).not.toHaveProperty("wbraid");
+    expect(d.payload).toMatchObject({ click_id_type: "wbraid", wbraid: "W" });
+    expect(d.payload).not.toHaveProperty("gbraid");
     expect(buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", click: {} }).ready).toBe(false);
   });
   it("no consent => no hashed identity", () => {
@@ -42,7 +43,7 @@ describe("conversion pipeline W2.1", () => {
       expect(g.payload?.conversion_value).toBeUndefined();
       expect(m.payload?.custom_data).toBeUndefined();
     }
-    const p = buildConversionDraft({ ...base, provider: "google_ads", kind: "payment_received", click: { gclid: "G" }, paymentAmount: 1500 });
+    const p = buildConversionDraft({ ...base, provider: "google_ads", kind: "payment_received", sourceType: "finance_transactions", click: { gclid: "G" }, paymentAmount: 1500 });
     expect(p.payload).toMatchObject({ conversion_value: 1500, currency_code: "UAH" });
     expect(buildConversionDraft({ ...base, provider: "google_ads", kind: "payment_received", click: { gclid: "G" } }).ready).toBe(false);
   });
@@ -56,7 +57,7 @@ describe("conversion pipeline W2.1", () => {
   it("not configured => nothing enqueued; duplicate lifecycle event not re-queued", async () => {
     const fake = (rows: any[]) => {
       const q: any = { select: () => q, in: () => q, eq: () => q, order: () => q, limit: () => q,
-        maybeSingle: async () => ({ data: { id: "L1", phone_e164: null, utm: { gclid: "G" }, external_id: null, contact_id: null } }),
+        maybeSingle: async () => ({ data: { id: "L1", phone_e164: null, utm: { gclid: "G" }, external_id: null, contact_id: null, first_touch_at: "2026-01-01T00:00:00Z" } }),
         then: (r: any) => r({ data: rows }) };
       return { from: (t: string) => (t === "integrations" ? { ...q, then: (r: any) => r({ data: rows }) } : { ...q, then: (r: any) => r({ data: [] }) }) } as any;
     };

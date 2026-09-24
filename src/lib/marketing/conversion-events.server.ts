@@ -51,6 +51,7 @@ export type LeadAttribution = {
   adUserDataConsent: ConsentState;
   /** Час реального дотику з fbclid (touchpoint або first_touch_at ліда, якщо fbclid у первинній атрибуції). */
   fbclidAt: string | null;
+  clickAt: { gclid: string | null; gbraid: string | null; wbraid: string | null };
   origin: "website" | "crm";
 };
 
@@ -67,6 +68,11 @@ export async function loadLeadAttribution(db: Db, leadId: string): Promise<LeadA
     const v = String(utm[k] ?? "").trim();
     return v || null;
   };
+  const clickAt = { gclid: null, gbraid: null, wbraid: null } as Record<"gclid" | "gbraid" | "wbraid", string | null>;
+  for (const k of ["gclid", "gbraid", "wbraid"] as const) {
+    const tp = ((tps ?? []) as any[]).find((t) => t?.[k]);
+    clickAt[k] = tp ? tp.occurred_at ?? null : String(utm[k] ?? "").trim() ? (lead as any).first_touch_at ?? null : null;
+  }
   let fbclidAt: string | null = null;
   const fbTp = ((tps ?? []) as any[]).find((t) => t?.fbclid);
   if (fbTp) fbclidAt = fbTp.occurred_at ?? null;
@@ -85,6 +91,7 @@ export async function loadLeadAttribution(db: Db, leadId: string): Promise<LeadA
     // Згода лише явна (форма/CMP). Відсутність запису = unknown, не denied.
     adUserDataConsent: normalizeConsent(utm.ad_user_data_consent),
     fbclidAt,
+    clickAt,
     origin: utm.landing_url ? "website" : "crm",
   };
 }
@@ -110,7 +117,7 @@ export async function emitConversionEvent(db: Db, input: EmitInput, deps?: EmitD
     if (resolveSendMode(cfg.config) === "off") { out.push({ provider: cfg.provider_key, outcome: "off" }); continue; }
     const draft = buildConversionDraft({
       provider: cfg.provider_key, kind: input.kind, sourceType: input.sourceType, sourceId: input.sourceId,
-      occurredAt, click: attr.click, adUserDataConsent: attr.adUserDataConsent, fbclidAt: attr.fbclidAt,
+      occurredAt, click: attr.click, adUserDataConsent: attr.adUserDataConsent, fbclidAt: attr.fbclidAt, clickAt: attr.clickAt, environment: attr.origin === "website" ? "WEB" : null,
       phoneE164: attr.phoneE164, email: attr.email, metaLeadId: attr.metaLeadId,
       paymentAmount: input.paymentAmount, currency: input.currency, origin: attr.origin, sha256,
     });
