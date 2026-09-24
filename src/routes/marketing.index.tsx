@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState, KpiCard, fmtMoney, fmtNum, fmtPct } from "@/components/marketing/MarketingShell";
 import { getMarketingOverview, listMarketingRefs, runAlertRules, resolveAlert, createTaskFromMarketing } from "@/lib/marketing.functions";
 import { sumMetrics, derived, deltaPct, kpiStatus, romi, buildFunnel, num } from "@/lib/marketing/kpi";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/marketing/")({
   ssr: false,
@@ -139,22 +140,21 @@ function MarketingOverview() {
       title="Огляд"
       subtitle="Витрата → клік → звернення → цільовий лід → замір → КП → договір → прибуток → ROMI"
       actions={
-        <button
+        <Button
           onClick={async () => {
             const res = await runRules({}).catch((e: Error) => { toast.error(e.message); return null; });
             if (res) { toast.success(`Перевірено правил: ${res.checked}, нових попереджень: ${res.created}`); qc.invalidateQueries({ queryKey: ["mkt"] }); }
           }}
-          className="rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground">
+          size="sm">
           Перевірити правила
-        </button>
+        </Button>
       }
     >
-      <div className="flex flex-wrap gap-1.5">
+      <div className="dashboard-toolbar toolbar-scroll p-2">
         {PRESETS.map((p) => (
-          <button key={p.key} onClick={() => setPreset(p.key)}
-            className={`rounded-md px-3 py-1.5 text-xs font-semibold border ${preset === p.key ? "bg-secondary border-primary" : "border-border text-muted-foreground"}`}>
+          <Button key={p.key} onClick={() => setPreset(p.key)} size="sm" variant={preset === p.key ? "default" : "ghost"}>
             {p.label}
-          </button>
+          </Button>
         ))}
         <select value={channelFilter} onChange={(e) => setChannelFilter(e.target.value)}
           className="rounded-md border border-border bg-background px-2 py-1.5 text-xs">
@@ -168,7 +168,9 @@ function MarketingOverview() {
 
       {view ? (
         <>
-          <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-2">
+          <section className="space-y-3">
+            <div className="dashboard-section-title"><div><p className="crm-eyebrow">Витрати й трафік</p><h2 className="text-lg font-black">Рекламна ефективність</h2></div></div>
+            <div className="dashboard-kpi-grid">
             <KpiCard label="Витрата" value={fmtMoney(view.sum.spend)} delta={deltaPct(view.sum.spend, num(view.prev.spend))}
               hint={view.plannedBudget ? `план ${fmtMoney(view.plannedBudget)}` : "план не заданий"} status="good" />
             <KpiCard label="Освоєння плану" value={view.plannedBudget ? fmtPct((view.sum.spend / view.plannedBudget) * 100) : "—"} />
@@ -182,6 +184,11 @@ function MarketingOverview() {
             <KpiCard label="Конверсія клік → конверсія" value={view.sum.clicks > 0 ? fmtPct((view.sum.conversions / view.sum.clicks) * 100) : "—"} />
             <KpiCard label="Ціна конверсії" value={view.sum.conversions > 0 ? fmtMoney(view.sum.spend / view.sum.conversions) : "—"} />
             <KpiCard label="Клік → заявка CRM" value={view.sum.clicks > 0 ? fmtPct((view.attributedRequests / view.sum.clicks) * 100) : "—"} hint={`заявок з кампаній: ${view.attributedRequests}`} />
+            </div>
+          </section>
+          <section className="space-y-3">
+            <div className="dashboard-section-title"><div><p className="crm-eyebrow">CRM і продажі</p><h2 className="text-lg font-black">Заявки та бізнес-результат</h2></div></div>
+            <div className="dashboard-kpi-grid">
             <KpiCard label="Звернення" value={fmtNum(view.requests)} />
             <KpiCard label="CPL" value={fmtMoney(view.d.cpl)} />
             <KpiCard label="Цільові ліди" value={fmtNum(view.qualified)}
@@ -196,9 +203,10 @@ function MarketingOverview() {
             <KpiCard label="Виручка" value={fmtMoney(data?.revenue ?? 0)} />
             <KpiCard label="Валовий прибуток" value={fmtMoney(data?.grossProfit ?? 0)} status={(data?.grossProfit ?? 0) >= 0 ? "good" : "bad"} />
             <KpiCard label="ROMI" value={view.sum.spend > 0 ? fmtPct(view.romi) : "—"} status={view.romi >= 0 ? "good" : "bad"} />
-          </div>
+            </div>
+          </section>
 
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-3 lg:grid-cols-2 [&>*]:min-w-0">
             <Panel title="Вартість заявки по каналах" action={<span className="text-[10px] text-muted-foreground">порівняння із середньою CPL</span>}>
               {view.byChannel.length ? (() => {
                 const paid = view.byChannel.filter(([, v]) => v.spend > 0 && v.requests > 0);
@@ -208,8 +216,8 @@ function MarketingOverview() {
                 const maxCpl = Math.max(0, ...paid.map(([, v]) => v.spend / v.requests));
                 return (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="text-muted-foreground">
+                   <table className="dashboard-table">
+                     <thead>
                       <tr><th className="text-left py-1">Канал</th><th className="text-right">Витрата</th><th className="text-right">Заявки</th><th className="text-right">Цільові</th><th className="text-right">CPL</th><th className="text-right">Ціна цільової</th><th className="w-28 pl-3 text-left">vs середня</th></tr>
                     </thead>
                     <tbody>
@@ -264,8 +272,8 @@ function MarketingOverview() {
             <Panel title="Заявки й конверсії по кампаніях" action={<span className="text-[10px] text-muted-foreground">конверсії — з рекламного кабінету, заявки — з CRM</span>}>
               {view.byCampaign.length ? (
                 <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead className="text-muted-foreground">
+                  <table className="dashboard-table">
+                    <thead>
                       <tr>
                         <th className="text-left py-1">Кампанія</th><th className="text-left">Канал</th>
                         <th className="text-right">Витрата</th><th className="text-right">Кліки</th>
@@ -330,17 +338,17 @@ function MarketingOverview() {
                       </div>
                       <div className="flex gap-1.5 shrink-0">
                         {!a.linked_task_id ? (
-                          <button className="rounded border border-border px-2 py-1 text-[11px] font-semibold"
+                          <Button variant="outline" size="sm"
                             onClick={async () => {
                               await taskFn({ data: { kind: "alert", id: a.id, title: a.title, description: a.description ?? "" } })
                                 .then(() => { toast.success("Задачу створено"); qc.invalidateQueries({ queryKey: ["mkt"] }); })
                                 .catch((e: Error) => toast.error(e.message));
-                            }}>Задача</button>
+                            }}>Задача</Button>
                         ) : <span className="text-[11px] text-success self-center">Задача створена</span>}
-                        <button className="rounded border border-border px-2 py-1 text-[11px] font-semibold"
+                        <Button variant="outline" size="sm"
                           onClick={async () => { await resolveFn({ data: { id: a.id, status: "resolved" } }); qc.invalidateQueries({ queryKey: ["mkt"] }); }}>
                           Закрити
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   </div>

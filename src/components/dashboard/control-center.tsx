@@ -14,7 +14,7 @@ export function MetricCard({ icon: Icon, label, value, note, delta, target, tone
   const positive = delta != null && delta >= 0;
   return (
     <Button variant="outline" onClick={onClick} disabled={!onClick}
-      className={cn("crm-kpi h-auto w-full items-stretch justify-start whitespace-normal text-left hover:bg-card", `crm-kpi--${tone === "warning" ? "gold" : tone}`)}>
+      className={cn("crm-kpi h-auto w-full items-stretch justify-start whitespace-normal text-left transition-transform hover:-translate-y-0.5 hover:bg-card", `crm-kpi--${tone === "warning" ? "gold" : tone}`)}>
       <span className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3">
         <span className="crm-kpi__icon"><Icon className="h-5 w-5" /></span>
         <span className="min-w-0">
@@ -32,7 +32,7 @@ export function MetricCard({ icon: Icon, label, value, note, delta, target, tone
 }
 
 export function SectionShell({ title, eyebrow, action, children, className }: { title: string; eyebrow?: string; action?: ReactNode; children: ReactNode; className?: string }) {
-  return <section className={cn("space-y-3", className)}><header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3"><div className="min-w-0">{eyebrow ? <p className="crm-eyebrow">{eyebrow}</p> : null}<h2 className="mt-0.5 truncate text-lg font-black md:text-xl">{title}</h2></div>{action}</header>{children}</section>;
+  return <section className={cn("space-y-3", className)}><header className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3"><div className="dashboard-section-title min-w-0"><div>{eyebrow ? <p className="crm-eyebrow">{eyebrow}</p> : null}<h2 className="mt-0.5 truncate text-lg font-black md:text-xl">{title}</h2></div></div>{action}</header>{children}</section>;
 }
 
 export function FunnelCard({ stages, onOpen }: { stages: Array<{ key: string; label: string; count: number; conversion: number | null; overall: number | null }>; onOpen: (metric: string, title: string) => void }) {

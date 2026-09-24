@@ -36,7 +36,7 @@ export function PeriodBar() {
     setPeriod({ from: iso(new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days))), to: iso(now) });
   };
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="dashboard-toolbar toolbar-scroll p-2">
       {REPORT_PRESETS.map((p) => (
         <Button key={p.key} size="sm" variant="outline" onClick={() => apply(p.days)}>{p.label}</Button>
       ))}
@@ -48,9 +48,9 @@ export function PeriodBar() {
 
 export function KpiRow({ items }: { items: Array<{ label: string; value: string; note?: string }> }) {
   return (
-    <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+    <div className="dashboard-kpi-grid xl:grid-cols-4">
       {items.map((i) => (
-        <div key={i.label} className="crm-panel p-3">
+        <div key={i.label} className="crm-kpi min-h-[96px] p-3">
           <small className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{i.label}</small>
           <b className="mt-1 block font-display text-xl">{i.value}</b>
           {i.note ? <small className="mt-1 block text-[10px] text-muted-foreground">{i.note}</small> : null}
@@ -67,9 +67,9 @@ export function SummaryTable({ columns, rows, empty = "Немає даних з�
 }) {
   if (!rows.length) return <EmptyState text={empty} />;
   return (
-    <div className="crm-panel overflow-x-auto">
-      <table className="w-full min-w-[520px] text-xs">
-        <thead className="border-b border-border text-[10px] uppercase text-muted-foreground">
+    <div className="crm-panel scroll-x overflow-hidden">
+      <table className="dashboard-table min-w-[520px]">
+        <thead>
           <tr>{columns.map((c) => <th key={c.key} className={c.align === "right" ? "px-3 py-2 text-right" : "px-3 py-2 text-left"}>{c.label}</th>)}</tr>
         </thead>
         <tbody>
@@ -87,8 +87,9 @@ export function SummaryTable({ columns, rows, empty = "Немає даних з�
 export function ReportPage({ title, description, children }: { title: string; description: string; children: ReactNode }) {
   return (
     <section className="space-y-4">
-      <header>
-        <h2 className="text-xl font-black">{title}</h2>
+      <header className="dashboard-header">
+        <p className="crm-eyebrow">Центр аналітики</p>
+        <h2 className="mt-1 text-2xl font-black">{title}</h2>
         <p className="text-xs text-muted-foreground">{description}</p>
       </header>
       <PeriodBar />

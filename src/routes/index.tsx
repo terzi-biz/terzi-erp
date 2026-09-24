@@ -79,13 +79,13 @@ function Dashboard() {
   const todayLabel = new Date().toLocaleDateString("uk-UA", { timeZone: "Europe/Kyiv", day: "2-digit", month: "short", year: "numeric" });
 
   return <main className="crm-workspace min-h-full">
-    <div className="mx-auto max-w-[1280px] space-y-5 p-3 pb-12 md:p-6">
+    <div className="dashboard-page space-y-6">
       <header className="space-y-3">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <div className="flex min-w-0 items-center gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-card text-primary shadow-panel"><BarChart3 className="h-6 w-6" /></span><div className="min-w-0"><h1 className="truncate text-2xl font-black md:text-3xl">CEO Dashboard</h1><p className="truncate text-xs text-muted-foreground md:text-sm">Оперативний стан компанії сьогодні</p></div></div>
-          <Button variant="outline" className="h-12 shrink-0 gap-2 rounded-xl bg-card px-3 shadow-panel" onClick={() => setRangeKey("today")}><CalendarDays className="h-4 w-4 text-primary" /><span className="hidden text-left sm:block"><b className="block text-xs">{todayLabel}</b><small className="text-muted-foreground">Europe/Kyiv</small></span><ChevronDown className="h-3.5 w-3.5" /></Button>
+        <div className="dashboard-header grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><BarChart3 className="h-6 w-6" /></span><div className="min-w-0"><p className="crm-eyebrow">Центр керування</p><h1 className="truncate text-2xl font-black md:text-3xl">CEO Dashboard</h1><p className="truncate text-xs text-muted-foreground md:text-sm">Оперативний стан компанії сьогодні</p></div></div>
+          <Button variant="outline" className="h-12 shrink-0 gap-2 rounded-lg bg-card px-3" onClick={() => setRangeKey("today")}><CalendarDays className="h-4 w-4 text-primary" /><span className="hidden text-left sm:block"><b className="block text-xs">{todayLabel}</b><small className="text-muted-foreground">Europe/Kyiv</small></span><ChevronDown className="h-3.5 w-3.5" /></Button>
         </div>
-        <div className="sticky top-16 z-20 -mx-3 space-y-2 border-y border-border bg-background/95 px-3 py-2 backdrop-blur md:top-14 md:mx-0 md:rounded-xl md:border md:shadow-panel">
+        <div className="dashboard-toolbar sticky top-16 z-20 -mx-1 space-y-2 px-2 py-2 md:top-14 md:mx-0">
           <div className="no-scrollbar flex max-w-full gap-1 overflow-x-auto pb-0.5">{RANGES.map((r) => <Button key={r.key} size="sm" variant={rangeKey === r.key ? "default" : "ghost"} onClick={() => setRangeKey(r.key)} className="shrink-0 rounded-lg">{r.label}</Button>)}</div>
           {rangeKey === "custom" ? <div className="grid grid-cols-2 gap-2"><input aria-label="Початок періоду" type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className={selectClass} /><input aria-label="Кінець періоду" type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className={selectClass} /></div> : null}
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
