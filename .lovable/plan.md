@@ -1,110 +1,106 @@
-# TERZI Control Plane — architecture audit and wave plan
+# Wave 2 — Offline conversions to Google Ads and Meta (plan only)
 
-Audit only. No code or data changes are part of this plan. Classifications come from the repository and schema as read. Items marked "verify" still need a runtime or data check in Wave 0.
+## Summary for the owner
+The code that prepares conversion data already exists, but nothing sends it yet. There is also nothing to send today: across all leads there are 0 Google and 0 Meta click IDs, 0 Meta form leads, and 0 rows in the ERP payments table. The build work is worth doing now so that events are recorded correctly as soon as real click IDs start arriving through the Wave 1 intake. Sending itself stays switched off until you approve it and the missing credentials are in place.
 
-## 1. Capability map
+## Evidence (read-only, 24.09.2026)
+- `integrations` has rows only for `binotel` and `keycrm`. There are no `google_ads` / `meta_ads` rows.
+- `integration_events` has 4 rows. Its `integration_id`, `idempotency_key`, `entity_type`, `entity_id` and `result` columns already exist (nullable).
+- Touchpoints with gclid/gbraid/wbraid: 0; with fbclid: 0. Leads whose `utm` has a click ID: 0. `lead_intake_events` from `meta_lead_ads`: 0. `payments`: 0 rows. Actual cash lives in Finmap `finance_transactions`.
 
-| Capability | State | Existing asset to reuse |
-| --- | --- | --- |
-| Configuration store + scoped overrides | PARTIAL | `config.server.ts`, `screed_config`, `roofing_config`, `finance_core_settings`, `analytics_targets`. These are per-domain JSON rows with no scope chain |
-| Canonical module/capability registry | IMPLEMENTED (code-only) | `src/lib/modules.ts` + `core/module-registry.ts` + `modules-registry.test.ts`. It needs a DB overlay, not a second registry |
-| Entity schema registry | MISSING | `data-exchange/registry.ts` (16 KB entity list for import/export) can be reused as the seed |
-| Fields/relations metadata | PARTIAL | `input_fields`, `formulas`, `directions`, `direction_versions` (directions only); `orders.management_data` jsonb |
-| Navigation builder | MISSING (static) | `components/nav-model.ts` (8 sections), `marketing/nav.ts` |
-| Layouts/views builder | PARTIAL | `lib/dashboard/widgets.ts` personal layout; `CalcViewTabs` |
-| Workflow builder | PARTIAL | `crm_pipelines`/`crm_stages` (configurable); order statuses are enums in `orders.constants.ts`; `entity_status_history`, `order_status_history` |
-| Dictionaries/master data | REUSABLE | `ReferenceAdmin.tsx`, `reference.functions.ts`, `close_reasons`, `company_requisites`, `client_groups`, `finance_reason_codes`, `calendar-taxonomy.ts` (code) |
-| Event registry | PARTIAL | `integration_events` + `claim_integration_event()`, `auto-events.server.ts`, audit triggers. No catalogue of internal domain events |
-| Action registry | MISSING | Server functions exist but are not registered as named actions |
-| WHEN/IF/THEN rule engine | PARTIAL | `notification_rules`, `finance_rules` + `finance/rules.ts` (effective-dated). No generic engine |
-| Safe formula engine | IMPLEMENTED | `engines/formula-eval.ts` (sandboxed, used by directions); `engines/versions.ts` |
-| Metrics/KPI registry | PARTIAL | `analytics.server.ts`, `crm_kpi()`, `analytics_overview()`, `payroll_kpi_templates`, `marketing/calculator.ts`. Definitions are in code |
-| Dashboard configuration | PARTIAL | `dashboard/widgets.ts`, `control-center.tsx`, role dashboards |
-| Calendar/scheduling configuration | PARTIAL | `calendar-taxonomy.ts`, `duration-calc.ts`, `brigade_rates`, `crew_bookings`, Operations Calendar |
-| Compensation/planning configuration | PARTIAL | `compensation_scheme_versions`, `compensation_role_rules`, `finance_rules`, `payroll_*`, `FinanceRulesAdmin.tsx` (verify: several tables have RLS off) |
-| Integration configuration overlay | REUSABLE | `integrations`, `integration_providers`, `integration_field_mappings`, `integration_sync_settings`, `integrations-constants.ts` |
-| Permission/policy overlay | IMPLEMENTED | `access_roles`, `role_permissions`, `user_permission_overrides`, `user_access.scope`, `access.server.ts` (`loadActor`, `requirePermission`), `access-constants.ts` |
-| Dependency validation | MISSING | Only registry tests and `data-audit` checks |
-| Draft/validate/preview/publish/rollback | PARTIAL | `direction_versions`, estimate versions, `finance_rules` effective dates, `marketing_calculator_snapshots`. No shared lifecycle |
-| Feature flags/config packages | MISSING | `modules.active` is a code constant |
-| Settings Control Center/System Health | PARTIAL | `routes/settings.tsx` (tabs), `integrations.tsx` health, `data-audit.tsx`, `ReconciliationPanel` |
+## 1. Reusable queue / helpers (no parallel queue)
+- `integration_events` + RPC `claim_integration_event` (atomic dedupe, replay window, idempotency key).
+- `enqueueEvent` / `processEvent` / `completeEvent` / `runQueue` / `logAttempt` in `src/lib/integrations/core.server.ts`: retry backoff, stale lock, masked results.
+- `/api/public/integrations/worker` (queue tick, `INTEGRATIONS_WORKER_SECRET`).
+- Adapter registry `registerAdapter` / `getAdapter` (`adapter.server.ts`). `googleAdsAdapter` and `metaAdsAdapter` currently exist only as base contracts (`foundation/adapters.server.ts`) with no send action.
+- `src/lib/integrations/conversions.ts` → `prepareOfflineConversion()`: a pure builder, with no I/O. Its stage map (lead, qualified, measurement, estimate, order, payment) and "value only from actual payments" rule are reused.
 
-Rough coverage today: about 35–40% of ordinary business setup is admin-editable. The waves below target 85–90%.
+## 2. Google Ads offline conversions — current state
+- There is no upload code; `uploadClickConversions` / `events:ingest` are not called anywhere.
+- Auth paths already present in `foundation/google-ads.server.ts`:
+  - Lovable connector: `LOVABLE_API_KEY` + `GOOGLE_ADS_API_KEY` + `GOOGLE_ADS_CUSTOMER_ID`, used for reporting via gateway v25. This is the preferred path; it needs no developer token.
+  - Own OAuth: `GOOGLE_OAUTH_CLIENT_ID/SECRET` + `GOOGLE_ADS_REFRESH_TOKEN` + `GOOGLE_ADS_DEVELOPER_TOKEN` + `GOOGLE_ADS_LOGIN_CUSTOMER_ID`. The refresh token, developer token and login customer ID are not set as secrets.
+- Still needed:
+  - one `UPLOAD_CLICKS` conversion action per stage (numeric ID from its resource name), kept in `integrations.config` for a new `google_ads` row, not hardcoded;
+  - account auto-tagging on;
+  - the upload OAuth scope on the connector (to verify with a harmless read first).
+- Click IDs: `prepareOfflineConversion` keeps gclid/gbraid/wbraid as separate fields but picks one as the "click id". Uploads must send exactly one identifier. Priority is gclid, then gbraid, then wbraid; if more than one is present, only the chosen one is sent and the decision is logged.
 
-## 2. Design principles
+## 3. Meta Conversions API (CAPI) — current state
+- There is no send code. `prepareOfflineConversion` only builds a draft payload: `event_name`, `event_time`, `action_source: "phone_call"`, `user_data.fbc` from fbclid, `ph`/`em` hashes passed in from outside, and value only for payment.
+- Missing, to be added in the builder:
+  - `event_id` for deduplication;
+  - `action_source` choice: `system_generated` for CRM stages, `website` only when the event originated on the site;
+  - `test_event_code` support (from `integrations.config`, used only in test mode);
+  - SHA-256 with E.164 phone normalization via `src/lib/phone.ts`, and lowercase email;
+  - `lead_id` in `user_data` for Meta Lead Ads leads (`external_id` `meta_lead:<id>`).
+- Prerequisites:
+  - a `META_PIXEL_ID` / dataset ID (not set);
+  - the existing `META_ADS_ACCESS_TOKEN` must have the `ads_management` permission (or a separate system-user CAPI token);
+  - a recorded advertising consent for sending hashed phone/email. Without consent, no `ph`/`em` and only fbc/lead_id are sent.
 
-- There is one generic kernel table family, `config_*`. Each domain keeps its typed tables; the kernel stores overlays and versions, never duplicate business rows.
-- Resolution order: published override (user > role > department > branch > company > system), falling back to the code default (`modules.ts`, `nav-model.ts`, enums). With no published row, behaviour is identical to today.
-- All writes go through `createServerFn` with `requirePermission('settings','manage_settings')` and write to `audit_logs`.
-- Payloads are validated by zod schemas per config kind (the `*.schema.ts` pattern). Payloads never contain secrets; `integration_secrets` stays separate.
+## 4. Server-side hook points (one call per action, no DB triggers)
+| Event | Canonical hook |
+|---|---|
+| lead_created | `handleLeadIntake` (new lead branch), `upsertLead` (create), `convertRequestToLead` |
+| lead_qualified | `moveLeadStage`, when the target stage is flagged "qualified" in `crm_stages` config. If no such flag is configured, the event is not emitted (blocker, not a guess) |
+| lead_lost | `moveLeadStage` when `stage.is_lost` |
+| measurement_scheduled / completed | `scheduleMeasurement`, `setMeasurementStatus` (`completed`) |
+| estimate_created | `approveEstimate` / `updateEstimateStatus` → sent (first time per order only; drafts ignored) |
+| order_created | `convertLeadToOrder`, `saveOrder` (insert) |
+| payment_received | Finmap income matched to an order (`finance_transactions` + `finance_transaction_links`, match status confirmed/manual). Not the empty `payments` table |
 
-## 3. Waves (6 build turns + 1 audit turn)
+keyCRM-synced stage changes go through the same helper later, as a separate wave.
 
-### Wave 0 — Evidence baseline (read-only, 1 turn)
-- Check RLS status and grants on the RLS-off tables: `compensation_*`, `finance_core_settings`, `finance_monthly_snapshots`, `object_economics`, `asset_register`, `kpi_results_shadow`, `payroll_shadow_calculations`, `cash_reserve_policy`, `finance_cost_class_map`, `finance_reconciliation_issues`, `eligible_gross_profit_attribution`, `asset_depreciation_entries`.
-- Inventory hardcoded business arrays (statuses, sources, calendar types, nav, KPI definitions) with file:line.
-- Accept when: a P0/P1 list exists and there are no code changes. Any RLS-off P0 is fixed first as a separate safe-change turn.
+## 5. Canonical event and idempotency
+- One helper, `emitConversionEvent(db, { kind, leadId, orderId?, sourceEntity, sourceId, occurredAt, value? })`, in `src/lib/marketing/conversion-events.server.ts`.
+- It resolves attribution from the lead's first touchpoint (click IDs) and contact (phone/email), then calls `enqueueEvent` once per enabled provider:
+  - `eventType: "conversion.<kind>"`
+  - `entityType`/`entityId` set to the source record
+  - `idempotencyKey: conv:<provider>:<kind>:<lead_id|order_id>:<source_id>`
+- Once per lead: lead_created, qualified, measurement_completed, estimate_created and order_created fire once per lead/order. payment_received fires once per Finmap transaction ID. Meta `event_id` = the same key (hashed); Google `transactionId`/order ID = the same key.
+- A "no click ID and no hashed identity" check runs before enqueueing. If it fails, the event is recorded as `blocked` with a reason, so the data is visible and can be audited.
+- Retries use the existing backoff and `dead` status. Permanent provider errors (invalid click ID, expired click, >90 days) go straight to `dead` with the reason.
+- Kill switch: `integrations.enabled` + `config.send_mode` ∈ {`off`, `dry_run`, `test`, `live`}. The default is `dry_run`: the payload is built and stored but not sent.
 
-### Wave 1 — Kernel: config store, versioning, audit, flags
-- Additive tables:
-  - `config_entries`: `kind`, `key`, `scope_type`, `scope_id`, `status` (draft/published/archived), `version`, `payload` jsonb, `schema_version`, `effective_from`, `created_by`, `published_by`
-  - `config_packages`: a named bundle of entries, for export and import
-  - `config_publish_log`
-  - `feature_flags`, stored as `config_entries` with `kind='flag'`
-- `src/lib/config/` files:
-  - `resolve.server.ts`: scope resolution + code fallback
-  - `lifecycle.functions.ts`: draft → validate → preview diff → publish → rollback, where rollback republishes the prior version
-  - `schemas.ts`: zod schemas per kind
-- Reuse: `engines/versions.ts`, the `audit_logs` writer, `has_role`/`private.*` helpers.
-- Accept when: an empty store yields identical runtime, proven by tests; publishing and rolling back are audited; RLS lets admins and directors write and authenticated users read only published non-sensitive kinds.
+## 6. Value and currency truthfulness
+- **payment_received:** value = the actual Finmap income amount linked to the order, UAH. Foreign-currency rows use the stored NBU-converted amount.
+- **order_created:** no value (a contract is not cash). Optionally a `contract_value` custom field for Meta only, marked non-revenue. It is off by default and needs your approval.
+- **lead, qualified, measurement, estimate, lost:** no value. Estimate totals are never sent.
+- **lead_lost:** not uploaded to Google (no negative conversions). For Meta it is only a custom event, if you approve.
 
-### Wave 2 — Registries: modules/capabilities, entities, fields, dictionaries
-- Module overlay: `kind='module'` can override label, active, order and roles only. `modules.ts` stays the canonical id set, and unknown ids are rejected by the validator.
-- Entity registry, generated from `data-exchange/registry.ts` in code and extended with metadata.
-- Custom fields: `custom_field_defs` (entity, key, type, dictionary ref, required, visibility role) and `custom_field_values` (entity, record_id, field_id, value jsonb). No runtime DDL. `orders` typed columns stay untouched.
-- Dictionaries: generalise `ReferenceAdmin` onto a `dictionaries`/`dictionary_items` pair with versions. Existing tables (`close_reasons`, `client_groups`, CRM sources) stay authoritative and are registered, not copied.
-- Accept when: an admin can add a field to orders or leads and fill it on the card, archive a dictionary item without breaking history, and rename or hide a module without breaking routes or tests.
+## 7. Historical backfill
+- `dryRunConversionBackfill({ from, to, provider })` is read-only. It lists candidate events only for leads with a real click ID in touchpoints/`utm` or a Meta `lead_id`. It returns counts per stage, blocked reasons and the 90-day Google window.
+- Current expected result: 0 candidates, because 0 click IDs exist. A real backfill runs only after your review, through the same `emitConversionEvent` and its idempotency key.
 
-### Wave 3 — Navigation, layouts/views, dashboards, metrics
-- `kind='nav'` overlays on `nav-model.ts`: order, hide, rename, role visibility. Routes stay in code.
-- `kind='view'`: list columns, filters and card section order for orders, leads, clients and measurements.
-- `metric_definitions` registry: key, source function (whitelisted from `analytics.server.ts`), filters, unit, sensitivity (finance-protected). Dashboards reference metric keys; `dashboard/widgets.ts` reads role layouts from config.
-- Accept when: KPIs still aggregate server-side over the full dataset; protected metrics are hidden by `canViewInternalPrices`; a missing metric shows "Немає даних".
+## 8. Implementation waves
+**W2.1 (first build turn, ≤7 credits) — pipeline in dry-run, nothing sent**
+- `conversion-events.server.ts` (`emitConversionEvent`, attribution resolver).
+- Extend `prepareOfflineConversion`: single Google click ID, Meta `event_id`, `action_source`, hashing, `lead_id`.
+- Hooks in `handleLeadIntake`, `moveLeadStage` (lost / qualified-if-flagged), `setMeasurementStatus`, `convertLeadToOrder`.
+- Dry-run backfill function.
+- Tests: idempotency key stability; no click ID/identity means blocked; value only on payment; single-click-ID selection; hook failures don't break the user action.
+- Acceptance:
+  - typecheck and build pass;
+  - no outbound HTTP;
+  - events are visible as dry-run in `integration_events`.
 
-### Wave 4 — Workflows, events, actions, rules
-- `workflow_definitions`: status set, transitions, required fields and guard rule per entity. It is seeded from `orders.constants.ts` and CRM stages. Enum-backed statuses stay valid, and new statuses map to existing enums or go to custom-field status (no enum edits).
-- Event registry in code (`src/lib/config/events.ts`), emitted from the existing triggers/`auto-events.server.ts` into `integration_events`-style queue, direction `internal`.
-- Action registry: a whitelist of named server actions (create task, notify, assign, set field, create calendar event), each with a permission check.
-- Rule engine: WHEN event IF condition (`formula-eval.ts`, boolean) THEN actions. Idempotent, logged, supports dry-run. It extends `notification_rules`.
-- Excluded: no AI mutations and no finance or estimate writes from rules.
-- Accept when: a sample rule ("measurement completed → task for estimator") runs through dry-run, publish and log; a transition guard blocks invalid moves server-side.
+**W2.2 — provider adapters in test mode**
+- Google upload via connector `events:ingest` (with `adUserData` consent). Meta CAPI with `test_event_code`.
+- One harmless test event per provider after your approval.
+- Acceptance: the provider confirms test receipt.
 
-### Wave 5 — Domain overlays: calendar, compensation/planning, integrations, permissions
-- Calendar: event types and durations from `calendar-taxonomy.ts`/`duration-calc.ts` become `kind='calendar'` config, and the Operations Calendar reads the resolver.
-- Compensation/planning: builder UI on `finance_rules` + `compensation_*` with effective dates and shadow preview through the existing `compensation.ts`/`waterfall.ts`.
-- Integrations: field mapping and sync settings UI on the existing `integration_*` tables; secrets stay write-only.
-- Permissions: the matrix editor on `role_permissions`/`user_permission_overrides` gains a preview ("what can role X see").
-- Accept when: changes need no React edits, shadow results reconcile with current payroll and finance outputs, and no secret appears in exports.
+**W2.3 — payment_received from Finmap links + remaining hooks** (estimate, measurement scheduled, `saveOrder`, keyCRM).
 
-### Wave 6 — Dependency validation, Control Center, System Health
-- `validate.server.ts`: checks references (module → catalog → direction → formula; nav → route exists; rule → action/event exists; metric → source; field → dictionary) and blocks publishing when errors are found.
-- `/settings` becomes a Control Center with builder cards, draft counts, last publish, validation status, plus a System Health view (integrations freshness, data-audit, reconciliation, RLS-off count).
-- Config package export/import runs as a dry-run diff and strips secrets.
-- Accept when: publishing with a broken reference is refused with a readable reason, the full e2e smoke passes, and removing all config rows restores current behaviour.
+**W2.4 — live mode per provider** (your explicit approval), Integration Overview readiness counters.
 
-## 4. Migration risks
+## 9. Database migration
+None is required for W2.1 and W2.2. The `integration_events` columns already exist. The provider rows (`google_ads`, `meta_ads`) and conversion action IDs are data in `integrations`, created by an authorized user in Settings, not a schema change. The only possible future migration is a "qualified" flag on `crm_stages`, if no existing field can mark it (to check in W2.1).
 
-- Every change is additive: new tables only, no enum edits and no column type changes. Each migration includes GRANT, RLS and policies.
-- An override read added to hot paths (nav, calculators) needs caching: a per-request resolver plus a TanStack Query cache.
-- Custom fields in jsonb must not shadow typed `orders` columns; the validator rejects colliding keys.
-- Rules must not create loops. Guard with a depth limit, idempotency key and per-entity rate limit.
-- Existing estimate snapshots must stay immutable, so config changes never recalculate saved estimates.
-- Confidential metrics and fields need a sensitivity flag enforced server-side, not only in the UI.
-
-## 5. Verification per wave
-Each wave runs focused vitest (resolver fallback, schema validation, lifecycle), `tsgo`, build, the registry tests, and a Playwright check of `/settings` plus one affected runtime page. Nothing is published without explicit approval.
-
-## 6. Open decisions
-- Which scopes Wave 1 needs: company + role only, with branch/department/user added later. Assumed yes.
-- Whether custom order statuses are allowed, or overlays may only relabel and reorder existing enum statuses. Assumed relabel and reorder only.
-- Who can publish: admin + director. Assumed yes.
+## 10. Blockers
+- No click IDs in data yet. This depends on real traffic through the Wave 1 intake and on Google auto-tagging being on.
+- No `google_ads` / `meta_ads` rows in `integrations`.
+- Google: `UPLOAD_CLICKS` conversion actions not created; connector upload scope unverified.
+- Meta: `META_PIXEL_ID` / dataset missing; CAPI permission on the token unverified; Lead Ads webhook not yet subscribed.
+- Consent: no stored advertising-consent record for hashed phone/email. Until one exists, hashed identifiers are not sent.
+- The definition of a "qualified" stage must come from you or the stage settings.
