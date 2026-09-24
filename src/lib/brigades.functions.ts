@@ -196,13 +196,8 @@ export const pullPlanVolumes = createServerFn({ method: "POST" })
     let rows: any[] = [];
     let ref = "";
     if (data.source === "estimate") {
-      const { data: est } = await db.from("estimates").select("id,module,internal_lines").eq("order_id", data.orderId).not("approved_at", "is", null).order("approved_at", { ascending: false }).limit(1).maybeSingle();
-      if (!est) throw new Error("Немає затвердженого кошторису");
-      const { data: mappings } = await db.from("work_code_mappings").select("estimate_module,line_code,service_code,unit,active");
-      const { mapped } = mapEstimateWorks(est.module, est.internal_lines, (mappings ?? []) as any);
-      if (!mapped.length) throw new Error("Жодна позиція робіт кошторису не зіставлена з кодом роботи — налаштуйте маппінг");
-      ref = `estimate:${est.id}`;
-      rows = mapped.map((m) => ({ service_code: m.service_code, quantity: m.quantity, unit: m.unit, source_ref: `${ref}:${m.code}` }));
+      const { estimatePlanRows } = await import("./brigade-plan.server");
+      ({ rows, ref } = await estimatePlanRows(db, data.orderId));
     } else {
       if (!data.serviceCode) throw new Error("Вкажіть код роботи");
       const { data: meas } = await db.from("order_measurements").select("id,area,status").eq("order_id", data.orderId).in("status", ["done", "completed"]).order("created_at", { ascending: false }).limit(1).maybeSingle();
