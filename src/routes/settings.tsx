@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useBlocker, useNavigate } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
 import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, Cable, Grid3x3, Building2, ListX, ShieldCheck, Settings2, Calculator, Wallet, Palette, Compass, ArrowLeftRight, ArrowRight, Search } from "lucide-react";
@@ -544,6 +544,7 @@ function SettingsPage() {
           onClose={() => setImportOpen(null)}
         />
       )}
+      <Outlet />
     </div>
   );
 }
