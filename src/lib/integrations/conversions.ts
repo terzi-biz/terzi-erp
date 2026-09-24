@@ -139,9 +139,12 @@ export function conversionIdempotencyKey(provider: ConversionProvider, kind: Con
 
 export type GoogleClickId = { type: "gclid" | "gbraid" | "wbraid"; value: string } | null;
 
-/** Рівно один ідентифікатор: gclid > gbraid > wbraid. Нічого не вигадується. */
-export function pickGoogleClickId(a: { gclid?: string | null; gbraid?: string | null; wbraid?: string | null }): GoogleClickId {
-  for (const type of ["gclid", "gbraid", "wbraid"] as const) {
+export type ConversionEnvironment = "WEB" | "APP";
+
+/** Рівно один ідентифікатор. WEB (типово): gclid > wbraid > gbraid; лише явний APP: gclid > gbraid > wbraid. */
+export function pickGoogleClickId(a: { gclid?: string | null; gbraid?: string | null; wbraid?: string | null }, env: ConversionEnvironment | null = null): GoogleClickId {
+  const order = env === "APP" ? (["gclid", "gbraid", "wbraid"] as const) : (["gclid", "wbraid", "gbraid"] as const);
+  for (const type of order) {
     const v = String(a[type] ?? "").trim();
     if (v) return { type, value: v };
   }
@@ -166,6 +169,10 @@ export type ConversionDraftInput = {
   adUserDataConsent: ConsentState;
   /** Реальний час кліку/дотику, повʼязаного з fbclid. Без нього fbc не формується. */
   fbclidAt?: string | null;
+  /** Реальний час дотику для кожного Google click ID (touchpoint.occurred_at або first_touch_at). */
+  clickAt?: { gclid?: string | null; gbraid?: string | null; wbraid?: string | null };
+  /** Лише відоме середовище; null = невідомо (не вгадуємо). */
+  environment?: ConversionEnvironment | null;
   phoneE164?: string | null;
   email?: string | null;
   metaLeadId?: string | null;
@@ -198,16 +205,35 @@ export function buildConversionDraft(i: ConversionDraftInput): ConversionDraft {
   if (i.provider === "google_ads") {
     const action = KIND_ACTION[i.kind].google;
     if (!action) return { ...base, ready: false, blocked: "Подія не передається в Google Ads", payload: null };
-    const click = pickGoogleClickId(i.click);
+    if (isPayment && i.sourceType !== "finance_transactions") {
+      return { ...base, ready: false, blocked: "Оплата має посилатися на finance_transactions", payload: null };
+    }
+    const env = i.environment ?? null;
+    const click = pickGoogleClickId(i.click, env);
     if (!click) return { ...base, ready: false, blocked: "Немає gclid/gbraid/wbraid", payload: null };
+    const clickAt = i.clickAt?.[click.type] ?? null;
+    const clickMs = clickAt ? Date.parse(clickAt) : NaN;
+    const convMs = Date.parse(i.occurredAt);
+    if (!Number.isFinite(clickMs)) return { ...base, ready: false, blocked: `Немає реального часу кліку для ${click.type}`, payload: null };
+    if (!(convMs > clickMs)) return { ...base, ready: false, blocked: "Час конверсії не пізніше часу кліку", payload: null };
+    const ids: Record<string, string>[] = [];
+    if (i.adUserDataConsent === "granted") {
+      const digits = String(i.phoneE164 ?? "").replace(/\D/g, "");
+      const em = String(i.email ?? "").trim().toLowerCase();
+      if (digits) ids.push({ hashedPhoneNumber: i.sha256(`+${digits}`) });
+      if (em) ids.push({ hashedEmail: i.sha256(em) });
+    }
     return {
       ...base, ready: true, blocked: null,
       payload: {
         conversion_action: action,
         click_id_type: click.type,
         [click.type]: click.value,
+        click_at: clickAt,
         conversion_date_time: i.occurredAt,
         transaction_id: key,
+        ...(env ? { conversion_environment: env } : {}),
+        ...(ids.length ? { user_identifiers: ids.slice(0, 2) } : {}),
         ...(money ? { conversion_value: money.value, currency_code: money.currency } : {}),
         ...(i.adUserDataConsent === "unknown" ? {} : { ad_user_data_consent: i.adUserDataConsent === "granted" ? "GRANTED" : "DENIED" }),
       },

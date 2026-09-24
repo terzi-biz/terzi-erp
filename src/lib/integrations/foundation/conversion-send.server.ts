@@ -53,9 +53,8 @@ export function normalizeConversionAction(raw: unknown, customerId: string): str
   const s = String(raw ?? "").trim();
   const cid = customerId.replace(/\D/g, "");
   if (!cid) return null;
-  const m = s.match(/^customers\/(\d+)\/conversionActions\/(\d+)$/);
-  if (m) return m[1] === cid ? s : null;
-  return /^\d+$/.test(s) ? `customers/${cid}/conversionActions/${s}` : null;
+  const id = s.match(/^customers\/\d+\/conversionActions\/(\d+)$/)?.[1] ?? (/^\d+$/.test(s) ? s : null);
+  return id ? `customers/${cid}/conversionActions/${id}` : null;
 }
 
 /** ISO → "yyyy-mm-dd hh:mm:ss+00:00" (UTC, детерміновано). */
@@ -79,8 +78,12 @@ export function buildGoogleClickConversion(draft: Record<string, any>, kind: str
   if (!action) return { error: `Не налаштовано conversion_actions.${kind} (UPLOAD_CLICKS ID або resource name)` } as const;
   const dt = toGoogleDateTime(String(draft.conversion_date_time ?? ""));
   if (!dt) return { error: "Некоректний час конверсії" } as const;
+  const clickMs = draft.click_at ? Date.parse(String(draft.click_at)) : NaN;
+  if (!Number.isFinite(clickMs) || !(Date.parse(String(draft.conversion_date_time)) > clickMs)) return { error: "Немає часу кліку або конверсія не пізніше кліку" } as const;
   const conv: Record<string, unknown> = { conversionAction: action, conversionDateTime: dt, orderId: String(draft.transaction_id), [type]: draft[type] };
   if (draft.conversion_value != null && draft.currency_code) { conv.conversionValue = draft.conversion_value; conv.currencyCode = draft.currency_code; }
+  if (draft.conversion_environment === "WEB" || draft.conversion_environment === "APP") conv.conversionEnvironment = draft.conversion_environment;
+  if (draft.ad_user_data_consent === "GRANTED" && Array.isArray(draft.user_identifiers)) conv.userIdentifiers = draft.user_identifiers.slice(0, 2);
   if (draft.ad_user_data_consent) conv.consent = { adUserData: draft.ad_user_data_consent };
   return { conversion: conv } as const;
 }
