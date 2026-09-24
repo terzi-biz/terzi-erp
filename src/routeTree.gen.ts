@@ -71,6 +71,7 @@ import { Route as ProductionIdRouteImport } from './routes/production.$id'
 import { Route as ReportsIndexRouteImport } from './routes/reports.index'
 import { Route as ReportsAdministrationRouteImport } from './routes/reports.administration'
 import { Route as ReportsCeoRouteImport } from './routes/reports.ceo'
+import { Route as ReportsCounterpartiesRouteImport } from './routes/reports.counterparties'
 import { Route as ReportsFinanceRouteImport } from './routes/reports.finance'
 import { Route as ReportsFinmapRouteImport } from './routes/reports.finmap'
 import { Route as ReportsFunnelRouteImport } from './routes/reports.funnel'
@@ -417,6 +418,11 @@ const ReportsCeoRoute = ReportsCeoRouteImport.update({
   path: '/ceo',
   getParentRoute: () => ReportsRoute,
 } as any)
+const ReportsCounterpartiesRoute = ReportsCounterpartiesRouteImport.update({
+  id: '/counterparties',
+  path: '/counterparties',
+  getParentRoute: () => ReportsRoute,
+} as any)
 const ReportsFinanceRoute = ReportsFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -647,6 +653,7 @@ export interface FileRoutesByFullPath {
   '/production/$id': typeof ProductionIdRoute
   '/reports/administration': typeof ReportsAdministrationRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/counterparties': typeof ReportsCounterpartiesRoute
   '/reports/finance': typeof ReportsFinanceRoute
   '/reports/finmap': typeof ReportsFinmapRoute
   '/reports/funnel': typeof ReportsFunnelRoute
@@ -741,6 +748,7 @@ export interface FileRoutesByTo {
   '/production/$id': typeof ProductionIdRoute
   '/reports/administration': typeof ReportsAdministrationRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/counterparties': typeof ReportsCounterpartiesRoute
   '/reports/finance': typeof ReportsFinanceRoute
   '/reports/finmap': typeof ReportsFinmapRoute
   '/reports/funnel': typeof ReportsFunnelRoute
@@ -838,6 +846,7 @@ export interface FileRoutesById {
   '/production/$id': typeof ProductionIdRoute
   '/reports/administration': typeof ReportsAdministrationRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/counterparties': typeof ReportsCounterpartiesRoute
   '/reports/finance': typeof ReportsFinanceRoute
   '/reports/finmap': typeof ReportsFinmapRoute
   '/reports/funnel': typeof ReportsFunnelRoute
@@ -936,6 +945,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/reports/administration'
     | '/reports/ceo'
+    | '/reports/counterparties'
     | '/reports/finance'
     | '/reports/finmap'
     | '/reports/funnel'
@@ -1030,6 +1040,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/reports/administration'
     | '/reports/ceo'
+    | '/reports/counterparties'
     | '/reports/finance'
     | '/reports/finmap'
     | '/reports/funnel'
@@ -1126,6 +1137,7 @@ export interface FileRouteTypes {
     | '/production/$id'
     | '/reports/administration'
     | '/reports/ceo'
+    | '/reports/counterparties'
     | '/reports/finance'
     | '/reports/finmap'
     | '/reports/funnel'
@@ -1683,6 +1695,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsCeoRouteImport
       parentRoute: typeof ReportsRoute
     }
+    '/reports/counterparties': {
+      id: '/reports/counterparties'
+      path: '/counterparties'
+      fullPath: '/reports/counterparties'
+      preLoaderRoute: typeof ReportsCounterpartiesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
     '/reports/finance': {
       id: '/reports/finance'
       path: '/finance'
@@ -1913,6 +1932,7 @@ declare module '@tanstack/react-router' {
 interface ReportsRouteChildren {
   ReportsAdministrationRoute: typeof ReportsAdministrationRoute
   ReportsCeoRoute: typeof ReportsCeoRoute
+  ReportsCounterpartiesRoute: typeof ReportsCounterpartiesRoute
   ReportsFinanceRoute: typeof ReportsFinanceRoute
   ReportsFinmapRoute: typeof ReportsFinmapRoute
   ReportsFunnelRoute: typeof ReportsFunnelRoute
@@ -1926,6 +1946,7 @@ interface ReportsRouteChildren {
 const ReportsRouteChildren: ReportsRouteChildren = {
   ReportsAdministrationRoute: ReportsAdministrationRoute,
   ReportsCeoRoute: ReportsCeoRoute,
+  ReportsCounterpartiesRoute: ReportsCounterpartiesRoute,
   ReportsFinanceRoute: ReportsFinanceRoute,
   ReportsFinmapRoute: ReportsFinmapRoute,
   ReportsFunnelRoute: ReportsFunnelRoute,

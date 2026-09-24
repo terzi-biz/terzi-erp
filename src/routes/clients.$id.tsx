@@ -10,6 +10,7 @@ import { getClientDetail, upsertClient, listClientManagers } from "@/lib/clients
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 import { getCallRecording } from "@/lib/crm.functions";
 import { UnifiedTimeline } from "@/components/crm/UnifiedTimeline";
+import { CounterpartyCashflow } from "@/components/finance/CounterpartyCashflow";
 import { formatUah } from "@/lib/screed-calc";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -293,6 +294,9 @@ function ClientCard() {
 
       {tab === "finance" && (
         <div className="grid gap-4 lg:grid-cols-2">
+          <div className="lg:col-span-2">
+            <CounterpartyCashflow scope="client" id={id} title="Доходи і витрати по контрагентах" />
+          </div>
           <div className="panel p-4">
             <h2 className="font-bold text-sm mb-3">Рахунки</h2>
             {d.invoices.length ? d.invoices.map((i: any) => (

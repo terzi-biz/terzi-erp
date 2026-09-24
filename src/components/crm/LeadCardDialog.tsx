@@ -9,7 +9,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save,
-  Loader2, User, Plus, Briefcase, Radar,
+  Loader2, User, Plus, Briefcase, Radar, Banknote,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
@@ -18,6 +18,7 @@ import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 import { CustomFieldsCard } from "@/components/config/CustomFieldsCard";
 import { SourceTrace } from "@/components/crm/SourceTrace";
+import { CounterpartyCashflow } from "@/components/finance/CounterpartyCashflow";
 import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
@@ -46,7 +47,7 @@ export function LeadCardDialog({
   const lead = data?.lead ?? null;
   const [form, setForm] = useState<any>({});
   const [fields, setFields] = useState<Record<string, any>>({});
-  const [tab, setTab] = useState<"comments" | "tasks" | "calls" | "history" | "sources">("comments");
+  const [tab, setTab] = useState<"comments" | "tasks" | "calls" | "history" | "sources" | "finance">("comments");
   const [note, setNote] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDue, setTaskDue] = useState("");
@@ -235,6 +236,7 @@ export function LeadCardDialog({
               <div className="flex gap-1 border-b border-border px-2 py-2">
                 {([["comments", "Коментарі", MessageSquare], ["tasks", "Задачі", CheckSquare],
                    ["calls", "Дзвінки", PhoneCall], ["sources", "Джерела", Radar],
+                   ["finance", "Гроші", Banknote],
                    ["history", "Історія", History]] as const).map(([k, l, Icon]) => (
                   <button key={k} onClick={() => setTab(k)}
                     className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
@@ -270,6 +272,8 @@ export function LeadCardDialog({
                 ) : null}
 
                 {tab === "sources" ? <SourceTrace leadId={leadId} /> : null}
+
+                {tab === "finance" ? <CounterpartyCashflow scope="lead" id={leadId} compact /> : null}
 
 
                 {tab === "history" ? (

@@ -23,6 +23,7 @@ import { useInternalAccess } from "@/lib/useInternalAccess";
 import { formatUah } from "@/lib/screed-calc";
 import { getOrderPnl } from "@/lib/finance.functions";
 import { getOrderFinance } from "@/lib/finance/order-finance.functions";
+import { CounterpartyCashflow } from "@/components/finance/CounterpartyCashflow";
 import { OrderReceivables } from "@/components/finance/OrderReceivables";
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 
@@ -767,6 +768,8 @@ function FinanceTab({ o }: { o: any }) {
 
       {f && (
         <>
+          <CounterpartyCashflow scope="order" id={o.id} title="Гроші по контрагентах обʼєкта" />
+
           <OrderReceivables orderId={o.id} />
 
           <div className="grid md:grid-cols-4 gap-3">

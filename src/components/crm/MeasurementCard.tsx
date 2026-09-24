@@ -15,6 +15,7 @@ import {
 import { crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 import { SourceTrace } from "@/components/crm/SourceTrace";
+import { CounterpartyCashflow } from "@/components/finance/CounterpartyCashflow";
 
 export const MEASUREMENT_STATUS_TONE: Record<MeasurementStatus, string> = {
   planned: "bg-muted text-muted-foreground",
@@ -291,6 +292,8 @@ export function MeasurementCard({
           {row.status !== "completed" ? (
             <p className="text-center text-[11px] text-muted-foreground">Кошторис доступний після завершення заміру.</p>
           ) : null}
+
+          <CounterpartyCashflow scope="measurement" id={row.id} title="Гроші по обʼєкту заміру" compact />
         </div>
       </div>
     </div>
