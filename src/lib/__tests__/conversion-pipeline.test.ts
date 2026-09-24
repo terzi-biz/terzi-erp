@@ -51,6 +51,7 @@ describe("conversion pipeline W2.1", () => {
     expect(isQualifyingTransition(newS, work, "n")).toBe(true);
     expect(isQualifyingTransition(newS, lost, "n")).toBe(false);
     expect(isQualifyingTransition(work, { id: "x", sort_order: 3 }, "n")).toBe(false);
+    expect(isQualifyingTransition(newS, { id: "i", sort_order: 5, is_active: false }, "n")).toBe(false);
   });
   it("not configured => nothing enqueued; duplicate lifecycle event not re-queued", async () => {
     const fake = (rows: any[]) => {

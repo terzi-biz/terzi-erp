@@ -4,7 +4,7 @@
  * активний робочий етап далі (sort_order більший). Прямий перехід з початкового
  * етапу в «Втрачено/Закрито» — не кваліфікований.
  */
-export type StageLite = { id: string; pipeline_id?: string | null; sort_order?: number | null; is_lost?: boolean | null };
+export type StageLite = { id: string; pipeline_id?: string | null; sort_order?: number | null; is_lost?: boolean | null; is_active?: boolean | null };
 
 const n = (v: unknown) => Number(v ?? 0) || 0;
 
@@ -16,6 +16,7 @@ export function isQualifyingTransition(
   if (!from || !to || !initialStageId) return false;
   if (from.id !== initialStageId) return false;
   if (to.is_lost) return false;
+  if (to.is_active === false) return false;
   return n(to.sort_order) > n(from.sort_order);
 }
 
