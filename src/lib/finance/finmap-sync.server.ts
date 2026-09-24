@@ -303,7 +303,12 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
   if (opts.from) startDate = Date.parse(`${opts.from}T00:00:00Z`);
   else {
     const { data: st } = await db.from("finmap_sync_state").select("cursor").eq("entity", "operations").maybeSingle();
-    if (st?.cursor) startDate = Date.parse(st.cursor);
+    if (st?.cursor) {
+      // Захист від курсора в майбутньому: не пізніше початку завтрашньої доби UTC.
+      const d = new Date(); d.setUTCHours(0, 0, 0, 0);
+      const tomorrow = d.getTime() + 86_400_000;
+      startDate = Math.min(Date.parse(st.cursor), tomorrow, Date.now() - 86_400_000);
+    }
   }
   const endDate = opts.to ? Date.parse(`${opts.to}T23:59:59Z`) : undefined;
 
@@ -382,9 +387,9 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
   }
 
   if (maxDate) {
-    // Курсор із перекриттям в 1 добу — щоб не втратити операції, змінені заднім числом.
+    // Курсор = least(max_op_date, now) − 1 доба. Майбутні (планові) операції не зсувають курсор уперед.
     await db.from("finmap_sync_state").upsert(
-      { entity: "operations", cursor: new Date(maxDate - 86_400_000).toISOString() },
+      { entity: "operations", cursor: new Date(Math.min(maxDate, Date.now()) - 86_400_000).toISOString() },
       { onConflict: "entity" },
     );
   }
