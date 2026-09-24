@@ -12,7 +12,7 @@ export const periodFilter = z.object({
   category_id: uuid.nullish(),
   account_id: uuid.nullish(),
   kind: z.enum(["all", "income", "expense", "transfer"]).default("all"),
-  match_status: z.enum(["all", "matched", "unmatched", "needs_review"]).default("all"),
+  match_status: z.enum(["all", "matched", "unmatched", "needs_review", "ignored"]).default("all"),
   search: z.string().max(200).optional(),
   limit: z.number().int().min(1).max(500).default(200),
   offset: z.number().int().min(0).default(0),
@@ -40,8 +40,9 @@ export const linkTransactionInput = z.object({
   client_id: uuid.nullish(),
   counterparty_id: uuid.nullish(),
   category_id: uuid.nullish(),
-  status: z.enum(["matched", "needs_review", "unmatched"]).default("matched"),
-});
+  status: z.enum(["matched", "needs_review", "unmatched", "ignored"]).default("matched"),
+  reason: z.string().trim().min(3).max(300).optional(),
+}).refine((d) => d.status !== "ignored" || !!d.reason, { message: "Вкажіть причину (3–300 символів)", path: ["reason"] });
 
 export const payrollProfileInput = z.object({
   id: uuid.optional(),

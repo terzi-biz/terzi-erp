@@ -107,7 +107,7 @@ const KIND_TABS = [
 export function OperationsSection({ period, initialKind = "all" }: { period: Period; initialKind?: "all" | "income" | "expense" | "transfer" }) {
   const [kind, setKind] = useState<"all" | "income" | "expense" | "transfer">(initialKind);
   const [search, setSearch] = useState("");
-  const [matchStatus, setMatchStatus] = useState<"all" | "matched" | "unmatched">("all");
+  const [matchStatus, setMatchStatus] = useState<"all" | "matched" | "unmatched" | "needs_review" | "ignored">("all");
   const fn = useServerFn(listFinanceTransactions);
   const { data, isLoading } = useQuery({
     queryKey: ["fin-tx", period.from, period.to, kind, search, matchStatus],
@@ -128,6 +128,8 @@ export function OperationsSection({ period, initialKind = "all" }: { period: Per
           <option value="all">Усі зв'язки</option>
           <option value="matched">Пов'язані</option>
           <option value="unmatched">Без зв'язку</option>
+          <option value="needs_review">На перевірку</option>
+          <option value="ignored">Не потребує зв'язку</option>
         </select>
       </div>
 
@@ -166,7 +168,7 @@ export function OperationsSection({ period, initialKind = "all" }: { period: Per
                     {r.order?.number ? <Link to="/orders/$id" params={{ id: r.order_id }} className="text-primary">{r.order.number}</Link> : "—"}
                   </td>
                   <td className="px-3 py-2 text-xs max-w-[240px] truncate">{r.comment ?? "—"}</td>
-                  <td className="px-3 py-2 text-[11px] text-muted-foreground">{r.source === "finmap" ? "Finmap" : "ERP"} · {r.match_status === "matched" ? "зв'язано" : "без зв'язку"}</td>
+                  <td className="px-3 py-2 text-[11px] text-muted-foreground">{r.source === "finmap" ? "Finmap" : "ERP"} · {r.match_status === "matched" ? "зв'язано" : r.match_status === "ignored" ? "не потребує зв'язку" : r.match_status === "needs_review" ? "на перевірку" : "без зв'язку"}</td>
                 </tr>
               ))}
             </tbody>
@@ -303,6 +305,18 @@ export function ReconcileSection({ period }: { period: Period }) {
               Позначити «потребує перевірки»
             </button>
           )}
+          {active && (
+            <button className={`${btn} border border-border w-full justify-center`}
+              disabled={mut.isPending}
+              onClick={() => {
+                const reason = window.prompt("Не потребує зв'язку (офіс, податки, реклама, зарплата тощо). Операція лишається у фінансових підсумках. Причина (3–300 символів):");
+                if (reason === null) return;
+                if (reason.trim().length < 3) { toast.error("Причина має містити щонайменше 3 символи"); return; }
+                mut.mutate({ transaction_id: active, status: "ignored", reason: reason.trim().slice(0, 300) });
+              }}>
+              Не потребує зв'язку
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -383,10 +397,11 @@ function ReconciliationSummary({ period }: { period: Period }) {
         </div>
       )}
 
-      <div className="grid gap-3 md:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-5">
         {tile("Операції без замовлення", String(r.transactions.noOrder.count), formatUah(r.transactions.noOrder.amount))}
         {tile("Операції без клієнта", String(r.transactions.noClient.count), formatUah(r.transactions.noClient.amount))}
         {tile("Проєкти без замовлення", String(r.projects.noOrder), `усього ${r.projects.total}`)}
+        {tile("Свідомо без зв'язку", String(r.transactions.ignored?.count ?? 0), `${formatUah(r.transactions.ignored?.amount ?? 0)} · у підсумках`)}
         {tile("Контрагенти без сутності", String(r.counterparties.unmapped), `усього ${r.counterparties.total}`)}
       </div>
 
