@@ -64,7 +64,33 @@ export const upsertCalendarEvent = createServerFn({ method: "POST" })
       .insert({ ...rest, created_by: context.userId })
       .select().single();
     if (error) throw new Error("Не вдалося створити подію");
-    return row;
+    // Замір, поставлений з календаря, одразу стає канонічним записом заміру
+    // і підтягується в картку ліда / клієнта / замовлення.
+    const r = row as any;
+    const isMeasure = r.category === "measure" || String(r.event_type ?? "").startsWith("measure");
+    if (isMeasure && !r.measurement_id) {
+      const leadId = (r.metadata && typeof r.metadata === "object" ? r.metadata.lead_id : null) ?? null;
+      const { data: m, error: me } = await context.supabase.from("order_measurements").insert({
+        order_id: r.order_id ?? null,
+        client_id: r.client_id ?? null,
+        lead_id: leadId,
+        surveyor_id: r.employee_id ?? null,
+        scheduled_at: r.starts_at,
+        address: r.address ?? null,
+        area: r.area ?? null,
+        notes: r.description ?? null,
+        type: "primary",
+        status: r.status === "done" ? "completed" : r.employee_id ? "assigned" : "planned",
+        ...(r.status === "done" ? { measured_at: r.starts_at, completed_at: r.starts_at } : {}),
+        created_by: context.userId,
+      } as any).select("id").single();
+      if (me) console.error("calendar → measurement", me);
+      else if (m) {
+        await context.supabase.from("calendar_events").update({ measurement_id: m.id }).eq("id", r.id);
+        r.measurement_id = m.id;
+      }
+    }
+    return r;
   });
 
 export const moveCalendarEvent = createServerFn({ method: "POST" })
