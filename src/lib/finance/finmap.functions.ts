@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { periodFilter, syncInput, mappingInput, linkTransactionInput, uuid } from "./finance.schema";
 import { z } from "zod";
+import { splitReconciliationBacklog } from "./match-status";
 import { costClassOf, CANONICAL_COST_CLASSES } from "./cost-class";
 
 /** Фінансовий контур: доступ лише admin / director / finance. */
@@ -346,7 +347,7 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
   .inputValidator((d: unknown) => linkTransactionInput.parse(d))
   .handler(async ({ data, context }) => {
     await assertFinance(context);
-    const { transaction_id, status, ...fields } = data;
+    const { transaction_id, status, reason, ...fields } = data;
     const { data: before } = await context.supabase
       .from("finance_transactions").select("order_id,client_id,counterparty_id,match_status").eq("id", transaction_id).maybeSingle();
     const patch: Record<string, unknown> = { match_status: status };
@@ -354,17 +355,18 @@ export const linkFinanceTransaction = createServerFn({ method: "POST" })
     const { data: out, error } = await context.supabase
       .from("finance_transactions").update(patch as never).eq("id", transaction_id).select().single();
     if (error) { console.error("linkFinanceTransaction", error); throw new Error("Не вдалося зберегти зв'язок"); }
-    await context.supabase.from("finance_transaction_links").insert({
+    const entityId = (fields.order_id ?? fields.client_id ?? fields.counterparty_id ?? null) as string | null;
+    if (entityId) await context.supabase.from("finance_transaction_links").insert({
       transaction_id, entity_type: fields.order_id ? "order" : fields.client_id ? "client" : "counterparty",
-      entity_id: (fields.order_id ?? fields.client_id ?? fields.counterparty_id ?? null) as string,
+      entity_id: entityId,
       amount: out.amount, confidence: 1, status: "manual", created_by: context.userId,
     });
     await context.supabase.from("audit_logs").insert({
-      actor_id: context.userId, module: "finance", action: "transaction.link", is_critical: true,
+      actor_id: context.userId, module: "finance", action: status === "ignored" ? "transaction.ignore_link" : "transaction.link", is_critical: true,
       entity_type: "finance_transaction", entity_id: transaction_id,
       order_id: (fields.order_id ?? null) as string | null,
       client_id: (fields.client_id ?? null) as string | null,
-      old_value: (before ?? null) as never, new_value: patch as never,
+      old_value: (before ?? null) as never, new_value: { ...patch, reason: reason ?? null } as never,
       financial_impact: Number(out.amount_uah ?? out.amount) || 0,
     });
     return out;
@@ -435,7 +437,7 @@ export const getFinanceReconciliation = createServerFn({ method: "POST" })
 
     let txq = context.supabase
       .from("finance_transactions")
-      .select("id,kind,amount,amount_uah,op_date,order_id,client_id,comment,category:category_id(id,name,cost_class),counterparty:counterparty_id(name)")
+      .select("id,kind,amount,amount_uah,op_date,order_id,client_id,match_status,comment,category:category_id(id,name,cost_class),counterparty:counterparty_id(name)")
       .limit(20000);
     if (data.from) txq = txq.gte("op_date", data.from);
     if (data.to) txq = txq.lte("op_date", data.to);
@@ -449,9 +451,9 @@ export const getFinanceReconciliation = createServerFn({ method: "POST" })
 
     const rows = (tx ?? []) as any[];
     const money = (t: any) => Number(t.amount_uah ?? t.amount) || 0;
-    const nonTransfer = rows.filter((t) => t.kind !== "transfer");
-    const noOrder = nonTransfer.filter((t) => !t.order_id);
-    const noClient = nonTransfer.filter((t) => !t.client_id);
+    const { nonTransfer, ignored, backlog } = splitReconciliationBacklog(rows);
+    const noOrder = backlog.filter((t) => !t.order_id);
+    const noClient = backlog.filter((t) => !t.client_id);
     const noCategory = nonTransfer.filter((t) => !t.category?.id);
 
     const sum = (list: any[]) => Math.round(list.reduce((s, t) => s + money(t), 0) * 100) / 100;
@@ -462,6 +464,7 @@ export const getFinanceReconciliation = createServerFn({ method: "POST" })
         totalAmount: sum(nonTransfer),
         noOrder: { count: noOrder.length, amount: sum(noOrder) },
         noClient: { count: noClient.length, amount: sum(noClient) },
+        ignored: { count: ignored.length, amount: sum(ignored) },
         noCategory: { count: noCategory.length, amount: sum(noCategory) },
         top: noOrder
           .sort((a, b) => money(b) - money(a))

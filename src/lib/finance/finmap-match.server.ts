@@ -1,3 +1,4 @@
+import { isProtectedFromAutoMatch } from "./match-status";
 /**
  * Автозв'язування Finmap ↔ ERP: проєкти → замовлення/клієнти,
  * контрагенти → клієнти, операції → замовлення й клієнти.
@@ -277,7 +278,7 @@ export async function backfillTransactionLinks(db: Db, opts: MatchOptions = {}):
 
     for (const t of list) {
       const money = Number(t.amount_uah ?? t.amount) || 0;
-      if (manual.has(t.id)) { rules.hit("manual", "Ручний звʼязок — пропущено", money); skipped++; continue; }
+      if (isProtectedFromAutoMatch(t, manual)) { rules.hit(t.match_status === "ignored" ? "ignored" : "manual", t.match_status === "ignored" ? "Не потребує звʼязку — пропущено" : "Ручний звʼязок — пропущено", money); skipped++; continue; }
 
       const p = t.finance_project_id ? pr.get(t.finance_project_id) : null;
       const c = t.counterparty_id ? cp.get(t.counterparty_id) : null;
