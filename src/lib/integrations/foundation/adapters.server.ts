@@ -71,9 +71,26 @@ function baseAdapter(contract: ProviderContract): IntegrationAdapter {
   };
 }
 
-export const googleAdsAdapter = baseAdapter(FOUNDATION_CONTRACTS.google_ads as ProviderContract);
+/** W2.2: `conversion.*` → тестові відправники; решта подій — як у базовому адаптері. */
+function withConversions(base: IntegrationAdapter, provider: "google_ads" | "meta_ads"): IntegrationAdapter {
+  return {
+    ...base,
+    async send(ctx, payload, eventType) {
+      if (!eventType.startsWith("conversion.")) return base.send!(ctx, payload, eventType);
+      const { sendGoogleConversion, sendMetaConversion } = await import("./conversion-send.server");
+      const config = (ctx.config ?? ctx.integration?.config ?? {}) as Record<string, any>;
+      const draft = (payload?.ready ? payload.draft : null) as Record<string, any> | null;
+      const r = provider === "google_ads"
+        ? await sendGoogleConversion({ draft, kind: eventType.slice("conversion.".length), config, payloadMode: payload?.send_mode })
+        : await sendMetaConversion({ draft, config, payloadMode: payload?.send_mode });
+      return { ok: r.ok, message: r.message, httpStatus: r.ok ? undefined : r.permanent ? (r.httpStatus ?? BLOCKED_STATUS) : (r.httpStatus ?? 503), data: { provider, state: r.state } };
+    },
+  };
+}
+
+export const googleAdsAdapter = withConversions(baseAdapter(FOUNDATION_CONTRACTS.google_ads as ProviderContract), "google_ads");
 export const ga4Adapter = baseAdapter(FOUNDATION_CONTRACTS.ga4 as ProviderContract);
-export const metaAdsAdapter = baseAdapter(FOUNDATION_CONTRACTS.meta_ads as ProviderContract);
+export const metaAdsAdapter = withConversions(baseAdapter(FOUNDATION_CONTRACTS.meta_ads as ProviderContract), "meta_ads");
 
 /** Finmap: джерело фактичних фінансових операцій. ERP лише дзеркалить, не дублює. */
 const finmapContract = FOUNDATION_CONTRACTS.finmap as ProviderContract;

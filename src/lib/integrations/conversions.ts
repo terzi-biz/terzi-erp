@@ -148,6 +148,13 @@ export function pickGoogleClickId(a: { gclid?: string | null; gbraid?: string | 
   return null;
 }
 
+export type ConsentState = "granted" | "denied" | "unknown";
+
+export function normalizeConsent(v: unknown): ConsentState {
+  const s = String(v ?? "").trim().toLowerCase();
+  return s === "granted" ? "granted" : s === "denied" ? "denied" : "unknown";
+}
+
 export type ConversionDraftInput = {
   provider: ConversionProvider;
   kind: ConversionKind;
@@ -155,8 +162,10 @@ export type ConversionDraftInput = {
   sourceId: string;
   occurredAt: string;
   click: { gclid?: string | null; gbraid?: string | null; wbraid?: string | null; fbclid?: string | null };
-  /** Лише явна згода на передачу контактів у рекламу. Відсутність = false. */
-  adUserDataConsent: boolean;
+  /** Явний стан згоди. unknown ≠ denied: невідомо = не хешуємо і не декларуємо згоду провайдеру. */
+  adUserDataConsent: ConsentState;
+  /** Реальний час кліку/дотику, повʼязаного з fbclid. Без нього fbc не формується. */
+  fbclidAt?: string | null;
   phoneE164?: string | null;
   email?: string | null;
   metaLeadId?: string | null;
@@ -200,7 +209,7 @@ export function buildConversionDraft(i: ConversionDraftInput): ConversionDraft {
         conversion_date_time: i.occurredAt,
         transaction_id: key,
         ...(money ? { conversion_value: money.value, currency_code: money.currency } : {}),
-        ad_user_data_consent: i.adUserDataConsent ? "GRANTED" : "DENIED",
+        ...(i.adUserDataConsent === "unknown" ? {} : { ad_user_data_consent: i.adUserDataConsent === "granted" ? "GRANTED" : "DENIED" }),
       },
     };
   }
@@ -210,16 +219,18 @@ export function buildConversionDraft(i: ConversionDraftInput): ConversionDraft {
   const fbclid = String(i.click.fbclid ?? "").trim() || null;
   const leadId = String(i.metaLeadId ?? "").trim() || null;
   const userData: Record<string, unknown> = {};
-  if (fbclid) userData.fbc = `fb.1.${ts * 1000}.${fbclid}`;
+  // fbc лише з реальним часом кліку/дотику; час конверсії не підставляється.
+  const clickMs = i.fbclidAt ? Date.parse(i.fbclidAt) : NaN;
+  if (fbclid && Number.isFinite(clickMs)) userData.fbc = `fb.1.${clickMs}.${fbclid}`;
   if (leadId) userData.lead_id = leadId;
-  if (i.adUserDataConsent) {
+  if (i.adUserDataConsent === "granted") {
     const ph = String(i.phoneE164 ?? "").replace(/\D/g, "");
     const em = String(i.email ?? "").trim().toLowerCase();
     if (ph) userData.ph = [i.sha256(ph)];
     if (em) userData.em = [i.sha256(em)];
   }
-  if (!fbclid && !leadId && !userData.ph && !userData.em) {
-    return { ...base, ready: false, blocked: "Немає fbclid/lead_id або згоди на ідентифікатори", payload: null };
+  if (!userData.fbc && !leadId && !userData.ph && !userData.em) {
+    return { ...base, ready: false, blocked: fbclid ? "fbclid без реального часу кліку; немає lead_id або згоди" : "Немає fbclid/lead_id або згоди на ідентифікатори", payload: null };
   }
   return {
     ...base, ready: true, blocked: null,

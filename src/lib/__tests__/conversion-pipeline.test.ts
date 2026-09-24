@@ -4,7 +4,7 @@ import { isQualifyingTransition } from "../crm/qualification";
 import { emitConversionEvent, safeEmitConversion, classifyCandidates, resolveSendMode } from "../marketing/conversion-events.server";
 
 const sha = (s: string) => `h(${s})`;
-const base = { sourceType: "crm_leads", sourceId: "L1", occurredAt: "2026-09-24T10:00:00Z", adUserDataConsent: false, origin: "crm" as const, sha256: sha };
+const base = { sourceType: "crm_leads", sourceId: "L1", occurredAt: "2026-09-24T10:00:00Z", adUserDataConsent: "unknown" as const, origin: "crm" as const, sha256: sha };
 
 describe("conversion pipeline W2.1", () => {
   it("idempotency key stable and distinct", () => {
@@ -25,11 +25,11 @@ describe("conversion pipeline W2.1", () => {
     expect(buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", click: {} }).ready).toBe(false);
   });
   it("no consent => no hashed identity", () => {
-    const d = buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", click: { fbclid: "F" }, phoneE164: "+380501234567", email: "a@b.c" });
+    const d = buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", click: { fbclid: "F" }, fbclidAt: "2026-09-20T08:00:00Z", phoneE164: "+380501234567", email: "a@b.c" });
     expect((d.payload as any).user_data).not.toHaveProperty("ph");
     expect((d.payload as any).user_data).not.toHaveProperty("em");
     expect(buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", click: {}, phoneE164: "+380501234567" }).ready).toBe(false);
-    const ok = buildConversionDraft({ ...base, adUserDataConsent: true, provider: "meta_ads", kind: "lead_created", click: {}, phoneE164: "+380501234567", metaLeadId: "M1" });
+    const ok = buildConversionDraft({ ...base, adUserDataConsent: "granted" as const, provider: "meta_ads", kind: "lead_created", click: {}, phoneE164: "+380501234567", metaLeadId: "M1" });
     expect((ok.payload as any).user_data).toMatchObject({ ph: ["h(380501234567)"], lead_id: "M1" });
     expect((ok.payload as any).event_id).toBe(ok.key);
     expect((ok.payload as any).action_source).toBe("system_generated");
