@@ -78,6 +78,7 @@ import { Route as ReportsMarketingRouteImport } from './routes/reports.marketing
 import { Route as ReportsOperationsRouteImport } from './routes/reports.operations'
 import { Route as ReportsTasksRouteImport } from './routes/reports.tasks'
 import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony'
+import { Route as SettingsSalesPlanRouteImport } from './routes/settings.sales-plan'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -444,6 +445,11 @@ const ReportsTelephonyRoute = ReportsTelephonyRouteImport.update({
   path: '/telephony',
   getParentRoute: () => ReportsRoute,
 } as any)
+const SettingsSalesPlanRoute = SettingsSalesPlanRouteImport.update({
+  id: '/sales-plan',
+  path: '/sales-plan',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -567,7 +573,7 @@ export interface FileRoutesByFullPath {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -606,6 +612,7 @@ export interface FileRoutesByFullPath {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -654,7 +661,7 @@ export interface FileRoutesByTo {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -693,6 +700,7 @@ export interface FileRoutesByTo {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -743,7 +751,7 @@ export interface FileRoutesById {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRoute
+  '/settings': typeof SettingsRouteWithChildren
   '/warehouse': typeof WarehouseRoute
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
@@ -782,6 +790,7 @@ export interface FileRoutesById {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -872,6 +881,7 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/sales-plan'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -959,6 +969,7 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/sales-plan'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -1047,6 +1058,7 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/sales-plan'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -1097,7 +1109,7 @@ export interface RootRouteChildren {
   Roofing_pvcRoute: typeof Roofing_pvcRoute
   Roofing_rubRoute: typeof Roofing_rubRoute
   ScreedRoute: typeof ScreedRoute
-  SettingsRoute: typeof SettingsRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
   WarehouseRoute: typeof WarehouseRoute
   WorksRoute: typeof WorksRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
@@ -1638,6 +1650,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsTelephonyRouteImport
       parentRoute: typeof ReportsRoute
     }
+    '/settings/sales-plan': {
+      id: '/settings/sales-plan'
+      path: '/sales-plan'
+      fullPath: '/settings/sales-plan'
+      preLoaderRoute: typeof SettingsSalesPlanRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -1789,6 +1808,18 @@ const ReportsRouteChildren: ReportsRouteChildren = {
 const ReportsRouteWithChildren =
   ReportsRoute._addFileChildren(ReportsRouteChildren)
 
+interface SettingsRouteChildren {
+  SettingsSalesPlanRoute: typeof SettingsSalesPlanRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsSalesPlanRoute: SettingsSalesPlanRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AccessRoute: AccessRoute,
@@ -1812,7 +1843,7 @@ const rootRouteChildren: RootRouteChildren = {
   Roofing_pvcRoute: Roofing_pvcRoute,
   Roofing_rubRoute: Roofing_rubRoute,
   ScreedRoute: ScreedRoute,
-  SettingsRoute: SettingsRoute,
+  SettingsRoute: SettingsRouteWithChildren,
   WarehouseRoute: WarehouseRoute,
   WorksRoute: WorksRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
