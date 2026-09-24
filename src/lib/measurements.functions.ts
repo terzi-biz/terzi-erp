@@ -42,6 +42,7 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
       clientId = (lead?.client_id as string | null) ?? null;
     }
 
+    const done = Boolean(data.already_done);
     const { data: measurement, error: me } = await context.supabase
       .from("order_measurements")
       .insert({
@@ -52,9 +53,11 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
         scheduled_at: starts.toISOString(),
         address: data.address ?? null,
         area: data.area ?? null,
+        perimeter: data.perimeter ?? null,
         notes: data.description ?? null,
         type: measurementTypeFromEvent(data.event_type),
-        status: data.employee_id ? "assigned" : "planned",
+        status: done ? "completed" : data.employee_id ? "assigned" : "planned",
+        ...(done ? { measured_at: starts.toISOString(), completed_at: starts.toISOString() } : {}),
         created_by: context.userId,
       } as any)
       .select()
@@ -67,7 +70,7 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
         title: data.title,
         event_type: data.event_type,
         category: "measure",
-        status: "planned",
+        status: done ? "done" : "planned",
         priority: "normal",
         starts_at: starts.toISOString(),
         ends_at: ends.toISOString(),
@@ -86,7 +89,23 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
       .maybeSingle();
     if (ee) console.error("scheduleMeasurement event", ee);
 
+    if (data.lead_id) {
+      await context.supabase.from("crm_lead_activities").insert({
+        lead_id: data.lead_id, kind: "measurement", actor_id: context.userId,
+        body: `${done ? "Внесено проведений замір" : "Заплановано замір"} на ${starts.toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}`,
+      } as any).then(({ error }) => { if (error) console.error("lead activity", error); });
+    }
+
     return { measurement, event: event ?? null };
+  });
+
+/** Усі заміри, пов'язані з лідом (за лідом, клієнтом або замовленням). */
+export const listLeadMeasurements = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ lead_id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { leadMeasurements } = await import("./measurements.server");
+    return leadMeasurements(context.supabase, data.lead_id);
   });
 
 const EVENT_STATUS_BY_MEASUREMENT: Record<string, string> = {
