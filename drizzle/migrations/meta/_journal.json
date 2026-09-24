@@ -113,6 +113,13 @@
       "when": 1790204576296,
       "tag": "0015_brigade_rate_pricing_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790217823407,
+      "tag": "0016_restrict_reference_reads_to_active_staff",
+      "breakpoints": true
     }
   ]
 }

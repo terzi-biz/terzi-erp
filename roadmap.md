@@ -126,3 +126,10 @@
 - [x] W2.1 dry-run conversion pipeline (no provider sends)
 - [ ] W2.2 Google/Meta adapters in test mode — blocked: provider rows, conversion actions, META_PIXEL_ID, consent record
 - [ ] W2.3 hooks: measurement completed (2 paths), estimate, saveOrder, Finmap payment_received, keyCRM stage changes
+
+# Запит 24.09.2026
+- [x] Закрити критичні зауваження безпеки (довідники лише для активних співробітників)
+- [ ] Заявки й конверсії Google/Meta по кампаніях на дашборді маркетингу, клік → заявка
+- [ ] Реальні перевірки GTM/TikTok/OLX/WhatsApp/Viber/Telegram (потрібні ключі)
+- [ ] Правила «коли/якщо/то» у Control Center для етапів замовлення
+- [ ] Публікація + перевірка карток /integrations (після схвалення)
