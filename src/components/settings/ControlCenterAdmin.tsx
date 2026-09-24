@@ -11,6 +11,8 @@ import { Search, Plus, Archive, Eye, Send, Save, Trash2, Boxes, Database, ListTr
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { scopedEntries } from "@/lib/config-kernel/admin-view";
 import { saveConfigDraft, previewConfigDraft, publishConfig, rollbackConfig } from "@/lib/config-kernel/config.functions";
 import { listConfigAdmin, discardConfigDraft, listConfigScopeRoles, listConfigHistory, type AdminConfigRow } from "@/lib/config-kernel/control-plane.functions";
 import { TERZI_MODULES } from "@/lib/modules";
@@ -55,6 +57,30 @@ function StatusBadge({ e, inherited }: { e?: { draft?: AdminConfigRow; published
   );
 }
 
+/** Підтвердження дії lifecycle з приміткою до зміни (зберігається в історії). */
+function NoteDialog({ open, title, description, required, pending, onCancel, onConfirm }: {
+  open: boolean; title: string; description: string; required?: boolean; pending?: boolean;
+  onCancel: () => void; onConfirm: (note: string) => void;
+}) {
+  const [note, setNote] = useState("");
+  const ok = !required || note.trim().length >= 3;
+  return (
+    <Dialog open={open} onOpenChange={(o) => { if (!o) { setNote(""); onCancel(); } }}>
+      <DialogContent>
+        <DialogHeader><DialogTitle>{title}</DialogTitle><DialogDescription>{description}</DialogDescription></DialogHeader>
+        <label className="text-xs space-y-1 block">
+          <span>Примітка до зміни{required ? " (обов'язково)" : " (необов'язково)"}</span>
+          <Textarea value={note} maxLength={500} onChange={(e) => setNote(e.target.value)} placeholder="Що і чому змінено" />
+        </label>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => { setNote(""); onCancel(); }}>Скасувати</Button>
+          <Button disabled={!ok || pending} onClick={() => { const n = note.trim(); setNote(""); onConfirm(n); }}>Підтвердити</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /** Панель дій ключа: зберегти чернетку, перегляд diff, публікація, скасування. */
 function Lifecycle({ kind, cfgKey, payload, hasDraft, onDone }: { kind: Kind; cfgKey: string; payload: unknown; hasDraft: boolean; onDone?: () => void }) {
   const qc = useQueryClient();
@@ -65,22 +91,26 @@ function Lifecycle({ kind, cfgKey, payload, hasDraft, onDone }: { kind: Kind; cf
   const scope = useScope();
   const [diff, setDiff] = useState<Awaited<ReturnType<typeof prev>> | null>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [confirmPub, setConfirmPub] = useState(false);
   const target = { kind, key: cfgKey, scope };
   const refresh = () => { qc.invalidateQueries({ queryKey: ["config-admin", kind] }); qc.invalidateQueries({ queryKey: ["config"] }); qc.invalidateQueries({ queryKey: ["custom-fields"] }); };
   const err = (e: any) => toast.error(e?.message ?? "Помилка");
   const mSave = useMutation({ mutationFn: () => save({ data: { ...target, payload } }), onSuccess: () => { toast.success("Чернетку збережено"); setDiff(null); refresh(); }, onError: err });
   const mPrev = useMutation({ mutationFn: () => prev({ data: target }), onSuccess: (r) => { setDiff(r); if (!r) toast.info("Немає чернетки"); }, onError: err });
-  const mPub = useMutation({ mutationFn: () => pub({ data: target }), onSuccess: () => { toast.success("Опубліковано"); setDiff(null); refresh(); onDone?.(); }, onError: err });
+  const mPub = useMutation({ mutationFn: (note: string) => pub({ data: { ...target, note: note || null } }), onSuccess: () => { toast.success("Опубліковано"); setConfirmPub(false); setDiff(null); refresh(); onDone?.(); }, onError: err });
   const mDisc = useMutation({ mutationFn: () => disc({ data: target }), onSuccess: () => { toast.success("Чернетку скасовано"); setDiff(null); refresh(); }, onError: err });
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={() => mSave.mutate()} disabled={mSave.isPending}><Save className="h-3.5 w-3.5 mr-1" />Зберегти чернетку</Button>
         <Button size="sm" variant="outline" onClick={() => mPrev.mutate()} disabled={!hasDraft || mPrev.isPending}><Eye className="h-3.5 w-3.5 mr-1" />Переглянути зміни</Button>
-        <Button size="sm" onClick={() => mPub.mutate()} disabled={!hasDraft || mPub.isPending}><Send className="h-3.5 w-3.5 mr-1" />Опублікувати</Button>
+        <Button size="sm" onClick={() => setConfirmPub(true)} disabled={!hasDraft || mPub.isPending}><Send className="h-3.5 w-3.5 mr-1" />Опублікувати</Button>
         {hasDraft && <Button size="sm" variant="ghost" onClick={() => mDisc.mutate()}><Trash2 className="h-3.5 w-3.5 mr-1" />Скасувати чернетку</Button>}
         <Button size="sm" variant="ghost" onClick={() => setShowHistory(!showHistory)}><History className="h-3.5 w-3.5 mr-1" />Історія</Button>
       </div>
+      <NoteDialog open={confirmPub} title="Опублікувати чернетку?" pending={mPub.isPending}
+        description={`Зміни «${cfgKey}» набудуть чинності для ${scope.type === "company" ? "всієї компанії" : `ролі ${scope.id}`}. Попередня версія лишиться в історії.`}
+        onCancel={() => setConfirmPub(false)} onConfirm={(n) => mPub.mutate(n)} />
       {showHistory && <HistoryPanel kind={kind} cfgKey={cfgKey} onChanged={refresh} />}
       {diff && (
         <div className="rounded-md border border-border bg-muted/40 p-2 text-xs space-y-1">
@@ -104,9 +134,10 @@ function HistoryPanel({ kind, cfgKey, onChanged }: { kind: Kind; cfgKey: string;
   const hist = useServerFn(listConfigHistory);
   const rb = useServerFn(rollbackConfig);
   const q = useQuery({ queryKey: ["config-history", kind, cfgKey, scope.type, scope.id], queryFn: () => hist({ data: { kind, key: cfgKey, scope } }) });
+  const [target, setTarget] = useState<number | null>(null);
   const m = useMutation({
-    mutationFn: (v: number) => rb({ data: { kind, key: cfgKey, scope, toVersion: v } }),
-    onSuccess: () => { toast.success("Відкат виконано — створено нову опубліковану версію"); q.refetch(); onChanged(); },
+    mutationFn: (a: { v: number; note: string }) => rb({ data: { kind, key: cfgKey, scope, toVersion: a.v, note: a.note } }),
+    onSuccess: () => { toast.success("Відкат виконано — створено нову опубліковану версію"); setTarget(null); q.refetch(); onChanged(); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
   if (q.isLoading) return <div className="text-xs text-muted-foreground">Завантаження історії…</div>;
@@ -124,12 +155,15 @@ function HistoryPanel({ kind, cfgKey, onChanged }: { kind: Kind; cfgKey: string;
               <td className="p-1.5">{r.publisher ?? r.author ?? "—"} · {fmtDt(r.publishedAt ?? r.createdAt)}</td>
               <td className="p-1.5 text-muted-foreground">{r.note ?? ""}</td>
               <td className="p-1.5 text-right">
-                {r.status === "superseded" && <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => { if (confirm(`Відкотити до v${r.version}? Буде створено нову версію.`)) m.mutate(r.version); }}><Undo2 className="h-3 w-3 mr-1" />Відкотити</Button>}
+                {r.status === "superseded" && <Button size="sm" variant="outline" disabled={m.isPending} onClick={() => setTarget(r.version)}><Undo2 className="h-3 w-3 mr-1" />Відкотити</Button>}
               </td>
             </tr>
           ))}
         </tbody>
       </table>
+      <NoteDialog open={target != null} required pending={m.isPending} title={`Відкотити до v${target ?? ""}?`}
+        description="Буде створено нову опубліковану версію з вмістом обраної; історія не стирається."
+        onCancel={() => setTarget(null)} onConfirm={(note) => target != null && m.mutate({ v: target, note })} />
     </div>
   );
 }
@@ -216,7 +250,7 @@ function ModulesSection({ q }: { q: string }) {
 function ModuleEditor({ id, codeLabel, codeActive, initial, hasDraft }: { id: string; codeLabel: string; codeActive: boolean; initial: any; hasDraft: boolean }) {
   const [f, setF] = useState({
     label_uk: initial.label_uk ?? initial.label ?? "", label_ru: initial.label_ru ?? "",
-    active: initial.active ?? codeActive, order: initial.order ?? "", roles: (initial.roles ?? []).join(", "),
+    active: initial.active ?? codeActive, order: initial.order ?? "", roles: (initial.roles ?? []) as string[],
     desktop: initial.desktop ?? true, mobile: initial.mobile ?? true,
   });
   const payload: Record<string, unknown> = {};
@@ -224,8 +258,12 @@ function ModuleEditor({ id, codeLabel, codeActive, initial, hasDraft }: { id: st
   if (f.label_ru.trim()) payload.label_ru = f.label_ru.trim();
   if (f.active !== codeActive) payload.active = f.active;
   if (String(f.order).trim() !== "") payload.order = Number(f.order);
-  const roles = f.roles.split(",").map((s: string) => s.trim()).filter(Boolean);
-  if (roles.length) payload.roles = roles;
+  if (f.roles.length) payload.roles = f.roles;
+  const rolesFn = useServerFn(listConfigScopeRoles);
+  const { data: roleList } = useQuery({ queryKey: ["config-scope-roles"], queryFn: () => rolesFn(), staleTime: 5 * 60_000 });
+  const known = new Set((roleList ?? []).map((r) => r.key));
+  const legacy = f.roles.filter((k) => !known.has(k)); // збережені ключі, яких немає серед активних ролей — не губимо
+  const toggleRole = (k: string, on: boolean) => setF({ ...f, roles: on ? [...f.roles, k] : f.roles.filter((x) => x !== k) });
   if (!f.desktop) payload.desktop = false;
   if (!f.mobile) payload.mobile = false;
   return (
@@ -234,7 +272,17 @@ function ModuleEditor({ id, codeLabel, codeActive, initial, hasDraft }: { id: st
         <label className="text-xs space-y-1"><span>Підпис UA (код: {codeLabel})</span><Input value={f.label_uk} onChange={(e) => setF({ ...f, label_uk: e.target.value })} /></label>
         <label className="text-xs space-y-1"><span>Підпис RU</span><Input value={f.label_ru} onChange={(e) => setF({ ...f, label_ru: e.target.value })} /></label>
         <label className="text-xs space-y-1"><span>Порядок (0–1000)</span><Input inputMode="numeric" value={f.order} onChange={(e) => setF({ ...f, order: e.target.value })} /></label>
-        <label className="text-xs space-y-1"><span>Ролі (через кому; порожньо — усім)</span><Input value={f.roles} onChange={(e) => setF({ ...f, roles: e.target.value })} placeholder="admin, director, manager, finance" /></label>
+      </div>
+      <div className="text-xs space-y-1">
+        <span>Ролі (нічого не обрано — усім)</span>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          {(roleList ?? []).map((r) => (
+            <label key={r.key} className="flex items-center gap-1.5"><input type="checkbox" checked={f.roles.includes(r.key)} onChange={(e) => toggleRole(r.key, e.target.checked)} />{r.name}</label>
+          ))}
+          {legacy.map((k) => (
+            <label key={k} className="flex items-center gap-1.5 text-muted-foreground"><input type="checkbox" checked onChange={() => toggleRole(k, false)} />{k} (неактивна/невідома)</label>
+          ))}
+        </div>
       </div>
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2"><input type="checkbox" checked={f.active} onChange={(e) => setF({ ...f, active: e.target.checked })} />Активний</label>
@@ -375,6 +423,8 @@ function DictionariesSection({ q }: { q: string }) {
   const { data } = useKind("dictionary");
   const scope = useScope();
   const map = useMemo(() => byKey(data, scope), [data, scope]);
+  const entries = useMemo(() => scopedEntries(data, scope, COMPANY), [data, scope]);
+  const allCodes = useMemo(() => new Set((data ?? []).map((r) => r.key)), [data]);
   const [open, setOpen] = useState<string | null>(null);
   const [newCode, setNewCode] = useState("");
   const match = (s: string) => !q || s.toLowerCase().includes(q.toLowerCase());
@@ -393,21 +443,24 @@ function DictionariesSection({ q }: { q: string }) {
           ))}
         </div>
       </div>
+      {scope.type === "role" ? (
+        <div className="text-xs text-muted-foreground">Нові довідники створюються на рівні компанії; для ролі можна перевизначити успадкований довідник.</div>
+      ) : (
       <div className="flex flex-wrap gap-2 items-end">
         <label className="text-xs space-y-1"><span>Код нового довідника</span><Input value={newCode} onChange={(e) => setNewCode(e.target.value.trim())} placeholder="object_class" /></label>
-        <Button size="sm" disabled={!/^[a-z][a-z0-9_]{1,47}$/.test(newCode) || map.has(newCode) || EXTERNAL_DICTIONARIES.some((d) => d.code === newCode)} onClick={() => { setOpen(newCode); }}><Plus className="h-4 w-4 mr-1" />Створити</Button>
+        <Button size="sm" disabled={!/^[a-z][a-z0-9_]{1,47}$/.test(newCode) || allCodes.has(newCode) || EXTERNAL_DICTIONARIES.some((d) => d.code === newCode)} onClick={() => { setOpen(newCode); }}><Plus className="h-4 w-4 mr-1" />Створити</Button>
       </div>
-      {open && !map.has(open) && <div className="rounded-lg border border-primary/40 bg-card"><DictionaryEditor code={open} initial={null} hasDraft={false} /></div>}
-      {[...map.keys()].filter((k) => match(`${k} ${(map.get(k)!.draft ?? map.get(k)!.published)?.payload?.label_uk}`)).map((k) => {
-        const e = map.get(k)!;
-        const p = (e.draft ?? e.published)!.payload;
+      )}
+      {open && scope.type === "company" && !map.has(open) && !allCodes.has(open) && <div className="rounded-lg border border-primary/40 bg-card"><DictionaryEditor code={open} initial={null} hasDraft={false} /></div>}
+      {entries.filter(({ key, own, inherited }) => match(`${key} ${(own?.draft ?? own?.published ?? inherited)?.payload?.label_uk ?? ""}`)).map(({ key: k, own: e, inherited }) => {
+        const p = (e?.draft ?? e?.published ?? inherited)!.payload;
         return (
           <div key={k} className="rounded-lg border border-border bg-card">
             <button type="button" className="w-full flex flex-wrap items-center justify-between gap-2 p-3 text-left" onClick={() => setOpen(open === k ? null : k)}>
               <div><div className="font-medium text-sm">{p.label_uk}</div><div className="text-xs text-muted-foreground font-mono">{k} · {p.items?.length ?? 0} ел.</div></div>
-              <StatusBadge e={e} />
+              <StatusBadge e={e} inherited={!!inherited} />
             </button>
-            {open === k && <DictionaryEditor key={`${scope.type}:${scope.id}`} code={k} initial={p} hasDraft={!!e.draft} />}
+            {open === k && <DictionaryEditor key={`${scope.type}:${scope.id}`} code={k} initial={p} hasDraft={!!e?.draft} />}
           </div>
         );
       })}
