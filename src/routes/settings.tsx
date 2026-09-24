@@ -13,7 +13,15 @@ export const Route = createFileRoute("/settings")({
   ] }),
 });
 
-export const SETTINGS_NAV = [
+type SettingsNavItem = {
+  to: "/settings" | "/settings/norms" | "/settings/system" | "/settings/finance" | "/settings/sales-plan" | "/settings/company" | "/settings/access" | "/settings/integrations";
+  label: string;
+  icon: typeof Calculator;
+  description: string;
+  exact?: boolean;
+};
+
+export const SETTINGS_NAV: SettingsNavItem[] = [
   { to: "/settings", label: "Огляд", icon: LayoutGrid, exact: true, description: "Усі розділи налаштувань в одному місці." },
   { to: "/settings/norms", label: "Норми і коефіцієнти", icon: Calculator, description: "Праймер, газ, мінімалка бригади, амортизація, ПДВ — діє одразу для кошторисів." },
   { to: "/settings/system", label: "Система і модулі", icon: Grid3x3, description: "Модулі, кастомні поля, довідники, марки стяжки й нормативи руберойду." },
