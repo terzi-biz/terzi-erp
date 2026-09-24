@@ -80,61 +80,8 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
   const measurements = (mRes.data ?? []) as any[];
   if (mRes.error) console.error("measurementsPayload", mRes.error);
 
-  const ids = measurements.map((m) => m.id);
-  const orderIds = Array.from(new Set(measurements.map((m) => m.order_id).filter(Boolean))) as string[];
-  const userIds = Array.from(new Set(measurements.map((m) => m.surveyor_id).filter(Boolean))) as string[];
+  const rows = await enrichMeasurements(sb, measurements);
 
-  const orderById = new Map<string, any>();
-  const nameByUser = new Map<string, string>();
-  const eventByMeasurement = new Map<string, string>();
-
-  await Promise.all([
-    orderIds.length
-      ? sb.from("orders").select("id, number, name, address, commercial_status").in("id", orderIds)
-          .then(({ data }) => { for (const o of data ?? []) orderById.set(o.id, o); })
-      : Promise.resolve(),
-    userIds.length
-      ? sb.from("profiles").select("user_id, display_name, email").in("user_id", userIds)
-          .then(({ data }) => {
-            for (const r of data ?? []) {
-              const n = (r as any).display_name || (r as any).email;
-              if (n) nameByUser.set((r as any).user_id, n);
-            }
-          })
-      : Promise.resolve(),
-    ids.length
-      ? sb.from("calendar_events").select("id, measurement_id").in("measurement_id", ids)
-          .then(({ data }) => { for (const e of data ?? []) if ((e as any).measurement_id) eventByMeasurement.set((e as any).measurement_id, (e as any).id); })
-      : Promise.resolve(),
-  ]);
-
-  const rows: MeasurementRow[] = measurements.map((m) => {
-    const o = m.order_id ? orderById.get(m.order_id) : null;
-    return {
-      id: m.id,
-      measured_at: m.measured_at ?? null,
-      scheduled_at: m.scheduled_at ?? null,
-      created_at: m.created_at ?? null,
-      type: m.type ?? null,
-      status: canonicalMeasurementStatus(m.status),
-      raw_status: m.status ?? null,
-      area: m.area == null ? null : Number(m.area),
-      perimeter: m.perimeter == null ? null : Number(m.perimeter),
-      notes: m.notes ?? null,
-      address: m.address ?? null,
-      surveyor_id: m.surveyor_id ?? null,
-      surveyor_name: m.surveyor_id ? nameByUser.get(m.surveyor_id) ?? null : null,
-      lead_id: m.lead_id ?? null,
-      client_id: m.client_id ?? null,
-      order_id: m.order_id ?? null,
-      order_number: o?.number ?? null,
-      order_name: o?.name ?? null,
-      order_address: o?.address ?? null,
-      order_commercial_status: o?.commercial_status ?? null,
-      event_id: eventByMeasurement.get(m.id) ?? null,
-      converted: Boolean(o && CONTRACT_STATUSES.includes(o.commercial_status)),
-    };
-  });
 
   const leads = leadsRes.count ?? 0;
   const contracts = contractsRes.count ?? 0;
