@@ -109,3 +109,127 @@ export const STAGE_ORDER: FunnelStage[] = ["lead", "qualified", "measurement", "
 export function stageIndex(stage: FunnelStage): number {
   return STAGE_ORDER.indexOf(stage);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// W2.1 — канонічні події конверсій (dry-run драфти; нічого не надсилається).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export type ConversionKind =
+  | "lead_created" | "lead_qualified" | "lead_lost"
+  | "measurement_scheduled" | "measurement_completed"
+  | "estimate_created" | "order_created" | "payment_received";
+
+export type ConversionProvider = "google_ads" | "meta_ads";
+
+export const KIND_ACTION: Record<ConversionKind, { google: string | null; meta: string }> = {
+  lead_created: { google: "TERZI Lead", meta: "Lead" },
+  lead_qualified: { google: "TERZI Qualified Lead", meta: "QualifiedLead" },
+  lead_lost: { google: null, meta: "LeadLost" }, // Google: без негативних конверсій
+  measurement_scheduled: { google: "TERZI Measurement Scheduled", meta: "Schedule" },
+  measurement_completed: { google: "TERZI Measurement", meta: "MeasurementCompleted" },
+  estimate_created: { google: "TERZI Estimate Sent", meta: "EstimateSent" },
+  order_created: { google: "TERZI Order", meta: "OrderCreated" },
+  payment_received: { google: "TERZI Payment", meta: "Purchase" },
+};
+
+/** Детермінований ключ ідемпотентності = event_id / transaction id. */
+export function conversionIdempotencyKey(provider: ConversionProvider, kind: ConversionKind, sourceType: string, sourceId: string): string {
+  return `conv:${provider}:${kind}:${sourceType}:${sourceId}`;
+}
+
+export type GoogleClickId = { type: "gclid" | "gbraid" | "wbraid"; value: string } | null;
+
+/** Рівно один ідентифікатор: gclid > gbraid > wbraid. Нічого не вигадується. */
+export function pickGoogleClickId(a: { gclid?: string | null; gbraid?: string | null; wbraid?: string | null }): GoogleClickId {
+  for (const type of ["gclid", "gbraid", "wbraid"] as const) {
+    const v = String(a[type] ?? "").trim();
+    if (v) return { type, value: v };
+  }
+  return null;
+}
+
+export type ConversionDraftInput = {
+  provider: ConversionProvider;
+  kind: ConversionKind;
+  sourceType: string;
+  sourceId: string;
+  occurredAt: string;
+  click: { gclid?: string | null; gbraid?: string | null; wbraid?: string | null; fbclid?: string | null };
+  /** Лише явна згода на передачу контактів у рекламу. Відсутність = false. */
+  adUserDataConsent: boolean;
+  phoneE164?: string | null;
+  email?: string | null;
+  metaLeadId?: string | null;
+  /** Лише фактична оплата (payment_received). */
+  paymentAmount?: number | null;
+  currency?: string | null;
+  /** Походження події: сайт чи CRM. */
+  origin: "website" | "crm";
+  /** Хеш-функція (SHA-256 hex) — передається із сервера. */
+  sha256: (s: string) => string;
+};
+
+export type ConversionDraft = {
+  provider: ConversionProvider;
+  kind: ConversionKind;
+  key: string;
+  ready: boolean;
+  blocked: string | null;
+  payload: Record<string, unknown> | null;
+};
+
+export function buildConversionDraft(i: ConversionDraftInput): ConversionDraft {
+  const key = conversionIdempotencyKey(i.provider, i.kind, i.sourceType, i.sourceId);
+  const base = { provider: i.provider, kind: i.kind, key };
+  const isPayment = i.kind === "payment_received";
+  const amount = Number(i.paymentAmount ?? 0);
+  if (isPayment && !(amount > 0)) return { ...base, ready: false, blocked: "Немає фактичної оплати", payload: null };
+  const money = isPayment ? { value: amount, currency: (i.currency ?? "UAH").toUpperCase() } : null;
+
+  if (i.provider === "google_ads") {
+    const action = KIND_ACTION[i.kind].google;
+    if (!action) return { ...base, ready: false, blocked: "Подія не передається в Google Ads", payload: null };
+    const click = pickGoogleClickId(i.click);
+    if (!click) return { ...base, ready: false, blocked: "Немає gclid/gbraid/wbraid", payload: null };
+    return {
+      ...base, ready: true, blocked: null,
+      payload: {
+        conversion_action: action,
+        click_id_type: click.type,
+        [click.type]: click.value,
+        conversion_date_time: i.occurredAt,
+        transaction_id: key,
+        ...(money ? { conversion_value: money.value, currency_code: money.currency } : {}),
+        ad_user_data_consent: i.adUserDataConsent ? "GRANTED" : "DENIED",
+      },
+    };
+  }
+
+  // Meta CAPI
+  const ts = Math.floor(Date.parse(i.occurredAt) / 1000);
+  const fbclid = String(i.click.fbclid ?? "").trim() || null;
+  const leadId = String(i.metaLeadId ?? "").trim() || null;
+  const userData: Record<string, unknown> = {};
+  if (fbclid) userData.fbc = `fb.1.${ts * 1000}.${fbclid}`;
+  if (leadId) userData.lead_id = leadId;
+  if (i.adUserDataConsent) {
+    const ph = String(i.phoneE164 ?? "").replace(/\D/g, "");
+    const em = String(i.email ?? "").trim().toLowerCase();
+    if (ph) userData.ph = [i.sha256(ph)];
+    if (em) userData.em = [i.sha256(em)];
+  }
+  if (!fbclid && !leadId && !userData.ph && !userData.em) {
+    return { ...base, ready: false, blocked: "Немає fbclid/lead_id або згоди на ідентифікатори", payload: null };
+  }
+  return {
+    ...base, ready: true, blocked: null,
+    payload: {
+      event_name: KIND_ACTION[i.kind].meta,
+      event_time: ts,
+      event_id: key,
+      action_source: i.origin === "website" ? "website" : "system_generated",
+      user_data: userData,
+      ...(money ? { custom_data: money } : {}),
+    },
+  };
+}
