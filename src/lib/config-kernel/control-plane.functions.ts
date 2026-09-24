@@ -15,7 +15,7 @@ export interface AdminConfigRow {
 /** Адмін-список: поточні draft/published записи вказаного kind. */
 export const listConfigAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ kind: z.enum(["module_overlay", "custom_field", "dictionary", "flag"]) }).parse(d))
+  .inputValidator((d) => z.object({ kind: z.enum(["module_overlay", "custom_field", "dictionary", "flag", "workflow"]) }).parse(d))
   .handler(async ({ data, context }) => {
     const { requireConfigManager } = await import("./config.server");
     const { admin } = await import("@/lib/access.server");
@@ -68,7 +68,7 @@ export const listConfigScopeRoles = createServerFn({ method: "GET" })
 export const listConfigHistory = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({
-    kind: z.enum(["module_overlay", "custom_field", "dictionary"]), key: z.string().min(1).max(128),
+    kind: z.enum(["module_overlay", "custom_field", "dictionary", "workflow"]), key: z.string().min(1).max(128),
     scope: z.object({ type: z.enum(SCOPE_CHAIN), id: z.string().max(128) }),
   }).parse(d))
   .handler(async ({ data, context }) => {

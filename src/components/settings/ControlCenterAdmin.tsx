@@ -7,7 +7,7 @@ import { Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Search, Plus, Archive, Eye, Send, Save, Trash2, Boxes, Database, ListTree, History, Undo2, ExternalLink } from "lucide-react";
+import { Search, Plus, Archive, Eye, Send, Save, Trash2, Boxes, Database, ListTree, History, Undo2, ExternalLink, Workflow as Workflow_ } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,13 +19,15 @@ import { TERZI_MODULES } from "@/lib/modules";
 import { ENTITIES } from "@/lib/config-kernel/registries";
 import { CUSTOM_FIELD_ENTITIES, CUSTOM_FIELD_TYPES, CUSTOM_FIELD_TYPE_LABEL, customKeyCollision, FIELD_KEY_RE, formulaSyntaxError, type CustomFieldEntity } from "@/lib/config-kernel/custom-fields";
 import { EXTERNAL_DICTIONARIES } from "@/lib/config-kernel/dictionaries";
+import { WORKFLOW_ACTIONS, WORKFLOW_ACTION_LABEL, defaultWorkflowTemplate, workflowPayloadErrors, type Workflow } from "@/lib/config-kernel/workflow";
+import { PRODUCTION_LABELS, PRODUCTION_STATUSES } from "@/lib/orders.constants";
 
 type Scope = { type: "company" | "role"; id: string };
 const COMPANY: Scope = { type: "company", id: "terzi" };
 const ScopeCtx = createContext<Scope>(COMPANY);
 const useScope = () => useContext(ScopeCtx);
-type Kind = "module_overlay" | "custom_field" | "dictionary";
-type Section = "modules" | "fields" | "dictionaries";
+type Kind = "module_overlay" | "custom_field" | "dictionary" | "workflow";
+type Section = "modules" | "fields" | "dictionaries" | "workflow";
 
 const sel = "h-9 w-full rounded-md border border-input bg-background px-2 text-sm";
 
@@ -193,13 +195,14 @@ export function ControlCenterAdmin({ canEdit }: { canEdit: boolean }) {
     { id: "modules", label: "Модулі", icon: Boxes, hint: "Підписи UA/RU, активність, порядок, ролі, пристрої" },
     { id: "fields", label: "Сутності й поля", icon: Database, hint: "Кастомні поля для Замовлень і Лідів" },
     { id: "dictionaries", label: "Довідники", icon: ListTree, hint: "Реєстр довідників, нові списки з архівом" },
+    { id: "workflow", label: "Етапи замовлення", icon: Workflow_, hint: "Виробничі етапи, переходи, автоматика" },
   ];
   if (!canEdit) return <div className="rounded-lg border border-border p-4 text-sm text-muted-foreground">Керування конфігурацією доступне адміністратору (право «Керування налаштуваннями»).</div>;
   return (
     <ScopeCtx.Provider value={scope}>
     <div className="space-y-4">
       <ScopeSelector scope={scope} onChange={setScope} />
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {cards.map((c) => (
           <button key={c.id} type="button" onClick={() => setSection(c.id)}
             className={`text-left rounded-lg border p-3 transition-colors ${section === c.id ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"}`}>
@@ -215,6 +218,7 @@ export function ControlCenterAdmin({ canEdit }: { canEdit: boolean }) {
       {section === "modules" && <ModulesSection q={q} />}
       {section === "fields" && <FieldsSection q={q} />}
       {section === "dictionaries" && <DictionariesSection q={q} />}
+      {section === "workflow" && <WorkflowSection />}
     </div>
     </ScopeCtx.Provider>
   );
@@ -504,6 +508,96 @@ function DictionaryEditor({ code, initial, hasDraft }: { code: string; initial: 
       </div>
       <p className="text-xs text-muted-foreground">Опубліковані елементи не видаляються — лише архівуються: історичні записи й далі показують їхню назву.</p>
       <Lifecycle kind="dictionary" cfgKey={code} payload={payload} hasDraft={hasDraft} />
+    </div>
+  );
+}
+
+/* ---------------- Workflow (етапи замовлення) ---------------- */
+function WorkflowSection() {
+  const { data } = useKind("workflow");
+  const scope = useScope();
+  const own = useMemo(() => byKey(data, scope).get("order.production"), [data, scope]);
+  const base = useMemo(() => byKey(data, COMPANY).get("order.production"), [data]);
+  const src = own?.draft ?? own?.published ?? (scope.type === "role" ? base?.published : undefined);
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-2 p-3">
+        <div>
+          <div className="font-medium text-sm">Виробничі етапи замовлення</div>
+          <div className="text-xs text-muted-foreground">Без опублікованої схеми дозволено будь-який перехід без автоматики (як зараз).</div>
+        </div>
+        <StatusBadge e={own} inherited={scope.type === "role" && !!base?.published} />
+      </div>
+      <WorkflowEditor key={`${scope.type}:${scope.id}:${src?.version ?? 0}`} initial={(src?.payload as Workflow) ?? null} hasDraft={!!own?.draft} />
+    </div>
+  );
+}
+
+function WorkflowEditor({ initial, hasDraft }: { initial: Workflow | null; hasDraft: boolean }) {
+  const [wf, setWf] = useState<Workflow>(() => initial ?? defaultWorkflowTemplate());
+  const [from, setFrom] = useState<string>("not_planned");
+  const [to, setTo] = useState<string>("preparation");
+  const stages = [...wf.stages].sort((a, b) => a.order - b.order);
+  const active = stages.filter((s) => s.active !== false);
+  const lbl = (c: string) => wf.stages.find((s) => s.code === c)?.label_uk || PRODUCTION_LABELS[c] || c;
+  const setStage = (code: string, patch: any) => setWf({ ...wf, stages: wf.stages.map((s) => (s.code === code ? { ...s, ...patch } : s)) });
+  const setTr = (i: number, patch: any) => setWf({ ...wf, transitions: wf.transitions.map((t, j) => (j === i ? { ...t, ...patch } : t)) });
+  const errors = workflowPayloadErrors("order.production", wf);
+  return (
+    <div className="border-t border-border p-3 space-y-4">
+      {!initial && <div className="text-xs rounded bg-muted p-2">Показано стартовий шаблон. Він не діє, доки ви не збережете й не опублікуєте його.</div>}
+      <div>
+        <div className="text-xs font-semibold mb-2">Етапи</div>
+        <div className="space-y-1.5">
+          {PRODUCTION_STATUSES.map((c) => {
+            const s = wf.stages.find((x) => x.code === c) ?? { code: c, order: 999, active: false };
+            return (
+              <div key={c} className={`grid grid-cols-[auto_1fr_70px] sm:grid-cols-[auto_180px_1fr_80px] gap-2 items-center ${s.active === false ? "opacity-60" : ""}`}>
+                <input type="checkbox" checked={s.active !== false} onChange={(e) => {
+                  if (!wf.stages.find((x) => x.code === c)) setWf({ ...wf, stages: [...wf.stages, { code: c, order: 999, active: e.target.checked }] });
+                  else setStage(c, { active: e.target.checked });
+                }} />
+                <span className="hidden sm:block text-xs text-muted-foreground">{PRODUCTION_LABELS[c]}</span>
+                <Input value={s.label_uk ?? ""} placeholder={PRODUCTION_LABELS[c]} onChange={(e) => setStage(c, { label_uk: e.target.value || undefined })} />
+                <Input inputMode="numeric" value={s.order} onChange={(e) => setStage(c, { order: Number(e.target.value) || 0 })} />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+      <div>
+        <div className="text-xs font-semibold mb-2">Переходи й автоматика</div>
+        <div className="space-y-2">
+          {wf.transitions.map((t, i) => (
+            <div key={`${t.from}>${t.to}`} className="rounded-md border border-border p-2 space-y-1.5">
+              <div className="flex items-center justify-between gap-2 text-sm">
+                <span>{lbl(t.from)} → <b>{lbl(t.to)}</b></span>
+                <Button size="sm" variant="ghost" onClick={() => setWf({ ...wf, transitions: wf.transitions.filter((_, j) => j !== i) })}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {WORKFLOW_ACTIONS.map((a) => (
+                  <label key={a} className="flex items-center gap-1.5 text-xs">
+                    <input type="checkbox" checked={t.actions.includes(a)} onChange={(e) => setTr(i, { actions: e.target.checked ? [...t.actions, a] : t.actions.filter((x) => x !== a) })} />
+                    {WORKFLOW_ACTION_LABEL[a]}
+                  </label>
+                ))}
+              </div>
+              {t.actions.includes("create_task") && <Input value={t.task_title ?? ""} placeholder="Назва завдання" onChange={(e) => setTr(i, { task_title: e.target.value || undefined })} />}
+            </div>
+          ))}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2 items-center">
+          <select className={sel + " max-w-[200px]"} value={from} onChange={(e) => setFrom(e.target.value)}>{active.map((s) => <option key={s.code} value={s.code}>{lbl(s.code)}</option>)}</select>
+          <span>→</span>
+          <select className={sel + " max-w-[200px]"} value={to} onChange={(e) => setTo(e.target.value)}>{active.map((s) => <option key={s.code} value={s.code}>{lbl(s.code)}</option>)}</select>
+          <Button size="sm" variant="outline" onClick={() => setWf({ ...wf, transitions: [...wf.transitions, { from: from as any, to: to as any, actions: [] }] })}><Plus className="h-3.5 w-3.5 mr-1" />Додати перехід</Button>
+        </div>
+      </div>
+      <div className="text-xs text-muted-foreground">
+        План бригад береться лише із затвердженого кошторису; у відомість іде тільки підтверджений факт. Користувачі без доступу до відомості можуть змінити етап, але план/факт тоді пропускаються із записом у журнал.
+      </div>
+      {errors.length > 0 && <div className="text-xs text-destructive">{errors.join("; ")}</div>}
+      <Lifecycle kind="workflow" cfgKey="order.production" payload={wf} hasDraft={hasDraft} />
     </div>
   );
 }

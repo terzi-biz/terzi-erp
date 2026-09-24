@@ -28,6 +28,8 @@ import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
 
 import { listReservations } from "@/lib/warehouse.functions";
 import { toast } from "sonner";
+import { getOrderWorkflow, transitionOrderStage } from "@/lib/workflow.functions";
+import { nextStages } from "@/lib/config-kernel/workflow";
 
 export const Route = createFileRoute("/orders/$id")({
   ssr: false,
@@ -68,6 +70,20 @@ function ObjectDetailPage() {
   const statusMut = useMutation({
     mutationFn: (patch: any) => setStatusFn({ data: { id, ...patch } }),
     onSuccess: () => { qc.invalidateQueries({ queryKey: ["object", id] }); toast.success("Статус оновлено"); },
+    onError: (e: any) => toast.error(e?.message ?? "Помилка"),
+  });
+
+  const wfFn = useServerFn(getOrderWorkflow);
+  const trFn = useServerFn(transitionOrderStage);
+  const wfQ = useQuery({ queryKey: ["order-workflow"], queryFn: () => wfFn(), staleTime: 60_000 });
+  const stageMut = useMutation({
+    mutationFn: (to: string) => trFn({ data: { orderId: id, to } }),
+    onSuccess: (r) => {
+      qc.invalidateQueries({ queryKey: ["object", id] });
+      qc.invalidateQueries();
+      toast.success("Етап оновлено");
+      for (const a of r.results) (a.status === "done" ? toast.success : a.status === "error" ? toast.error : toast.info)(a.message);
+    },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
 
@@ -128,8 +144,10 @@ function ObjectDetailPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             <StatusSelect label="Комерція" value={o.commercial_status} options={COMMERCIAL_STATUSES as any} labels={COMMERCIAL_LABELS}
               onChange={(v) => statusMut.mutate({ commercial_status: v })} />
-            <StatusSelect label="Виробництво" value={o.production_status} options={PRODUCTION_STATUSES as any} labels={PRODUCTION_LABELS}
-              onChange={(v) => statusMut.mutate({ production_status: v })} />
+            <StatusSelect label="Виробництво" value={o.production_status}
+              options={wfQ.data?.wf ? [o.production_status, ...nextStages(wfQ.data.wf, o.production_status)] : (PRODUCTION_STATUSES as any)}
+              labels={PRODUCTION_LABELS}
+              onChange={(v) => { if (v !== o.production_status) stageMut.mutate(v); }} />
             <StatusSelect label="Фінанси" value={o.financial_status} options={FINANCIAL_STATUSES as any} labels={FINANCIAL_LABELS}
               onChange={(v) => statusMut.mutate({ financial_status: v })} />
             <StatusSelect label="Ризик" value={o.risk_level} options={RISK_LEVELS as any} labels={RISK_LABELS}

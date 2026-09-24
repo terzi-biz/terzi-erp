@@ -8,6 +8,7 @@ import { TERZI_MODULES, type ModuleId } from "@/lib/modules";
 import { customFieldSchema, validateCustomFieldKey, customFieldTransitionErrors } from "./custom-fields";
 import { calcSettingsSchema, calcSettingsKeyErrors, isCalcSettingsKey } from "./calc-settings";
 import { dictionarySchema, validateDictionaryKey, dictionaryTransitionErrors } from "./dictionaries";
+import { workflowSchema, isWorkflowKey, workflowPayloadErrors } from "./workflow";
 
 const MODULE_IDS = TERZI_MODULES.map((m) => m.id) as [ModuleId, ...ModuleId[]];
 
@@ -71,6 +72,15 @@ export const CONFIG_KINDS = {
     /** Порожнє перевизначення = дефолти рушія. */
     defaultFor: (_key: string) => ({}) as Record<string, number>,
     payloadErrors: calcSettingsKeyErrors,
+  },
+  workflow: {
+    label: "Етапи замовлення",
+    schema: workflowSchema,
+    sensitive: false,
+    validateKey: isWorkflowKey,
+    /** Немає workflow = будь-який перехід без автоматики (поточна поведінка). */
+    defaultFor: (_key: string) => null as unknown as z.infer<typeof workflowSchema>,
+    payloadErrors: workflowPayloadErrors,
   },
 } as const;
 
