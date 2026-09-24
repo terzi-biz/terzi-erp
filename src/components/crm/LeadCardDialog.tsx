@@ -199,6 +199,9 @@ export function LeadCardDialog({
                 </Section>
               </div>
 
+              <LeadMeasurements leadId={leadId} orderId={lead?.order_id ?? null}
+                clientName={lead?.client_name ?? null} address={form.address || lead?.address || null} />
+
               {LEAD_FIELD_GROUPS.map((g) => (
                 <Section key={g.key} title={g.label}>
                   <div className="grid gap-3 sm:grid-cols-2">
