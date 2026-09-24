@@ -378,6 +378,10 @@ function MeasurementsPage() {
           <Field label="Клієнт">
             <input className={inp} value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
           </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={Boolean(form.already_done)} onChange={(e) => setForm({ ...form, already_done: e.target.checked })} />
+            Замір вже проведено (внести минулою датою)
+          </label>
           <div className="flex gap-2 pt-1">
             <button onClick={() => setOpen(false)} className="flex-1 rounded-md border border-border py-2 text-sm font-semibold">Скасувати</button>
             <button disabled={save.isPending || !form.starts_at} onClick={() => save.mutate(form)}
