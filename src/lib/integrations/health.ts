@@ -31,14 +31,14 @@ export const PROVIDERS: ProviderMeta[] = [
   { id: "keycrm", label: "keyCRM", integrationKeys: ["keycrm"], legacyKeys: ["keycrm"], envKeys: [], capabilities: ["test", "sync", "webhook_in", "outbound"], implementation: "integrations/keycrm", tab: "sync" },
   { id: "google_ads", label: "Google Ads", integrationKeys: ["google_ads"], legacyKeys: ["google_ads"], metricsPlatform: "google", envKeys: ["GOOGLE_ADS_API_KEY", "GOOGLE_ADS_CUSTOMER_ID"], capabilities: ["test", "sync", "conversions", "oauth"], implementation: "foundation/google-ads.server", tab: "external" },
   { id: "meta_ads", label: "Meta Ads", integrationKeys: ["meta_ads"], legacyKeys: ["meta_ads", "facebook", "instagram"], metricsPlatform: "meta", envKeys: ["META_ADS_ACCESS_TOKEN", "META_ADS_ACCOUNT_ID"], capabilities: ["test", "sync"], implementation: "foundation/meta-ads.server", tab: "external" },
-  { id: "ga4", label: "GA4", integrationKeys: ["ga4"], legacyKeys: ["ga4"], envKeys: ["GA4_PROPERTY_ID"], capabilities: ["test"], implementation: "foundation/adapters.server", tab: "external" },
+  { id: "ga4", label: "GA4", integrationKeys: ["ga4"], legacyKeys: ["ga4"], envKeys: ["GA4_PROPERTY_ID"], capabilities: ["test", "oauth"], implementation: "external/providers.server", tab: "external" },
   { id: "site_forms", label: "Сайт / WordPress", integrationKeys: ["site_forms", "wordpress", "site"], legacyKeys: ["site_forms"], metricsPlatform: "site", envKeys: ["LEAD_INTAKE_SECRET"], capabilities: ["webhook_in"], implementation: "api/public/leads/intake", tab: "webhooks" },
   { id: "gtm", label: "Google Tag Manager", integrationKeys: ["gtm"], legacyKeys: ["gtm"], envKeys: ["GTM_CONTAINER_ID"], capabilities: [], implementation: "—" },
-  { id: "tiktok_ads", label: "TikTok Ads", integrationKeys: ["tiktok_ads"], legacyKeys: ["tiktok_ads"], metricsPlatform: "tiktok", envKeys: ["TIKTOK_ADS_ACCESS_TOKEN"], capabilities: ["oauth"], implementation: "—" },
-  { id: "whatsapp", label: "WhatsApp", integrationKeys: ["whatsapp"], legacyKeys: ["whatsapp"], envKeys: ["WHATSAPP_TOKEN"], capabilities: ["webhook_in"], implementation: "api/public/integrations/messenger/whatsapp" },
-  { id: "telegram", label: "Telegram", integrationKeys: ["telegram"], legacyKeys: ["telegram"], envKeys: ["TELEGRAM_BOT_TOKEN"], capabilities: ["webhook_in", "outbound"], implementation: "api/public/integrations/messenger/telegram" },
-  { id: "viber", label: "Viber", integrationKeys: ["viber"], legacyKeys: ["viber"], envKeys: ["VIBER_TOKEN"], capabilities: ["webhook_in"], implementation: "api/public/integrations/messenger/viber" },
-  { id: "olx", label: "OLX", integrationKeys: ["olx"], legacyKeys: ["olx"], envKeys: ["OLX_CLIENT_ID", "OLX_CLIENT_SECRET"], capabilities: ["oauth"], implementation: "—" },
+  { id: "tiktok_ads", label: "TikTok Ads", integrationKeys: ["tiktok_ads"], legacyKeys: ["tiktok_ads"], metricsPlatform: "tiktok", envKeys: ["TIKTOK_ADS_APP_ID", "TIKTOK_ADS_APP_SECRET"], capabilities: ["oauth", "test"], implementation: "external/providers.server", tab: "external" },
+  { id: "whatsapp", label: "WhatsApp", integrationKeys: ["whatsapp"], legacyKeys: ["whatsapp"], envKeys: ["WHATSAPP_ACCESS_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"], capabilities: ["test", "webhook_in"], implementation: "external/providers.server", tab: "external" },
+  { id: "telegram", label: "Telegram", integrationKeys: ["telegram"], legacyKeys: ["telegram"], envKeys: ["TELEGRAM_BOT_TOKEN"], capabilities: ["test", "webhook_in"], implementation: "external/providers.server", tab: "external" },
+  { id: "viber", label: "Viber", integrationKeys: ["viber"], legacyKeys: ["viber"], envKeys: ["VIBER_BOT_TOKEN"], capabilities: ["test", "webhook_in"], implementation: "external/providers.server", tab: "external" },
+  { id: "olx", label: "OLX", integrationKeys: ["olx"], legacyKeys: ["olx"], envKeys: ["OLX_CLIENT_ID", "OLX_CLIENT_SECRET"], capabilities: ["oauth", "test"], implementation: "external/providers.server", tab: "external" },
 ];
 
 export type HealthEvidence = {
@@ -84,7 +84,8 @@ const max = (...xs: (string | null | undefined)[]) =>
 
 export function normalizeHealth(meta: ProviderMeta, ev: HealthEvidence, now = Date.now()): ProviderHealth {
   const c = ev.canonical ?? null;
-  const lastGood = max(c?.lastSuccessAt, c?.lastTestOk ? c?.lastTestAt : null, ev.lastSyncAt, ev.lastEventAt);
+  // Лише успішний API-тест або синхронізація; вебхук/подія — інформативно.
+  const lastGood = max(c?.lastSuccessAt, c?.lastTestOk ? c?.lastTestAt : null, ev.lastSyncAt);
   const lastBad = max(c?.lastErrorAt, c?.lastTestOk === false ? c?.lastTestAt : null, ev.lastSyncErrorAt);
   const lastError = (t(lastBad) > 0 ? (ev.lastSyncErrorAt === lastBad ? ev.lastSyncError : c?.lastError) : null) ?? c?.lastError ?? ev.lastSyncError ?? null;
 
