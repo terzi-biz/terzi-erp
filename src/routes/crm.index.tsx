@@ -8,7 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { listLeads, listTasks, listCalls, listPipelines, crmKpi } from "@/lib/crm.functions";
 import { listMeasurements } from "@/lib/measurements.functions";
 import { listBoardLeads } from "@/lib/crm/board.functions";
-import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButtonOutline } from "@/components/crm/CrmUi";
+import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel } from "@/components/crm/CrmUi";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
