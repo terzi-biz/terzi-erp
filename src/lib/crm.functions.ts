@@ -394,6 +394,10 @@ export const convertRequestToLead = createServerFn({ method: "POST" })
       lead_id: lead.id, actor_id: context.userId, kind: "created",
       body: `Лід створено зі звернення (${req.channel})`,
     });
+    {
+      const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
+      await safeEmitConversion({ kind: "lead_created", leadId: lead.id, sourceType: "crm_leads", sourceId: lead.id });
+    }
     return { lead_id: lead.id };
   });
 
