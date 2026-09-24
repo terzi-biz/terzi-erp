@@ -211,9 +211,9 @@ function CrmDashboard() {
 
         {tab === "funnel" ? (
           <div className="grid gap-4 lg:grid-cols-3">
-            <CrmPanel className="p-4 lg:col-span-2">
+            <CrmPanel className="scroll-x p-4 lg:col-span-2">
               <div className="mb-4 flex items-center justify-between"><div><CrmEyebrow>Pipeline control</CrmEyebrow><div className="mt-1 text-base font-bold">Воронка по етапах</div></div><span className="font-mono text-xs text-muted-foreground">{stats.open} активних</span></div>
-              <div className="space-y-1.5">
+              <div className="min-w-[660px] space-y-1.5">
                 {byStage.map((s, i) => {
                   const max = Math.max(1, ...byStage.map((x) => x.count));
                   const color = s.color || STAGE_PALETTE[i % STAGE_PALETTE.length];

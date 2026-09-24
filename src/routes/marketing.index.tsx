@@ -206,7 +206,7 @@ function MarketingOverview() {
             </div>
           </section>
 
-          <div className="grid gap-3 lg:grid-cols-2">
+          <div className="grid min-w-0 gap-3 lg:grid-cols-2 [&>*]:min-w-0">
             <Panel title="Вартість заявки по каналах" action={<span className="text-[10px] text-muted-foreground">порівняння із середньою CPL</span>}>
               {view.byChannel.length ? (() => {
                 const paid = view.byChannel.filter(([, v]) => v.spend > 0 && v.requests > 0);

@@ -173,6 +173,8 @@
     background-size: 32px 32px;
   }
   .crm-panel {
+    min-width: 0;
+    max-width: 100%;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: var(--card);
@@ -238,6 +240,8 @@
     background: var(--dashboard-rail);
   }
   .dashboard-toolbar {
+    min-width: 0;
+    max-width: 100%;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     background: color-mix(in oklab, var(--card) 94%, transparent);
@@ -245,6 +249,7 @@
     backdrop-filter: blur(12px);
   }
   .dashboard-kpi-grid {
+    min-width: 0;
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: .625rem;
