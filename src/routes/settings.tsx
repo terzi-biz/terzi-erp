@@ -30,7 +30,7 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
   { to: "/settings/company", label: "Компанія", icon: Building2, description: "Реквізити, причини закриття, брендинг, напрямки." },
   { to: "/settings/access", label: "Доступи і безпека", icon: ShieldCheck, description: "Користувачі, ролі, права, журнал дій." },
   { to: "/settings/integrations", label: "Інтеграції", icon: Cable, description: "Підключення сервісів і обмін даними." },
-] as const;
+];
 
 function SettingsLayout() {
   return (
