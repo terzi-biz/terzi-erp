@@ -6,7 +6,10 @@ import { PROVIDERS, normalizeHealth, type HealthEvidence, type ProviderHealth, t
 export const getIntegrationHealth = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const db = context.supabase as any;
+    // Лише часові мітки й лічильники (без сум) — читаємо сервісним клієнтом після перевірки сесії.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    void context;
+    const db = supabaseAdmin as any;
     const safe = async <T,>(p: PromiseLike<{ data: T | null; error: unknown }>): Promise<T | null> => {
       try { const r = await p; return r.error ? null : r.data; } catch { return null; }
     };
@@ -54,7 +57,7 @@ export const getIntegrationHealth = createServerFn({ method: "GET" })
         ev.lastSyncAt = ok;
         ev.lastSyncError = errLog?.message ?? null;
         ev.lastSyncErrorAt = errLog?.created_at ?? null;
-        if (fmState === null) ev.extra!.push("Немає доступу до фінансових даних");
+        if (fmState === null) ev.extra!.push("Стан синхронізації Finmap недоступний");
       }
       if (meta.id === "binotel" && lastCall?.[0]?.started_at) ev.extra!.push(`Останній дзвінок: ${lastCall[0].started_at}`);
       if (leg && leg.connection_status === "connected") ev.extra!.push("Legacy-статус маркетингу: «підключено» (довідково)");
