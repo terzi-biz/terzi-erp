@@ -124,6 +124,8 @@
   --gradient-panel: linear-gradient(180deg, oklch(1 0 0), oklch(1 0 0));
   --shadow-panel: 0 1px 2px 0 oklch(0.25 0.05 250 / 0.10), 0 1px 1px 0 oklch(0.25 0.05 250 / 0.04);
   --shadow-glow: 0 0 24px -6px oklch(0.735 0.125 78 / 0.4);
+  --dashboard-grid: color-mix(in oklab, var(--primary) 5%, transparent);
+  --dashboard-rail: color-mix(in oklab, var(--gold) 72%, var(--primary));
 }
 
 @layer base {
@@ -165,13 +167,16 @@
 @layer components {
   .crm-workspace {
     background-color: color-mix(in oklab, var(--background) 96%, var(--primary));
-    background-image: none;
+    background-image:
+      linear-gradient(var(--dashboard-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--dashboard-grid) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
   .crm-panel {
     border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     background: var(--card);
-    box-shadow: 0 8px 24px -20px color-mix(in oklab, var(--primary) 45%, transparent), 0 2px 8px color-mix(in oklab, var(--foreground) 5%, transparent);
+    box-shadow: 0 12px 30px -26px color-mix(in oklab, var(--primary) 65%, transparent), 0 1px 3px color-mix(in oklab, var(--foreground) 7%, transparent);
   }
   .crm-eyebrow {
     color: var(--muted-foreground);
@@ -185,7 +190,7 @@
     overflow: hidden;
     min-height: 104px;
     border: 1px solid var(--border);
-    border-radius: var(--radius-xl);
+    border-radius: var(--radius-lg);
     background: var(--card);
     padding: 0.875rem;
     box-shadow: 0 8px 24px -20px color-mix(in oklab, var(--primary) 45%, transparent), 0 2px 8px color-mix(in oklab, var(--foreground) 5%, transparent);
@@ -197,6 +202,76 @@
   .crm-kpi--gold .crm-kpi__icon, .crm-kpi--gold .crm-kpi__trend { background-color: color-mix(in oklab, var(--gold) 13%, var(--card)); color: var(--gold); }
   .crm-kpi--success .crm-kpi__icon, .crm-kpi--success .crm-kpi__trend { background-color: color-mix(in oklab, var(--success) 12%, var(--card)); color: var(--success); }
   .crm-kpi--danger .crm-kpi__icon, .crm-kpi--danger .crm-kpi__trend { background-color: color-mix(in oklab, var(--destructive) 10%, var(--card)); color: var(--destructive); }
+  .dashboard-page {
+    margin-inline: auto;
+    max-width: 1500px;
+    padding: 1rem;
+    padding-bottom: 3rem;
+  }
+  .dashboard-header {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--card);
+    padding: 1rem;
+    box-shadow: var(--shadow-panel);
+  }
+  .dashboard-header::before {
+    content: "";
+    position: absolute;
+    inset-block: 0;
+    left: 0;
+    width: 4px;
+    background: var(--dashboard-rail);
+  }
+  .dashboard-section-title {
+    display: flex;
+    align-items: center;
+    gap: .625rem;
+  }
+  .dashboard-section-title::before {
+    content: "";
+    width: 3px;
+    height: 1.25rem;
+    border-radius: 2px;
+    background: var(--dashboard-rail);
+  }
+  .dashboard-toolbar {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: color-mix(in oklab, var(--card) 94%, transparent);
+    box-shadow: var(--shadow-panel);
+    backdrop-filter: blur(12px);
+  }
+  .dashboard-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: .625rem;
+  }
+  .dashboard-table {
+    width: 100%;
+    min-width: 680px;
+    font-size: .75rem;
+  }
+  .dashboard-table thead {
+    background: var(--secondary);
+    color: var(--muted-foreground);
+    font-size: .625rem;
+    text-transform: uppercase;
+  }
+  .dashboard-table th { padding: .625rem .75rem; font-weight: 800; }
+  .dashboard-table td { padding: .625rem .75rem; }
+  .dashboard-table tbody tr { border-top: 1px solid var(--border); }
+  .dashboard-table tbody tr:hover { background: color-mix(in oklab, var(--accent) 62%, transparent); }
+  @media (min-width: 768px) {
+    .dashboard-page { padding: 1.5rem; }
+    .dashboard-header { padding: 1.25rem 1.5rem; }
+    .dashboard-kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  }
+  @media (min-width: 1280px) {
+    .dashboard-kpi-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  }
   .crm-stage-column {
     border: 1px solid var(--border);
     border-top-width: 3px;
