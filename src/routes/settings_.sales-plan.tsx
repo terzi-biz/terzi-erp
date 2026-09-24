@@ -15,7 +15,7 @@ import {
   upsertManagerSalesTargets,
 } from "@/lib/sales-plan.functions";
 
-export const Route = createFileRoute("/settings/sales-plan")({
+export const Route = createFileRoute("/settings_/sales-plan")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
