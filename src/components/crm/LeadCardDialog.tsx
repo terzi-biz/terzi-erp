@@ -3,6 +3,7 @@
  * коментарі, задачі та дзвінки з прослуховуванням записів.
  */
 import { useEffect, useMemo, useState } from "react";
+import { LeadMeasurements } from "@/components/crm/LeadMeasurements";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -198,6 +199,9 @@ export function LeadCardDialog({
                   <Field label="Замітка"><textarea rows={3} className={inp} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
                 </Section>
               </div>
+
+              <LeadMeasurements leadId={leadId} orderId={lead?.order_id ?? null}
+                clientName={lead?.client_name ?? null} address={form.address || lead?.address || null} />
 
               {LEAD_FIELD_GROUPS.map((g) => (
                 <Section key={g.key} title={g.label}>

@@ -20,6 +20,9 @@ export const scheduleMeasurementSchema = z.object({
   client_id: z.string().uuid().optional().nullable(),
   description: z.string().max(2000).optional().nullable(),
   lead_id: z.string().uuid().optional().nullable(),
+  /** Замір уже проведено (внесення заднім числом): одразу статус «Виконано». */
+  already_done: z.boolean().optional(),
+  perimeter: z.number().nonnegative().optional().nullable(),
 });
 
 /** Зміна канонічного статусу заміру (order_measurements). */

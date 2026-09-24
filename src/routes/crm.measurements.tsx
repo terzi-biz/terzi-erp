@@ -80,7 +80,7 @@ function MeasurementsPage() {
 
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(iso(new Date()));
-  const [tab, setTab] = useState<"plan" | "fact">("plan");
+  const [tab, setTab] = useState<"board" | "plan" | "fact">("board");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [estimateFor, setEstimateFor] = useState<{ id: string; module: string } | null>(null);
@@ -129,6 +129,7 @@ function MeasurementsPage() {
       employee_id: p.employee_id || null,
       lead_id: p.lead_id || null,
       order_id: p.order_id || null,
+      already_done: Boolean(p.already_done),
     } }),
     onSuccess: () => { refresh(); setOpen(false); setForm(emptyForm); toast.success("Замір заплановано"); },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося запланувати замір"),
@@ -205,7 +206,7 @@ function MeasurementsPage() {
         ) : null}
 
         <div className="flex flex-wrap items-center gap-2">
-          {([["plan", `План (${planned.length})`], ["fact", `Усі за період (${rows.length})`]] as const).map(([k, l]) => (
+          {([["board", "Воронка"], ["plan", `План (${planned.length})`], ["fact", `Усі за період (${rows.length})`]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>{l}</button>
           ))}
@@ -227,7 +228,9 @@ function MeasurementsPage() {
 
         {isLoading ? <div className="text-sm text-muted-foreground">Завантаження…</div> : null}
 
-        {tab === "plan" ? (
+        {tab === "board" ? (
+          <MeasurementBoard rows={rows} onOpen={setCardId} onMove={(id, status) => patch.mutate({ id, status })} />
+        ) : tab === "plan" ? (
           <CrmPanel className="divide-y divide-border/60">
             {planned.map((e: any) => {
               const overdue = e.scheduled_at && new Date(e.scheduled_at).getTime() < Date.now();
@@ -375,6 +378,10 @@ function MeasurementsPage() {
           <Field label="Клієнт">
             <input className={inp} value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
           </Field>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={Boolean(form.already_done)} onChange={(e) => setForm({ ...form, already_done: e.target.checked })} />
+            Замір вже проведено (внести минулою датою)
+          </label>
           <div className="flex gap-2 pt-1">
             <button onClick={() => setOpen(false)} className="flex-1 rounded-md border border-border py-2 text-sm font-semibold">Скасувати</button>
             <button disabled={save.isPending || !form.starts_at} onClick={() => save.mutate(form)}
@@ -427,5 +434,61 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
       <span className="text-xs font-semibold text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+const BOARD_TONE: Record<string, string> = {
+  planned: "border-t-slate-400", assigned: "border-t-sky-500", confirmed: "border-t-indigo-500",
+  in_progress: "border-t-amber-500", completed: "border-t-emerald-600", canceled: "border-t-rose-500", rescheduled: "border-t-orange-400",
+};
+
+/** Воронка замірів: колонки = статуси, картки перетягуються між етапами. */
+function MeasurementBoard({ rows, onOpen, onMove }: {
+  rows: any[]; onOpen: (id: string) => void; onMove: (id: string, status: MeasurementStatus) => void;
+}) {
+  const [over, setOver] = useState<string | null>(null);
+  return (
+    <div className="scroll-x -mx-1 pb-2">
+      <div className="flex min-w-max gap-3 px-1">
+        {MEASUREMENT_STATUSES.map((s) => {
+          const items = rows.filter((r) => r.status === s);
+          const area = items.reduce((a, r) => a + (Number(r.area) || 0), 0);
+          return (
+            <div key={s}
+              onDragOver={(e) => { e.preventDefault(); setOver(s); }}
+              onDragLeave={() => setOver((v) => (v === s ? null : v))}
+              onDrop={(e) => { e.preventDefault(); setOver(null); const id = e.dataTransfer.getData("text/plain"); const cur = rows.find((r) => r.id === id); if (id && cur && cur.status !== s) onMove(id, s); }}
+              className={`flex w-[270px] shrink-0 flex-col rounded-md border border-border border-t-4 ${BOARD_TONE[s]} bg-card/70 ${over === s ? "ring-2 ring-primary" : ""}`}>
+              <div className="border-b border-border px-3 py-2">
+                <div className="flex items-center justify-between text-sm font-bold">
+                  <span>{MEASUREMENT_STATUS_LABELS[s]}</span><span className="text-muted-foreground">{items.length}</span>
+                </div>
+                <div className="text-[11px] text-muted-foreground">{area ? `${Math.round(area)} м²` : "площа — немає даних"}</div>
+              </div>
+              <div className="flex min-h-[120px] flex-col gap-2 p-2">
+                {items.map((r) => {
+                  const overdue = s !== "completed" && s !== "canceled" && r.scheduled_at && new Date(r.scheduled_at).getTime() < Date.now();
+                  return (
+                    <button key={r.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", r.id)}
+                      onClick={() => onOpen(r.id)}
+                      className="rounded-md border border-border bg-background p-2.5 text-left text-xs shadow-sm hover:border-primary">
+                      <div className="truncate text-sm font-semibold">{r.order_name ?? r.address ?? r.order_address ?? "Замір"}</div>
+                      <div className={`mt-0.5 flex items-center gap-1 ${overdue ? "text-rose-600" : "text-muted-foreground"}`}>
+                        <CalendarClock className="h-3 w-3" /> {fmtDT(r.measured_at ?? r.scheduled_at ?? r.created_at)}{overdue ? " · прострочено" : ""}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {r.surveyor_name ?? "без замірника"}</div>
+                      {r.order_number || r.area != null ? (
+                        <div className="mt-1 text-muted-foreground">{r.order_number ? `№ ${r.order_number}` : ""}{r.order_number && r.area != null ? " · " : ""}{r.area != null ? `${r.area} м²` : ""}</div>
+                      ) : null}
+                    </button>
+                  );
+                })}
+                {!items.length ? <div className="py-4 text-center text-[11px] text-muted-foreground">Перетягніть сюди</div> : null}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
