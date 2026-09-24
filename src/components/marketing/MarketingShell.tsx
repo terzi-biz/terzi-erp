@@ -1,7 +1,6 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/AppShell";
-import { Button } from "@/components/ui/button";
 import { MARKETING_NAV } from "./nav";
 
 export { MARKETING_NAV };

@@ -9,6 +9,8 @@ import { listLeads, listTasks, listCalls, listPipelines, crmKpi } from "@/lib/cr
 import { listMeasurements } from "@/lib/measurements.functions";
 import { listBoardLeads } from "@/lib/crm/board.functions";
 import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButtonOutline } from "@/components/crm/CrmUi";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export const Route = createFileRoute("/crm/")({
   ssr: false,
@@ -148,22 +150,22 @@ function CrmDashboard() {
 
   return (
     <AppShell>
-      <CrmPage className="mx-auto max-w-[1500px] space-y-5">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
+      <CrmPage className="dashboard-page space-y-6 p-0 md:p-0">
+        <div className="dashboard-header flex flex-wrap items-start justify-between gap-3">
           <div>
             <CrmEyebrow>Центр продажів</CrmEyebrow>
             <h1 className="mt-1 text-2xl font-bold md:text-3xl">Командна панель CRM</h1>
             <p className="mt-1 text-sm text-muted-foreground">Лід → замір → замовлення → кошторис</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-            <Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }} className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-bold text-primary-foreground">Воронка лідів</Link>
-            <Link to="/crm/measurements" className={crmButtonOutline}>Заміри</Link>
-            <Link to="/crm/calls" className={crmButtonOutline}>Дзвінки</Link>
-            <Link to="/crm/tasks" className={crmButtonOutline}>Задачі</Link>
+             <Button asChild><Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }}>Воронка лідів</Link></Button>
+             <Button asChild variant="outline"><Link to="/crm/measurements">Заміри</Link></Button>
+             <Button asChild variant="outline"><Link to="/crm/calls">Дзвінки</Link></Button>
+             <Button asChild variant="outline"><Link to="/crm/tasks">Задачі</Link></Button>
           </div>
         </div>
 
-        <div className="grid gap-3 grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="dashboard-kpi-grid">
           <Kpi icon={Target} label="Ліди в роботі" value={String(stats.open)} to="/crm/leads" />
           <Kpi icon={Ruler} label="Площа в роботі" value={`${new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(areaInWork)} м²`} hint="Сума площ активних лідів" />
           <Kpi icon={TrendingUp} label="Сума воронки" value={money(stats.pipeline)} to="/crm/leads" />
@@ -192,19 +194,14 @@ function CrmDashboard() {
 
 
 
-        <div className="flex items-center gap-2 flex-wrap border-b border-border">
-          {([["funnel", "Воронка"], ["measurements", "Заміри і конверсія"], ["activity", "Активність"]] as [Tab, string][]).map(([k, label]) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => setTab(k)}
-              className={`px-3 py-2 text-sm font-semibold border-b-2 -mb-px ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="dashboard-toolbar flex flex-wrap items-center gap-2 p-2">
+          <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)}>
+            <TabsList className="h-9">
+              {([["funnel", "Воронка"], ["measurements", "Заміри і конверсія"], ["activity", "Активність"]] as [Tab, string][]).map(([k, label]) => <TabsTrigger key={k} value={k}>{label}</TabsTrigger>)}
+            </TabsList>
+          </Tabs>
           {true ? (
-            <div className="ml-auto flex items-center gap-2 pb-2">
+            <div className="ml-auto flex items-center gap-2">
               <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1 text-xs" />
               <span className="text-xs text-muted-foreground">—</span>
               <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1 text-xs" />
@@ -224,7 +221,7 @@ function CrmDashboard() {
                     <Link key={s.id} to="/crm/leads" search={{ stage: s.id } as any} className="flex items-center gap-3 rounded-sm hover:bg-accent/40">
                       <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{s.name}</div>
                       <div className="flex-1 h-7 rounded-sm bg-muted/50 overflow-hidden">
-                        <div className="h-full flex items-center px-2 text-[11px] font-bold text-[#22303f] transition-all"
+                        <div className="flex h-full items-center px-2 text-[11px] font-bold text-foreground transition-all"
                           style={{ width: `${Math.max(6, (s.count / max) * 100)}%`, backgroundColor: color }}>
                           {s.count}
                         </div>
