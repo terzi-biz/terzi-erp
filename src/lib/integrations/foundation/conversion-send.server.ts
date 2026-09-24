@@ -3,6 +3,7 @@
  * Жоден шлях не виконує реальну (live) відправку. off/dry_run/невідомий режим → без мережі.
  * Click ID, токени й PII ніколи не логуються і не повертаються в повідомленнях.
  */
+import process from "node:process";
 import { API_VERSION as GOOGLE_API_VERSION, googleAdsEnv } from "./google-ads.server";
 
 export type SendMode = "off" | "dry_run" | "test" | "live";
