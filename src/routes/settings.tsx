@@ -1,7 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useBlocker, useNavigate } from "@tanstack/react-router";
 import { NumberInput } from "@/components/NumberInput";
 import { useState, useEffect, useMemo } from "react";
-import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, Cable, Grid3x3, Building2, ListX, ShieldCheck, Settings2, Calculator, Wallet, Palette, Compass, ArrowLeftRight, ArrowRight } from "lucide-react";
+import { Layers, Home as RoofIcon, Snowflake, Hammer, Sliders, Save, Undo2, RotateCcw, Upload, RefreshCw, Cable, Grid3x3, Building2, ListX, ShieldCheck, Settings2, Calculator, Wallet, Palette, Compass, ArrowLeftRight, ArrowRight, Search } from "lucide-react";
 import { toast } from "sonner";
 import { PriceImportDialog } from "@/components/PriceImportDialog";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,7 +20,14 @@ import { FinanceRulesAdmin } from "@/components/settings/FinanceRulesAdmin";
 import { ControlCenterAdmin } from "@/components/settings/ControlCenterAdmin";
 import { PayrollBridgePanel } from "@/components/settings/PayrollBridgePanel";
 
+const SECTION_IDS = ["system", "calculators", "finance", "company", "access", "integrations"] as const;
+const TAB_IDS = ["screed", "grades", "roofing", "roofing_norms", "insulation", "demolition", "common", "requisites", "reasons", "finance_rules", "payroll_bridge", "control_center"] as const;
+
 export const Route = createFileRoute("/settings")({
+  validateSearch: (s: Record<string, unknown>): { section?: Section; tab?: Tab } => ({
+    section: (SECTION_IDS as readonly string[]).includes(String(s.section)) ? (s.section as Section) : undefined,
+    tab: (TAB_IDS as readonly string[]).includes(String(s.tab)) ? (s.tab as Tab) : undefined,
+  }),
   component: SettingsPage,
   head: () => ({ meta: [
     { title: "Налаштування TERZI ERP" },
@@ -155,6 +162,31 @@ const SECTIONS: Section_[] = [
   { id: "integrations", label: "Інтеграції", icon: Cable, description: "Підключення зовнішніх сервісів і обмін даними.", tabs: [] },
 ];
 
+type HubTo = "/access" | "/integrations" | "/branding" | "/directions-editor" | "/data-exchange";
+type SearchHit = { label: string; hint: string; keywords: string; section?: Section; tab?: Tab; to?: HubTo };
+/** Лише реальні розділи/вкладки/маршрути Налаштувань — жодних вигаданих результатів. */
+const SEARCH_INDEX: SearchHit[] = [
+  ...SECTIONS.flatMap((s) => [
+    { label: s.label, hint: "Розділ", keywords: `${s.label} ${s.description}`, section: s.id, tab: s.tabs[0]?.id },
+    ...s.tabs.map((t) => ({ label: t.label, hint: s.label, keywords: `${t.label} ${s.label}`, section: s.id, tab: t.id })),
+  ]),
+  { label: "Control Center: модулі, поля, довідники", hint: "Система", keywords: "control center центр керування модулі поля довідники конфігурація", section: "system", tab: "control_center" },
+  { label: "Доступи і ролі", hint: "/access", keywords: "доступи ролі права користувачі безпека access", to: "/access" },
+  { label: "Інтеграції та API", hint: "/integrations", keywords: "інтеграції api binotel finmap google meta integrations", to: "/integrations" },
+  { label: "Обмін даними", hint: "/data-exchange", keywords: "обмін даними імпорт експорт data exchange", to: "/data-exchange" },
+  { label: "Брендинг", hint: "/branding", keywords: "брендинг бренд контакти branding", to: "/branding" },
+  { label: "Напрямки", hint: "/directions-editor", keywords: "напрямки directions редактор", to: "/directions-editor" },
+];
+
+/** Групи полів, які скидає «До дефолтів» для відкритої вкладки калькулятора. */
+const TAB_RESET: Partial<Record<Tab, { sec: DraftSection; keys?: string[] }[]>> = {
+  screed: [{ sec: "settings", keys: SCREED_GROUPS.flatMap((g) => g.fields.map((f) => f.key)) }],
+  roofing: [{ sec: "roofingCoeffs", keys: ROOFING_GROUPS.flatMap((g) => g.fields.map((f) => f.key)) }],
+  insulation: [{ sec: "insulationCoeffs", keys: INSULATION_GROUPS.flatMap((g) => g.fields.map((f) => f.key)) }],
+  demolition: [{ sec: "demolitionCoeffs", keys: DEMOLITION_GROUPS.flatMap((g) => g.fields.map((f) => f.key)) }],
+  common: (["settings", "roofingCoeffs", "insulationCoeffs", "demolitionCoeffs"] as DraftSection[]).map((sec) => ({ sec, keys: COMMON_FIELDS.map((f) => f.key) })),
+};
+
 const CALC_DEFAULTS = {
   settings: DEFAULT_SETTINGS as unknown as Record<string, number>,
   roofingCoeffs: DEFAULT_ROOFING_COEFFS as unknown as Record<string, number>,
@@ -194,8 +226,12 @@ function SettingsPage() {
   const saveFn = useServerFn(saveCalcSettings);
   const [saving, setSaving] = useState(false);
 
-  const [section, setSection] = useState<Section>("calculators");
-  const [tab, setTab] = useState<Tab>("screed");
+  const search = Route.useSearch();
+  const navigate = useNavigate({ from: "/settings" });
+  const section: Section = search.section ?? "system";
+  const tab: Tab = search.tab ?? (SECTIONS.find((x) => x.id === section)?.tabs[0]?.id ?? "control_center");
+  const go = (sec: Section, tb?: Tab) => navigate({ search: { section: sec, tab: tb } });
+  const [q, setQ] = useState("");
   const [importOpen, setImportOpen] = useState<null | { module: Tab; kind: "material" | "work" }>(null);
   const [resyncing, setResyncing] = useState(false);
   const resyncFn = useServerFn(resyncCatalogPrices);
@@ -213,6 +249,17 @@ function SettingsPage() {
   const [draft, setDraft] = useState(saved);
   useEffect(() => { setDraft(JSON.parse(savedJson)); }, [savedJson]);
   const dirty = JSON.stringify(draft) !== savedJson;
+
+  // Незбережені правки калькуляторів: попередження при зміні розділу/вкладки чи виході з Налаштувань.
+  useBlocker({
+    shouldBlockFn: () => {
+      if (!dirty) return false;
+      const leave = window.confirm("Є незбережені зміни налаштувань калькуляторів. Відкинути їх і продовжити?");
+      if (leave) setDraft(JSON.parse(savedJson));
+      return !leave;
+    },
+    enableBeforeUnload: () => dirty,
+  });
 
   const runResync = async (module: Exclude<Tab, "common">, kind: "material" | "work") => {
     setResyncing(true);
@@ -247,12 +294,29 @@ function SettingsPage() {
   };
 
   const discard = () => { setDraft(JSON.parse(savedJson)); toast("Зміни скасовано"); };
+  /** Скидає до дефолтів рушія лише поля відкритої вкладки. */
   const toDefaults = () => {
+    const groups = TAB_RESET[tab];
+    if (!groups) return;
+    setDraft((d) => {
+      const next = { ...d };
+      for (const { sec, keys } of groups) {
+        const cur = { ...next[sec] };
+        for (const k of keys ?? Object.keys(CALC_DEFAULTS[sec])) cur[k] = CALC_DEFAULTS[sec][k];
+        next[sec] = cur;
+      }
+      return next;
+    });
+    toast("Дефолти підставлено для цієї вкладки — натисніть «Зберегти», щоб застосувати.");
+  };
+  /** Окрема явна дія: скинути всі калькулятори (з підтвердженням). */
+  const allToDefaults = () => {
+    if (!window.confirm("Скинути до дефолтів рушія УСІ калькулятори (стяжка, покрівля, утеплення, демонтаж, спільні)? Зміни набудуть чинності лише після «Зберегти».")) return;
     setDraft({
       settings: { ...CALC_DEFAULTS.settings }, roofingCoeffs: { ...CALC_DEFAULTS.roofingCoeffs },
       insulationCoeffs: { ...CALC_DEFAULTS.insulationCoeffs }, demolitionCoeffs: { ...CALC_DEFAULTS.demolitionCoeffs },
     });
-    toast("Дефолти рушія підставлено — натисніть «Зберегти», щоб застосувати для компанії.");
+    toast("Дефолти підставлено для всіх калькуляторів — натисніть «Зберегти».");
   };
 
   const Group = ({ title, fields, getVal, onChange }: {
@@ -288,7 +352,11 @@ function SettingsPage() {
           </button>
           <button onClick={toDefaults} disabled={saving}
             className="flex items-center gap-1 px-3 py-1.5 rounded bg-secondary text-xs font-semibold disabled:opacity-40">
-            <RotateCcw className="w-3.5 h-3.5" /> До дефолтів
+            <RotateCcw className="w-3.5 h-3.5" /> До дефолтів (ця вкладка)
+          </button>
+          <button onClick={allToDefaults} disabled={saving}
+            className="flex items-center gap-1 px-3 py-1.5 rounded bg-secondary text-xs font-semibold text-destructive disabled:opacity-40">
+            Скинути всі калькулятори
           </button>
           <button onClick={save} disabled={!dirty || saving}
             className="flex items-center gap-1 px-3 py-1.5 rounded bg-primary text-primary-foreground text-xs font-bold disabled:opacity-40">
@@ -300,7 +368,31 @@ function SettingsPage() {
   );
 
   const current = SECTIONS.find((s) => s.id === section)!;
-  const pickSection = (s: Section_) => { setSection(s.id); if (s.tabs[0]) setTab(s.tabs[0].id); };
+  const pickSection = (s: Section_) => go(s.id, s.tabs[0]?.id);
+  const hits = q.trim().length >= 2
+    ? SEARCH_INDEX.filter((h) => h.keywords.toLowerCase().includes(q.trim().toLowerCase()) || h.label.toLowerCase().includes(q.trim().toLowerCase())).slice(0, 10)
+    : [];
+
+  if (accessQ.isPending) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto space-y-3" aria-busy="true">
+        <div className="h-8 w-64 rounded bg-muted animate-pulse" />
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">{SECTIONS.map((s) => <div key={s.id} className="h-11 rounded-md bg-muted animate-pulse" />)}</div>
+        <div className="h-64 rounded-md bg-muted animate-pulse" />
+      </div>
+    );
+  }
+  if (accessQ.isError) {
+    return (
+      <div className="p-4 md:p-6 lg:p-8 max-w-6xl mx-auto">
+        <div className="panel p-5 border-destructive">
+          <h1 className="text-lg font-black">Не вдалося перевірити права доступу до Налаштувань</h1>
+          <p className="text-sm text-muted-foreground mt-1">{accessQ.error instanceof Error ? accessQ.error.message : "Спробуйте ще раз."}</p>
+          <button onClick={() => accessQ.refetch()} className="mt-3 px-3 py-1.5 rounded bg-primary text-primary-foreground text-xs font-bold">Повторити</button>
+        </div>
+      </div>
+    );
+  }
   const showCalcBar = section === "calculators" && CALC_TABS.includes(tab);
 
   return (
@@ -311,6 +403,21 @@ function SettingsPage() {
         <p className="text-xs md:text-sm text-muted-foreground mt-1">
           Центр налаштувань: конфігурація системи, калькулятори, фінанси, компанія, доступи та інтеграції.
         </p>
+      </div>
+
+      <div className="relative mb-4">
+        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Пошук у налаштуваннях: розділ, вкладка, доступи, інтеграції…"
+          className="w-full rounded-md border border-border bg-input pl-8 pr-3 py-2 text-sm" aria-label="Пошук у налаштуваннях" />
+        {q.trim().length >= 2 && (
+          <div className="absolute z-20 mt-1 w-full panel p-1 shadow-lg">
+            {hits.length === 0 ? <div className="px-3 py-2 text-xs text-muted-foreground">Нічого не знайдено</div> : hits.map((h, i) => (
+              h.to
+                ? <Link key={i} to={h.to} className="flex justify-between gap-2 px-3 py-2 rounded text-sm hover:bg-accent"><span>{h.label}</span><span className="text-xs text-muted-foreground">{h.hint}</span></Link>
+                : <button key={i} type="button" onClick={() => { setQ(""); go(h.section!, h.tab); }} className="w-full flex justify-between gap-2 px-3 py-2 rounded text-sm text-left hover:bg-accent"><span>{h.label}</span><span className="text-xs text-muted-foreground">{h.hint}</span></button>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2 mb-4">
@@ -327,7 +434,7 @@ function SettingsPage() {
       {current.tabs.length > 1 && (
         <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
           {current.tabs.map((tb) => (
-            <button key={tb.id} onClick={() => setTab(tb.id)}
+            <button key={tb.id} onClick={() => go(section, tb.id)}
               className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap ${tab === tb.id ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"}`}>
               <tb.icon className="w-3.5 h-3.5" /> {tb.label}
             </button>

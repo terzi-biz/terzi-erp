@@ -12,6 +12,7 @@ import {
   closeReasonInput,
   companyRequisiteInput,
   counterpartySearchInput,
+  requisiteArchiveError,
 } from "./reference.schema";
 
 /** Усі версії реквізитів, найновіші зверху. */
@@ -71,6 +72,10 @@ export const archiveCompanyRequisite = createServerFn({ method: "POST" })
     const { requirePermission, admin, writeAudit } = await import("@/lib/access.server");
     const actor = await requirePermission(context.userId, "settings", "manage_settings");
     const db = (await admin()) as any; // права перевірено канонічно вище
+    const { data: all, error: e0 } = await db.from("company_requisites").select("id,code,is_default,archived_at");
+    if (e0) { console.error("archiveCompanyRequisite:list", e0); throw new Error("Не вдалося перевірити реквізити"); }
+    const guard = requisiteArchiveError(data.id, data.archived, all ?? []);
+    if (guard) throw new Error(guard);
     const { error } = await db
       .from("company_requisites")
       .update({ archived_at: data.archived ? new Date().toISOString() : null })
@@ -100,8 +105,10 @@ export const saveCloseReason = createServerFn({ method: "POST" })
     const actor = await requirePermission(context.userId, "settings", "manage_settings");
     const db = (await admin()) as any; // права перевірено канонічно вище
     const { id, ...fields } = data;
+    // Стабільний код і розділ не змінюються при редагуванні — історичні посилання лишаються валідними.
+    const { code: _code, scope: _scope, ...editable } = fields;
     const { data: out, error } = id
-      ? await db.from("close_reasons").update(fields).eq("id", id).select().single()
+      ? await db.from("close_reasons").update(editable).eq("id", id).select().single()
       : await db.from("close_reasons").insert({ ...fields, created_by: context.userId }).select().single();
     if (error) { console.error("saveCloseReason", error); throw new Error("Не вдалося зберегти причину закриття"); }
     await writeAudit(actor, { module: "settings", action: "close_reason.save", entityType: "close_reason", entityId: String(out.id), entityLabel: null, oldValue: null, newValue: out, reason: null, isCritical: false }).catch((e) => console.error("audit", e));
