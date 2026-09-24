@@ -120,6 +120,13 @@
       "when": 1790217823407,
       "tag": "0016_restrict_reference_reads_to_active_staff",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1790276002269,
+      "tag": "0017_perf_indexes_hot_queries",
+      "breakpoints": true
     }
   ]
 }
