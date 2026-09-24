@@ -6,7 +6,7 @@ import { contractStatus, FOUNDATION_CONTRACTS } from "../integrations/contracts"
 const sha = (s: string) => `h(${s})`;
 const base = { sourceType: "crm_leads", sourceId: "L1", occurredAt: "2026-09-24T10:00:00+03:00", origin: "crm" as const, sha256: sha, phoneE164: "+380501234567", email: "a@b.c" };
 const gEnv = { clientId: "c", clientSecret: "s", refreshToken: "r", developerToken: "DEVTOKEN123", customerId: "1234567890", loginCustomerId: null };
-const gDraft = () => buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", adUserDataConsent: "unknown", click: { gclid: "GCLIDSECRET" } }).payload!;
+const gDraft = () => buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", adUserDataConsent: "unknown", click: { gclid: "GCLIDSECRET" }, clickAt: { gclid: "2026-09-20T00:00:00Z" } }).payload!;
 const okFetch = () => vi.fn(async () => new Response(JSON.stringify({ results: [{}], events_received: 1 }), { status: 200 }));
 
 describe("W2.2 consent", () => {
@@ -37,7 +37,8 @@ describe("W2.2 Google", () => {
   it("action normalization + date", () => {
     expect(normalizeConversionAction("987", "123-456-7890")).toBe("customers/1234567890/conversionActions/987");
     expect(normalizeConversionAction("customers/1234567890/conversionActions/987", "1234567890")).toBe("customers/1234567890/conversionActions/987");
-    expect(normalizeConversionAction("customers/999/conversionActions/987", "1234567890")).toBeNull();
+    expect(normalizeConversionAction("customers/999/conversionActions/987", "1234567890")).toBe("customers/1234567890/conversionActions/987");
+    expect(normalizeConversionAction("customers/999/conversionActions/x", "1234567890")).toBeNull();
     expect(normalizeConversionAction("TERZI Lead", "1234567890")).toBeNull();
     expect(toGoogleDateTime("2026-09-24T10:00:00+03:00")).toBe("2026-09-24 07:00:00+00:00");
   });
@@ -99,5 +100,38 @@ describe("W2.2 Meta", () => {
     const bad = vi.fn(async () => new Response(JSON.stringify({ error: { message: "Invalid SECRETTOKEN" } }), { status: 400 }));
     const d = await sendMetaConversion({ draft, config: { send_mode: "test", test_event_code: "X", dataset_id: "D" }, payloadMode: "test" }, { fetch: bad as any, env: { META_ADS_ACCESS_TOKEN: "SECRETTOKEN" } });
     expect(d.message).not.toContain("SECRETTOKEN");
+  });
+});
+
+describe("W2.2 Google corrections", () => {
+  const g = (o: any) => buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", adUserDataConsent: "unknown", click: { gclid: "G" }, clickAt: { gclid: "2026-09-20T00:00:00Z" }, ...o });
+  it("click time required and before conversion", () => {
+    expect(g({ clickAt: {} }).blocked).toContain("часу кліку");
+    expect(g({ clickAt: { gclid: "2026-09-24T07:00:00Z" } }).ready).toBe(false);
+    expect(g({ clickAt: { gclid: "2026-09-25T00:00:00Z" } }).ready).toBe(false);
+    expect(g({}).payload).toMatchObject({ click_at: "2026-09-20T00:00:00Z" });
+    // selected id's own time is used (wbraid chosen on WEB)
+    expect(g({ click: { gbraid: "B", wbraid: "W" }, clickAt: { gbraid: "2026-09-20T00:00:00Z" } }).ready).toBe(false);
+  });
+  it("WEB environment only when known", () => {
+    expect(g({ environment: "WEB" }).payload).toMatchObject({ conversion_environment: "WEB" });
+    expect(g({}).payload).not.toHaveProperty("conversion_environment");
+  });
+  it("userIdentifiers only when granted", async () => {
+    expect(g({ adUserDataConsent: "granted" }).payload!.user_identifiers).toEqual([{ hashedPhoneNumber: "h(+380501234567)" }, { hashedEmail: "h(a@b.c)" }]);
+    expect(g({ adUserDataConsent: "denied" }).payload).not.toHaveProperty("user_identifiers");
+    expect(g({}).payload).not.toHaveProperty("user_identifiers");
+    const f = okFetch();
+    await sendGoogleConversion({ draft: g({ adUserDataConsent: "granted", environment: "WEB" }).payload, kind: "lead_created", config: { send_mode: "test", conversion_actions: { lead_created: "1" } }, payloadMode: "test" }, { fetch: f as any, env: gEnv, accessToken: async () => "T" });
+    const c = JSON.parse((f.mock.calls[0] as any[])[1].body).conversions[0];
+    expect(c).toMatchObject({ conversionEnvironment: "WEB", consent: { adUserData: "GRANTED" } });
+    expect(c.userIdentifiers).toHaveLength(2);
+  });
+  it("payment requires finance_transactions, distinct orderId", () => {
+    expect(g({ kind: "payment_received", paymentAmount: 10 }).ready).toBe(false);
+    const a = g({ kind: "payment_received", sourceType: "finance_transactions", sourceId: "T1", paymentAmount: 10 });
+    const b = g({ kind: "payment_received", sourceType: "finance_transactions", sourceId: "T2", paymentAmount: 10 });
+    expect(a.ready && b.ready).toBe(true);
+    expect(a.payload!.transaction_id).not.toBe(b.payload!.transaction_id);
   });
 });
