@@ -199,27 +199,52 @@ function MarketingOverview() {
           </div>
 
           <div className="grid gap-3 lg:grid-cols-2">
-            <Panel title="Зведення по каналах">
-              {view.byChannel.length ? (
+            <Panel title="Вартість заявки по каналах" action={<span className="text-[10px] text-muted-foreground">порівняння із середньою CPL</span>}>
+              {view.byChannel.length ? (() => {
+                const paid = view.byChannel.filter(([, v]) => v.spend > 0 && v.requests > 0);
+                const tSpend = paid.reduce((s, [, v]) => s + v.spend, 0);
+                const tReq = paid.reduce((s, [, v]) => s + v.requests, 0);
+                const avg = tReq ? tSpend / tReq : 0;
+                const maxCpl = Math.max(0, ...paid.map(([, v]) => v.spend / v.requests));
+                return (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="text-muted-foreground">
-                      <tr><th className="text-left py-1">Канал</th><th className="text-right">Витрата</th><th className="text-right">Звернення</th><th className="text-right">CPL</th><th className="text-right">Цільові</th></tr>
+                      <tr><th className="text-left py-1">Канал</th><th className="text-right">Витрата</th><th className="text-right">Заявки</th><th className="text-right">Цільові</th><th className="text-right">CPL</th><th className="text-right">Ціна цільової</th><th className="w-28 pl-3 text-left">vs середня</th></tr>
                     </thead>
                     <tbody>
-                      {view.byChannel.map(([id, v]) => (
+                      {[...view.byChannel].sort((a, b) => {
+                        const ca = a[1].requests && a[1].spend ? a[1].spend / a[1].requests : Infinity;
+                        const cb = b[1].requests && b[1].spend ? b[1].spend / b[1].requests : Infinity;
+                        return ca - cb;
+                      }).map(([id, v]) => {
+                        const cpl = v.requests && v.spend ? v.spend / v.requests : null;
+                        const diff = cpl !== null && avg ? ((cpl - avg) / avg) * 100 : null;
+                        return (
                         <tr key={id} className="border-t border-border/60">
-                          <td className="py-1.5">{id === "—" ? "Без каналу" : channelName(id)}</td>
-                          <td className="text-right tabular-nums">{fmtMoney(v.spend)}</td>
+                          <td className="py-1.5 font-semibold">{id === "—" ? "Без каналу" : channelName(id)}</td>
+                          <td className="text-right tabular-nums">{v.spend ? fmtMoney(v.spend) : "—"}</td>
                           <td className="text-right tabular-nums">{v.requests}</td>
-                          <td className="text-right tabular-nums">{v.requests ? fmtMoney(v.spend / v.requests) : "—"}</td>
                           <td className="text-right tabular-nums">{v.qualified}</td>
+                          <td className={`text-right tabular-nums font-bold ${diff === null ? "" : diff <= 0 ? "text-success" : "text-destructive"}`}>{cpl !== null ? fmtMoney(cpl) : "—"}</td>
+                          <td className="text-right tabular-nums">{v.qualified && v.spend ? fmtMoney(v.spend / v.qualified) : "—"}</td>
+                          <td className="pl-3">
+                            {cpl !== null && maxCpl ? (
+                              <div className="flex items-center gap-1.5">
+                                <div className="h-1.5 flex-1 rounded-full bg-muted"><div className={`h-1.5 rounded-full ${diff !== null && diff <= 0 ? "bg-success" : "bg-destructive"}`} style={{ width: `${(cpl / maxCpl) * 100}%` }} /></div>
+                                <span className="w-10 text-right tabular-nums text-[10px]">{diff !== null ? `${diff > 0 ? "+" : ""}${Math.round(diff)}%` : ""}</span>
+                              </div>
+                            ) : <span className="text-[10px] text-muted-foreground">немає даних</span>}
+                          </td>
                         </tr>
-                      ))}
+                        );
+                      })}
                     </tbody>
                   </table>
+                  <p className="mt-2 text-[10px] text-muted-foreground">Середня CPL платних каналів: {avg ? fmtMoney(avg) : "немає даних"}. Зелений — дешевше за середню.</p>
                 </div>
-              ) : <EmptyState text="Немає даних за період. Додайте витрати у розділі «Кампанії» або підключіть інтеграції." />}
+                );
+              })() : <EmptyState text="Немає даних за період. Додайте витрати у розділі «Кампанії» або підключіть інтеграції." />}
             </Panel>
 
             <Panel title="Воронка" action={<Link to="/marketing/funnels" className="text-xs text-primary font-semibold">Деталі</Link>}>
