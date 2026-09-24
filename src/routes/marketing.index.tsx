@@ -96,24 +96,31 @@ function MarketingOverview() {
       byChannel.set(k, cur);
     }
 
-    const byCampaign = new Map<string, { spend: number; requests: number }>();
+    type CampRow = { spend: number; clicks: number; conversions: number; requests: number; qualified: number; channelId: string | null };
+    const byCampaign = new Map<string, CampRow>();
+    const blank = (): CampRow => ({ spend: 0, clicks: 0, conversions: 0, requests: 0, qualified: 0, channelId: null });
     for (const m of metrics) {
       if (!m.campaign_id) continue;
-      const cur = byCampaign.get(m.campaign_id) ?? { spend: 0, requests: 0 };
-      cur.spend += num(m.spend);
+      const cur = byCampaign.get(m.campaign_id) ?? blank();
+      cur.spend += num(m.spend); cur.clicks += num(m.clicks); cur.conversions += num((m as { conversions?: unknown }).conversions);
+      cur.channelId ??= m.channel_id ?? null;
       byCampaign.set(m.campaign_id, cur);
     }
+    let attributedRequests = 0;
     for (const l of leads) {
       if (!l.marketing_campaign_id) continue;
-      const cur = byCampaign.get(l.marketing_campaign_id) ?? { spend: 0, requests: 0 };
+      attributedRequests += 1;
+      const cur = byCampaign.get(l.marketing_campaign_id) ?? blank();
       cur.requests += 1;
+      if (l.lead_quality === "цільовий") cur.qualified += 1;
+      cur.channelId ??= l.marketing_channel_id ?? null;
       byCampaign.set(l.marketing_campaign_id, cur);
     }
 
     return {
-      sum, prev, requests, qualified, booked, done, quotes, contracts, completed, d, plannedBudget,
+      sum, prev, requests, qualified, booked, done, quotes, contracts, completed, d, plannedBudget, attributedRequests,
       byChannel: [...byChannel.entries()],
-      byCampaign: [...byCampaign.entries()].sort((a, b) => b[1].spend - a[1].spend),
+      byCampaign: [...byCampaign.entries()].sort((a, b) => b[1].spend - a[1].spend || b[1].requests - a[1].requests),
       funnel: buildFunnel({
         impressions: sum.impressions, clicks: sum.clicks, requests, qualified,
         measurementsBooked: booked, measurementsDone: done, quotes, contracts,
