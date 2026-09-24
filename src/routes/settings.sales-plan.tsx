@@ -4,7 +4,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/lib/auth";
 import { kyivToday } from "@/lib/kyiv-time";
 import { DEFAULT_COMPANY_SALES_TARGET, monthStart, planFactHint } from "@/lib/sales-plan";
@@ -118,8 +117,7 @@ function SalesPlanPage() {
   const monthInput = month.slice(0, 7);
 
   return (
-    <AppShell>
-      <div className="mx-auto max-w-4xl space-y-4 p-3 md:p-6">
+    <div className="mx-auto max-w-4xl space-y-4 p-3 md:p-6">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Налаштування</div>
@@ -274,7 +272,6 @@ function SalesPlanPage() {
             </section>
           </>
         )}
-      </div>
-    </AppShell>
+    </div>
   );
 }
