@@ -57,7 +57,7 @@ describe("conversion pipeline W2.1", () => {
   it("not configured => nothing enqueued; duplicate lifecycle event not re-queued", async () => {
     const fake = (rows: any[]) => {
       const q: any = { select: () => q, in: () => q, eq: () => q, order: () => q, limit: () => q,
-        maybeSingle: async () => ({ data: { id: "L1", phone_e164: null, utm: { gclid: "G" }, external_id: null, contact_id: null } }),
+        maybeSingle: async () => ({ data: { id: "L1", phone_e164: null, utm: { gclid: "G" }, external_id: null, contact_id: null, first_touch_at: "2026-01-01T00:00:00Z" } }),
         then: (r: any) => r({ data: rows }) };
       return { from: (t: string) => (t === "integrations" ? { ...q, then: (r: any) => r({ data: rows }) } : { ...q, then: (r: any) => r({ data: [] }) }) } as any;
     };
