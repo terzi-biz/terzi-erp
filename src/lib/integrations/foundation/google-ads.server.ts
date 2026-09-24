@@ -1,5 +1,5 @@
 /**
- * Google Ads — реальний адаптер (Google Ads API v18, REST).
+ * Google Ads — реальний адаптер (Google Ads API v25, REST).
  *
  * Автентифікація: OAuth2 installed/web app.
  *   GOOGLE_OAUTH_CLIENT_ID / GOOGLE_OAUTH_CLIENT_SECRET — з Google Cloud Console;
@@ -12,7 +12,7 @@
  */
 import process from "node:process";
 
-const API_VERSION = "v18";
+const API_VERSION = "v25";
 
 export function googleAdsEnv() {
   const env = process.env as Record<string, string | undefined>;

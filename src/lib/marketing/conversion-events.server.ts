@@ -6,7 +6,7 @@
 import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  buildConversionDraft, type ConversionKind, type ConversionProvider,
+  buildConversionDraft, normalizeConsent, type ConsentState, type ConversionKind, type ConversionProvider,
 } from "@/lib/integrations/conversions";
 
 type Db = SupabaseClient<any, any, any>;
@@ -48,13 +48,15 @@ export type LeadAttribution = {
   metaLeadId: string | null;
   phoneE164: string | null;
   email: string | null;
-  adUserDataConsent: boolean;
+  adUserDataConsent: ConsentState;
+  /** Час реального дотику з fbclid (touchpoint або first_touch_at ліда, якщо fbclid у первинній атрибуції). */
+  fbclidAt: string | null;
   origin: "website" | "crm";
 };
 
 export async function loadLeadAttribution(db: Db, leadId: string): Promise<LeadAttribution | null> {
   const { data: lead } = await db.from("crm_leads")
-    .select("id, external_id, external_source, phone_e164, utm, contact_id").eq("id", leadId).maybeSingle();
+    .select("id, external_id, external_source, phone_e164, utm, contact_id, first_touch_at").eq("id", leadId).maybeSingle();
   if (!lead) return null;
   const { data: tps } = await db.from("marketing_touchpoints")
     .select("gclid, gbraid, wbraid, fbclid, is_first_touch, occurred_at")
@@ -65,6 +67,10 @@ export async function loadLeadAttribution(db: Db, leadId: string): Promise<LeadA
     const v = String(utm[k] ?? "").trim();
     return v || null;
   };
+  let fbclidAt: string | null = null;
+  const fbTp = ((tps ?? []) as any[]).find((t) => t?.fbclid);
+  if (fbTp) fbclidAt = fbTp.occurred_at ?? null;
+  else if (String(utm.fbclid ?? "").trim()) fbclidAt = (lead as any).first_touch_at ?? null;
   const ext = String((lead as any).external_id ?? "");
   let email: string | null = null;
   if ((lead as any).contact_id) {
@@ -76,8 +82,9 @@ export async function loadLeadAttribution(db: Db, leadId: string): Promise<LeadA
     metaLeadId: ext.startsWith("meta_lead:") ? ext.slice("meta_lead:".length) : null,
     phoneE164: (lead as any).phone_e164 ?? null,
     email,
-    // Згода лише явна (записана з форми/CMP). Зараз такого запису немає → false.
-    adUserDataConsent: utm.ad_user_data_consent === "granted",
+    // Згода лише явна (форма/CMP). Відсутність запису = unknown, не denied.
+    adUserDataConsent: normalizeConsent(utm.ad_user_data_consent),
+    fbclidAt,
     origin: utm.landing_url ? "website" : "crm",
   };
 }
@@ -103,7 +110,7 @@ export async function emitConversionEvent(db: Db, input: EmitInput, deps?: EmitD
     if (resolveSendMode(cfg.config) === "off") { out.push({ provider: cfg.provider_key, outcome: "off" }); continue; }
     const draft = buildConversionDraft({
       provider: cfg.provider_key, kind: input.kind, sourceType: input.sourceType, sourceId: input.sourceId,
-      occurredAt, click: attr.click, adUserDataConsent: attr.adUserDataConsent,
+      occurredAt, click: attr.click, adUserDataConsent: attr.adUserDataConsent, fbclidAt: attr.fbclidAt,
       phoneE164: attr.phoneE164, email: attr.email, metaLeadId: attr.metaLeadId,
       paymentAmount: input.paymentAmount, currency: input.currency, origin: attr.origin, sha256,
     });

@@ -18,6 +18,8 @@ export type ProviderContract = {
   auth: IntegrationAuthKind;
   /** Змінні середовища, без яких інтеграція лишається blocked. Значення ніколи не логуються. */
   requiredEnv: string[];
+  /** Альтернативні повні набори змінних (будь-який задовольняє готовність). */
+  alternativeEnv?: string[][];
   /** Події, які провайдер надсилає в ERP. */
   inbound: string[];
   /** Події, які ERP надсилає провайдеру (наразі лише підготовка payload). */
@@ -33,7 +35,9 @@ export const FOUNDATION_CONTRACTS: Record<string, ProviderContract> = {
     label: "Google Ads",
     kind: "ads",
     auth: "oauth2",
-    requiredEnv: ["GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CLIENT_ID", "GOOGLE_ADS_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "GOOGLE_ADS_CUSTOMER_ID"],
+    // Відповідає googleAdsMissing(): власний OAuth REST або Lovable connector gateway.
+    requiredEnv: ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_ADS_REFRESH_TOKEN", "GOOGLE_ADS_DEVELOPER_TOKEN", "GOOGLE_ADS_CUSTOMER_ID"],
+    alternativeEnv: [["LOVABLE_API_KEY", "GOOGLE_ADS_API_KEY", "GOOGLE_ADS_CUSTOMER_ID"]],
     inbound: ["google_ads.campaign_metrics", "google_ads.cost_daily"],
     outbound: ["google_ads.offline_conversion"],
     entities: ["marketing_campaigns", "marketing_daily_metrics", "crm_leads"],
@@ -99,7 +103,8 @@ export type ContractStatus = {
 /** Стан підключення за наявними змінними середовища. «connected» не імітується. */
 export function contractStatus(contract: ProviderContract, env: Record<string, string | undefined>): ContractStatus {
   const missing = contract.requiredEnv.filter((k) => !env[k]);
-  if (missing.length) {
+  const altOk = (contract.alternativeEnv ?? []).some((set) => set.every((k) => !!env[k]));
+  if (missing.length && !altOk) {
     return {
       key: contract.key,
       state: "blocked",

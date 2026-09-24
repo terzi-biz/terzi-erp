@@ -225,7 +225,7 @@ async function testGoogleAds(token: string): Promise<TestResult> {
     };
   }
   const loginId = (e.GOOGLE_ADS_LOGIN_CUSTOMER_ID ?? "").replace(/\D/g, "");
-  const r = await jsonFetch(`https://googleads.googleapis.com/v18/customers/${customerId}/googleAds:search`, {
+  const r = await jsonFetch(`https://googleads.googleapis.com/v25/customers/${customerId}/googleAds:search`, {
     method: "POST",
     headers: {
       authorization: `Bearer ${token}`,
