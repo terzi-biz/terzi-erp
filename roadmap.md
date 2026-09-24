@@ -105,3 +105,13 @@
 - [ ] Двостороння синхронізація ERP ↔ відомість
 - [ ] Правило: підтвердження акта → workItems у відомість + оновлення маржі
 - [x] planOtherDirectCosts лише при повному узгодженому складі кошторису (аудит)
+
+## Queue (2026-09-24)
+- [ ] Workflow Builder у Control Center (стадії, переходи, автоматика, вплив на відомість)
+- [ ] Automations/Rules WHEN/IF/THEN + журнал + preview/test-cases
+- [ ] Перевірка: опублікований Settings-конфіг читають калькулятор і відомість
+- [ ] Роль «Фінансист» + Керування налаштуваннями (grant в Access → Roles) і перевірка publish/rollback
+- [ ] Реальні акаунти Meta/Instagram/Facebook/Telegram/Viber/Google Ads → дашборд конверсій (потрібні підключення)
+- [ ] FinMap ↔ ERP: P&L, Cash Flow, розподіл витрат, рольовий прибуток
+- [ ] Реальні ставки бригад (крім screed_base — потрібні від власника)
+- [x] PAYROLL_BRIDGE_SECRET збережено
