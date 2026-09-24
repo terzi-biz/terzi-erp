@@ -92,6 +92,7 @@ import { Route as ApiPublicIntegrationsGoogleAdsStartRouteImport } from './route
 import { Route as ApiPublicIntegrationsMessengerTelegramRouteImport } from './routes/api/public/integrations/messenger/telegram'
 import { Route as ApiPublicIntegrationsMessengerViberRouteImport } from './routes/api/public/integrations/messenger/viber'
 import { Route as ApiPublicIntegrationsMessengerWhatsappRouteImport } from './routes/api/public/integrations/messenger/whatsapp'
+import { Route as ApiPublicIntegrationsMetaLeadgenRouteImport } from './routes/api/public/integrations/meta/leadgen'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
@@ -524,6 +525,12 @@ const ApiPublicIntegrationsMessengerWhatsappRoute =
     path: '/api/public/integrations/messenger/whatsapp',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsMetaLeadgenRoute =
+  ApiPublicIntegrationsMetaLeadgenRouteImport.update({
+    id: '/api/public/integrations/meta/leadgen',
+    path: '/api/public/integrations/meta/leadgen',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsOauthCallbackRoute =
   ApiPublicIntegrationsOauthCallbackRouteImport.update({
     id: '/api/public/integrations/oauth/callback',
@@ -621,6 +628,7 @@ export interface FileRoutesByFullPath {
   '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
   '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/messenger/whatsapp': typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  '/api/public/integrations/meta/leadgen': typeof ApiPublicIntegrationsMetaLeadgenRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -707,6 +715,7 @@ export interface FileRoutesByTo {
   '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
   '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/messenger/whatsapp': typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  '/api/public/integrations/meta/leadgen': typeof ApiPublicIntegrationsMetaLeadgenRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -795,6 +804,7 @@ export interface FileRoutesById {
   '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
   '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
   '/api/public/integrations/messenger/whatsapp': typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  '/api/public/integrations/meta/leadgen': typeof ApiPublicIntegrationsMetaLeadgenRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -884,6 +894,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/messenger/telegram'
     | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/messenger/whatsapp'
+    | '/api/public/integrations/meta/leadgen'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -970,6 +981,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/messenger/telegram'
     | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/messenger/whatsapp'
+    | '/api/public/integrations/meta/leadgen'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -1057,6 +1069,7 @@ export interface FileRouteTypes {
     | '/api/public/integrations/messenger/telegram'
     | '/api/public/integrations/messenger/viber'
     | '/api/public/integrations/messenger/whatsapp'
+    | '/api/public/integrations/meta/leadgen'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -1135,6 +1148,7 @@ export interface RootRouteChildren {
   ApiPublicIntegrationsMessengerTelegramRoute: typeof ApiPublicIntegrationsMessengerTelegramRoute
   ApiPublicIntegrationsMessengerViberRoute: typeof ApiPublicIntegrationsMessengerViberRoute
   ApiPublicIntegrationsMessengerWhatsappRoute: typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  ApiPublicIntegrationsMetaLeadgenRoute: typeof ApiPublicIntegrationsMetaLeadgenRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -1722,6 +1736,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsMessengerWhatsappRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/meta/leadgen': {
+      id: '/api/public/integrations/meta/leadgen'
+      path: '/api/public/integrations/meta/leadgen'
+      fullPath: '/api/public/integrations/meta/leadgen'
+      preLoaderRoute: typeof ApiPublicIntegrationsMetaLeadgenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/oauth/callback': {
       id: '/api/public/integrations/oauth/callback'
       path: '/api/public/integrations/oauth/callback'
@@ -1852,6 +1873,7 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsMessengerViberRoute,
   ApiPublicIntegrationsMessengerWhatsappRoute:
     ApiPublicIntegrationsMessengerWhatsappRoute,
+  ApiPublicIntegrationsMetaLeadgenRoute: ApiPublicIntegrationsMetaLeadgenRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
