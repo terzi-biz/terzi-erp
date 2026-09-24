@@ -16,7 +16,7 @@ describe("W2.2 consent", () => {
     expect((m.payload as any).user_data).toEqual({ lead_id: "M" });
   });
   it("denied: no hashes, Google consent DENIED", () => {
-    const g = buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", adUserDataConsent: "denied", click: { gclid: "G" } });
+    const g = buildConversionDraft({ ...base, provider: "google_ads", kind: "lead_created", adUserDataConsent: "denied", click: { gclid: "G" }, clickAt: { gclid: "2026-09-20T00:00:00Z" } });
     expect(g.payload).toMatchObject({ ad_user_data_consent: "DENIED" });
     const m = buildConversionDraft({ ...base, provider: "meta_ads", kind: "lead_created", adUserDataConsent: "denied", click: {}, metaLeadId: "M" });
     expect((m.payload as any).user_data).not.toHaveProperty("ph");

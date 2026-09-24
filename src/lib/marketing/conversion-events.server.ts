@@ -68,8 +68,8 @@ export async function loadLeadAttribution(db: Db, leadId: string): Promise<LeadA
     const v = String(utm[k] ?? "").trim();
     return v || null;
   };
-  const clickAt: Record<string, string | null> = {};
-  for (const k of ["gclid", "gbraid", "wbraid"]) {
+  const clickAt = { gclid: null, gbraid: null, wbraid: null } as Record<"gclid" | "gbraid" | "wbraid", string | null>;
+  for (const k of ["gclid", "gbraid", "wbraid"] as const) {
     const tp = ((tps ?? []) as any[]).find((t) => t?.[k]);
     clickAt[k] = tp ? tp.occurred_at ?? null : String(utm[k] ?? "").trim() ? (lead as any).first_touch_at ?? null : null;
   }
