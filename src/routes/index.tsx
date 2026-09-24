@@ -1,142 +1,595 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth";
+const AUTH_BYPASS = false; // Live auth.tsx does not export AUTH_BYPASS
+import { supabase } from "@/integrations/supabase/client";
 import { usePersistedState } from "@/lib/usePersistedState";
-import { getAnalyticsDrilldown, getAnalyticsOverview } from "@/lib/analytics.functions";
+import { getAnalyticsOverview, getAdsCurrencyBreakdown } from "@/lib/analytics.functions";
+import { listSalesPlan } from "@/lib/sales-plan.functions";
+import { monthStart, planFactHint } from "@/lib/sales-plan";
+import { kyivToday } from "@/lib/kyiv-time";
+import { DQ_SCOPE_BLURBS, PERIOD_DQ_METRICS } from "@/lib/crm/data-quality";
 import { getFinanceOverview } from "@/lib/finance/finmap.functions";
-import { TasksPanel } from "@/components/dashboard/panels";
-import { ActionDrawer, EmptyState, FunnelCard, ManagementInsight, MetricCard, SectionShell } from "@/components/dashboard/control-center";
-import { FinmapSyncStatus } from "@/components/finance/FinmapSyncStatus";
-import { PayrollKpiCard } from "@/components/dashboard/PayrollKpiCard";
-import { ReconciliationPanel } from "@/components/dashboard/ReconciliationPanel";
-import { Button } from "@/components/ui/button";
-import { BarChart3, CalendarDays, ChevronDown, ChevronRight, CircleAlert, ClipboardList, FileText, Filter, Handshake, Megaphone, PhoneCall, Plus, RefreshCw, Ruler, Target, Users, Wallet, Wrench } from "lucide-react";
+import { currencyNote } from "@/lib/marketing/currency";
+import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } from "@/components/dashboard/panels";
+import {
+  Plus, Target, Users, Ruler, FileText, Handshake, Wallet, PhoneCall, TrendingUp, TrendingDown, ListChecks, Link2,
+} from "lucide-react";
+
 
 export const Route = createFileRoute("/")({
-  head: () => ({ meta: [
-    { title: "CEO Control Center — TERZI ERP" },
-    { name: "description", content: "Операційний центр власника TERZI: продажі, команда, маркетинг, роботи та фінанси в одному узгодженому зрізі." },
-    { property: "og:title", content: "CEO Control Center — TERZI ERP" },
-    { property: "og:description", content: "Узгоджені KPI TERZI від ліда до замовлення, операцій і фактичних фінансів." },
-    { property: "og:type", content: "website" },
-    { name: "twitter:card", content: "summary_large_image" },
-  ] }),
+  ssr: false,
+  beforeLoad: async () => {
+    if (AUTH_BYPASS) return;
+    const { data } = await supabase.auth.getSession();
+    if (!data.session) throw redirect({ to: "/login" });
+  },
+  head: () => ({
+    meta: [
+      { title: "Приладова панель — TERZI ERP" },
+      { name: "description", content: "Дашборд TERZI: заявки, воронка від ліда до договору, джерела, телефонія, менеджери, замірники та фінанси за період." },
+      { property: "og:title", content: "Приладова панель — TERZI ERP" },
+      { property: "og:description", content: "Реальні KPI TERZI за період: воронка, джерела заявок, телефонія, ефективність менеджерів і фінанси." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Dashboard,
 });
 
-const iso = (date: Date) => date.toISOString().slice(0, 10);
+/* ---------- helpers ---------- */
+
+const iso = (d: Date) => d.toISOString().slice(0, 10);
+const N = (v: unknown) => (v == null ? null : Number(v));
+const NO = "немає даних";
 const nf = new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 });
-const money = (value: number) => `${nf.format(Math.round(value))} ₴`;
-const num = (value: number) => nf.format(value);
-const pct = (value: number) => `${value.toFixed(value >= 10 ? 0 : 1)}%`;
-const noData = "Немає даних";
-const delta = (current: number | null, previous: number | null) => current == null || previous == null || previous === 0 ? null : (current - previous) / previous * 100;
-type RangeKey = "today" | "yesterday" | "d7" | "d30" | "month" | "prev_month" | "custom";
-type Filters = { pipelineId: string; source: string; managerId: string; direction: string; orderId: string; status: string };
-type Drill = { metric: string; title: string } | null;
+const money = (n: number) => nf.format(Math.round(n)) + " ₴";
+const num = (n: number) => nf.format(n);
+const pct = (n: number) => `${n.toFixed(n >= 10 ? 0 : 1)}%`;
+const show = (v: number | null, f: (n: number) => string) => (v == null ? NO : f(v));
+const delta = (cur: number | null, prev: number | null) =>
+  cur == null || prev == null || prev === 0 ? null : ((cur - prev) / prev) * 100;
+
+const STAGE_COLORS = ["#2f4a6d", "#3d6396", "#4e7fbd", "#6f9ed6", "#9dc0e6", "#d3a03c"];
+
+interface Overview {
+  kpi: Record<string, number | null>;
+  sources: Array<Record<string, number | string>>;
+  managers: Array<Record<string, number | string | null>>;
+  surveyors: Array<Record<string, number | string | null>>;
+  telephony: Record<string, number>;
+  data_quality: Record<string, number>;
+}
+
+type RangeKey = "d7" | "d30" | "month" | "prev_month" | "quarter" | "custom";
 
 const RANGES: Array<{ key: RangeKey; label: string }> = [
-  { key: "today", label: "Сьогодні" }, { key: "yesterday", label: "Вчора" }, { key: "d7", label: "7 днів" },
-  { key: "d30", label: "30 днів" }, { key: "month", label: "Цей місяць" }, { key: "prev_month", label: "Минулий" }, { key: "custom", label: "Період" },
+  { key: "d7", label: "7 днів" },
+  { key: "d30", label: "30 днів" },
+  { key: "month", label: "Цей місяць" },
+  { key: "prev_month", label: "Минулий місяць" },
+  { key: "quarter", label: "Квартал" },
+  { key: "custom", label: "Свій період" },
 ];
-function rangeFor(key: RangeKey) {
-  const now = new Date(); const y = now.getUTCFullYear(); const m = now.getUTCMonth(); const day = now.getUTCDate();
-  const back = (days: number) => new Date(Date.UTC(y, m, day - days));
-  if (key === "today") return { from: iso(now), to: iso(now) };
-  if (key === "yesterday") return { from: iso(back(1)), to: iso(back(1)) };
-  if (key === "d7") return { from: iso(back(6)), to: iso(now) };
-  if (key === "d30") return { from: iso(back(29)), to: iso(now) };
-  if (key === "month") return { from: iso(new Date(Date.UTC(y, m, 1))), to: iso(now) };
-  if (key === "prev_month") return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: iso(new Date(Date.UTC(y, m, 0))) };
-  return { from: iso(back(89)), to: iso(now) };
+
+function rangeFor(key: RangeKey): { from: string; to: string } {
+  // Business periods follow Europe/Kyiv calendar days (not UTC midnight).
+  const today = kyivToday();
+  const [y, m, d] = today.split("-").map(Number);
+  const anchor = new Date(Date.UTC(y, m - 1, d));
+  const back = (days: number) => new Date(Date.UTC(y, m - 1, d - days));
+  switch (key) {
+    case "d7": return { from: iso(back(6)), to: today };
+    case "d30": return { from: iso(back(29)), to: today };
+    case "month": return { from: iso(new Date(Date.UTC(y, m - 1, 1))), to: today };
+    case "prev_month": return { from: iso(new Date(Date.UTC(y, m - 2, 1))), to: iso(new Date(Date.UTC(y, m - 1, 0))) };
+    case "quarter": return { from: iso(new Date(Date.UTC(y, m - 3, 1))), to: today };
+    case "custom": return { from: iso(back(89)), to: today };
+  }
 }
-const selectClass = "h-10 min-w-0 rounded-lg border border-border bg-card px-3 text-xs font-semibold text-foreground shadow-panel";
+
+
+/* ---------- primitives ---------- */
+
+function Kpi({ icon: Icon, label, value, sub, d, tone = "navy", onClick }: {
+  icon: any; label: string; value: string; sub?: string; d?: number | null; tone?: "navy" | "gold" | "green" | "red"; onClick?: () => void;
+}) {
+  const bar = tone === "gold" ? "var(--color-gold)" : tone === "green" ? "var(--color-success)" : tone === "red" ? "var(--color-destructive)" : "var(--color-primary)";
+  const up = d != null && d >= 0;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!onClick}
+      className={`relative overflow-hidden rounded-lg border border-border bg-card p-3.5 text-left shadow-[0_1px_2px_rgba(16,32,56,.07)] transition-shadow ${onClick ? "cursor-pointer hover:border-primary hover:shadow-md" : ""}`}
+    >
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: bar }} />
+      <div className="flex items-center gap-2 text-[10.5px] uppercase tracking-[0.12em] text-muted-foreground">
+        <Icon className="h-3.5 w-3.5" style={{ color: bar }} /> <span className="truncate">{label}</span>
+      </div>
+      <div className={`mt-2 font-black tracking-tight ${value === NO ? "text-base text-muted-foreground" : "text-[22px] leading-none"}`}>{value}</div>
+      <div className="mt-1.5 flex items-center gap-2 text-[11px]">
+        {d != null ? (
+          <span className={`inline-flex items-center gap-0.5 font-bold ${up ? "text-success" : "text-destructive"}`}>
+            {up ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}{Math.abs(d).toFixed(0)}%
+          </span>
+        ) : null}
+        {sub ? <span className="text-muted-foreground truncate">{sub}</span> : null}
+      </div>
+    </button>
+  );
+}
+
+
+function Panel({ title, action, children, className = "" }: { title: string; action?: React.ReactNode; children: React.ReactNode; className?: string }) {
+  return (
+    <section className={`rounded-lg border border-border bg-card shadow-[0_1px_2px_rgba(16,32,56,.07)] ${className}`}>
+      <header className="flex items-center justify-between gap-2 border-b border-border px-4 py-2.5">
+        <h2 className="text-[13px] font-bold">{title}</h2>
+        {action}
+      </header>
+      <div className="p-4">{children}</div>
+    </section>
+  );
+}
+
+const Empty = ({ text = NO }: { text?: string }) => (
+  <div className="rounded-md border border-dashed border-border py-6 text-center text-xs text-muted-foreground">{text}</div>
+);
+
+/* ---------- page ---------- */
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [rangeKey, setRangeKey] = usePersistedState<RangeKey>("terzi:dash:range", "month");
-  const [custom, setCustom] = usePersistedState("terzi:dash:custom", rangeFor("custom"));
-  const [filters, setFilters] = usePersistedState<Filters>("terzi:dash:filters", { pipelineId: "", source: "", managerId: "", direction: "", orderId: "", status: "" });
-  const [drill, setDrill] = useState<Drill>(null);
-  const { from, to } = useMemo(() => rangeKey === "custom" ? custom : rangeFor(rangeKey), [rangeKey, custom]);
-  const request = { from, to, pipelineId: filters.pipelineId || null, source: filters.source || null, managerId: filters.managerId || null, direction: filters.direction || null, orderId: filters.orderId || null, status: filters.status || null };
+  const [custom, setCustom] = usePersistedState<{ from: string; to: string }>("terzi:dash:custom", rangeFor("custom"));
+  const [drill, setDrill] = useState<{ metric: DrilldownMetric; title: string } | null>(null);
+  const [matchOpen, setMatchOpen] = useState(false);
+  const { from, to } = useMemo(
+    () => (rangeKey === "custom" ? custom : rangeFor(rangeKey)),
+    [rangeKey, custom],
+  );
+
+
   const overviewFn = useServerFn(getAnalyticsOverview);
-  const drillFn = useServerFn(getAnalyticsDrilldown);
-  const financeFn = useServerFn(getFinanceOverview);
-  const overviewQuery = useQuery({ queryKey: ["dash", "overview", request], queryFn: () => overviewFn({ data: request }), enabled: !!user, retry: 1, throwOnError: false });
-  const financeQuery = useQuery({ queryKey: ["dash", "finance", from, to], queryFn: () => financeFn({ data: { from, to, kind: "all", match_status: "all", limit: 1, offset: 0 } }), enabled: !!user, retry: false, throwOnError: false });
-  const drillQuery = useQuery({ queryKey: ["dash", "drilldown", drill?.metric, request], queryFn: () => drillFn({ data: { ...request, metric: drill?.metric as any, limit: 200 } }), enabled: !!drill, retry: 1 });
-  const cur = overviewQuery.data?.current as any; const prev = overviewQuery.data?.previous as any; const fin = financeQuery.data as any;
-  const k = (key: string) => cur?.kpi?.[key] == null ? null : Number(cur.kpi[key]);
-  const kp = (key: string) => prev?.kpi?.[key] == null ? null : Number(prev.kpi[key]);
-  const openDrill = (metric: string, title: string) => setDrill({ metric, title });
-  const resetFilters = () => setFilters({ pipelineId: "", source: "", managerId: "", direction: "", orderId: "", status: "" });
-  const activeFilters = Object.values(filters).filter(Boolean).length;
-  const refs = cur?.refs ?? { pipelines: [], sources: [], managers: [], directions: [], orders: [], statuses: [] };
-  const targetText = (metric: string) => cur?.targets?.[metric] == null ? "Ціль не налаштована" : `План ${num(Number(cur.targets[metric]))}`;
-  const todayLabel = new Date().toLocaleDateString("uk-UA", { timeZone: "Europe/Kyiv", day: "2-digit", month: "short", year: "numeric" });
+  const fxFn = useServerFn(getAdsCurrencyBreakdown);
+  const canQuery = !!user && !AUTH_BYPASS;
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["dash", "overview", from, to],
+    queryFn: () => overviewFn({ data: { from, to } }),
+    enabled: canQuery,
+    retry: 1,
+    throwOnError: false,
+  });
+  const { data: fx } = useQuery({
+    queryKey: ["dash", "fx", from, to],
+    queryFn: async () => {
+      try {
+        return await fxFn({ data: { from, to } });
+      } catch {
+        return null;
+      }
+    },
+    enabled: canQuery,
+    retry: 1,
+    throwOnError: false,
+  });
 
-  return <main className="crm-workspace min-h-full">
-    <div className="dashboard-page space-y-6">
-      <header className="space-y-3">
-        <div className="dashboard-header grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
-          <div className="flex min-w-0 items-center gap-3"><span className="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-primary text-primary-foreground"><BarChart3 className="h-6 w-6" /></span><div className="min-w-0"><p className="crm-eyebrow">Центр керування</p><h1 className="truncate text-2xl font-black md:text-3xl">CEO Dashboard</h1><p className="truncate text-xs text-muted-foreground md:text-sm">Оперативний стан компанії сьогодні</p></div></div>
-          <Button variant="outline" className="h-12 shrink-0 gap-2 rounded-lg bg-card px-3" onClick={() => setRangeKey("today")}><CalendarDays className="h-4 w-4 text-primary" /><span className="hidden text-left sm:block"><b className="block text-xs">{todayLabel}</b><small className="text-muted-foreground">Europe/Kyiv</small></span><ChevronDown className="h-3.5 w-3.5" /></Button>
+  const finFn = useServerFn(getFinanceOverview);
+  // Фінансовий контур доступний лише ролям admin/director/finance — помилка доступу просто ховає блок.
+  const { data: fin } = useQuery({
+    queryKey: ["dash", "finance", from, to],
+    queryFn: async () => {
+      try {
+        return await finFn({ data: { from, to, kind: "all", match_status: "all", limit: 1, offset: 0 } });
+      } catch {
+        return null;
+      }
+    },
+    enabled: canQuery,
+    retry: false,
+    throwOnError: false,
+  });
+
+  const fxNote = currencyNote(fx?.original);
+
+  const planMonth = useMemo(() => monthStart(from || kyivToday()), [from]);
+  const listPlanFn = useServerFn(listSalesPlan);
+  const { data: salesPlan } = useQuery({
+    queryKey: ["dash", "sales-plan", planMonth],
+    queryFn: async () => {
+      try { return await listPlanFn({ data: { month: planMonth } }); }
+      catch { return null; }
+    },
+    enabled: canQuery,
+    retry: false,
+    throwOnError: false,
+  });
+  const companyPlan = salesPlan && !salesPlan.seeded_default ? Number(salesPlan.company_target) || null : null;
+  const managerPlanMap = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const row of salesPlan?.managers ?? []) m.set(row.user_id, row.target);
+    return m;
+  }, [salesPlan]);
+
+  const cur = (data?.current ?? null) as Overview | null;
+  const prev = (data?.previous ?? null) as Overview | null;
+  const k = (n: string) => N(cur?.kpi?.[n] ?? null);
+  const kp = (n: string) => N(prev?.kpi?.[n] ?? null);
+
+  const funnel = useMemo(() => {
+    if (!cur) return [];
+    const steps: Array<[string, number | null]> = [
+      ["Заявки (ліди)", k("leads")],
+      ["Цільові ліди", k("qualified")],
+      ["Заміри призначено", k("measurements_scheduled")],
+      ["Заміри виконано", k("measurements_completed")],
+      ["Кошториси", k("estimates")],
+      ["Договори", k("contracts")],
+    ];
+    const base = steps[0][1] || 0;
+    return steps.map(([label, value], i) => ({
+      label,
+      value: value ?? 0,
+      ofTotal: base ? ((value ?? 0) / base) * 100 : 0,
+      ofPrev: i === 0 ? 100 : (steps[i - 1][1] || 0) ? ((value ?? 0) / (steps[i - 1][1] as number)) * 100 : 0,
+    }));
+  }, [cur]);
+
+  const tel = cur?.telephony ?? {};
+  const sources = (cur?.sources ?? []).slice().sort((a, b) => Number(b.leads ?? 0) - Number(a.leads ?? 0));
+  const managers = (cur?.managers ?? []).slice().sort((a, b) => Number(b.contract_value ?? 0) - Number(a.contract_value ?? 0));
+  const surveyors = cur?.surveyors ?? [];
+
+  const spend = k("marketing_spend");
+  const leads = k("leads");
+  const contracts = k("contracts");
+  const contractValue = k("contract_value");
+  const cpl = spend != null && leads ? spend / leads : null;
+  const cac = spend != null && contracts ? spend / contracts : null;
+  const romi = spend ? (((contractValue ?? 0) - spend) / spend) * 100 : null;
+  const avgCheck = contracts ? (contractValue ?? 0) / contracts : null;
+  const winRate = leads ? ((contracts ?? 0) / leads) * 100 : null;
+
+  const hello = profile?.display_name?.split(" ")[0] || "Вітаємо";
+
+  return (
+    <div className="mx-auto max-w-[1500px] space-y-4 p-3 md:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">Приладова панель</div>
+          <h1 className="text-xl md:text-3xl font-black tracking-tight">{hello}, ось стан компанії</h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Період: {from} — {to}. Порожні джерела показані як «немає даних», а не як нуль.
+          </p>
         </div>
-        <div className="dashboard-toolbar sticky top-16 z-20 -mx-1 space-y-2 px-2 py-2 md:top-14 md:mx-0">
-          <div className="no-scrollbar flex max-w-full gap-1 overflow-x-auto pb-0.5">{RANGES.map((r) => <Button key={r.key} size="sm" variant={rangeKey === r.key ? "default" : "ghost"} onClick={() => setRangeKey(r.key)} className="shrink-0 rounded-lg">{r.label}</Button>)}</div>
-          {rangeKey === "custom" ? <div className="grid grid-cols-2 gap-2"><input aria-label="Початок періоду" type="date" value={custom.from} max={custom.to} onChange={(e) => setCustom({ ...custom, from: e.target.value })} className={selectClass} /><input aria-label="Кінець періоду" type="date" value={custom.to} min={custom.from} onChange={(e) => setCustom({ ...custom, to: e.target.value })} className={selectClass} /></div> : null}
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
-            <select aria-label="Воронка" value={filters.pipelineId} onChange={(e) => setFilters({ ...filters, pipelineId: e.target.value })} className={selectClass}><option value="">Усі воронки</option>{refs.pipelines.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
-            <select aria-label="Джерело" value={filters.source} onChange={(e) => setFilters({ ...filters, source: e.target.value })} className={selectClass}><option value="">Усі джерела</option>{refs.sources.map((x: string) => <option key={x}>{x}</option>)}</select>
-            <select aria-label="Менеджер" value={filters.managerId} onChange={(e) => setFilters({ ...filters, managerId: e.target.value })} className={selectClass}><option value="">Усі менеджери</option>{refs.managers.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
-            <select aria-label="Напрямок" value={filters.direction} onChange={(e) => setFilters({ ...filters, direction: e.target.value })} className={selectClass}><option value="">Усі напрямки</option>{refs.directions.map((x: string) => <option key={x}>{x}</option>)}</select>
-            <select aria-label="Замовлення" value={filters.orderId} onChange={(e) => setFilters({ ...filters, orderId: e.target.value })} className={selectClass}><option value="">Усі замовлення</option>{refs.orders.map((x: any) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
-            <select aria-label="Статус" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })} className={selectClass}><option value="">Усі статуси</option><option value="open">В роботі</option><option value="won">Виграно</option><option value="lost">Втрачено</option><option value="postponed">Відкладено</option></select>
-            <Button variant="outline" size="sm" onClick={resetFilters} disabled={!activeFilters}><Filter />Скинути{activeFilters ? ` · ${activeFilters}` : ""}</Button>
-          </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {RANGES.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => setRangeKey(r.key)}
+              className={`rounded-md border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                rangeKey === r.key ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+          <Link to="/calc" className="inline-flex items-center gap-1.5 rounded-md bg-[var(--color-gold)] px-3 py-1.5 text-xs font-bold text-[var(--color-gold-foreground)]">
+            <Plus className="h-3.5 w-3.5" /> Розрахунок
+          </Link>
         </div>
-      </header>
+      </div>
 
-      {overviewQuery.isLoading ? <EmptyState text="Завантаження управлінського зведення…" /> : overviewQuery.isError || !cur ? <div className="crm-panel p-6 text-center"><CircleAlert className="mx-auto h-6 w-6 text-destructive" /><p className="mt-2 text-sm font-bold">Не вдалося завантажити зведення</p><Button variant="outline" size="sm" className="mt-3" onClick={() => overviewQuery.refetch()}><RefreshCw />Повторити</Button></div> : <>
-        <SectionShell title="CEO зараз">
-          <div className="grid grid-cols-1 gap-2.5 min-[380px]:grid-cols-2 lg:grid-cols-4">
-            <MetricCard icon={Target} label="Заявки" value={num(k("leads") ?? 0)} delta={delta(k("leads"), kp("leads"))} target={targetText("leads")} onClick={() => openDrill("leads", "Заявки")} />
-            <MetricCard icon={Users} label="Кваліфіковані" value={num(k("qualified") ?? 0)} delta={delta(k("qualified"), kp("qualified"))} target={targetText("qualified")} onClick={() => openDrill("qualified", "Кваліфіковані ліди")} />
-            <MetricCard icon={Ruler} label="Заміри" value={num(k("measurements_completed") ?? 0)} note={`Призначено ${num(k("measurements_scheduled") ?? 0)}`} delta={delta(k("measurements_completed"), kp("measurements_completed"))} onClick={() => openDrill("measurements_completed", "Виконані заміри")} />
-            <MetricCard icon={FileText} label="Кошториси" value={num(k("estimates") ?? 0)} delta={delta(k("estimates"), kp("estimates"))} onClick={() => openDrill("estimates", "Кошториси")} />
-            <MetricCard icon={Handshake} label="Продано" value={num(k("contracts") ?? 0)} tone="gold" delta={delta(k("contracts"), kp("contracts"))} target={targetText("contracts")} onClick={() => openDrill("contracts", "Продано / договори")} />
-            <MetricCard icon={Wallet} label="Сума договорів" value={money(k("contract_value") ?? 0)} tone="gold" delta={delta(k("contract_value"), kp("contract_value"))} target={targetText("contract_value")} onClick={() => openDrill("contracts", "Сума договорів")} />
-            <MetricCard icon={Wallet} label="Факт надходжень" value={fin ? money(fin.income) : noData} tone="success" note={financeQuery.isError ? "Немає доступу" : "Finmap"} />
-            <MetricCard icon={Wallet} label="Факт прибутку" value={fin ? money(fin.grossProfit) : noData} tone={fin?.grossProfit < 0 ? "danger" : "success"} note={fin ? `Маржа ${pct(fin.margin)}` : "Finmap"} />
+      {rangeKey === "custom" ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-card px-3 py-2">
+          <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Ручний період</span>
+          <input type="date" value={custom.from} max={custom.to}
+            onChange={(e) => setCustom({ ...custom, from: e.target.value })}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs" />
+          <span className="text-xs text-muted-foreground">—</span>
+          <input type="date" value={custom.to} min={custom.from}
+            onChange={(e) => setCustom({ ...custom, to: e.target.value })}
+            className="h-8 rounded-md border border-border bg-background px-2 text-xs" />
+          <button
+            onClick={() => setCustom({ from: "2026-06-01", to: "2026-09-07" })}
+            className="rounded-md border border-border px-2 py-1 text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+          >
+            01.06 — 07.09
+          </button>
+        </div>
+      ) : null}
+
+      {AUTH_BYPASS ? (
+        <Empty text="немає даних (режим без входу)" />
+      ) : isLoading ? (
+        <Empty text="Завантаження…" />
+      ) : isError ? (
+        <div className="rounded-lg border border-destructive/40 bg-card p-6 text-center space-y-2">
+          <p className="text-sm font-bold text-destructive">Не вдалося завантажити дашборд</p>
+          <p className="text-xs text-muted-foreground break-all">{(error as Error)?.message ?? "невідома помилка"}</p>
+          <button type="button" onClick={() => refetch()} className="rounded-md border border-border px-3 py-1.5 text-xs font-semibold hover:border-primary">
+            Повторити
+          </button>
+        </div>
+      ) : !cur ? (
+        <Empty text="Немає даних за період (RPC analytics_overview повернув порожньо)" />
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4 xl:grid-cols-8">
+            <Kpi icon={Target} label="Заявки" value={show(leads, num)} d={delta(leads, kp("leads"))} onClick={() => setDrill({ metric: "leads", title: "Заявки (ліди)" })} />
+            <Kpi icon={Users} label="Цільові" value={show(k("qualified"), num)} d={delta(k("qualified"), kp("qualified"))} onClick={() => setDrill({ metric: "qualified", title: "Цільові ліди" })} />
+            <Kpi icon={Ruler} label="Заміри" value={show(k("measurements_completed"), num)} sub={`призначено ${show(k("measurements_scheduled"), num)}`} d={delta(k("measurements_completed"), kp("measurements_completed"))} onClick={() => setDrill({ metric: "measurements", title: "Заміри" })} />
+            <Kpi icon={FileText} label="Кошториси" value={show(k("estimates"), num)} d={delta(k("estimates"), kp("estimates"))} onClick={() => setDrill({ metric: "estimates", title: "Кошториси" })} />
+            <Kpi icon={Handshake} label="Договори" value={show(contracts, num)} d={delta(contracts, kp("contracts"))} tone="gold" onClick={() => setDrill({ metric: "contracts", title: "Договори" })} />
+            <Kpi icon={Wallet} label="Сума договорів" value={show(contractValue, money)} sub={planFactHint(contractValue, companyPlan)} d={delta(contractValue, kp("contract_value"))} tone="gold" onClick={() => setDrill({ metric: "contracts", title: "Сума договорів" })} />
+            <Kpi icon={Wallet} label="Оплати" value={show(k("payments"), money)} d={delta(k("payments"), kp("payments"))} tone="green" onClick={() => setDrill({ metric: "payments", title: "Оплати" })} />
+            <Kpi icon={TrendingUp} label="Валовий прибуток" value={show(k("gross_profit"), money)} d={delta(k("gross_profit"), kp("gross_profit"))} tone={(k("gross_profit") ?? 0) < 0 ? "red" : "green"} onClick={() => setDrill({ metric: "payments", title: "Валовий прибуток: оплати періоду" })} />
           </div>
-          <div className="grid gap-3 lg:grid-cols-3"><div className="crm-panel p-4"><div className="flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-black"><CircleAlert className="h-5 w-5 text-destructive" />Критичні сигнали</h3><span className="text-xs text-primary">Усі · {cur.alerts.length}</span></div><div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">{cur.alerts.length ? cur.alerts.slice(0, 5).map((a: any) => <Button key={a.title} variant="ghost" className="h-auto w-full justify-between whitespace-normal rounded-lg border border-destructive/15 bg-destructive/5 px-3 py-2 text-left" onClick={() => openDrill(a.metric, a.title)}><span><b className="block text-xs">{a.title}</b><span className="text-[10px] text-muted-foreground">{a.action}</span></span><b className="text-destructive">{a.value}</b></Button>) : <EmptyState text="Критичних сигналів немає" />}</div></div><div className="crm-panel p-4 lg:col-span-2"><h3 className="text-sm font-black">Ключові висновки</h3><div className="mt-2 grid gap-1 md:grid-cols-2">{cur.insights.length ? cur.insights.map((x: any) => <ManagementInsight key={x.title} {...x} onClick={() => openDrill(x.metric, x.title)} />) : <EmptyState text="Недостатньо даних для висновків" />}</div></div></div>
-          <PayrollKpiCard />
-          <div className="crm-panel p-4"><div className="mb-3 flex items-center justify-between"><h3 className="flex items-center gap-2 text-sm font-black"><ClipboardList className="h-5 w-5 text-primary" />Мої задачі</h3><Button asChild variant="link" size="sm"><Link to="/crm/tasks">Усі задачі <ChevronRight /></Link></Button></div><TasksPanel /></div>
-          <div className="crm-panel p-4"><h3 className="mb-3 flex items-center gap-2 text-sm font-black"><Plus className="h-5 w-5 text-primary" />Швидкі дії</h3><div className="grid grid-cols-2 gap-2 sm:grid-cols-4"><Button asChild><Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }}><Users />Лід</Link></Button><Button asChild variant="secondary"><Link to="/crm/measurements"><Ruler />Замір</Link></Button><Button asChild variant="gold"><Link to="/calc"><FileText />Кошторис</Link></Button><Button asChild variant="outline"><Link to="/crm/tasks"><ClipboardList />Задача</Link></Button></div></div>
-        </SectionShell>
 
-        <SectionShell title="Продажі та контроль" action={<Button asChild variant="link" size="sm"><Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }}>Воронка <ChevronRight /></Link></Button>}>
-          <div className="grid gap-3 lg:grid-cols-3"><div className="lg:col-span-2"><FunnelCard stages={cur.funnel} onOpen={openDrill} /></div><div className="crm-panel p-4"><div className="flex items-center justify-between"><h3 className="text-sm font-black">Дзвінки</h3><PhoneCall className="h-4 w-4 text-primary" /></div><div className="mt-3 space-y-2 text-xs">{[["Всього", cur.telephony.total], ["Вхідні", cur.telephony.inbound], ["Вихідні", cur.telephony.outbound], ["Пропущені", cur.telephony.missed], ["Передзвонили", `${cur.telephony.missed_called_back} / ${cur.telephony.missed_unique}`]].map(([l, v]) => <div key={String(l)} className="flex justify-between border-b border-border pb-2"><span className="text-muted-foreground">{l}</span><b>{v}</b></div>)}</div><Button variant="outline" size="sm" className="mt-3 w-full" onClick={() => openDrill("calls_missed", "Пропущені дзвінки")}>Перевірити пропущені</Button></div></div>
-          <div className="crm-panel overflow-hidden"><div className="border-b border-border p-3"><h3 className="text-sm font-black">Менеджери</h3></div>{!cur.managers.length ? <div className="p-3"><EmptyState text="Немає даних за період" /></div> : <div className="divide-y divide-border">{cur.managers.slice(0, 10).map((m: any) => <div key={m.user_id ?? "none"} className="grid grid-cols-[1fr_repeat(3,auto)] items-center gap-4 px-3 py-2.5 text-xs"><b className="truncate">{m.name}</b><span><small className="block text-muted-foreground">Ліди</small>{m.leads}</span><span><small className="block text-muted-foreground">Якісні</small>{m.qualified}</span><span><small className="block text-muted-foreground">Продано</small>{m.contracts}</span></div>)}</div>}</div>
-        </SectionShell>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Panel title="Задачі: сьогодні та прострочені" action={<Link to="/crm/tasks" className="text-[11px] font-semibold text-primary">Усі задачі</Link>}>
+              <TasksPanel />
+            </Panel>
+            <Panel
+              title="Автопідбір зв'язку лідів"
+              className="lg:col-span-2"
+              action={
+                <button onClick={() => setMatchOpen(true)} className="inline-flex items-center gap-1 rounded-md border border-primary px-2 py-1 text-[11px] font-semibold text-primary">
+                  <Link2 className="h-3 w-3" /> Показати кандидатів
+                </button>
+              }
+            >
+              <p className="text-[12px] text-muted-foreground">
+                Система порівнює ім'я, телефон, адресу й напрямок ліда з картками клієнтів і показує кандидатів із поясненням збігу.
+                Прив'язка виконується лише після вашого підтвердження.
+              </p>
+              <div className="mt-2 flex items-center gap-2 text-[12px] flex-wrap">
+                <ListChecks className="h-4 w-4 text-primary" />
+                <span className="text-muted-foreground">
+                  Ліди без клієнта — all-time перевірка в{" "}
+                  <Link to="/data-audit" className="font-semibold text-primary">Аудиті даних</Link>
+                  {" "}(не плутати з «без менеджера» за період дашборду).
+                </span>
+              </div>
+            </Panel>
+          </div>
 
-        <SectionShell title="Маркетинг і конверсії" action={<Button asChild variant="link" size="sm"><Link to="/marketing/analytics">Аналітика <ChevronRight /></Link></Button>}>
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4"><MetricCard icon={Megaphone} label="Витрати" value={money(k("marketing_spend") ?? 0)} note="UAH" /><MetricCard icon={Target} label="CPL" value={k("leads") ? money((k("marketing_spend") ?? 0) / Number(k("leads"))) : noData} /><MetricCard icon={Users} label="CPQL" value={k("qualified") ? money((k("marketing_spend") ?? 0) / Number(k("qualified"))) : noData} /><MetricCard icon={Handshake} label="CAC" value={k("contracts") ? money((k("marketing_spend") ?? 0) / Number(k("contracts"))) : noData} note="ROAS/ROMI — недостатньо даних" /></div>
-          <div className="crm-panel overflow-hidden"><div className="border-b border-border p-3"><h3 className="text-sm font-black">Канали</h3></div>{!cur.sources.length ? <div className="p-3"><EmptyState text="Немає атрибутованих заявок" /></div> : <div className="divide-y divide-border">{cur.sources.sort((a: any, b: any) => b.leads - a.leads).map((s: any) => <Button key={s.source} variant="ghost" onClick={() => setFilters({ ...filters, source: s.source })} className="grid h-auto w-full grid-cols-[1fr_repeat(3,auto)] gap-4 rounded-none px-3 py-2.5 text-left text-xs"><b className="truncate">{s.source}</b><span><small className="block text-muted-foreground">Ліди</small>{s.leads}</span><span><small className="block text-muted-foreground">Якісні</small>{s.qualified}</span><span><small className="block text-muted-foreground">Продано</small>{s.contracts}</span></Button>)}</div>}</div>
-        </SectionShell>
+          <div className="grid gap-4 lg:grid-cols-3">
 
-        <SectionShell title="Операції, бригади та календар">
-          <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4"><MetricCard icon={CalendarDays} label="Події" value={num(cur.calendar.count)} note="За вибраний період" onClick={() => openDrill("calendar", "Події календаря")} /><MetricCard icon={Wrench} label="Бригади" value={num(cur.operations.crews)} note={`${cur.operations.bookings} бронювань`} /><MetricCard icon={ClipboardList} label="Прострочені задачі" value={num(cur.tasks.overdue)} tone={cur.tasks.overdue ? "danger" : "success"} onClick={() => openDrill("tasks_overdue", "Прострочені задачі")} /><MetricCard icon={CircleAlert} label="Якість даних" value={num(Object.values(cur.data_quality).reduce((s: number, v: any) => s + Number(v ?? 0), 0))} tone="warning" note="Потребує перевірки" /></div>
-          <div className="grid gap-3 lg:grid-cols-3"><div className="crm-panel p-4"><div className="flex items-center justify-between"><h3 className="text-sm font-black">Календар</h3><Button asChild variant="link" size="sm"><Link to="/operations">Відкрити</Link></Button></div><div className="mt-2 space-y-2">{cur.calendar.events.length ? cur.calendar.events.map((e: any) => <div key={e.id} className="border-b border-border pb-2 text-xs"><b>{e.title}</b><p className="mt-0.5 text-[11px] text-muted-foreground">{new Date(e.starts_at).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</p></div>) : <EmptyState text="Подій немає" />}</div></div><div className="crm-panel p-4"><div className="flex items-center justify-between"><h3 className="text-sm font-black">Фінанси · Finmap</h3><Button asChild variant="link" size="sm"><Link to="/finance" search={{ tab: "overview" }}>Детально</Link></Button></div>{fin ? <div className="mt-3 space-y-2 text-xs">{[["Гроші на рахунках", money(fin.cashOnAccounts)], ["Доходи", money(fin.income)], ["Витрати", money(fin.expense)], ["Прибуток", money(fin.grossProfit)], ["Дебіторка", money(fin.receivable)], ["Кредиторка", money(fin.payable)]].map(([l, v]) => <div key={l} className="flex justify-between border-b border-border pb-2"><span className="text-muted-foreground">{l}</span><b>{v}</b></div>)}</div> : <EmptyState text={financeQuery.isError ? "Немає доступу до фінансів" : "Фінансові дані недоступні"} />}</div><div className="crm-panel p-4"><h3 className="text-sm font-black">Якість даних</h3><div className="mt-3 grid grid-cols-2 gap-2">{Object.entries(cur.data_quality).map(([key, value]: [string, any]) => <Button key={key} variant="outline" onClick={() => openDrill(key === "qualification_needs_review" ? "qualified" : `dq_${key.replace(/^dq_/, "")}`, key)} className="h-auto justify-start whitespace-normal p-2 text-left"><span><b className={Number(value) ? "text-warning" : "text-success"}>{value}</b><small className="mt-0.5 block text-[10px] text-muted-foreground">{key.replaceAll("_", " ")}</small></span></Button>)}</div></div></div>
-          <div className="crm-panel p-4"><div className="flex items-center justify-between"><h3 className="text-sm font-black">Стан інтеграцій</h3><Button asChild variant="link" size="sm"><Link to="/integrations">Налаштування</Link></Button></div><div className="mt-3 grid gap-2 md:grid-cols-3">{cur.freshness.map((x: any) => <div key={x.provider} className="rounded-md border border-border p-2.5 text-xs"><div className="flex justify-between"><b>{x.name}</b><span className={x.error ? "text-destructive" : "text-success"}>{x.error ? "Помилка" : x.status}</span></div><p className="mt-1 text-[10px] text-muted-foreground">{x.syncedAt ? new Date(x.syncedAt).toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" }) : "Немає успішної синхронізації"}</p></div>)}</div></div>
-          <ReconciliationPanel />
-          <div className="crm-panel p-4"><FinmapSyncStatus /></div>
-        </SectionShell>
-      </>}
+            <Panel title="Воронка: від заявки до договору" className="lg:col-span-2">
+              <div className="space-y-2">
+                {funnel.map((f, i) => (
+                  <button
+                    key={f.label}
+                    type="button"
+                    onClick={() => setDrill({ metric: (["leads", "qualified", "measurements", "measurements", "estimates", "contracts"] as DrilldownMetric[])[i], title: f.label })}
+                    className="flex w-full items-center gap-3 rounded-sm text-left hover:opacity-90"
+                  >
+                    <div className="w-40 shrink-0 truncate text-[12px] font-semibold">{f.label}</div>
+                    <div className="h-8 flex-1 overflow-hidden rounded-sm bg-muted/60">
+                      <div
+                        className="flex h-full items-center px-2 text-[11px] font-bold text-white transition-all"
+                        style={{ width: `${Math.max(6, f.ofTotal)}%`, backgroundColor: STAGE_COLORS[i % STAGE_COLORS.length] }}
+                      >
+                        {num(f.value)}
+                      </div>
+                    </div>
+                    <div className="w-24 shrink-0 text-right text-[11px] text-muted-foreground">
+                      {i === 0 ? "100%" : `${pct(f.ofPrev)} з поп.`}
+                    </div>
+                  </button>
+                ))}
+
+                {!funnel.length ? <Empty /> : null}
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2 border-t border-border pt-3 text-[11px] md:grid-cols-4">
+                <div><span className="text-muted-foreground">Конверсія в договір: </span><b>{winRate == null ? NO : pct(winRate)}</b></div>
+                <div><span className="text-muted-foreground">Середній чек: </span><b>{show(avgCheck, money)}</b></div>
+                <div><span className="text-muted-foreground">CPL: </span><b>{show(cpl, money)}</b></div>
+                <div><span className="text-muted-foreground">CAC: </span><b>{show(cac, money)}</b></div>
+              </div>
+            </Panel>
+
+            <Panel title="Телефонія" action={<Link to="/crm/calls" className="text-[11px] font-semibold text-primary">Усі дзвінки</Link>}>
+              {Number(tel.total ?? 0) === 0 ? <Empty text="Дзвінків за період немає" /> : (
+                <div className="space-y-2.5">
+                  {[
+                    ["Всього дзвінків", num(Number(tel.total ?? 0))],
+                    ["Вхідні", num(Number(tel.inbound ?? 0))],
+                    ["Вихідні", num(Number(tel.outbound ?? 0))],
+                    ["Пропущені", num(Number(tel.missed ?? 0))],
+                    ["Унікальні номери", num(Number(tel.unique_numbers ?? 0))],
+                    ["Середня тривалість", `${Math.round(Number(tel.avg_duration ?? 0))} с`],
+                    ["Передзвонили на пропущені", `${num(Number(tel.missed_called_back ?? 0))} / ${num(Number(tel.missed_unique ?? 0))}`],
+                  ].map(([l, v]) => (
+                    <div key={l} className="flex items-center justify-between border-b border-border/60 pb-1.5 text-[12px] last:border-0 last:pb-0">
+                      <span className="text-muted-foreground">{l}</span>
+                      <b>{v}</b>
+                    </div>
+                  ))}
+                  <div className="rounded-md bg-muted/60 px-2.5 py-2 text-[11px] text-muted-foreground">
+                    Частка відповідей: <b className="text-foreground">
+                      {Number(tel.total ?? 0) ? pct((Number(tel.answered ?? 0) / Number(tel.total)) * 100) : NO}
+                    </b>
+                  </div>
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-3">
+            <Panel title="Джерела заявок" className="lg:col-span-2" action={<Link to="/reports/ceo" className="text-[11px] font-semibold text-primary">CEO-звіт</Link>}>
+              {!sources.length ? <Empty /> : (
+                <div className="scroll-x">
+                  <table className="w-full min-w-[640px] text-[12px]">
+                    <thead>
+                      <tr className="text-left text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                        <th className="pb-2">Джерело</th>
+                        <th className="pb-2 text-right">Витрати</th>
+                        <th className="pb-2 text-right">Заявки</th>
+                        <th className="pb-2 text-right">Цільові</th>
+                        <th className="pb-2 text-right">Договори</th>
+                        <th className="pb-2 text-right">Сума</th>
+                        <th className="pb-2 text-right">CPL</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sources.map((s, i) => {
+                        const sl = Number(s.leads ?? 0);
+                        const sp = Number(s.spend ?? 0);
+                        return (
+                          <tr key={String(s.source) + i} className="border-t border-border/60">
+                            <td className="py-1.5 font-semibold">{String(s.source ?? "—")}</td>
+                            <td className="py-1.5 text-right">{sp ? money(sp) : "—"}</td>
+                            <td className="py-1.5 text-right">{num(sl)}</td>
+                            <td className="py-1.5 text-right">{num(Number(s.qualified ?? 0))}</td>
+                            <td className="py-1.5 text-right">{num(Number(s.contracts ?? 0))}</td>
+                            <td className="py-1.5 text-right font-semibold">{money(Number(s.contract_value ?? 0))}</td>
+                            <td className="py-1.5 text-right">{sp && sl ? money(sp / sl) : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
+
+            <Panel title="Фінанси періоду" action={<Link to="/finance" search={{ tab: "overview" }} className="text-[11px] font-semibold text-primary">Фінанси</Link>}>
+              <div className="space-y-2.5 text-[12px]">
+                {[
+                  ["Замовлень у періоді", show(k("orders"), num)],
+                  ["Доходи (Finmap)", fin ? money(fin.income) : show(k("payments"), money)],
+                  ["Витрати (Finmap)", fin ? money(fin.expense) : show(k("expenses"), money)],
+                  ["Прибуток", fin ? money(fin.grossProfit) : show(k("gross_profit"), money)],
+                  ["Маржа", fin ? pct(fin.margin) : NO],
+                  ["Дебіторка", fin ? money(fin.receivable) : NO],
+                  ["Гроші на рахунках", fin ? money(fin.cashOnAccounts) : NO],
+                  ["ФОТ нараховано", fin ? money(Number((fin as any).payrollAccrued) || 0) : NO],
+                  ["ФОТ KPI + бонуси", fin ? money(Number((fin as any).payrollKpi) || 0) : NO],
+                  ["ФОТ виплачено", fin ? money(Number((fin as any).payrollPaid) || 0) : NO],
+                  ["Сума договорів", show(contractValue, money)],
+                  ["Реклама", show(spend, money) + (spend != null && fxNote ? ` (${fxNote})` : "")],
+                  ["ROMI", romi == null ? NO : pct(romi)],
+                ].map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between border-b border-border/60 pb-1.5 last:border-0 last:pb-0">
+                    <span className="text-muted-foreground">{l}</span>
+                    <b>{v}</b>
+                  </div>
+                ))}
+              </div>
+            </Panel>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel title="Менеджери" action={<Link to="/crm/leads" search={{} as never} className="text-[11px] font-semibold text-primary">Воронка</Link>}>
+              {!managers.length ? <Empty /> : (
+                <div className="scroll-x">
+                  <table className="w-full min-w-[520px] text-[12px]">
+                    <thead>
+                      <tr className="text-left text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                        <th className="pb-2">Менеджер</th>
+                        <th className="pb-2 text-right">Ліди</th>
+                        <th className="pb-2 text-right">Цільові</th>
+                        <th className="pb-2 text-right">Замовлення</th>
+                        <th className="pb-2 text-right">Договори</th>
+                        <th className="pb-2 text-right">Сума</th>
+                        <th className="pb-2 text-right">План</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {managers.map((m, i) => (
+                        <tr key={String(m.user_id ?? i)} className="border-t border-border/60">
+                          <td className="py-1.5 font-semibold">{m.user_id ? String(m.name) : "Без менеджера"}</td>
+                          <td className="py-1.5 text-right">{num(Number(m.leads ?? 0))}</td>
+                          <td className="py-1.5 text-right">{num(Number(m.qualified ?? 0))}</td>
+                          <td className="py-1.5 text-right">{num(Number(m.orders ?? 0))}</td>
+                          <td className="py-1.5 text-right">{num(Number(m.contracts ?? 0))}</td>
+                          <td className="py-1.5 text-right font-semibold">{money(Number(m.contract_value ?? 0))}</td>
+                          <td className="py-1.5 text-right text-muted-foreground">{(managerPlanMap.get(String(m.user_id)) ?? 0) > 0 ? money(managerPlanMap.get(String(m.user_id))!) : "Ціль не налаштована"}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
+
+            <Panel title="Замірники" action={<Link to="/crm/tasks" className="text-[11px] font-semibold text-primary">Задачі та заміри</Link>}>
+              {!surveyors.length ? <Empty text="Замірів за період немає" /> : (
+                <div className="scroll-x">
+                  <table className="w-full min-w-[440px] text-[12px]">
+                    <thead>
+                      <tr className="text-left text-[10.5px] uppercase tracking-wider text-muted-foreground">
+                        <th className="pb-2">Замірник</th>
+                        <th className="pb-2 text-right">Призначено</th>
+                        <th className="pb-2 text-right">Виконано</th>
+                        <th className="pb-2 text-right">Скасовано</th>
+                        <th className="pb-2 text-right">Виконання</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {surveyors.map((s, i) => {
+                        const a = Number(s.assigned ?? 0);
+                        const c = Number(s.completed ?? 0);
+                        return (
+                          <tr key={String(s.user_id ?? i)} className="border-t border-border/60">
+                            <td className="py-1.5 font-semibold">{s.user_id ? String(s.name) : "Без замірника"}</td>
+                            <td className="py-1.5 text-right">{num(a)}</td>
+                            <td className="py-1.5 text-right">{num(c)}</td>
+                            <td className="py-1.5 text-right">{num(Number(s.cancelled ?? 0))}</td>
+                            <td className="py-1.5 text-right font-semibold">{a ? pct((c / a) * 100) : "—"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </Panel>
+          </div>
+
+          <Panel title="Якість даних" action={<Link to="/data-audit" className="text-[11px] font-semibold text-primary">Аудит даних</Link>}>
+            <p className="mb-2 text-[11px] text-muted-foreground">{DQ_SCOPE_BLURBS.period_analytics}</p>
+            <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+              {([
+                ["leads_no_source", "dq_leads_no_source"],
+                ["leads_no_manager", "dq_leads_no_manager"],
+                ["calls_unlinked", "dq_calls_unlinked"],
+                ["measurements_no_surveyor", "dq_measurements_no_surveyor"],
+                ["estimates_no_order", "dq_estimates_no_order"],
+                ["orders_no_source", null],
+                ["orders_no_amount", "dq_orders_no_amount"],
+                ["payments_no_order", null],
+              ] as Array<[string, DrilldownMetric | null]>).map(([key, metric]) => {
+                const meta = PERIOD_DQ_METRICS.find((m) => m.key === key);
+                const label = meta?.label ?? key;
+                const v = Number(cur.data_quality?.[key] ?? 0);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    disabled={!metric}
+                    onClick={() => metric && setDrill({ metric, title: label })}
+                    className={`rounded-md border px-2.5 py-2 text-left ${v ? "border-warning/50 bg-warning/10" : "border-border"} ${metric ? "hover:border-primary" : ""}`}
+                  >
+                    <div className="text-[10.5px] uppercase tracking-wider text-muted-foreground">{label}</div>
+                    <div className={`mt-1 text-lg font-black ${v ? "text-warning" : "text-success"}`}>{num(v)}</div>
+                    {meta ? <div className="mt-0.5 text-[10px] text-muted-foreground">{meta.scopeHint}</div> : null}
+                  </button>
+                );
+              })}
+            </div>
+          </Panel>
+        </>
+      )}
+
+      <DrilldownDialog metric={drill?.metric ?? null} title={drill?.title ?? ""} from={from} to={to} onClose={() => setDrill(null)} />
+      <LeadMatchDialog open={matchOpen} onClose={() => setMatchOpen(false)} />
     </div>
-    <ActionDrawer open={!!drill} onOpenChange={(open) => { if (!open) setDrill(null); }} title={drill?.title ?? "Деталізація"} description={`${from} — ${to} · до 200 записів`} loading={drillQuery.isLoading} rows={(drillQuery.data ?? []) as any[]} />
-  </main>;
+
+  );
 }

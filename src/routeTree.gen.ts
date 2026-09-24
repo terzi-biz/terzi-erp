@@ -78,6 +78,7 @@ import { Route as ReportsMarketingRouteImport } from './routes/reports.marketing
 import { Route as ReportsOperationsRouteImport } from './routes/reports.operations'
 import { Route as ReportsTasksRouteImport } from './routes/reports.tasks'
 import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony'
+import { Route as SettingsSalesPlanRouteImport } from './routes/settings_.sales-plan'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -444,6 +445,11 @@ const ReportsTelephonyRoute = ReportsTelephonyRouteImport.update({
   path: '/telephony',
   getParentRoute: () => ReportsRoute,
 } as any)
+const SettingsSalesPlanRoute = SettingsSalesPlanRouteImport.update({
+  id: '/settings_/sales-plan',
+  path: '/settings/sales-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
   path: '/.lovable/oauth/consent',
@@ -606,6 +612,7 @@ export interface FileRoutesByFullPath {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -693,6 +700,7 @@ export interface FileRoutesByTo {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -782,6 +790,7 @@ export interface FileRoutesById {
   '/reports/operations': typeof ReportsOperationsRoute
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings_/sales-plan': typeof SettingsSalesPlanRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -872,6 +881,7 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/sales-plan'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -959,6 +969,7 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings/sales-plan'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -1047,6 +1058,7 @@ export interface FileRouteTypes {
     | '/reports/operations'
     | '/reports/tasks'
     | '/reports/telephony'
+    | '/settings_/sales-plan'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -1127,6 +1139,7 @@ export interface RootRouteChildren {
   OrdersIdRoute: typeof OrdersIdRoute
   OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
+  SettingsSalesPlanRoute: typeof SettingsSalesPlanRoute
   CalcIndexRoute: typeof CalcIndexRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
   CrmIndexRoute: typeof CrmIndexRoute
@@ -1638,6 +1651,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsTelephonyRouteImport
       parentRoute: typeof ReportsRoute
     }
+    '/settings_/sales-plan': {
+      id: '/settings_/sales-plan'
+      path: '/settings/sales-plan'
+      fullPath: '/settings/sales-plan'
+      preLoaderRoute: typeof SettingsSalesPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
       path: '/.lovable/oauth/consent'
@@ -1843,6 +1863,7 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersIdRoute: OrdersIdRoute,
   OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
+  SettingsSalesPlanRoute: SettingsSalesPlanRoute,
   CalcIndexRoute: CalcIndexRoute,
   ClientsIndexRoute: ClientsIndexRoute,
   CrmIndexRoute: CrmIndexRoute,
