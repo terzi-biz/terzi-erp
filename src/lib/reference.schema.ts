@@ -50,3 +50,17 @@ export const counterpartySearchInput = z.object({
   role: z.enum(COUNTERPARTY_ROLES).optional(),
   limit: z.number().int().min(1).max(50).default(20),
 });
+
+type ReqRow = { id: string; code: string; is_default: boolean | null; archived_at: string | null };
+/**
+ * Архівування активних реквізитів за замовчуванням заборонене, якщо після цього
+ * не лишиться жодної активної основної компанії. Повертає текст помилки або null.
+ */
+export function requisiteArchiveError(targetId: string, archived: boolean, rows: ReqRow[]): string | null {
+  if (!archived) return null;
+  const t = rows.find((r) => r.id === targetId);
+  if (!t) return "Запис не знайдено";
+  if (t.archived_at || !t.is_default) return null;
+  const otherDefault = rows.some((r) => r.id !== targetId && !r.archived_at && r.is_default);
+  return otherDefault ? null : "Це основна компанія за замовчуванням. Спершу призначте іншу основну компанію (нова версія з позначкою «за замовчуванням»), потім архівуйте.";
+}
