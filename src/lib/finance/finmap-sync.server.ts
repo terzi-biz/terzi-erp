@@ -341,7 +341,7 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
     const known = new Set((existing ?? []).map((e: any) => e.finmap_id));
     // Ручні/підтверджені статуси зв'язку resync не перетирає.
     const KEEP_STATUS = new Set(["matched", "manual", "ignored"]);
-    const statusById = new Map((existing ?? []).map((e: any) => [e.finmap_id, e.match_status as string | null]));
+    const statusById = new Map<string, string | null>((existing ?? []).map((e: any) => [e.finmap_id as string, (e.match_status as string | null) ?? null]));
 
     const rows = ops.map((o) => {
       const proj = (o.projectIds ?? []).map((p) => prById.get(p)).find(Boolean) as any;
