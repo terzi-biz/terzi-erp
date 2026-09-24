@@ -31,3 +31,17 @@ describe("integration health", () => {
     expect(normalizeHealth(meta, {}, now).state).toBe("not_configured");
   });
 });
+
+describe("event evidence is informational only", () => {
+  it("recent inbound event alone is not connected", () => {
+    const h = normalizeHealth(meta, { lastEventAt: "2026-09-23T00:00:00Z", envConfigured: true }, now);
+    expect(h.state).toBe("configured");
+    expect(h.lastEventAt).toBe("2026-09-23T00:00:00Z");
+  });
+  it("recent event cannot mask a failed test", () => {
+    expect(normalizeHealth(meta, { lastEventAt: "2026-09-23T12:00:00Z", canonical: { lastTestAt: "2026-09-23T00:00:00Z", lastTestOk: false } }, now).state).toBe("error");
+  });
+  it("recent successful sync with event → connected", () => {
+    expect(normalizeHealth(meta, { lastEventAt: "2026-09-23T00:00:00Z", lastSyncAt: "2026-09-22T00:00:00Z" }, now).state).toBe("connected");
+  });
+});
