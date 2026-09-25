@@ -147,7 +147,7 @@
 - [ ] Календар: розділення на блоки (заміри / виробництво / задачі)
 - [ ] Окремий розділ «Склад» з підсторінками
 # Live deploy package 25.09.2026
-- [ ] Накласти всі файли `package-live-deploy-2026-09-25.zip` дослівно
-- [ ] Мінімально виправити лише несумісні імпорти/експорти та маршрути
-- [ ] Перевірити warehouse, measurements loop, Control Center automation, типи й preview
+- [x] Накласти всі файли `package-live-deploy-2026-09-25.zip` дослівно
+- [x] Мінімально виправити лише несумісні імпорти/експорти та маршрути
+- [x] Перевірити warehouse, measurements loop, Control Center automation, типи й preview
 
