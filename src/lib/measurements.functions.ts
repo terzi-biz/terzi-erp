@@ -8,7 +8,7 @@ import {
   measurementToEstimateSchema,
   scheduleMeasurementSchema,
 } from "./crm-analytics.schema";
-import { measurementsPayload } from "./measurements.server";
+import { leadMeasurements, measurementsPayload } from "./measurements.server";
 import { measurementTypeFromEvent } from "./measurement-status";
 import { EVENT_STATUS_BY_MEASUREMENT } from "./measurement-calendar-sync";
 import { kyivRange } from "./kyiv-time";
@@ -18,6 +18,12 @@ export const listMeasurements = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => dateRangeSchema.parse(d))
   .handler(async ({ context, data }) => measurementsPayload(context.supabase, kyivRange(data.from, data.to)));
+
+/** Сумісність із чинним блоком замірів у картці ліда. */
+export const listLeadMeasurements = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => ({ lead_id: z.string().uuid().parse((d as { lead_id?: unknown })?.lead_id) }))
+  .handler(async ({ context, data }) => leadMeasurements(context.supabase, data.lead_id));
 
 /**
  * Планування заміру. Канонічна сутність — order_measurements;

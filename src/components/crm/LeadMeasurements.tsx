@@ -162,7 +162,7 @@ export function LeadMeasurements({
             surveyor_id: p.surveyor_id, scheduled_at: p.scheduled_at,
           })}
           onResult={(p) => saveResult.mutate({ id: card.id, ...p })}
-          onEstimate={() => navigate({ to: "/crm/measurements" })}
+          onEstimate={() => navigate({ to: "/crm/measurements", search: { lead: leadId } })}
         />
       ) : null}
     </section>

@@ -2,6 +2,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { Json } from "@/integrations/supabase/types";
 import { automationActionSchema, automationRuleSchema } from "./schema";
 
 async function userRoles(sb: { from: (t: string) => any }, userId: string): Promise<string[]> {
@@ -42,8 +43,8 @@ export const saveRule = createServerFn({ method: "POST" })
       trigger_field: rest.trigger_field,
       trigger_from: rest.trigger_from ?? null,
       trigger_to: rest.trigger_to,
-      condition: rest.condition ?? {},
-      actions: rest.actions,
+      condition: (rest.condition ?? {}) as Json,
+      actions: rest.actions as Json,
       updated_at: new Date().toISOString(),
     };
 

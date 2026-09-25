@@ -104,7 +104,9 @@ export function aggregateMonthlyStock(
     if (!month) continue;
     const type = String(d.doc_type ?? "");
     const qty = (d.lines ?? []).reduce((s, l) => s + (Number(l.qty) || 0), 0);
-    const value = d.total_cost != null ? Number(d.total_cost) : documentTotal(d.lines ?? []);
+    const value = d.total_cost != null
+      ? Number(d.total_cost)
+      : documentTotal((d.lines ?? []).map((line) => ({ qty: Number(line.qty) || 0, price: Number(line.price) || 0 })));
     const row = map.get(month) ?? {
       month, inQty: 0, inValue: 0, outQty: 0, outValue: 0, netQty: 0, netValue: 0, docsIn: 0, docsOut: 0,
     };

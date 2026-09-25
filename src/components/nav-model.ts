@@ -157,8 +157,24 @@ export const NAV_SECTIONS: NavSection[] = [
 ];
 
 /** Розділи, доступні набору ролей користувача. */
-export function navForRoles(roles: readonly string[]): NavSection[] {
-  return NAV_SECTIONS.filter((s) => !s.roles || s.roles.some((r) => roles.includes(r)));
+export function navForRoles(
+  roles: readonly string[],
+  moduleViews?: readonly { id: string; label: string; route: string | null; visible: boolean }[],
+): NavSection[] {
+  return NAV_SECTIONS
+    .filter((s) => !s.roles || s.roles.some((r) => roles.includes(r)))
+    .map((section) => {
+      if (section.key !== "calc" || !moduleViews) return section;
+      return {
+        ...section,
+        children: [
+          section.children[0],
+          ...moduleViews
+            .filter((module) => module.visible && module.route)
+            .map((module) => ({ to: module.route as string, label: module.label })),
+        ],
+      };
+    });
 }
 
 /** Активний розділ за поточним шляхом. */
