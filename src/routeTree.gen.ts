@@ -73,6 +73,7 @@ import { Route as ReportsAdministrationRouteImport } from './routes/reports.admi
 import { Route as ReportsCeoRouteImport } from './routes/reports.ceo'
 import { Route as ReportsCounterpartiesRouteImport } from './routes/reports.counterparties'
 import { Route as ReportsFinanceRouteImport } from './routes/reports.finance'
+import { Route as ReportsFinanceCeoRouteImport } from './routes/reports.finance-ceo'
 import { Route as ReportsFinmapRouteImport } from './routes/reports.finmap'
 import { Route as ReportsFunnelRouteImport } from './routes/reports.funnel'
 import { Route as ReportsMarketingRouteImport } from './routes/reports.marketing'
@@ -436,6 +437,11 @@ const ReportsFinanceRoute = ReportsFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => ReportsRoute,
 } as any)
+const ReportsFinanceCeoRoute = ReportsFinanceCeoRouteImport.update({
+  id: '/finance-ceo',
+  path: '/finance-ceo',
+  getParentRoute: () => ReportsRoute,
+} as any)
 const ReportsFinmapRoute = ReportsFinmapRouteImport.update({
   id: '/finmap',
   path: '/finmap',
@@ -703,6 +709,7 @@ export interface FileRoutesByFullPath {
   '/reports/ceo': typeof ReportsCeoRoute
   '/reports/counterparties': typeof ReportsCounterpartiesRoute
   '/reports/finance': typeof ReportsFinanceRoute
+  '/reports/finance-ceo': typeof ReportsFinanceCeoRoute
   '/reports/finmap': typeof ReportsFinmapRoute
   '/reports/funnel': typeof ReportsFunnelRoute
   '/reports/marketing': typeof ReportsMarketingRoute
@@ -806,6 +813,7 @@ export interface FileRoutesByTo {
   '/reports/ceo': typeof ReportsCeoRoute
   '/reports/counterparties': typeof ReportsCounterpartiesRoute
   '/reports/finance': typeof ReportsFinanceRoute
+  '/reports/finance-ceo': typeof ReportsFinanceCeoRoute
   '/reports/finmap': typeof ReportsFinmapRoute
   '/reports/funnel': typeof ReportsFunnelRoute
   '/reports/marketing': typeof ReportsMarketingRoute
@@ -912,6 +920,7 @@ export interface FileRoutesById {
   '/reports/ceo': typeof ReportsCeoRoute
   '/reports/counterparties': typeof ReportsCounterpartiesRoute
   '/reports/finance': typeof ReportsFinanceRoute
+  '/reports/finance-ceo': typeof ReportsFinanceCeoRoute
   '/reports/finmap': typeof ReportsFinmapRoute
   '/reports/funnel': typeof ReportsFunnelRoute
   '/reports/marketing': typeof ReportsMarketingRoute
@@ -1019,6 +1028,7 @@ export interface FileRouteTypes {
     | '/reports/ceo'
     | '/reports/counterparties'
     | '/reports/finance'
+    | '/reports/finance-ceo'
     | '/reports/finmap'
     | '/reports/funnel'
     | '/reports/marketing'
@@ -1122,6 +1132,7 @@ export interface FileRouteTypes {
     | '/reports/ceo'
     | '/reports/counterparties'
     | '/reports/finance'
+    | '/reports/finance-ceo'
     | '/reports/finmap'
     | '/reports/funnel'
     | '/reports/marketing'
@@ -1227,6 +1238,7 @@ export interface FileRouteTypes {
     | '/reports/ceo'
     | '/reports/counterparties'
     | '/reports/finance'
+    | '/reports/finance-ceo'
     | '/reports/finmap'
     | '/reports/funnel'
     | '/reports/marketing'
@@ -1805,6 +1817,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsFinanceRouteImport
       parentRoute: typeof ReportsRoute
     }
+    '/reports/finance-ceo': {
+      id: '/reports/finance-ceo'
+      path: '/finance-ceo'
+      fullPath: '/reports/finance-ceo'
+      preLoaderRoute: typeof ReportsFinanceCeoRouteImport
+      parentRoute: typeof ReportsRoute
+    }
     '/reports/finmap': {
       id: '/reports/finmap'
       path: '/finmap'
@@ -2086,6 +2105,7 @@ interface ReportsRouteChildren {
   ReportsCeoRoute: typeof ReportsCeoRoute
   ReportsCounterpartiesRoute: typeof ReportsCounterpartiesRoute
   ReportsFinanceRoute: typeof ReportsFinanceRoute
+  ReportsFinanceCeoRoute: typeof ReportsFinanceCeoRoute
   ReportsFinmapRoute: typeof ReportsFinmapRoute
   ReportsFunnelRoute: typeof ReportsFunnelRoute
   ReportsMarketingRoute: typeof ReportsMarketingRoute
@@ -2100,6 +2120,7 @@ const ReportsRouteChildren: ReportsRouteChildren = {
   ReportsCeoRoute: ReportsCeoRoute,
   ReportsCounterpartiesRoute: ReportsCounterpartiesRoute,
   ReportsFinanceRoute: ReportsFinanceRoute,
+  ReportsFinanceCeoRoute: ReportsFinanceCeoRoute,
   ReportsFinmapRoute: ReportsFinmapRoute,
   ReportsFunnelRoute: ReportsFunnelRoute,
   ReportsMarketingRoute: ReportsMarketingRoute,
