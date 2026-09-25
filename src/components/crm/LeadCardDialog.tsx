@@ -3,23 +3,19 @@
  * коментарі, задачі та дзвінки з прослуховуванням записів.
  */
 import { useEffect, useMemo, useState } from "react";
-import { LeadMeasurements } from "@/components/crm/LeadMeasurements";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
-  X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save,
-  Loader2, User, Plus, Briefcase, Radar, Banknote,
+  X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save, PlayCircle,
+  Loader2, PhoneMissed, PhoneIncoming, PhoneOutgoing, User, Plus, Briefcase,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
-import { addLeadNote, upsertTask, convertLeadToOrder } from "@/lib/crm.functions";
+import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
-import { CallsPlayerList } from "@/components/crm/CallsPlayerList";
-import { CustomFieldsCard } from "@/components/config/CustomFieldsCard";
-import { SourceTrace } from "@/components/crm/SourceTrace";
-import { CounterpartyCashflow } from "@/components/finance/CounterpartyCashflow";
 import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
+import { LeadMeasurementsPanel } from "@/components/crm/LeadMeasurementsPanel";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
 const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";
@@ -47,7 +43,7 @@ export function LeadCardDialog({
   const lead = data?.lead ?? null;
   const [form, setForm] = useState<any>({});
   const [fields, setFields] = useState<Record<string, any>>({});
-  const [tab, setTab] = useState<"comments" | "tasks" | "calls" | "history" | "sources" | "finance">("comments");
+  const [tab, setTab] = useState<"comments" | "tasks" | "calls" | "history">("comments");
   const [note, setNote] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDue, setTaskDue] = useState("");
@@ -133,9 +129,9 @@ export function LeadCardDialog({
               {lead?.status ? ` · ${lead.status}` : ""}
             </div>
             <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-              {form.area ? <CrmSpec label="S" value={`${Number(form.area)} м²`} tone="primary" /> : null}
-              {form.direction ? <CrmSpec value={form.direction} tone="gold" /> : null}
-              {fields["object_type"] ? <CrmSpec value={String(fields["object_type"])} /> : null}
+              {form.area ? <CrmSpec label="Площа" value={`${Number(form.area)} м²`} tone="primary" /> : null}
+              {form.direction ? <CrmSpec label="Напрям" value={form.direction} tone="gold" /> : null}
+              {fields["object_type"] ? <CrmSpec label="Тип об'єкта" value={String(fields["object_type"])} /> : null}
               <span className="min-w-[140px]">
                 <PayStatus total={Number(fields["contract_sum"] ?? form.budget ?? 0)} paid={Number(fields["paid_sum"] ?? 0)} />
               </span>
@@ -201,8 +197,11 @@ export function LeadCardDialog({
                 </Section>
               </div>
 
-              <LeadMeasurements leadId={leadId} orderId={lead?.order_id ?? null}
-                clientName={lead?.client_name ?? null} address={form.address || lead?.address || null} />
+              <LeadMeasurementsPanel
+                leadId={leadId}
+                lead={lead}
+                measurements={(data?.measurements ?? []) as any[]}
+              />
 
               {LEAD_FIELD_GROUPS.map((g) => (
                 <Section key={g.key} title={g.label}>
@@ -235,9 +234,7 @@ export function LeadCardDialog({
             <div className="flex min-h-0 flex-col border-t border-border bg-card/95 lg:border-l lg:border-t-0">
               <div className="flex gap-1 border-b border-border px-2 py-2">
                 {([["comments", "Коментарі", MessageSquare], ["tasks", "Задачі", CheckSquare],
-                   ["calls", "Дзвінки", PhoneCall], ["sources", "Джерела", Radar],
-                   ["finance", "Гроші", Banknote],
-                   ["history", "Історія", History]] as const).map(([k, l, Icon]) => (
+                   ["calls", "Дзвінки", PhoneCall], ["history", "Історія", History]] as const).map(([k, l, Icon]) => (
                   <button key={k} onClick={() => setTab(k)}
                     className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-semibold ${tab === k ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>
                     <Icon className="h-3.5 w-3.5" />{l}
@@ -246,7 +243,6 @@ export function LeadCardDialog({
               </div>
 
               <div className="flex-1 space-y-2 overflow-y-auto p-3">
-                {leadId ? <CustomFieldsCard entity="lead" entityId={leadId} /> : null}
                 {tab === "comments" ? (
                   comments.length ? comments.map((a: any) => (
                     <div key={a.id} className="rounded-md border border-border px-3 py-2">
@@ -268,13 +264,9 @@ export function LeadCardDialog({
                 ) : null}
 
                 {tab === "calls" ? (
-                  <CallsPlayerList leadId={leadId} title="" limit={50} />
+                  (data?.calls ?? []).length ? (data?.calls ?? []).map((c: any) => <CallItem key={c.id} call={c} />)
+                    : <Empty text="Дзвінків за цим номером немає" />
                 ) : null}
-
-                {tab === "sources" ? <SourceTrace leadId={leadId} /> : null}
-
-                {tab === "finance" ? <CounterpartyCashflow scope="lead" id={leadId} compact /> : null}
-
 
                 {tab === "history" ? (
                   (data?.activities ?? []).length ? (data?.activities ?? []).map((a: any) => (
@@ -327,5 +319,31 @@ function Empty({ text }: { text: string }) {
   return <div className="py-6 text-center text-sm text-muted-foreground">{text}</div>;
 }
 
+const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** Дзвінок у картці ліда з прослуховуванням запису. */
+function CallItem({ call }: { call: any }) {
+  const recFn = useServerFn(getCallRecording);
+  const [url, setUrl] = useState<string | null>(null);
+  const load = useMutation({
+    mutationFn: () => recFn({ data: { call_id: call.id } }),
+    onSuccess: (res: any) => (res?.url ? setUrl(res.url) : toast.info(res?.reason ?? "Запис недоступний")),
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося отримати запис"),
+  });
+  const Icon = call.is_missed ? PhoneMissed : call.direction === "inbound" ? PhoneIncoming : PhoneOutgoing;
+  return (
+    <div className="rounded-md border border-border px-3 py-2">
+      <div className="flex items-center gap-2 text-sm">
+        <Icon className={`h-4 w-4 ${call.is_missed ? "text-destructive" : call.direction === "inbound" ? "text-emerald-600" : "text-sky-600"}`} />
+        <span className="flex-1 truncate">{call.started_at ? new Date(call.started_at).toLocaleString("uk-UA") : "—"}</span>
+        <span className="tabular-nums text-xs">{mmss(Number(call.duration_sec ?? 0))}</span>
+        {call.recording_available ? (
+          <button onClick={() => !url && load.mutate()} disabled={load.isPending} title="Прослухати запис">
+            {load.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <PlayCircle className="h-4 w-4 text-primary" />}
+          </button>
+        ) : null}
+      </div>
+      {url ? <audio controls preload="none" src={url} className="mt-2 h-9 w-full" /> : null}
+    </div>
+  );
+}

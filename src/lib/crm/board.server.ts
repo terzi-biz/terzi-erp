@@ -4,6 +4,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { staffNameMap } from "../staff.server";
+import { canonicalMeasurementStatus } from "../measurement-status";
 
 type Sb = SupabaseClient<any, any, any>;
 
@@ -91,21 +92,37 @@ export async function boardLeads(sb: Sb, p: { limit?: number }): Promise<BoardLe
   return decorate(sb, (data ?? []) as any[]);
 }
 
+export interface LeadMeasurement {
+  id: string;
+  status: string;
+  scheduled_at: string | null;
+  measured_at: string | null;
+  surveyor_id: string | null;
+  surveyor_name: string | null;
+  address: string | null;
+  area: number | null;
+  type: string | null;
+  notes: string | null;
+  event_id: string | null;
+  order_id: string | null;
+}
+
 export interface LeadCard {
   lead: BoardLead | null;
   activities: any[];
   tasks: any[];
   calls: any[];
+  measurements: LeadMeasurement[];
 }
 
-/** Повна картка ліда: лід + історія комунікацій, задачі та дзвінки. */
+/** Повна картка ліда: лід + історія, задачі, дзвінки та заміри. */
 export async function leadCard(sb: Sb, leadId: string): Promise<LeadCard> {
   const { data: raw } = await sb.from("crm_leads").select("*").eq("id", leadId).maybeSingle();
-  if (!raw) return { lead: null, activities: [], tasks: [], calls: [] };
+  if (!raw) return { lead: null, activities: [], tasks: [], calls: [], measurements: [] };
   const [lead] = await decorate(sb, [raw]);
 
   const phone = lead?.phone ?? null;
-  const [{ data: activities }, { data: tasks }, callsRes] = await Promise.all([
+  const [{ data: activities }, { data: tasks }, callsRes, { data: measurements }] = await Promise.all([
     sb.from("crm_lead_activities").select("*").eq("lead_id", leadId)
       .order("created_at", { ascending: false }).limit(200),
     sb.from("crm_tasks").select("*").eq("lead_id", leadId)
@@ -115,16 +132,43 @@ export async function leadCard(sb: Sb, leadId: string): Promise<LeadCard> {
           .order("started_at", { ascending: false }).limit(100)
       : sb.from("crm_calls").select("*").eq("lead_id", leadId)
           .order("started_at", { ascending: false }).limit(100),
+    sb.from("order_measurements").select("*").eq("lead_id", leadId)
+      .order("scheduled_at", { ascending: false }).limit(100),
   ]);
 
+  const mRows = (measurements ?? []) as any[];
+  const mIds = mRows.map((m) => m.id);
+  const surveyorIds = mRows.map((m) => m.surveyor_id).filter(Boolean) as string[];
   const actorIds = (activities ?? []).map((a: any) => a.actor_id).filter(Boolean) as string[];
-  const names = await staffNameMap(actorIds);
+  const names = await staffNameMap([...actorIds, ...surveyorIds]);
+
+  const eventByMeasurement = new Map<string, string>();
+  if (mIds.length) {
+    const { data: evs } = await sb.from("calendar_events").select("id, measurement_id").in("measurement_id", mIds);
+    for (const e of evs ?? []) {
+      if ((e as any).measurement_id) eventByMeasurement.set((e as any).measurement_id, (e as any).id);
+    }
+  }
 
   return {
     lead: lead ?? null,
     activities: (activities ?? []).map((a: any) => ({ ...a, actor_name: a.actor_id ? names.get(a.actor_id) ?? null : null })),
     tasks: tasks ?? [],
     calls: (callsRes.data ?? []) as any[],
+    measurements: mRows.map((m) => ({
+      id: m.id,
+      status: canonicalMeasurementStatus(m.status),
+      scheduled_at: m.scheduled_at ?? null,
+      measured_at: m.measured_at ?? null,
+      surveyor_id: m.surveyor_id ?? null,
+      surveyor_name: m.surveyor_id ? names.get(m.surveyor_id) ?? null : null,
+      address: m.address ?? null,
+      area: m.area == null ? null : Number(m.area),
+      type: m.type ?? null,
+      notes: m.notes ?? null,
+      event_id: eventByMeasurement.get(m.id) ?? null,
+      order_id: m.order_id ?? null,
+    })),
   };
 }
 

@@ -1,5 +1,4 @@
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import {
   dateRangeSchema,
@@ -11,6 +10,7 @@ import {
 } from "./crm-analytics.schema";
 import { measurementsPayload } from "./measurements.server";
 import { measurementTypeFromEvent } from "./measurement-status";
+import { EVENT_STATUS_BY_MEASUREMENT } from "./measurement-calendar-sync";
 import { kyivRange } from "./kyiv-time";
 
 /** Заміри за період: канонічні записи order_measurements + календарна проєкція. */
@@ -43,7 +43,6 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
       clientId = (lead?.client_id as string | null) ?? null;
     }
 
-    const done = Boolean(data.already_done);
     const { data: measurement, error: me } = await context.supabase
       .from("order_measurements")
       .insert({
@@ -54,11 +53,9 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
         scheduled_at: starts.toISOString(),
         address: data.address ?? null,
         area: data.area ?? null,
-        perimeter: data.perimeter ?? null,
         notes: data.description ?? null,
         type: measurementTypeFromEvent(data.event_type),
-        status: done ? "completed" : data.employee_id ? "assigned" : "planned",
-        ...(done ? { measured_at: starts.toISOString(), completed_at: starts.toISOString() } : {}),
+        status: data.employee_id ? "assigned" : "planned",
         created_by: context.userId,
       } as any)
       .select()
@@ -71,7 +68,7 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
         title: data.title,
         event_type: data.event_type,
         category: "measure",
-        status: done ? "done" : "planned",
+        status: "planned",
         priority: "normal",
         starts_at: starts.toISOString(),
         ends_at: ends.toISOString(),
@@ -90,34 +87,8 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
       .maybeSingle();
     if (ee) console.error("scheduleMeasurement event", ee);
 
-    if (data.lead_id) {
-      await context.supabase.from("crm_lead_activities").insert({
-        lead_id: data.lead_id, kind: "measurement", actor_id: context.userId,
-        body: `${done ? "Внесено проведений замір" : "Заплановано замір"} на ${starts.toLocaleString("uk-UA", { timeZone: "Europe/Kyiv" })}`,
-      } as any).then(({ error }) => { if (error) console.error("lead activity", error); });
-    }
-
     return { measurement, event: event ?? null };
   });
-
-/** Усі заміри, пов'язані з лідом (за лідом, клієнтом або замовленням). */
-export const listLeadMeasurements = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => z.object({ lead_id: z.string().uuid() }).parse(d))
-  .handler(async ({ context, data }) => {
-    const { leadMeasurements } = await import("./measurements.server");
-    return leadMeasurements(context.supabase, data.lead_id);
-  });
-
-const EVENT_STATUS_BY_MEASUREMENT: Record<string, string> = {
-  planned: "planned",
-  assigned: "planned",
-  confirmed: "confirmed",
-  in_progress: "in_progress",
-  completed: "done",
-  canceled: "cancelled",
-  rescheduled: "cancelled",
-};
 
 /** Життєвий цикл заміру: planned → assigned → confirmed → in_progress → completed. */
 export const setMeasurementStatus = createServerFn({ method: "POST" })

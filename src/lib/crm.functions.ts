@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { digits, likeTerm, pageQuerySchema, pageRange } from "./pagination";
+import { runAutomationRules } from "./automation/runner.server";
 
 
 /* ---------------- Pipelines & stages ---------------- */
@@ -149,10 +150,6 @@ export const upsertLead = createServerFn({ method: "POST" })
         lead_id: out.id, actor_id: context.userId, kind: id ? "update" : "created",
         body: id ? "Лід оновлено" : "Лід створено",
       });
-      if (!id) {
-        const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
-        await safeEmitConversion({ kind: "lead_created", leadId: out.id, sourceType: "crm_leads", sourceId: out.id });
-      }
     }
     return out;
   });
@@ -178,16 +175,19 @@ export const moveLeadStage = createServerFn({ method: "POST" })
       body: `Етап змінено на «${stage?.name ?? ""}»`,
       from_stage_id: prev?.stage_id ?? null, to_stage_id: data.stage_id,
     });
-    // W2.1: best-effort dry-run конверсія (qualified/lost); помилка не ламає переміщення.
-    {
-      const { safeEmitConversion, classifyStageMove } = await import("@/lib/marketing/conversion-events.server");
-      await safeEmitConversion({ kind: "lead_qualified", leadId: data.id, sourceType: "crm_lead_stage", sourceId: data.id }, async () => {
-        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const cls = await classifyStageMove(supabaseAdmin as never, prev?.stage_id ?? null, data.stage_id);
-        if (!cls) return;
-        const { emitConversionEvent } = await import("@/lib/marketing/conversion-events.server");
-        await emitConversionEvent(supabaseAdmin as never, { kind: cls === "lost" ? "lead_lost" : "lead_qualified", leadId: data.id, sourceType: "crm_leads", sourceId: data.id });
-      });
+    if (prev?.stage_id !== data.stage_id) {
+      try {
+        await runAutomationRules(context.supabase, {
+          entityType: "lead",
+          entityId: data.id,
+          field: "stage_id",
+          from: prev?.stage_id ?? null,
+          to: data.stage_id,
+          actorId: context.userId,
+        });
+      } catch (automationError) {
+        console.error("moveLeadStage automation", automationError);
+      }
     }
     return out;
   });
@@ -227,17 +227,25 @@ export const addLeadNote = createServerFn({ method: "POST" })
 /** Задачі. Без параметрів — масив; з `{ page }` — серверна пагінація, пошук і фільтр статусу. */
 export const listTasks = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => (d ? pageQuerySchema.partial().parse(d) : {}))
+  .inputValidator((d: unknown) => {
+    const base = d ? pageQuerySchema.partial().parse(d) : {};
+    const extra = z.object({ assigned_to: z.string().uuid().optional().nullable() }).partial().parse(d ?? {});
+    return { ...base, ...extra };
+  })
   .handler(async ({ context, data: input }) => {
-    const paged = Boolean(input && input.page);
-    const p = pageQuerySchema.parse({ ...(input ?? {}), page: input?.page ?? 1 });
+    const paged = Boolean(input && (input as any).page);
+    const p = pageQuerySchema.parse({ ...(input ?? {}), page: (input as any)?.page ?? 1 });
+    const assignedTo = (input as any)?.assigned_to as string | null | undefined;
     let q = context.supabase
       .from("crm_tasks").select("*", paged ? { count: "exact" } : {})
       .order("due_at", { ascending: true });
     const term = likeTerm(p.q);
     if (term) q = q.or(`title.ilike.*${term}*,description.ilike.*${term}*`);
     if (p.status) q = q.eq("status", p.status as any);
-    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(300); }
+    if (assignedTo) q = q.eq("assigned_to", assignedTo);
+    if (p.from) q = q.gte("due_at", `${p.from}T00:00:00`);
+    if (p.to) q = q.lte("due_at", `${p.to}T23:59:59.999`);
+    if (paged) { const [a, b] = pageRange(p); q = q.range(a, b); } else { q = q.limit(500); }
     const res = await (q as any);
     if (res.error) { console.error("listTasks", res.error); throw new Error("Не вдалося завантажити задачі"); }
     const rows = (res.data ?? []) as any[];
@@ -303,9 +311,7 @@ export const listCalls = createServerFn({ method: "GET" })
 export const getCallRecording = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ call_id: z.string().uuid() }).parse(d))
-  .handler(async ({ data, context }) => {
-    const { requirePermission } = await import("./access.server");
-    await requirePermission(context.userId, "clients", "view");
+  .handler(async ({ data }) => {
     const { fetchCallRecordingUrl } = await import("./integrations/binotel/record.server");
     return await fetchCallRecordingUrl(data.call_id);
   });
@@ -394,10 +400,6 @@ export const convertRequestToLead = createServerFn({ method: "POST" })
       lead_id: lead.id, actor_id: context.userId, kind: "created",
       body: `Лід створено зі звернення (${req.channel})`,
     });
-    {
-      const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
-      await safeEmitConversion({ kind: "lead_created", leadId: lead.id, sourceType: "crm_leads", sourceId: lead.id });
-    }
     return { lead_id: lead.id };
   });
 
@@ -532,9 +534,5 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
       lead_id: lead.id, actor_id: context.userId, kind: "converted",
       body: `Створено замовлення ${order.number ?? ""}`.trim(),
     });
-    {
-      const { safeEmitConversion } = await import("@/lib/marketing/conversion-events.server");
-      await safeEmitConversion({ kind: "order_created", leadId: data.lead_id, sourceType: "orders", sourceId: order.id as string });
-    }
     return { order_id: order.id as string, number: order.number as string | null, created: true };
   });

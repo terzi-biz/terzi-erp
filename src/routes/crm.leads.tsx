@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, User, Phone, Search, CalendarClock, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
@@ -11,27 +11,10 @@ import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
 import { CrmEyebrow, CrmPage, CrmSpec, PayStatus, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
 
-/** Швидкі зрізи для переходу з панелі CRM: посилання /crm/leads?focus=… */
-const FOCUS = {
-  no_source: { label: "Без джерела", test: (l: any) => !l.source || l.source === "Не класифіковано" },
-  no_manager: { label: "Без відповідального", test: (l: any) => !l.assigned_to },
-  no_client: { label: "Без клієнта", test: (l: any) => !l.client_id },
-  no_order: { label: "Без замовлення", test: (l: any) => !l.order_id },
-  won_no_order: { label: "Успішні без замовлення", test: (l: any) => l.status === "won" && !l.order_id },
-  no_next_action: { label: "Без наступної дії", test: (l: any) => l.status === "open" && !l.next_action_at },
-  overdue: {
-    label: "Прострочена наступна дія",
-    test: (l: any) => l.status === "open" && !!l.next_action_at && l.next_action_at < new Date().toISOString(),
-  },
-} as const;
-type FocusKey = keyof typeof FOCUS;
-
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
   validateSearch: (s: Record<string, unknown>) => ({
-    focus: typeof s.focus === "string" && s.focus in FOCUS ? (s.focus as FocusKey) : undefined,
-    stage: typeof s.stage === "string" ? s.stage : undefined,
-    manager: typeof s.manager === "string" ? s.manager : undefined,
+    lead: typeof s.lead === "string" && s.lead.length > 0 ? s.lead : undefined,
   }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
@@ -64,8 +47,6 @@ const emptyFilters = {
 };
 
 function LeadsPage() {
-  const search = Route.useSearch();
-  const navigate = Route.useNavigate();
   const qc = useQueryClient();
   const leadsFn = useServerFn(listBoardLeads);
   const pipeFn = useServerFn(listPipelines);
@@ -85,6 +66,10 @@ function LeadsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<any>(emptyLead);
   const [openId, setOpenId] = useState<string | null>(null);
+  const search = Route.useSearch();
+  useEffect(() => {
+    if (search.lead) setOpenId(search.lead);
+  }, [search.lead]);
 
   const activePipeline = pipelineId || (pipe?.pipelines?.[0]?.id ?? "");
   const allStages = useMemo(
@@ -118,9 +103,6 @@ function LeadsPage() {
 
   const filtered = useMemo(() => (leads as any[]).filter((l) => {
     const f = l.fields ?? {};
-    if (search.focus && !FOCUS[search.focus].test(l)) return false;
-    if (search.stage && l.stage_id !== search.stage) return false;
-    if (search.manager && l.assigned_to !== search.manager) return false;
     if (filters.query && ![l.title, l.phone, l.client_name, l.address, l.source].some((v) => String(v ?? "").toLowerCase().includes(filters.query.toLowerCase()))) return false;
     if (filters.source && !(l.source ?? "").toLowerCase().includes(filters.source.toLowerCase())) return false;
     if (filters.manager && l.assigned_to !== filters.manager) return false;
@@ -137,7 +119,7 @@ function LeadsPage() {
     if ((filters.areaFrom || filters.areaTo) && !inRange(f["object_area"] ?? l.area, filters.areaFrom, filters.areaTo)) return false;
     if ((filters.sumFrom || filters.sumTo) && !inRange(f["contract_sum"] ?? l.budget, filters.sumFrom, filters.sumTo)) return false;
     return true;
-  }), [leads, filters, search.focus, search.stage, search.manager]);
+  }), [leads, filters]);
 
   const move = useMutation({
     mutationFn: (p: { id: string; stage_id: string }) => moveFn({ data: p }),
@@ -178,14 +160,6 @@ function LeadsPage() {
             <p className="text-sm text-muted-foreground">
               Показані активні та успішні етапи · {filtered.length} лідів
             </p>
-            {search.focus && (
-              <button
-                onClick={() => navigate({ search: (s: any) => ({ ...s, focus: undefined }) })}
-                className="mt-2 inline-flex items-center gap-1 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary"
-              >
-                Зріз: {FOCUS[search.focus].label} <X className="h-3 w-3" />
-              </button>
-            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"}>
@@ -209,7 +183,7 @@ function LeadsPage() {
         </div>
 
         {showFilters ? (
-          <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+          <div className="min-w-0 max-w-full space-y-4 overflow-x-auto rounded-lg border border-border bg-card p-4">
             <FilterGroup title="Воронка">
               <F label="Джерело"><input className={inp} value={filters.source} onChange={(e) => set("source", e.target.value)} /></F>
               <F label="Скасовані / нереалізовані">
@@ -287,9 +261,9 @@ function LeadsPage() {
                       </div>
                       {(l.area || l.direction || l.fields?.["object_type"]) ? (
                         <div className="mt-1.5 flex flex-wrap gap-1">
-                          {l.area ? <CrmSpec label="S" value={`${Number(l.area)} м²`} tone="primary" /> : null}
-                          {l.direction ? <CrmSpec value={l.direction} tone="gold" /> : null}
-                          {l.fields?.["object_type"] ? <CrmSpec value={String(l.fields["object_type"])} /> : null}
+                          {l.area ? <CrmSpec label="Площа" value={`${Number(l.area)} м²`} tone="primary" /> : null}
+                          {l.direction ? <CrmSpec label="Напрям" value={l.direction} tone="gold" /> : null}
+                          {l.fields?.["object_type"] ? <CrmSpec label="Тип об'єкта" value={String(l.fields["object_type"])} /> : null}
                         </div>
                       ) : null}
                       {l.phone ? (
@@ -366,21 +340,21 @@ function LeadsPage() {
 
 function FilterGroup({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-2 border-b border-border pb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">{title}</div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">{children}</div>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 min-w-0">{children}</div>
     </div>
   );
 }
 function F({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label className="block space-y-1"><span className={lbl}>{label}</span>{children}</label>;
+  return <label className="block min-w-0 space-y-1"><span className={lbl}>{label}</span>{children}</label>;
 }
 function Range({ a, b, type, onA, onB }: { a: string; b: string; type: "date" | "number"; onA: (v: string) => void; onB: (v: string) => void }) {
   return (
-    <div className="flex items-center gap-1">
-      <input type={type} value={a} onChange={(e) => onA(e.target.value)} className={inp} />
-      <span className="text-muted-foreground">—</span>
-      <input type={type} value={b} onChange={(e) => onB(e.target.value)} className={inp} />
+    <div className="flex min-w-0 items-center gap-1">
+      <input type={type} value={a} onChange={(e) => onA(e.target.value)} className={inp + " min-w-0 flex-1"} />
+      <span className="shrink-0 text-muted-foreground">—</span>
+      <input type={type} value={b} onChange={(e) => onB(e.target.value)} className={inp + " min-w-0 flex-1"} />
     </div>
   );
 }

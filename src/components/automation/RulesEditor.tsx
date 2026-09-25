@@ -1,0 +1,211 @@
+import { useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
+import { saveRule, setRuleEnabled } from "@/lib/automation/automation.functions";
+import { COMMERCIAL_LABELS, COMMERCIAL_STATUSES } from "@/lib/orders.constants";
+import { cn } from "@/lib/utils";
+
+export type RuleRow = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  trigger_entity: string;
+  trigger_field: string;
+  trigger_from: string | null;
+  trigger_to: string;
+  actions: unknown;
+};
+
+function formatActions(actions: unknown): string {
+  if (!Array.isArray(actions)) return "—";
+  return actions
+    .map((a: any) => {
+      if (a?.type === "create_task") return `задача: ${a.title ?? "?"}`;
+      if (a?.type === "set_plan_fact") return "план/факт";
+      if (a?.type === "write_journal") return "журнал";
+      return a?.type ?? "?";
+    })
+    .join(", ");
+}
+
+function whenLabel(r: RuleRow): string {
+  return `${r.trigger_entity}.${r.trigger_field}`;
+}
+
+function ifLabel(r: RuleRow): string {
+  const from = r.trigger_from ? `${r.trigger_from} → ` : "";
+  const toLabel =
+    r.trigger_field === "commercial_status"
+      ? (COMMERCIAL_LABELS[r.trigger_to] ?? r.trigger_to)
+      : r.trigger_to;
+  return `${from}${toLabel}`;
+}
+
+type Props = {
+  rules: RuleRow[];
+  canWrite: boolean;
+};
+
+export function RulesEditor({ rules, canWrite }: Props) {
+  const qc = useQueryClient();
+  const saveFn = useServerFn(saveRule);
+  const enableFn = useServerFn(setRuleEnabled);
+
+  const [name, setName] = useState("Нова задача при зміні статусу");
+  const [triggerTo, setTriggerTo] = useState<string>("contract");
+  const [taskTitle, setTaskTitle] = useState("Обробити {{to}} — {{entity_id}}");
+  const [dueHours, setDueHours] = useState(24);
+
+  const sorted = useMemo(
+    () => [...rules].sort((a, b) => Number(b.enabled) - Number(a.enabled) || a.name.localeCompare(b.name, "uk")),
+    [rules],
+  );
+
+  const createMut = useMutation({
+    mutationFn: () =>
+      saveFn({
+        data: {
+          name: name.trim() || "Правило",
+          enabled: true,
+          trigger_entity: "order",
+          trigger_field: "commercial_status",
+          trigger_from: null,
+          trigger_to: triggerTo,
+          condition: {},
+          actions: [
+            {
+              type: "create_task" as const,
+              title: taskTitle.trim() || "Автозадача",
+              kind: "follow_up",
+              due_offset_hours: Number(dueHours) || 24,
+            },
+            { type: "write_journal" as const, note: "auto from Control Center" },
+          ],
+        },
+      }),
+    onSuccess: () => {
+      toast.success("Правило створено");
+      qc.invalidateQueries({ queryKey: ["automation-rules"] });
+      qc.invalidateQueries({ queryKey: ["automation-kpis"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  const toggleMut = useMutation({
+    mutationFn: (p: { id: string; enabled: boolean }) => enableFn({ data: p }),
+    onSuccess: () => {
+      toast.success("Статус оновлено");
+      qc.invalidateQueries({ queryKey: ["automation-rules"] });
+      qc.invalidateQueries({ queryKey: ["automation-kpis"] });
+    },
+    onError: (e: Error) => toast.error(e.message),
+  });
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto rounded-xl border border-border">
+        <table className="w-full min-w-[640px] text-left text-sm">
+          <thead className="bg-muted/50 text-[10px] uppercase tracking-wider text-muted-foreground">
+            <tr>
+              <th className="px-3 py-2 font-semibold">Назва</th>
+              <th className="px-3 py-2 font-semibold">Коли</th>
+              <th className="px-3 py-2 font-semibold">Якщо</th>
+              <th className="px-3 py-2 font-semibold">То</th>
+              <th className="px-3 py-2 font-semibold">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-3 py-8 text-center text-muted-foreground">
+                  Немає правил. Створіть перше нижче (order.commercial_status → create_task).
+                </td>
+              </tr>
+            ) : (
+              sorted.map((r) => (
+                <tr key={r.id} className="border-t border-border">
+                  <td className="px-3 py-2 font-semibold">{r.name}</td>
+                  <td className="px-3 py-2 font-mono text-xs">{whenLabel(r)}</td>
+                  <td className="px-3 py-2 text-xs">{ifLabel(r)}</td>
+                  <td className="px-3 py-2 text-xs text-muted-foreground">{formatActions(r.actions)}</td>
+                  <td className="px-3 py-2">
+                    <button
+                      type="button"
+                      disabled={!canWrite || toggleMut.isPending}
+                      onClick={() => toggleMut.mutate({ id: r.id, enabled: !r.enabled })}
+                      className={cn(
+                        "rounded-sm border px-2 py-0.5 text-[10px] font-bold uppercase",
+                        r.enabled
+                          ? "border-success/40 bg-success/10 text-success"
+                          : "border-border bg-muted text-muted-foreground",
+                      )}
+                    >
+                      {r.enabled ? "увімкнено" : "вимкнено"}
+                    </button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {canWrite ? (
+        <section className="space-y-3 rounded-xl border border-border bg-card p-3 md:p-4">
+          <h3 className="text-sm font-bold">Нове правило (шаблон)</h3>
+          <p className="text-xs text-muted-foreground">
+            Коли <code className="rounded bg-muted px-1">order.commercial_status</code> → якщо значення = … → то create_task + журнал.
+          </p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-xs">
+              <span className="mb-1 block text-muted-foreground">Назва</span>
+              <input className={crmInput} value={name} onChange={(e) => setName(e.target.value)} />
+            </label>
+            <label className="text-xs">
+              <span className="mb-1 block text-muted-foreground">Якщо статус =</span>
+              <select className={crmInput} value={triggerTo} onChange={(e) => setTriggerTo(e.target.value)}>
+                {COMMERCIAL_STATUSES.map((s) => (
+                  <option key={s} value={s}>
+                    {COMMERCIAL_LABELS[s] ?? s} ({s})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="text-xs md:col-span-2">
+              <span className="mb-1 block text-muted-foreground">Заголовок задачі (шаблон)</span>
+              <input className={crmInput} value={taskTitle} onChange={(e) => setTaskTitle(e.target.value)} />
+            </label>
+            <label className="text-xs">
+              <span className="mb-1 block text-muted-foreground">Дедлайн, годин від зараз</span>
+              <input
+                type="number"
+                min={0}
+                max={2160}
+                className={crmInput}
+                value={dueHours}
+                onChange={(e) => setDueHours(Number(e.target.value) || 0)}
+              />
+            </label>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className={crmButton}
+              disabled={createMut.isPending}
+              onClick={() => createMut.mutate()}
+            >
+              Створити правило
+            </button>
+            <span className={crmButtonOutline + " pointer-events-none opacity-60"}>
+              Runner ще не підключений до updateOrderStatus
+            </span>
+          </div>
+        </section>
+      ) : (
+        <p className="text-xs text-muted-foreground">Редагування доступне admin / director.</p>
+      )}
+    </div>
+  );
+}

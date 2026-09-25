@@ -40,6 +40,7 @@ export const calendarEventPayload = z.object({
   measurement_id: nullableUuid,
   estimate_id: nullableUuid,
   booking_id: nullableUuid,
+  metadata: z.record(z.string(), z.any()).optional(),
   reminders: z.array(z.any()).default([]),
   checklist: z.array(z.any()).default([]),
 });

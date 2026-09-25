@@ -7,6 +7,7 @@ import {
   COMMERCIAL_STATUSES, PRODUCTION_STATUSES, FINANCIAL_STATUSES, ORDER_SERVICES, RISK_LEVELS,
 } from "./orders.constants";
 import { likeTerm, pageQuerySchema, pageRange } from "./pagination";
+import { runAutomationRules } from "./automation/runner.server";
 
 
 
@@ -176,7 +177,6 @@ export const saveOrder = createServerFn({ method: "POST" })
           .insert(services.map((s) => ({ order_id: out.id, service: s })));
       }
     }
-    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(out.id, "order", context.userId); } catch { /* не блокує ERP */ }
     return out;
   });
 
@@ -205,10 +205,38 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     const cleaned: any = {};
     for (const [k, v] of Object.entries(patch)) if (v !== undefined) cleaned[k] = v;
     if (!Object.keys(cleaned).length) return { ok: true };
+
+    // Read previous values before the update so automation receives an accurate `from`.
+    const { data: previousStatus, error: previousStatusError } = await context.supabase
+      .from("orders")
+      .select("commercial_status,production_status,financial_status,risk_level")
+      .eq("id", id)
+      .maybeSingle();
+    if (previousStatusError) console.error("updateOrderStatus previous status", previousStatusError);
+
     const { data: updated, error } = await context.supabase
       .from("orders").update(cleaned).eq("id", id).select("id");
     if (error) { console.error("updateOrderStatus", error); throw new Error("Не вдалося оновити статус"); }
     if (!updated || updated.length === 0) throw new Error("Немає прав на зміну статусу цього об'єкта");
+
+    // Control Center automation must never make the status update fail.
+    for (const field of Object.keys(cleaned)) {
+      const from = (previousStatus as Record<string, string | null | undefined> | null)?.[field] ?? null;
+      const to = cleaned[field] as string;
+      if (from === to) continue;
+      try {
+        await runAutomationRules(context.supabase, {
+          entityType: "order",
+          entityId: id,
+          field,
+          from,
+          to,
+          actorId: context.userId,
+        });
+      } catch (automationError) {
+        console.error("updateOrderStatus automation", automationError);
+      }
+    }
 
     // Авто-події: договір і платежі
     const { data: obj } = await context.supabase
@@ -400,7 +428,6 @@ export const saveOrderMeasurement = createServerFn({ method: "POST" })
         await context.supabase.from("orders").update({ commercial_status: "measurement_done" }).eq("id", data.order_id);
       }
     }
-    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(data.order_id, "measurement", context.userId); } catch { /* не блокує ERP */ }
     return out;
   });
 
@@ -414,7 +441,6 @@ export const linkEstimateToOrder = createServerFn({ method: "POST" })
     const { error } = await context.supabase
       .from("estimates").update({ order_id: data.order_id }).eq("id", data.estimate_id);
     if (error) { console.error("linkEstimateToOrder", error); throw new Error("Не вдалося прив'язати кошторис"); }
-    try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(data.order_id, "estimate", context.userId); } catch { /* не блокує ERP */ }
     return { ok: true };
   });
 

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useLocation } from "@tanstack/react-router";
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -16,10 +16,18 @@ import {
   listCalendarEvents, upsertCalendarEvent, deleteCalendarEvent,
   moveCalendarEvent, setCalendarEventStatus, listEmployees, listCalendarOrders,
 } from "@/lib/calendar.functions";
+import { scheduleMeasurement } from "@/lib/measurements.functions";
 import {
   DIRECTIONS, EVENT_TYPES, EVENT_CATEGORIES, EVENT_STATUSES, PRIORITIES, DEPARTMENTS,
   eventColor, eventTypeLabel, statusLabel, categoryOfType, departmentLabel,
 } from "@/lib/calendar-taxonomy";
+
+const CAL_VIEWS: Record<string, { title: string; categories: string[] }> = {
+  finance: { title: "Фінансовий календар", categories: ["finance"] },
+  production: { title: "Операційний календар (виробництво)", categories: ["production"] },
+  measure: { title: "Календар замірів", categories: ["measure"] },
+  management: { title: "Адмін-управлінський календар", categories: ["management", "sales"] },
+};
 
 export const Route = createFileRoute("/operations")({
   component: OperationsPage,
@@ -72,6 +80,12 @@ function OperationsPage() {
   const { user } = useAuth();
   const isMobile = useIsMobile();
   const qc = useQueryClient();
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.searchStr || "");
+  const rawCal = searchParams.get("cal") || (typeof (location.search as any)?.cal === "string" ? (location.search as any).cal as string : "");
+  const cal = rawCal in CAL_VIEWS ? rawCal : undefined;
+  const calView = cal ? CAL_VIEWS[cal] : null;
+  const calCategories = calView?.categories ?? [];
 
   const [view, setView] = useState<ViewMode>("week");
   const [anchor, setAnchor] = useState<Date>(new Date());
@@ -85,8 +99,17 @@ function OperationsPage() {
   const [bookingEditor, setBookingEditor] = useState<any>(null);
 
   const [f, setF] = useState<{ employeeId: string; department: string; crewKey: string; direction: string; category: string; status: string; priority: string; mine: boolean; overdue: boolean }>(
-    { employeeId: "", department: "", crewKey: "", direction: "", category: "", status: "", priority: "", mine: false, overdue: false },
+    { employeeId: "", department: "", crewKey: "", direction: "", category: calCategories.length === 1 ? calCategories[0] : "", status: "", priority: "", mine: false, overdue: false },
   );
+
+  useEffect(() => {
+    // Sync category filter when ?cal= changes (single-category views).
+    if (calCategories.length === 1) {
+      setF((p) => ({ ...p, category: calCategories[0] }));
+    } else if (!cal) {
+      setF((p) => ({ ...p, category: "" }));
+    }
+  }, [cal]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { if (isMobile && view === "week") setView("agenda"); }, [isMobile]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { const t = setTimeout(() => setDSearch(search.trim()), 300); return () => clearTimeout(t); }, [search]);
@@ -114,13 +137,14 @@ function OperationsPage() {
   const fetchBookings = useServerFn(listBookings);
   const getSchedule = useServerFn(getOperationsSchedule);
   const saveEvent = useServerFn(upsertCalendarEvent);
+  const scheduleMeasure = useServerFn(scheduleMeasurement);
   const removeEvent = useServerFn(deleteCalendarEvent);
   const moveEvent = useServerFn(moveCalendarEvent);
   const changeStatus = useServerFn(setCalendarEventStatus);
   const saveBooking = useServerFn(upsertBooking);
   const removeBooking = useServerFn(deleteBooking);
 
-  const eventsKey = ["cal-events", range.from.toISOString(), range.to.toISOString(), f.employeeId, f.crewKey, f.direction, f.category, f.status, dSearch];
+  const eventsKey = ["cal-events", cal ?? "all", range.from.toISOString(), range.to.toISOString(), f.employeeId, f.crewKey, f.direction, f.category, f.status, dSearch];
   const { data: rawEvents = [], isLoading } = useQuery({
     queryKey: eventsKey,
     enabled: !!user,
@@ -128,7 +152,11 @@ function OperationsPage() {
       fromISO: range.from.toISOString(), toISO: range.to.toISOString(),
       employeeId: f.employeeId || null, crewKey: f.crewKey || null,
       directions: f.direction ? [f.direction] : [],
-      categories: f.category ? [f.category] : [],
+      categories: f.category
+        ? [f.category]
+        : calCategories.length > 1
+          ? calCategories
+          : [],
       statuses: f.status ? [f.status] : [],
       search: dSearch || null,
     } }),
@@ -165,10 +193,36 @@ function OperationsPage() {
   const invalidate = () => {
     qc.invalidateQueries({ queryKey: ["cal-events"] });
     qc.invalidateQueries({ queryKey: bookingsKey });
+    qc.invalidateQueries({ queryKey: ["measurements"] });
+    qc.invalidateQueries({ queryKey: ["crm", "lead-card"] });
   };
 
   const saveMut = useMutation({
-    mutationFn: (p: any) => saveEvent({ data: p }),
+    mutationFn: async (p: any) => {
+      const isMeasure = p.category === "measure" || String(p.event_type ?? "").startsWith("measure_");
+      // New measure from «Додати замір» → scheduleMeasurement (both rows linked).
+      if (isMeasure && !p.id) {
+        const starts = new Date(p.starts_at);
+        const ends = new Date(p.ends_at);
+        const duration_min = Math.max(15, Math.round((ends.getTime() - starts.getTime()) / 60_000) || 60);
+        return scheduleMeasure({
+          data: {
+            title: p.title || "Замір",
+            starts_at: p.starts_at,
+            duration_min,
+            event_type: p.event_type || "measure_primary",
+            address: p.address ?? null,
+            client_name: p.client_name ?? null,
+            area: p.area ?? null,
+            employee_id: p.employee_id ?? null,
+            order_id: p.order_id ?? null,
+            client_id: p.client_id ?? null,
+            description: p.description ?? null,
+          },
+        });
+      }
+      return saveEvent({ data: p });
+    },
     onSuccess: () => { invalidate(); setEditor(null); toast.success("Подію збережено"); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка збереження"),
   });
@@ -289,6 +343,8 @@ function OperationsPage() {
     <div className="min-h-screen bg-terzi-midnight text-terzi-ivory">
       <div className="mx-auto max-w-[1800px] px-3 pb-28 pt-3 sm:px-4 md:px-6 md:pb-10">
         <TopBar
+          pageTitle={calView?.title ?? "Операційний календар TERZI"}
+          pageSubtitle={calView ? "Фільтр за відділом з єдиного calendar_events" : "Планування замірів, робіт, працівників і ресурсів"}
           periodLabel={periodLabel}
           view={view} setView={setView}
           onPrev={() => shift(-1)} onNext={() => shift(1)} onToday={goToday}
@@ -454,6 +510,7 @@ function OperationsPage() {
 /* ---------------- Top bar ---------------- */
 
 function TopBar(props: {
+  pageTitle: string; pageSubtitle: string;
   periodLabel: string; view: ViewMode; setView: (v: ViewMode) => void;
   onPrev: () => void; onNext: () => void; onToday: () => void;
   search: string; setSearch: (s: string) => void; onFilters: () => void;
@@ -467,8 +524,8 @@ function TopBar(props: {
     <header className="rounded-2xl border border-white/10 bg-terzi-blue/35 p-3 shadow-lg shadow-black/25 md:p-4">
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 md:flex md:flex-wrap md:items-center md:justify-between">
         <div className="min-w-0">
-          <h1 className="truncate text-base font-black tracking-tight md:text-2xl">Операційний календар TERZI</h1>
-          <p className="truncate text-[11px] text-terzi-steel/70 md:text-sm">Планування замірів, робіт, працівників і ресурсів</p>
+          <h1 className="truncate text-base font-black tracking-tight md:text-2xl">{props.pageTitle}</h1>
+          <p className="truncate text-[11px] text-terzi-steel/70 md:text-sm">{props.pageSubtitle}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <div className="hidden items-center rounded-lg border border-white/10 bg-terzi-carbon/60 md:flex">
@@ -1081,6 +1138,8 @@ function EventEditor({ value, employees, objects, onClose, onSave, saving }: {
       manager_id: v.manager_id || null, participants: v.participants ?? [],
       crew_key: v.crew_key || null, order_id: v.order_id || null,
       client_id: v.client_id || null, estimate_id: v.estimate_id || null,
+      measurement_id: v.measurement_id || null,
+      metadata: v.metadata ?? undefined,
       reminders: v.reminders ?? [], checklist: v.checklist ?? [],
     });
   };

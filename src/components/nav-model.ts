@@ -1,7 +1,7 @@
 /**
  * Єдина інформаційна архітектура бокового меню (Prompt №3).
  *
- * Перший рівень — рівно 9 розділів. Нічого не видалено функціонально:
+ * Перший рівень — 9 розділів (Wave 1: додано «Склад»). Нічого не видалено функціонально:
  * матеріали, роботи, логістика, обладнання, інтеграції, конструктор напрямків
  * тощо перенесені у відповідні підрозділи.
  */
@@ -75,8 +75,18 @@ export const NAV_SECTIONS: NavSection[] = [
     children: [
       { to: "/orders", label: "Замовлення" },
       { to: "/production", label: "Виробництво, план/факт" },
-      { to: "/warehouse", label: "Склад і закупівлі" },
       { to: "/equipment", label: "Обладнання" },
+    ],
+  },
+  {
+    key: "warehouse",
+    label: "Склад",
+    to: "/warehouse",
+    children: [
+      { to: "/warehouse", label: "Запаси" },
+      { to: "/warehouse/receipts", label: "Приходи" },
+      { to: "/warehouse/issues", label: "Видачі" },
+      { to: "/warehouse/monthly", label: "Звіт за місяці" },
     ],
   },
   {
@@ -84,7 +94,11 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Календар",
     to: "/operations",
     children: [
-      { to: "/operations", label: "Календар робіт і замірів" },
+      { to: "/operations", label: "Усі календарі" },
+      { to: "/operations", label: "Фінансовий календар", search: { cal: "finance" } },
+      { to: "/operations", label: "Операційний (виробництво)", search: { cal: "production" } },
+      { to: "/operations", label: "Календар замірів", search: { cal: "measure" } },
+      { to: "/operations", label: "Адмін-управлінський", search: { cal: "management" } },
       { to: "/crm/measurements", label: "Заміри: список і статуси" },
     ],
   },
@@ -99,7 +113,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: "/finance", label: "Звірка", search: { tab: "reconcile" } },
       { to: "/finance", label: "Finmap", search: { tab: "finmap" } },
       { to: "/finance", label: "ФОТ і KPI", search: { tab: "payroll" } },
-      { to: "/finance/payroll-kpi", label: "Зарплата і KPI" },
       { to: "/finance", label: "Дебіторка", search: { tab: "receivables" } },
       { to: "/finance", label: "Кредиторка", search: { tab: "payables" } },
       { to: "/finance", label: "Каса по проєктах", search: { tab: "projects" } },
@@ -113,6 +126,8 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/reports",
     children: [
       { to: "/reports/ceo", label: "CEO-звіт" },
+      { to: "/settings/sales-plan", label: "План продажів" },
+      { to: "/settings/control-center", label: "Control Center (правила)" },
       { to: "/reports", label: "Продажі та виробництво" },
       { to: "/marketing", label: "Маркетинг" },
       { to: "/data-audit", label: "Якість даних" },
@@ -125,43 +140,26 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/settings",
     roles: ["admin", "director", "finance"],
     children: [
-      { to: "/settings", label: "Огляд налаштувань" },
-      { to: "/settings/company", label: "Організація і компанії" },
-      { to: "/branding", label: "Брендинг" },
-      { to: "/settings/norms", label: "Норми і коефіцієнти" },
+      { to: "/settings", label: "Загальні, податки, документи" },
+      { to: "/settings/sales-plan", label: "План продажів" },
       { to: "/materials", label: "Каталог матеріалів" },
       { to: "/works", label: "Роботи" },
       { to: "/logistics", label: "Логістика" },
       { to: "/equipment", label: "Обладнання і амортизація" },
       { to: "/directions-editor", label: "Напрямки (конструктор)" },
-      { to: "/settings/finance", label: "Фінансові правила" },
-      { to: "/settings/sales-plan", label: "План продажів" },
-      { to: "/settings/access", label: "Доступи і безпека" },
       { to: "/access", label: "Користувачі та ролі" },
-      { to: "/settings/integrations", label: "Інтеграції (хаб)" },
       { to: "/integrations", label: "Інтеграції, API, webhooks" },
       { to: "/crm/intake", label: "Вхідні ліди (API webhook)" },
-      { to: "/data-exchange", label: "Обмін даними" },
-      { to: "/settings/system", label: "Система і модулі" },
+
+      { to: "/branding", label: "Брендинг" },
     ],
   },
 ];
 
 /** Розділи, доступні набору ролей користувача. */
-export function navForRoles(roles: readonly string[], moduleViews?: readonly ModuleNavView[]): NavSection[] {
-  const base = NAV_SECTIONS.filter((s) => !s.roles || s.roles.some((r) => roles.includes(r)));
-  if (!moduleViews) return base;
-  // Опублікований оверлей модулів змінює лише підпис/порядок/видимість; маршрути ті самі.
-  const moduleRoutes = new Set(MODULE_KEYS.map((m) => `/${m}`));
-  return base.map((s) => {
-    if (s.key !== "calc") return s;
-    const rest = s.children.filter((c) => !moduleRoutes.has(c.to));
-    const mods = moduleViews.filter((v) => v.visible && v.route && moduleRoutes.has(v.route)).map((v) => ({ to: v.route as string, label: v.label }));
-    return { ...s, children: [...rest, ...mods] };
-  });
+export function navForRoles(roles: readonly string[]): NavSection[] {
+  return NAV_SECTIONS.filter((s) => !s.roles || s.roles.some((r) => roles.includes(r)));
 }
-
-export interface ModuleNavView { id: string; label: string; route: string | null; visible: boolean }
 
 /** Активний розділ за поточним шляхом. */
 export function activeSectionKey(pathname: string): string | null {
