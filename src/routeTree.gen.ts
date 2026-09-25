@@ -32,16 +32,7 @@ import { Route as Roofing_pvcRouteImport } from './routes/roofing_pvc'
 import { Route as Roofing_rubRouteImport } from './routes/roofing_rub'
 import { Route as ScreedRouteImport } from './routes/screed'
 import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as SettingsSalesPlanRouteImport } from './routes/settings.sales-plan'
-import { Route as SettingsControlCenterRouteImport } from './routes/settings.control-center'
 import { Route as WarehouseRouteImport } from './routes/warehouse'
-import { Route as WarehouseReceiptsRouteImport } from './routes/warehouse.receipts'
-import { Route as WarehouseIssuesRouteImport } from './routes/warehouse.issues'
-import { Route as WarehouseMonthlyRouteImport } from './routes/warehouse.monthly'
-import { Route as WarehouseNomenclatureRouteImport } from './routes/warehouse.nomenclature'
-import { Route as WarehouseReserveRouteImport } from './routes/warehouse.reserve'
-import { Route as WarehouseImportRouteImport } from './routes/warehouse.import'
-import { Route as WarehouseRefsRouteImport } from './routes/warehouse.refs'
 import { Route as WorksRouteImport } from './routes/works'
 import { Route as Char91DotmcpChar93ListToolsRouteImport } from './routes/[.mcp]/list-tools'
 import { Route as Char91DotwellKnownChar93OauthProtectedResourceRouteImport } from './routes/[.well-known]/oauth-protected-resource'
@@ -55,10 +46,12 @@ import { Route as CrmIntakeRouteImport } from './routes/crm.intake'
 import { Route as CrmLeadsRouteImport } from './routes/crm.leads'
 import { Route as CrmMeasurementsRouteImport } from './routes/crm.measurements'
 import { Route as CrmTasksRouteImport } from './routes/crm.tasks'
+import { Route as FinancePayrollKpiRouteImport } from './routes/finance_.payroll-kpi'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as MarketingIndexRouteImport } from './routes/marketing.index'
 import { Route as MarketingAnalyticsRouteImport } from './routes/marketing.analytics'
 import { Route as MarketingBudgetsRouteImport } from './routes/marketing.budgets'
+import { Route as MarketingCalculatorRouteImport } from './routes/marketing.calculator'
 import { Route as MarketingCampaignsRouteImport } from './routes/marketing.campaigns'
 import { Route as MarketingChannelsRouteImport } from './routes/marketing.channels'
 import { Route as MarketingCreativesRouteImport } from './routes/marketing.creatives'
@@ -75,7 +68,33 @@ import { Route as OrdersIdRouteImport } from './routes/orders.$id'
 import { Route as OrdersNewRouteImport } from './routes/orders.new'
 import { Route as ProductionIndexRouteImport } from './routes/production.index'
 import { Route as ProductionIdRouteImport } from './routes/production.$id'
+import { Route as ReportsIndexRouteImport } from './routes/reports.index'
+import { Route as ReportsAdministrationRouteImport } from './routes/reports.administration'
 import { Route as ReportsCeoRouteImport } from './routes/reports.ceo'
+import { Route as ReportsCounterpartiesRouteImport } from './routes/reports.counterparties'
+import { Route as ReportsFinanceRouteImport } from './routes/reports.finance'
+import { Route as ReportsFinmapRouteImport } from './routes/reports.finmap'
+import { Route as ReportsFunnelRouteImport } from './routes/reports.funnel'
+import { Route as ReportsMarketingRouteImport } from './routes/reports.marketing'
+import { Route as ReportsOperationsRouteImport } from './routes/reports.operations'
+import { Route as ReportsTasksRouteImport } from './routes/reports.tasks'
+import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony'
+import { Route as SettingsIndexRouteImport } from './routes/settings.index'
+import { Route as SettingsAccessRouteImport } from './routes/settings.access'
+import { Route as SettingsCompanyRouteImport } from './routes/settings.company'
+import { Route as SettingsControlCenterRouteImport } from './routes/settings.control-center'
+import { Route as SettingsFinanceRouteImport } from './routes/settings.finance'
+import { Route as SettingsIntegrationsRouteImport } from './routes/settings.integrations'
+import { Route as SettingsNormsRouteImport } from './routes/settings.norms'
+import { Route as SettingsSalesPlanRouteImport } from './routes/settings.sales-plan'
+import { Route as SettingsSystemRouteImport } from './routes/settings.system'
+import { Route as WarehouseImportRouteImport } from './routes/warehouse.import'
+import { Route as WarehouseIssuesRouteImport } from './routes/warehouse.issues'
+import { Route as WarehouseMonthlyRouteImport } from './routes/warehouse.monthly'
+import { Route as WarehouseNomenclatureRouteImport } from './routes/warehouse.nomenclature'
+import { Route as WarehouseReceiptsRouteImport } from './routes/warehouse.receipts'
+import { Route as WarehouseRefsRouteImport } from './routes/warehouse.refs'
+import { Route as WarehouseReserveRouteImport } from './routes/warehouse.reserve'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -83,9 +102,14 @@ import { Route as ApiPublicLeadsIntakeRouteImport } from './routes/api/public/le
 import { Route as ApiPublicMarketingSyncRouteImport } from './routes/api/public/marketing/sync'
 import { Route as ApiPublicIntegrationsBinotelCallCompletedRouteImport } from './routes/api/public/integrations/binotel/call-completed'
 import { Route as ApiPublicIntegrationsBinotelCallSettingsRouteImport } from './routes/api/public/integrations/binotel/call-settings'
+import { Route as ApiPublicIntegrationsExternalCallbackRouteImport } from './routes/api/public/integrations/external/callback'
 import { Route as ApiPublicIntegrationsFinmapWebhookRouteImport } from './routes/api/public/integrations/finmap/webhook'
 import { Route as ApiPublicIntegrationsGoogleAdsCallbackRouteImport } from './routes/api/public/integrations/google-ads/callback'
 import { Route as ApiPublicIntegrationsGoogleAdsStartRouteImport } from './routes/api/public/integrations/google-ads/start'
+import { Route as ApiPublicIntegrationsMessengerTelegramRouteImport } from './routes/api/public/integrations/messenger/telegram'
+import { Route as ApiPublicIntegrationsMessengerViberRouteImport } from './routes/api/public/integrations/messenger/viber'
+import { Route as ApiPublicIntegrationsMessengerWhatsappRouteImport } from './routes/api/public/integrations/messenger/whatsapp'
+import { Route as ApiPublicIntegrationsMetaLeadgenRouteImport } from './routes/api/public/integrations/meta/leadgen'
 import { Route as ApiPublicIntegrationsOauthCallbackRouteImport } from './routes/api/public/integrations/oauth.callback'
 import { Route as ApiPublicIntegrationsWebhookSlugRouteImport } from './routes/api/public/integrations/webhook.$slug'
 
@@ -204,54 +228,9 @@ const SettingsRoute = SettingsRouteImport.update({
   path: '/settings',
   getParentRoute: () => rootRouteImport,
 } as any)
-const SettingsSalesPlanRoute = SettingsSalesPlanRouteImport.update({
-  id: '/settings/sales-plan',
-  path: '/settings/sales-plan',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SettingsControlCenterRoute = SettingsControlCenterRouteImport.update({
-  id: '/settings/control-center',
-  path: '/settings/control-center',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const WarehouseRoute = WarehouseRouteImport.update({
   id: '/warehouse',
   path: '/warehouse',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseReceiptsRoute = WarehouseReceiptsRouteImport.update({
-  id: '/warehouse/receipts',
-  path: '/warehouse/receipts',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseIssuesRoute = WarehouseIssuesRouteImport.update({
-  id: '/warehouse/issues',
-  path: '/warehouse/issues',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseMonthlyRoute = WarehouseMonthlyRouteImport.update({
-  id: '/warehouse/monthly',
-  path: '/warehouse/monthly',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseNomenclatureRoute = WarehouseNomenclatureRouteImport.update({
-  id: '/warehouse/nomenclature',
-  path: '/warehouse/nomenclature',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseReserveRoute = WarehouseReserveRouteImport.update({
-  id: '/warehouse/reserve',
-  path: '/warehouse/reserve',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseImportRoute = WarehouseImportRouteImport.update({
-  id: '/warehouse/import',
-  path: '/warehouse/import',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WarehouseRefsRoute = WarehouseRefsRouteImport.update({
-  id: '/warehouse/refs',
-  path: '/warehouse/refs',
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorksRoute = WorksRouteImport.update({
@@ -321,6 +300,11 @@ const CrmTasksRoute = CrmTasksRouteImport.update({
   path: '/crm/tasks',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FinancePayrollKpiRoute = FinancePayrollKpiRouteImport.update({
+  id: '/finance_/payroll-kpi',
+  path: '/finance/payroll-kpi',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
@@ -339,6 +323,11 @@ const MarketingAnalyticsRoute = MarketingAnalyticsRouteImport.update({
 const MarketingBudgetsRoute = MarketingBudgetsRouteImport.update({
   id: '/marketing/budgets',
   path: '/marketing/budgets',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MarketingCalculatorRoute = MarketingCalculatorRouteImport.update({
+  id: '/marketing/calculator',
+  path: '/marketing/calculator',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MarketingCampaignsRoute = MarketingCampaignsRouteImport.update({
@@ -422,10 +411,140 @@ const ProductionIdRoute = ProductionIdRouteImport.update({
   path: '/production/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsIndexRoute = ReportsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsAdministrationRoute = ReportsAdministrationRouteImport.update({
+  id: '/administration',
+  path: '/administration',
+  getParentRoute: () => ReportsRoute,
+} as any)
 const ReportsCeoRoute = ReportsCeoRouteImport.update({
   id: '/ceo',
   path: '/ceo',
   getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsCounterpartiesRoute = ReportsCounterpartiesRouteImport.update({
+  id: '/counterparties',
+  path: '/counterparties',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsFinanceRoute = ReportsFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsFinmapRoute = ReportsFinmapRouteImport.update({
+  id: '/finmap',
+  path: '/finmap',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsFunnelRoute = ReportsFunnelRouteImport.update({
+  id: '/funnel',
+  path: '/funnel',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsMarketingRoute = ReportsMarketingRouteImport.update({
+  id: '/marketing',
+  path: '/marketing',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsOperationsRoute = ReportsOperationsRouteImport.update({
+  id: '/operations',
+  path: '/operations',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsTasksRoute = ReportsTasksRouteImport.update({
+  id: '/tasks',
+  path: '/tasks',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const ReportsTelephonyRoute = ReportsTelephonyRouteImport.update({
+  id: '/telephony',
+  path: '/telephony',
+  getParentRoute: () => ReportsRoute,
+} as any)
+const SettingsIndexRoute = SettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsAccessRoute = SettingsAccessRouteImport.update({
+  id: '/access',
+  path: '/access',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsCompanyRoute = SettingsCompanyRouteImport.update({
+  id: '/company',
+  path: '/company',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsControlCenterRoute = SettingsControlCenterRouteImport.update({
+  id: '/control-center',
+  path: '/control-center',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsFinanceRoute = SettingsFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsIntegrationsRoute = SettingsIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsNormsRoute = SettingsNormsRouteImport.update({
+  id: '/norms',
+  path: '/norms',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSalesPlanRoute = SettingsSalesPlanRouteImport.update({
+  id: '/sales-plan',
+  path: '/sales-plan',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsSystemRoute = SettingsSystemRouteImport.update({
+  id: '/system',
+  path: '/system',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const WarehouseImportRoute = WarehouseImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseIssuesRoute = WarehouseIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseMonthlyRoute = WarehouseMonthlyRouteImport.update({
+  id: '/monthly',
+  path: '/monthly',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseNomenclatureRoute = WarehouseNomenclatureRouteImport.update({
+  id: '/nomenclature',
+  path: '/nomenclature',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseReceiptsRoute = WarehouseReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseRefsRoute = WarehouseRefsRouteImport.update({
+  id: '/refs',
+  path: '/refs',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseReserveRoute = WarehouseReserveRouteImport.update({
+  id: '/reserve',
+  path: '/reserve',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
@@ -466,6 +585,12 @@ const ApiPublicIntegrationsBinotelCallSettingsRoute =
     path: '/api/public/integrations/binotel/call-settings',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicIntegrationsExternalCallbackRoute =
+  ApiPublicIntegrationsExternalCallbackRouteImport.update({
+    id: '/api/public/integrations/external/callback',
+    path: '/api/public/integrations/external/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicIntegrationsFinmapWebhookRoute =
   ApiPublicIntegrationsFinmapWebhookRouteImport.update({
     id: '/api/public/integrations/finmap/webhook',
@@ -482,6 +607,30 @@ const ApiPublicIntegrationsGoogleAdsStartRoute =
   ApiPublicIntegrationsGoogleAdsStartRouteImport.update({
     id: '/api/public/integrations/google-ads/start',
     path: '/api/public/integrations/google-ads/start',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMessengerTelegramRoute =
+  ApiPublicIntegrationsMessengerTelegramRouteImport.update({
+    id: '/api/public/integrations/messenger/telegram',
+    path: '/api/public/integrations/messenger/telegram',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMessengerViberRoute =
+  ApiPublicIntegrationsMessengerViberRouteImport.update({
+    id: '/api/public/integrations/messenger/viber',
+    path: '/api/public/integrations/messenger/viber',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMessengerWhatsappRoute =
+  ApiPublicIntegrationsMessengerWhatsappRouteImport.update({
+    id: '/api/public/integrations/messenger/whatsapp',
+    path: '/api/public/integrations/messenger/whatsapp',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicIntegrationsMetaLeadgenRoute =
+  ApiPublicIntegrationsMetaLeadgenRouteImport.update({
+    id: '/api/public/integrations/meta/leadgen',
+    path: '/api/public/integrations/meta/leadgen',
     getParentRoute: () => rootRouteImport,
   } as any)
 const ApiPublicIntegrationsOauthCallbackRoute =
@@ -520,17 +669,8 @@ export interface FileRoutesByFullPath {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRoute
-  '/settings/sales-plan': typeof SettingsSalesPlanRoute
-  '/settings/control-center': typeof SettingsControlCenterRoute
-  '/warehouse': typeof WarehouseRoute
-  '/warehouse/receipts': typeof WarehouseReceiptsRoute
-  '/warehouse/issues': typeof WarehouseIssuesRoute
-  '/warehouse/monthly': typeof WarehouseMonthlyRoute
-  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
-  '/warehouse/reserve': typeof WarehouseReserveRoute
-  '/warehouse/import': typeof WarehouseImportRoute
-  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -541,9 +681,11 @@ export interface FileRoutesByFullPath {
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
   '/crm/tasks': typeof CrmTasksRoute
+  '/finance/payroll-kpi': typeof FinancePayrollKpiRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/calculator': typeof MarketingCalculatorRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
@@ -557,7 +699,31 @@ export interface FileRoutesByFullPath {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/reports/administration': typeof ReportsAdministrationRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/counterparties': typeof ReportsCounterpartiesRoute
+  '/reports/finance': typeof ReportsFinanceRoute
+  '/reports/finmap': typeof ReportsFinmapRoute
+  '/reports/funnel': typeof ReportsFunnelRoute
+  '/reports/marketing': typeof ReportsMarketingRoute
+  '/reports/operations': typeof ReportsOperationsRoute
+  '/reports/tasks': typeof ReportsTasksRoute
+  '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/access': typeof SettingsAccessRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/control-center': typeof SettingsControlCenterRoute
+  '/settings/finance': typeof SettingsFinanceRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
+  '/settings/norms': typeof SettingsNormsRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
+  '/settings/system': typeof SettingsSystemRoute
+  '/warehouse/import': typeof WarehouseImportRoute
+  '/warehouse/issues': typeof WarehouseIssuesRoute
+  '/warehouse/monthly': typeof WarehouseMonthlyRoute
+  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
+  '/warehouse/receipts': typeof WarehouseReceiptsRoute
+  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse/reserve': typeof WarehouseReserveRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -565,6 +731,8 @@ export interface FileRoutesByFullPath {
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -572,9 +740,14 @@ export interface FileRoutesByFullPath {
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  '/api/public/integrations/external/callback': typeof ApiPublicIntegrationsExternalCallbackRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
+  '/api/public/integrations/messenger/whatsapp': typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  '/api/public/integrations/meta/leadgen': typeof ApiPublicIntegrationsMetaLeadgenRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -596,22 +769,11 @@ export interface FileRoutesByTo {
   '/materials': typeof MaterialsRoute
   '/mcp': typeof McpRoute
   '/operations': typeof OperationsRoute
-  '/reports': typeof ReportsRouteWithChildren
   '/roofing': typeof RoofingRoute
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRoute
-  '/settings/sales-plan': typeof SettingsSalesPlanRoute
-  '/settings/control-center': typeof SettingsControlCenterRoute
-  '/warehouse': typeof WarehouseRoute
-  '/warehouse/receipts': typeof WarehouseReceiptsRoute
-  '/warehouse/issues': typeof WarehouseIssuesRoute
-  '/warehouse/monthly': typeof WarehouseMonthlyRoute
-  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
-  '/warehouse/reserve': typeof WarehouseReserveRoute
-  '/warehouse/import': typeof WarehouseImportRoute
-  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -622,9 +784,11 @@ export interface FileRoutesByTo {
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
   '/crm/tasks': typeof CrmTasksRoute
+  '/finance/payroll-kpi': typeof FinancePayrollKpiRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/calculator': typeof MarketingCalculatorRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
@@ -638,7 +802,31 @@ export interface FileRoutesByTo {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/reports/administration': typeof ReportsAdministrationRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/counterparties': typeof ReportsCounterpartiesRoute
+  '/reports/finance': typeof ReportsFinanceRoute
+  '/reports/finmap': typeof ReportsFinmapRoute
+  '/reports/funnel': typeof ReportsFunnelRoute
+  '/reports/marketing': typeof ReportsMarketingRoute
+  '/reports/operations': typeof ReportsOperationsRoute
+  '/reports/tasks': typeof ReportsTasksRoute
+  '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/access': typeof SettingsAccessRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/control-center': typeof SettingsControlCenterRoute
+  '/settings/finance': typeof SettingsFinanceRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
+  '/settings/norms': typeof SettingsNormsRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
+  '/settings/system': typeof SettingsSystemRoute
+  '/warehouse/import': typeof WarehouseImportRoute
+  '/warehouse/issues': typeof WarehouseIssuesRoute
+  '/warehouse/monthly': typeof WarehouseMonthlyRoute
+  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
+  '/warehouse/receipts': typeof WarehouseReceiptsRoute
+  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse/reserve': typeof WarehouseReserveRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -646,6 +834,8 @@ export interface FileRoutesByTo {
   '/objects': typeof ObjectsIndexRoute
   '/orders': typeof OrdersIndexRoute
   '/production': typeof ProductionIndexRoute
+  '/reports': typeof ReportsIndexRoute
+  '/settings': typeof SettingsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -653,9 +843,14 @@ export interface FileRoutesByTo {
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  '/api/public/integrations/external/callback': typeof ApiPublicIntegrationsExternalCallbackRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
+  '/api/public/integrations/messenger/whatsapp': typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  '/api/public/integrations/meta/leadgen': typeof ApiPublicIntegrationsMetaLeadgenRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -683,17 +878,8 @@ export interface FileRoutesById {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/settings': typeof SettingsRoute
-  '/settings/sales-plan': typeof SettingsSalesPlanRoute
-  '/settings/control-center': typeof SettingsControlCenterRoute
-  '/warehouse': typeof WarehouseRoute
-  '/warehouse/receipts': typeof WarehouseReceiptsRoute
-  '/warehouse/issues': typeof WarehouseIssuesRoute
-  '/warehouse/monthly': typeof WarehouseMonthlyRoute
-  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
-  '/warehouse/reserve': typeof WarehouseReserveRoute
-  '/warehouse/import': typeof WarehouseImportRoute
-  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/settings': typeof SettingsRouteWithChildren
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -704,9 +890,11 @@ export interface FileRoutesById {
   '/crm/leads': typeof CrmLeadsRoute
   '/crm/measurements': typeof CrmMeasurementsRoute
   '/crm/tasks': typeof CrmTasksRoute
+  '/finance_/payroll-kpi': typeof FinancePayrollKpiRoute
   '/invite/$token': typeof InviteTokenRoute
   '/marketing/analytics': typeof MarketingAnalyticsRoute
   '/marketing/budgets': typeof MarketingBudgetsRoute
+  '/marketing/calculator': typeof MarketingCalculatorRoute
   '/marketing/campaigns': typeof MarketingCampaignsRoute
   '/marketing/channels': typeof MarketingChannelsRoute
   '/marketing/creatives': typeof MarketingCreativesRoute
@@ -720,7 +908,31 @@ export interface FileRoutesById {
   '/orders/$id': typeof OrdersIdRoute
   '/orders/new': typeof OrdersNewRoute
   '/production/$id': typeof ProductionIdRoute
+  '/reports/administration': typeof ReportsAdministrationRoute
   '/reports/ceo': typeof ReportsCeoRoute
+  '/reports/counterparties': typeof ReportsCounterpartiesRoute
+  '/reports/finance': typeof ReportsFinanceRoute
+  '/reports/finmap': typeof ReportsFinmapRoute
+  '/reports/funnel': typeof ReportsFunnelRoute
+  '/reports/marketing': typeof ReportsMarketingRoute
+  '/reports/operations': typeof ReportsOperationsRoute
+  '/reports/tasks': typeof ReportsTasksRoute
+  '/reports/telephony': typeof ReportsTelephonyRoute
+  '/settings/access': typeof SettingsAccessRoute
+  '/settings/company': typeof SettingsCompanyRoute
+  '/settings/control-center': typeof SettingsControlCenterRoute
+  '/settings/finance': typeof SettingsFinanceRoute
+  '/settings/integrations': typeof SettingsIntegrationsRoute
+  '/settings/norms': typeof SettingsNormsRoute
+  '/settings/sales-plan': typeof SettingsSalesPlanRoute
+  '/settings/system': typeof SettingsSystemRoute
+  '/warehouse/import': typeof WarehouseImportRoute
+  '/warehouse/issues': typeof WarehouseIssuesRoute
+  '/warehouse/monthly': typeof WarehouseMonthlyRoute
+  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
+  '/warehouse/receipts': typeof WarehouseReceiptsRoute
+  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse/reserve': typeof WarehouseReserveRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -728,6 +940,8 @@ export interface FileRoutesById {
   '/objects/': typeof ObjectsIndexRoute
   '/orders/': typeof OrdersIndexRoute
   '/production/': typeof ProductionIndexRoute
+  '/reports/': typeof ReportsIndexRoute
+  '/settings/': typeof SettingsIndexRoute
   '/.lovable/oauth/consent': typeof DotlovableOauthConsentRoute
   '/.mcp/invoke-tool/$tool': typeof Char91DotmcpChar93InvokeToolToolRoute
   '/api/public/integrations/worker': typeof ApiPublicIntegrationsWorkerRoute
@@ -735,9 +949,14 @@ export interface FileRoutesById {
   '/api/public/marketing/sync': typeof ApiPublicMarketingSyncRoute
   '/api/public/integrations/binotel/call-completed': typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   '/api/public/integrations/binotel/call-settings': typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  '/api/public/integrations/external/callback': typeof ApiPublicIntegrationsExternalCallbackRoute
   '/api/public/integrations/finmap/webhook': typeof ApiPublicIntegrationsFinmapWebhookRoute
   '/api/public/integrations/google-ads/callback': typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   '/api/public/integrations/google-ads/start': typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  '/api/public/integrations/messenger/telegram': typeof ApiPublicIntegrationsMessengerTelegramRoute
+  '/api/public/integrations/messenger/viber': typeof ApiPublicIntegrationsMessengerViberRoute
+  '/api/public/integrations/messenger/whatsapp': typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  '/api/public/integrations/meta/leadgen': typeof ApiPublicIntegrationsMetaLeadgenRoute
   '/api/public/integrations/oauth/callback': typeof ApiPublicIntegrationsOauthCallbackRoute
   '/api/public/integrations/webhook/$slug': typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -767,16 +986,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
-    | '/settings/sales-plan'
-    | '/settings/control-center'
     | '/warehouse'
-    | '/warehouse/receipts'
-    | '/warehouse/issues'
-    | '/warehouse/monthly'
-    | '/warehouse/nomenclature'
-    | '/warehouse/reserve'
-    | '/warehouse/import'
-    | '/warehouse/refs'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -787,9 +997,11 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/measurements'
     | '/crm/tasks'
+    | '/finance/payroll-kpi'
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
+    | '/marketing/calculator'
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
@@ -803,7 +1015,31 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/reports/administration'
     | '/reports/ceo'
+    | '/reports/counterparties'
+    | '/reports/finance'
+    | '/reports/finmap'
+    | '/reports/funnel'
+    | '/reports/marketing'
+    | '/reports/operations'
+    | '/reports/tasks'
+    | '/reports/telephony'
+    | '/settings/access'
+    | '/settings/company'
+    | '/settings/control-center'
+    | '/settings/finance'
+    | '/settings/integrations'
+    | '/settings/norms'
+    | '/settings/sales-plan'
+    | '/settings/system'
+    | '/warehouse/import'
+    | '/warehouse/issues'
+    | '/warehouse/monthly'
+    | '/warehouse/nomenclature'
+    | '/warehouse/receipts'
+    | '/warehouse/refs'
+    | '/warehouse/reserve'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -811,6 +1047,8 @@ export interface FileRouteTypes {
     | '/objects/'
     | '/orders/'
     | '/production/'
+    | '/reports/'
+    | '/settings/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -818,9 +1056,14 @@ export interface FileRouteTypes {
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
+    | '/api/public/integrations/external/callback'
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
+    | '/api/public/integrations/messenger/whatsapp'
+    | '/api/public/integrations/meta/leadgen'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesByTo: FileRoutesByTo
@@ -842,22 +1085,11 @@ export interface FileRouteTypes {
     | '/materials'
     | '/mcp'
     | '/operations'
-    | '/reports'
     | '/roofing'
     | '/roofing_pvc'
     | '/roofing_rub'
     | '/screed'
-    | '/settings'
-    | '/settings/sales-plan'
-    | '/settings/control-center'
     | '/warehouse'
-    | '/warehouse/receipts'
-    | '/warehouse/issues'
-    | '/warehouse/monthly'
-    | '/warehouse/nomenclature'
-    | '/warehouse/reserve'
-    | '/warehouse/import'
-    | '/warehouse/refs'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -868,9 +1100,11 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/measurements'
     | '/crm/tasks'
+    | '/finance/payroll-kpi'
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
+    | '/marketing/calculator'
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
@@ -884,7 +1118,31 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/reports/administration'
     | '/reports/ceo'
+    | '/reports/counterparties'
+    | '/reports/finance'
+    | '/reports/finmap'
+    | '/reports/funnel'
+    | '/reports/marketing'
+    | '/reports/operations'
+    | '/reports/tasks'
+    | '/reports/telephony'
+    | '/settings/access'
+    | '/settings/company'
+    | '/settings/control-center'
+    | '/settings/finance'
+    | '/settings/integrations'
+    | '/settings/norms'
+    | '/settings/sales-plan'
+    | '/settings/system'
+    | '/warehouse/import'
+    | '/warehouse/issues'
+    | '/warehouse/monthly'
+    | '/warehouse/nomenclature'
+    | '/warehouse/receipts'
+    | '/warehouse/refs'
+    | '/warehouse/reserve'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -892,6 +1150,8 @@ export interface FileRouteTypes {
     | '/objects'
     | '/orders'
     | '/production'
+    | '/reports'
+    | '/settings'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -899,9 +1159,14 @@ export interface FileRouteTypes {
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
+    | '/api/public/integrations/external/callback'
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
+    | '/api/public/integrations/messenger/whatsapp'
+    | '/api/public/integrations/meta/leadgen'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   id:
@@ -929,16 +1194,7 @@ export interface FileRouteTypes {
     | '/roofing_rub'
     | '/screed'
     | '/settings'
-    | '/settings/sales-plan'
-    | '/settings/control-center'
     | '/warehouse'
-    | '/warehouse/receipts'
-    | '/warehouse/issues'
-    | '/warehouse/monthly'
-    | '/warehouse/nomenclature'
-    | '/warehouse/reserve'
-    | '/warehouse/import'
-    | '/warehouse/refs'
     | '/works'
     | '/.mcp/list-tools'
     | '/.well-known/oauth-protected-resource'
@@ -949,9 +1205,11 @@ export interface FileRouteTypes {
     | '/crm/leads'
     | '/crm/measurements'
     | '/crm/tasks'
+    | '/finance_/payroll-kpi'
     | '/invite/$token'
     | '/marketing/analytics'
     | '/marketing/budgets'
+    | '/marketing/calculator'
     | '/marketing/campaigns'
     | '/marketing/channels'
     | '/marketing/creatives'
@@ -965,7 +1223,31 @@ export interface FileRouteTypes {
     | '/orders/$id'
     | '/orders/new'
     | '/production/$id'
+    | '/reports/administration'
     | '/reports/ceo'
+    | '/reports/counterparties'
+    | '/reports/finance'
+    | '/reports/finmap'
+    | '/reports/funnel'
+    | '/reports/marketing'
+    | '/reports/operations'
+    | '/reports/tasks'
+    | '/reports/telephony'
+    | '/settings/access'
+    | '/settings/company'
+    | '/settings/control-center'
+    | '/settings/finance'
+    | '/settings/integrations'
+    | '/settings/norms'
+    | '/settings/sales-plan'
+    | '/settings/system'
+    | '/warehouse/import'
+    | '/warehouse/issues'
+    | '/warehouse/monthly'
+    | '/warehouse/nomenclature'
+    | '/warehouse/receipts'
+    | '/warehouse/refs'
+    | '/warehouse/reserve'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -973,6 +1255,8 @@ export interface FileRouteTypes {
     | '/objects/'
     | '/orders/'
     | '/production/'
+    | '/reports/'
+    | '/settings/'
     | '/.lovable/oauth/consent'
     | '/.mcp/invoke-tool/$tool'
     | '/api/public/integrations/worker'
@@ -980,9 +1264,14 @@ export interface FileRouteTypes {
     | '/api/public/marketing/sync'
     | '/api/public/integrations/binotel/call-completed'
     | '/api/public/integrations/binotel/call-settings'
+    | '/api/public/integrations/external/callback'
     | '/api/public/integrations/finmap/webhook'
     | '/api/public/integrations/google-ads/callback'
     | '/api/public/integrations/google-ads/start'
+    | '/api/public/integrations/messenger/telegram'
+    | '/api/public/integrations/messenger/viber'
+    | '/api/public/integrations/messenger/whatsapp'
+    | '/api/public/integrations/meta/leadgen'
     | '/api/public/integrations/oauth/callback'
     | '/api/public/integrations/webhook/$slug'
   fileRoutesById: FileRoutesById
@@ -1010,17 +1299,8 @@ export interface RootRouteChildren {
   Roofing_pvcRoute: typeof Roofing_pvcRoute
   Roofing_rubRoute: typeof Roofing_rubRoute
   ScreedRoute: typeof ScreedRoute
-  SettingsRoute: typeof SettingsRoute
-  SettingsSalesPlanRoute: typeof SettingsSalesPlanRoute
-  SettingsControlCenterRoute: typeof SettingsControlCenterRoute
-  WarehouseRoute: typeof WarehouseRoute
-  WarehouseReceiptsRoute: typeof WarehouseReceiptsRoute
-  WarehouseIssuesRoute: typeof WarehouseIssuesRoute
-  WarehouseMonthlyRoute: typeof WarehouseMonthlyRoute
-  WarehouseNomenclatureRoute: typeof WarehouseNomenclatureRoute
-  WarehouseReserveRoute: typeof WarehouseReserveRoute
-  WarehouseImportRoute: typeof WarehouseImportRoute
-  WarehouseRefsRoute: typeof WarehouseRefsRoute
+  SettingsRoute: typeof SettingsRouteWithChildren
+  WarehouseRoute: typeof WarehouseRouteWithChildren
   WorksRoute: typeof WorksRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1031,9 +1311,11 @@ export interface RootRouteChildren {
   CrmLeadsRoute: typeof CrmLeadsRoute
   CrmMeasurementsRoute: typeof CrmMeasurementsRoute
   CrmTasksRoute: typeof CrmTasksRoute
+  FinancePayrollKpiRoute: typeof FinancePayrollKpiRoute
   InviteTokenRoute: typeof InviteTokenRoute
   MarketingAnalyticsRoute: typeof MarketingAnalyticsRoute
   MarketingBudgetsRoute: typeof MarketingBudgetsRoute
+  MarketingCalculatorRoute: typeof MarketingCalculatorRoute
   MarketingCampaignsRoute: typeof MarketingCampaignsRoute
   MarketingChannelsRoute: typeof MarketingChannelsRoute
   MarketingCreativesRoute: typeof MarketingCreativesRoute
@@ -1061,9 +1343,14 @@ export interface RootRouteChildren {
   ApiPublicMarketingSyncRoute: typeof ApiPublicMarketingSyncRoute
   ApiPublicIntegrationsBinotelCallCompletedRoute: typeof ApiPublicIntegrationsBinotelCallCompletedRoute
   ApiPublicIntegrationsBinotelCallSettingsRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRoute
+  ApiPublicIntegrationsExternalCallbackRoute: typeof ApiPublicIntegrationsExternalCallbackRoute
   ApiPublicIntegrationsFinmapWebhookRoute: typeof ApiPublicIntegrationsFinmapWebhookRoute
   ApiPublicIntegrationsGoogleAdsCallbackRoute: typeof ApiPublicIntegrationsGoogleAdsCallbackRoute
   ApiPublicIntegrationsGoogleAdsStartRoute: typeof ApiPublicIntegrationsGoogleAdsStartRoute
+  ApiPublicIntegrationsMessengerTelegramRoute: typeof ApiPublicIntegrationsMessengerTelegramRoute
+  ApiPublicIntegrationsMessengerViberRoute: typeof ApiPublicIntegrationsMessengerViberRoute
+  ApiPublicIntegrationsMessengerWhatsappRoute: typeof ApiPublicIntegrationsMessengerWhatsappRoute
+  ApiPublicIntegrationsMetaLeadgenRoute: typeof ApiPublicIntegrationsMetaLeadgenRoute
   ApiPublicIntegrationsOauthCallbackRoute: typeof ApiPublicIntegrationsOauthCallbackRoute
   ApiPublicIntegrationsWebhookSlugRoute: typeof ApiPublicIntegrationsWebhookSlugRoute
 }
@@ -1231,75 +1518,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/settings/sales-plan': {
-      id: '/settings/sales-plan'
-      path: '/settings/sales-plan'
-      fullPath: '/settings/sales-plan'
-      preLoaderRoute: typeof SettingsSalesPlanRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/settings/control-center': {
-      id: '/settings/control-center'
-      path: '/settings/control-center'
-      fullPath: '/settings/control-center'
-      preLoaderRoute: typeof SettingsControlCenterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-
     '/warehouse': {
       id: '/warehouse'
       path: '/warehouse'
       fullPath: '/warehouse'
       preLoaderRoute: typeof WarehouseRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/receipts': {
-      id: '/warehouse/receipts'
-      path: '/warehouse/receipts'
-      fullPath: '/warehouse/receipts'
-      preLoaderRoute: typeof WarehouseReceiptsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/issues': {
-      id: '/warehouse/issues'
-      path: '/warehouse/issues'
-      fullPath: '/warehouse/issues'
-      preLoaderRoute: typeof WarehouseIssuesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/monthly': {
-      id: '/warehouse/monthly'
-      path: '/warehouse/monthly'
-      fullPath: '/warehouse/monthly'
-      preLoaderRoute: typeof WarehouseMonthlyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/nomenclature': {
-      id: '/warehouse/nomenclature'
-      path: '/warehouse/nomenclature'
-      fullPath: '/warehouse/nomenclature'
-      preLoaderRoute: typeof WarehouseNomenclatureRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/reserve': {
-      id: '/warehouse/reserve'
-      path: '/warehouse/reserve'
-      fullPath: '/warehouse/reserve'
-      preLoaderRoute: typeof WarehouseReserveRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/import': {
-      id: '/warehouse/import'
-      path: '/warehouse/import'
-      fullPath: '/warehouse/import'
-      preLoaderRoute: typeof WarehouseImportRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/warehouse/refs': {
-      id: '/warehouse/refs'
-      path: '/warehouse/refs'
-      fullPath: '/warehouse/refs'
-      preLoaderRoute: typeof WarehouseRefsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/works': {
@@ -1393,6 +1616,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CrmTasksRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/finance_/payroll-kpi': {
+      id: '/finance_/payroll-kpi'
+      path: '/finance/payroll-kpi'
+      fullPath: '/finance/payroll-kpi'
+      preLoaderRoute: typeof FinancePayrollKpiRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/invite/$token': {
       id: '/invite/$token'
       path: '/invite/$token'
@@ -1419,6 +1649,13 @@ declare module '@tanstack/react-router' {
       path: '/marketing/budgets'
       fullPath: '/marketing/budgets'
       preLoaderRoute: typeof MarketingBudgetsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/marketing/calculator': {
+      id: '/marketing/calculator'
+      path: '/marketing/calculator'
+      fullPath: '/marketing/calculator'
+      preLoaderRoute: typeof MarketingCalculatorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/marketing/campaigns': {
@@ -1533,12 +1770,194 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ProductionIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports/': {
+      id: '/reports/'
+      path: '/'
+      fullPath: '/reports/'
+      preLoaderRoute: typeof ReportsIndexRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/administration': {
+      id: '/reports/administration'
+      path: '/administration'
+      fullPath: '/reports/administration'
+      preLoaderRoute: typeof ReportsAdministrationRouteImport
+      parentRoute: typeof ReportsRoute
+    }
     '/reports/ceo': {
       id: '/reports/ceo'
       path: '/ceo'
       fullPath: '/reports/ceo'
       preLoaderRoute: typeof ReportsCeoRouteImport
       parentRoute: typeof ReportsRoute
+    }
+    '/reports/counterparties': {
+      id: '/reports/counterparties'
+      path: '/counterparties'
+      fullPath: '/reports/counterparties'
+      preLoaderRoute: typeof ReportsCounterpartiesRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/finance': {
+      id: '/reports/finance'
+      path: '/finance'
+      fullPath: '/reports/finance'
+      preLoaderRoute: typeof ReportsFinanceRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/finmap': {
+      id: '/reports/finmap'
+      path: '/finmap'
+      fullPath: '/reports/finmap'
+      preLoaderRoute: typeof ReportsFinmapRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/funnel': {
+      id: '/reports/funnel'
+      path: '/funnel'
+      fullPath: '/reports/funnel'
+      preLoaderRoute: typeof ReportsFunnelRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/marketing': {
+      id: '/reports/marketing'
+      path: '/marketing'
+      fullPath: '/reports/marketing'
+      preLoaderRoute: typeof ReportsMarketingRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/operations': {
+      id: '/reports/operations'
+      path: '/operations'
+      fullPath: '/reports/operations'
+      preLoaderRoute: typeof ReportsOperationsRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/tasks': {
+      id: '/reports/tasks'
+      path: '/tasks'
+      fullPath: '/reports/tasks'
+      preLoaderRoute: typeof ReportsTasksRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/reports/telephony': {
+      id: '/reports/telephony'
+      path: '/telephony'
+      fullPath: '/reports/telephony'
+      preLoaderRoute: typeof ReportsTelephonyRouteImport
+      parentRoute: typeof ReportsRoute
+    }
+    '/settings/': {
+      id: '/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof SettingsIndexRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/access': {
+      id: '/settings/access'
+      path: '/access'
+      fullPath: '/settings/access'
+      preLoaderRoute: typeof SettingsAccessRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/company': {
+      id: '/settings/company'
+      path: '/company'
+      fullPath: '/settings/company'
+      preLoaderRoute: typeof SettingsCompanyRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/control-center': {
+      id: '/settings/control-center'
+      path: '/control-center'
+      fullPath: '/settings/control-center'
+      preLoaderRoute: typeof SettingsControlCenterRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/finance': {
+      id: '/settings/finance'
+      path: '/finance'
+      fullPath: '/settings/finance'
+      preLoaderRoute: typeof SettingsFinanceRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/integrations': {
+      id: '/settings/integrations'
+      path: '/integrations'
+      fullPath: '/settings/integrations'
+      preLoaderRoute: typeof SettingsIntegrationsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/norms': {
+      id: '/settings/norms'
+      path: '/norms'
+      fullPath: '/settings/norms'
+      preLoaderRoute: typeof SettingsNormsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/sales-plan': {
+      id: '/settings/sales-plan'
+      path: '/sales-plan'
+      fullPath: '/settings/sales-plan'
+      preLoaderRoute: typeof SettingsSalesPlanRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/system': {
+      id: '/settings/system'
+      path: '/system'
+      fullPath: '/settings/system'
+      preLoaderRoute: typeof SettingsSystemRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/warehouse/import': {
+      id: '/warehouse/import'
+      path: '/import'
+      fullPath: '/warehouse/import'
+      preLoaderRoute: typeof WarehouseImportRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/issues': {
+      id: '/warehouse/issues'
+      path: '/issues'
+      fullPath: '/warehouse/issues'
+      preLoaderRoute: typeof WarehouseIssuesRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/monthly': {
+      id: '/warehouse/monthly'
+      path: '/monthly'
+      fullPath: '/warehouse/monthly'
+      preLoaderRoute: typeof WarehouseMonthlyRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/nomenclature': {
+      id: '/warehouse/nomenclature'
+      path: '/nomenclature'
+      fullPath: '/warehouse/nomenclature'
+      preLoaderRoute: typeof WarehouseNomenclatureRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/receipts': {
+      id: '/warehouse/receipts'
+      path: '/receipts'
+      fullPath: '/warehouse/receipts'
+      preLoaderRoute: typeof WarehouseReceiptsRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/refs': {
+      id: '/warehouse/refs'
+      path: '/refs'
+      fullPath: '/warehouse/refs'
+      preLoaderRoute: typeof WarehouseRefsRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/reserve': {
+      id: '/warehouse/reserve'
+      path: '/reserve'
+      fullPath: '/warehouse/reserve'
+      preLoaderRoute: typeof WarehouseReserveRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
@@ -1589,6 +2008,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsBinotelCallSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/external/callback': {
+      id: '/api/public/integrations/external/callback'
+      path: '/api/public/integrations/external/callback'
+      fullPath: '/api/public/integrations/external/callback'
+      preLoaderRoute: typeof ApiPublicIntegrationsExternalCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/finmap/webhook': {
       id: '/api/public/integrations/finmap/webhook'
       path: '/api/public/integrations/finmap/webhook'
@@ -1610,6 +2036,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicIntegrationsGoogleAdsStartRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/integrations/messenger/telegram': {
+      id: '/api/public/integrations/messenger/telegram'
+      path: '/api/public/integrations/messenger/telegram'
+      fullPath: '/api/public/integrations/messenger/telegram'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerTelegramRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/messenger/viber': {
+      id: '/api/public/integrations/messenger/viber'
+      path: '/api/public/integrations/messenger/viber'
+      fullPath: '/api/public/integrations/messenger/viber'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerViberRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/messenger/whatsapp': {
+      id: '/api/public/integrations/messenger/whatsapp'
+      path: '/api/public/integrations/messenger/whatsapp'
+      fullPath: '/api/public/integrations/messenger/whatsapp'
+      preLoaderRoute: typeof ApiPublicIntegrationsMessengerWhatsappRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/integrations/meta/leadgen': {
+      id: '/api/public/integrations/meta/leadgen'
+      path: '/api/public/integrations/meta/leadgen'
+      fullPath: '/api/public/integrations/meta/leadgen'
+      preLoaderRoute: typeof ApiPublicIntegrationsMetaLeadgenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/integrations/oauth/callback': {
       id: '/api/public/integrations/oauth/callback'
       path: '/api/public/integrations/oauth/callback'
@@ -1628,15 +2082,87 @@ declare module '@tanstack/react-router' {
 }
 
 interface ReportsRouteChildren {
+  ReportsAdministrationRoute: typeof ReportsAdministrationRoute
   ReportsCeoRoute: typeof ReportsCeoRoute
+  ReportsCounterpartiesRoute: typeof ReportsCounterpartiesRoute
+  ReportsFinanceRoute: typeof ReportsFinanceRoute
+  ReportsFinmapRoute: typeof ReportsFinmapRoute
+  ReportsFunnelRoute: typeof ReportsFunnelRoute
+  ReportsMarketingRoute: typeof ReportsMarketingRoute
+  ReportsOperationsRoute: typeof ReportsOperationsRoute
+  ReportsTasksRoute: typeof ReportsTasksRoute
+  ReportsTelephonyRoute: typeof ReportsTelephonyRoute
+  ReportsIndexRoute: typeof ReportsIndexRoute
 }
 
 const ReportsRouteChildren: ReportsRouteChildren = {
+  ReportsAdministrationRoute: ReportsAdministrationRoute,
   ReportsCeoRoute: ReportsCeoRoute,
+  ReportsCounterpartiesRoute: ReportsCounterpartiesRoute,
+  ReportsFinanceRoute: ReportsFinanceRoute,
+  ReportsFinmapRoute: ReportsFinmapRoute,
+  ReportsFunnelRoute: ReportsFunnelRoute,
+  ReportsMarketingRoute: ReportsMarketingRoute,
+  ReportsOperationsRoute: ReportsOperationsRoute,
+  ReportsTasksRoute: ReportsTasksRoute,
+  ReportsTelephonyRoute: ReportsTelephonyRoute,
+  ReportsIndexRoute: ReportsIndexRoute,
 }
 
 const ReportsRouteWithChildren =
   ReportsRoute._addFileChildren(ReportsRouteChildren)
+
+interface SettingsRouteChildren {
+  SettingsAccessRoute: typeof SettingsAccessRoute
+  SettingsCompanyRoute: typeof SettingsCompanyRoute
+  SettingsControlCenterRoute: typeof SettingsControlCenterRoute
+  SettingsFinanceRoute: typeof SettingsFinanceRoute
+  SettingsIntegrationsRoute: typeof SettingsIntegrationsRoute
+  SettingsNormsRoute: typeof SettingsNormsRoute
+  SettingsSalesPlanRoute: typeof SettingsSalesPlanRoute
+  SettingsSystemRoute: typeof SettingsSystemRoute
+  SettingsIndexRoute: typeof SettingsIndexRoute
+}
+
+const SettingsRouteChildren: SettingsRouteChildren = {
+  SettingsAccessRoute: SettingsAccessRoute,
+  SettingsCompanyRoute: SettingsCompanyRoute,
+  SettingsControlCenterRoute: SettingsControlCenterRoute,
+  SettingsFinanceRoute: SettingsFinanceRoute,
+  SettingsIntegrationsRoute: SettingsIntegrationsRoute,
+  SettingsNormsRoute: SettingsNormsRoute,
+  SettingsSalesPlanRoute: SettingsSalesPlanRoute,
+  SettingsSystemRoute: SettingsSystemRoute,
+  SettingsIndexRoute: SettingsIndexRoute,
+}
+
+const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
+  SettingsRouteChildren,
+)
+
+interface WarehouseRouteChildren {
+  WarehouseImportRoute: typeof WarehouseImportRoute
+  WarehouseIssuesRoute: typeof WarehouseIssuesRoute
+  WarehouseMonthlyRoute: typeof WarehouseMonthlyRoute
+  WarehouseNomenclatureRoute: typeof WarehouseNomenclatureRoute
+  WarehouseReceiptsRoute: typeof WarehouseReceiptsRoute
+  WarehouseRefsRoute: typeof WarehouseRefsRoute
+  WarehouseReserveRoute: typeof WarehouseReserveRoute
+}
+
+const WarehouseRouteChildren: WarehouseRouteChildren = {
+  WarehouseImportRoute: WarehouseImportRoute,
+  WarehouseIssuesRoute: WarehouseIssuesRoute,
+  WarehouseMonthlyRoute: WarehouseMonthlyRoute,
+  WarehouseNomenclatureRoute: WarehouseNomenclatureRoute,
+  WarehouseReceiptsRoute: WarehouseReceiptsRoute,
+  WarehouseRefsRoute: WarehouseRefsRoute,
+  WarehouseReserveRoute: WarehouseReserveRoute,
+}
+
+const WarehouseRouteWithChildren = WarehouseRoute._addFileChildren(
+  WarehouseRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -1661,17 +2187,8 @@ const rootRouteChildren: RootRouteChildren = {
   Roofing_pvcRoute: Roofing_pvcRoute,
   Roofing_rubRoute: Roofing_rubRoute,
   ScreedRoute: ScreedRoute,
-  SettingsRoute: SettingsRoute,
-  SettingsSalesPlanRoute: SettingsSalesPlanRoute,
-  SettingsControlCenterRoute: SettingsControlCenterRoute,
-  WarehouseRoute: WarehouseRoute,
-  WarehouseReceiptsRoute: WarehouseReceiptsRoute,
-  WarehouseIssuesRoute: WarehouseIssuesRoute,
-  WarehouseMonthlyRoute: WarehouseMonthlyRoute,
-  WarehouseNomenclatureRoute: WarehouseNomenclatureRoute,
-  WarehouseReserveRoute: WarehouseReserveRoute,
-  WarehouseImportRoute: WarehouseImportRoute,
-  WarehouseRefsRoute: WarehouseRefsRoute,
+  SettingsRoute: SettingsRouteWithChildren,
+  WarehouseRoute: WarehouseRouteWithChildren,
   WorksRoute: WorksRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
@@ -1683,9 +2200,11 @@ const rootRouteChildren: RootRouteChildren = {
   CrmLeadsRoute: CrmLeadsRoute,
   CrmMeasurementsRoute: CrmMeasurementsRoute,
   CrmTasksRoute: CrmTasksRoute,
+  FinancePayrollKpiRoute: FinancePayrollKpiRoute,
   InviteTokenRoute: InviteTokenRoute,
   MarketingAnalyticsRoute: MarketingAnalyticsRoute,
   MarketingBudgetsRoute: MarketingBudgetsRoute,
+  MarketingCalculatorRoute: MarketingCalculatorRoute,
   MarketingCampaignsRoute: MarketingCampaignsRoute,
   MarketingChannelsRoute: MarketingChannelsRoute,
   MarketingCreativesRoute: MarketingCreativesRoute,
@@ -1715,12 +2234,21 @@ const rootRouteChildren: RootRouteChildren = {
     ApiPublicIntegrationsBinotelCallCompletedRoute,
   ApiPublicIntegrationsBinotelCallSettingsRoute:
     ApiPublicIntegrationsBinotelCallSettingsRoute,
+  ApiPublicIntegrationsExternalCallbackRoute:
+    ApiPublicIntegrationsExternalCallbackRoute,
   ApiPublicIntegrationsFinmapWebhookRoute:
     ApiPublicIntegrationsFinmapWebhookRoute,
   ApiPublicIntegrationsGoogleAdsCallbackRoute:
     ApiPublicIntegrationsGoogleAdsCallbackRoute,
   ApiPublicIntegrationsGoogleAdsStartRoute:
     ApiPublicIntegrationsGoogleAdsStartRoute,
+  ApiPublicIntegrationsMessengerTelegramRoute:
+    ApiPublicIntegrationsMessengerTelegramRoute,
+  ApiPublicIntegrationsMessengerViberRoute:
+    ApiPublicIntegrationsMessengerViberRoute,
+  ApiPublicIntegrationsMessengerWhatsappRoute:
+    ApiPublicIntegrationsMessengerWhatsappRoute,
+  ApiPublicIntegrationsMetaLeadgenRoute: ApiPublicIntegrationsMetaLeadgenRoute,
   ApiPublicIntegrationsOauthCallbackRoute:
     ApiPublicIntegrationsOauthCallbackRoute,
   ApiPublicIntegrationsWebhookSlugRoute: ApiPublicIntegrationsWebhookSlugRoute,
