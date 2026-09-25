@@ -731,6 +731,104 @@ export type Database = {
         }
         Relationships: []
       }
+      automation_journal: {
+        Row: {
+          action_payload: Json
+          action_type: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          error: string | null
+          fact_at: string | null
+          id: string
+          plan_at: string | null
+          rule_id: string | null
+          status: string
+          trigger_snapshot: Json
+        }
+        Insert: {
+          action_payload?: Json
+          action_type: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          error?: string | null
+          fact_at?: string | null
+          id?: string
+          plan_at?: string | null
+          rule_id?: string | null
+          status?: string
+          trigger_snapshot?: Json
+        }
+        Update: {
+          action_payload?: Json
+          action_type?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          error?: string | null
+          fact_at?: string | null
+          id?: string
+          plan_at?: string | null
+          rule_id?: string | null
+          status?: string
+          trigger_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "automation_journal_rule_id_fkey"
+            columns: ["rule_id"]
+            isOneToOne: false
+            referencedRelation: "automation_rules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      automation_rules: {
+        Row: {
+          actions: Json
+          condition: Json
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          name: string
+          trigger_entity: string
+          trigger_field: string
+          trigger_from: string | null
+          trigger_to: string
+          updated_at: string
+        }
+        Insert: {
+          actions: Json
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          name: string
+          trigger_entity: string
+          trigger_field: string
+          trigger_from?: string | null
+          trigger_to: string
+          updated_at?: string
+        }
+        Update: {
+          actions?: Json
+          condition?: Json
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          name?: string
+          trigger_entity?: string
+          trigger_field?: string
+          trigger_from?: string | null
+          trigger_to?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       binotel_call_sessions: {
         Row: {
           assigned_user_id: string | null
