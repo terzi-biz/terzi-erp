@@ -23,6 +23,8 @@ const RELATED_SCREENS = [
   { to: "/crm/intake", label: "Вхідні ліди", description: "Перегляд і налаштування вхідних заявок.", icon: Cable },
   { to: "/data-exchange", label: "Обмін даними", description: "Імпорт та експорт даних ERP.", icon: ArrowLeftRight },
   { to: "/marketing/integrations", label: "Маркетинг: інтеграції", description: "Підключення маркетингових джерел і каналів.", icon: Megaphone },
+  { to: "/crm/leads", label: "Воронки та етапи CRM", description: "Етапи воронки лідів редагуються в самій воронці.", icon: Blocks },
+  { to: "/reports/finance-ceo", label: "Фінанси компанії", description: "Результат фінансових правил: прибуток по компанії та напрямках.", icon: BriefcaseBusiness },
 ] as const;
 
 export const Route = createFileRoute("/settings/")({

@@ -66,8 +66,7 @@ function ControlCenterPage() {
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">Налаштування</div>
             <h1 className="text-xl font-black tracking-tight md:text-3xl">Control Center</h1>
             <p className="mt-1 text-xs text-muted-foreground md:text-sm">
-              Правила «коли / якщо / то». Журнал — план/факт виконання дій. Runner ще не підключений до
-              updateOrderStatus / saveLead (див. README пакета).
+              Правила «коли / якщо / то» спрацьовують при зміні статусу замовлення та етапу ліда. Журнал — план/факт виконання дій.
             </p>
           </div>
           <Link to="/settings" className="text-xs font-semibold text-primary hover:underline">

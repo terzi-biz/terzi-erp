@@ -126,6 +126,7 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/reports",
     children: [
       { to: "/reports/ceo", label: "CEO-звіт" },
+      { to: "/reports/finance-ceo", label: "Фінанси компанії" },
       { to: "/settings/sales-plan", label: "План продажів" },
       { to: "/settings/control-center", label: "Control Center (правила)" },
       { to: "/reports", label: "Продажі та виробництво" },
