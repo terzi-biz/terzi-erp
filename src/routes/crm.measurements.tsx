@@ -1,8 +1,8 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
-import { CalendarClock, Ruler, Plus, X, AlertTriangle, Target, FileSpreadsheet, Search, User } from "lucide-react";
+import { useEffect, useState } from "react";
+import { CalendarClock, Ruler, Plus, X, AlertTriangle, Target, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,15 +19,13 @@ import {
   MEASUREMENT_STATUS_LABELS,
   type MeasurementStatus,
 } from "@/lib/measurement-status";
-import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
-import {
-  MeasurementCard,
-  MeasurementStatusBadge,
-  type MeasurementCardRow,
-} from "@/components/crm/MeasurementCard";
+import { CrmEyebrow, CrmKpi, CrmPage, CrmPanel, crmButton } from "@/components/crm/CrmUi";
 
 export const Route = createFileRoute("/crm/measurements")({
   ssr: false,
+  validateSearch: (s: Record<string, unknown>) => ({
+    lead: typeof s.lead === "string" && s.lead.length > 0 ? s.lead : undefined,
+  }),
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();
     if (!data.session) throw redirect({ to: "/login" });
@@ -63,6 +61,16 @@ const ESTIMATE_MODULES = [
   ["demolition", "Демонтаж"],
 ] as const;
 
+const STATUS_TONE: Record<MeasurementStatus, string> = {
+  planned: "bg-muted text-muted-foreground",
+  assigned: "bg-sky-100 text-sky-800",
+  confirmed: "bg-indigo-100 text-indigo-800",
+  in_progress: "bg-amber-100 text-amber-900",
+  completed: "bg-emerald-100 text-emerald-800",
+  canceled: "bg-rose-100 text-rose-800",
+  rescheduled: "bg-orange-100 text-orange-900",
+};
+
 const emptyForm = {
   title: "", starts_at: "", duration_min: 60, event_type: "measure_primary",
   address: "", client_name: "", employee_id: "", lead_id: "", order_id: "",
@@ -80,43 +88,33 @@ function MeasurementsPage() {
 
   const [from, setFrom] = useState(monthStart());
   const [to, setTo] = useState(iso(new Date()));
-  const [tab, setTab] = useState<"board" | "plan" | "fact">("board");
+  const [tab, setTab] = useState<"plan" | "fact">("plan");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
+  const [result, setResult] = useState<any>(null);
   const [estimateFor, setEstimateFor] = useState<{ id: string; module: string } | null>(null);
-  const [cardId, setCardId] = useState<string | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | MeasurementStatus>("all");
-  const [surveyorFilter, setSurveyorFilter] = useState("all");
+  const search = Route.useSearch();
+  useEffect(() => {
+    if (!search.lead) return;
+    setForm((f: any) => ({ ...f, lead_id: search.lead }));
+    setOpen(true);
+  }, [search.lead]);
 
   const { data, isLoading } = useQuery({
     queryKey: ["measurements", from, to],
     queryFn: () => listFn({ data: { from, to } }),
   });
   const { data: targets } = useQuery({ queryKey: ["measurement-targets"], queryFn: () => targetsFn({ data: { q: "" } }) });
-  const employees = (targets?.employees ?? []) as { id: string; name: string }[];
 
   const f = data?.funnel;
-  const refresh = () => qc.invalidateQueries({ queryKey: ["measurements"] });
-
-  const applyFilters = (list: any[]) => {
-    const q = search.trim().toLowerCase();
-    return list.filter((r) => {
-      if (statusFilter !== "all" && r.status !== statusFilter) return false;
-      if (surveyorFilter === "none" ? Boolean(r.surveyor_id) : surveyorFilter !== "all" && r.surveyor_id !== surveyorFilter) return false;
-      if (!q) return true;
-      return [r.order_number, r.order_name, r.order_address, r.address, r.surveyor_name, r.notes]
-        .filter(Boolean).some((v: string) => String(v).toLowerCase().includes(q));
-    });
+  const planned = data?.planned ?? [];
+  const rows = data?.rows ?? [];
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["measurements"] });
+    qc.invalidateQueries({ queryKey: ["crm", "lead-card"] });
+    qc.invalidateQueries({ queryKey: ["cal-events"] });
   };
-
-  const planned = useMemo(() => applyFilters(data?.planned ?? []), [data, search, statusFilter, surveyorFilter]);
-  const rows = useMemo(() => applyFilters(data?.rows ?? []), [data, search, statusFilter, surveyorFilter]);
-  const card = useMemo(
-    () => (cardId ? ((data?.rows ?? []).find((r: any) => r.id === cardId) as MeasurementCardRow | undefined) ?? null : null),
-    [cardId, data],
-  );
 
   const save = useMutation({
     mutationFn: (p: any) => scheduleFn({ data: {
@@ -129,16 +127,14 @@ function MeasurementsPage() {
       employee_id: p.employee_id || null,
       lead_id: p.lead_id || null,
       order_id: p.order_id || null,
-      already_done: Boolean(p.already_done),
     } }),
     onSuccess: () => { refresh(); setOpen(false); setForm(emptyForm); toast.success("Замір заплановано"); },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося запланувати замір"),
   });
 
   const patch = useMutation({
-    mutationFn: (p: { id: string; status: MeasurementStatus; surveyor_id?: string | null; scheduled_at?: string | null }) =>
-      statusFn({ data: p }),
-    onSuccess: () => { refresh(); toast.success("Замір оновлено"); },
+    mutationFn: (p: { id: string; status: MeasurementStatus; surveyor_id?: string | null }) => statusFn({ data: p }),
+    onSuccess: () => { refresh(); toast.success("Статус заміру оновлено"); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
 
@@ -149,9 +145,9 @@ function MeasurementsPage() {
       perimeter: p.perimeter === "" || p.perimeter == null ? null : Number(p.perimeter),
       notes: p.notes || null,
       address: p.address || null,
-      complete: Boolean(p.complete),
+      complete: true,
     } }),
-    onSuccess: (_r, p: any) => { refresh(); toast.success(p.complete ? "Замір завершено" : "Чернетку збережено"); },
+    onSuccess: () => { refresh(); setResult(null); toast.success("Результат заміру збережено"); },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося зберегти результат"),
   });
 
@@ -159,14 +155,11 @@ function MeasurementsPage() {
     mutationFn: (p: { id: string; module: string }) => estimateFn({ data: { measurement_id: p.id, module: p.module as any } }),
     onSuccess: (r: any) => {
       setEstimateFor(null);
-      setCardId(null);
       toast.success(`Кошторис ${r.number} створено`);
       navigate({ to: `/${r.module}`, search: { estimate: r.estimate_id } as any });
     },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити кошторис"),
   });
-
-  const busy = patch.isPending || saveResult.isPending || toEstimate.isPending;
 
   return (
     <AppShell>
@@ -178,9 +171,10 @@ function MeasurementsPage() {
             <p className="text-sm text-muted-foreground">Життєвий цикл заміру, факт замірів і конверсія лід → замір → договір</p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={crmInput + " w-auto"} />
-            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={crmInput + " w-auto"} />
-            <button onClick={() => { setForm(emptyForm); setOpen(true); }} className={crmButton}>
+            <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
+            <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
+            <button onClick={() => { setForm(emptyForm); setOpen(true); }}
+              className={crmButton}>
               <Plus className="w-4 h-4" /> Запланувати замір
             </button>
           </div>
@@ -205,61 +199,65 @@ function MeasurementsPage() {
           </div>
         ) : null}
 
-        <div className="flex flex-wrap items-center gap-2">
-          {([["board", "Воронка"], ["plan", `План (${planned.length})`], ["fact", `Усі за період (${rows.length})`]] as const).map(([k, l]) => (
+        <div className="flex gap-2">
+          {([["plan", `План (${planned.length})`], ["fact", `Усі за період (${rows.length})`]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)}
               className={`rounded-full px-3 py-1.5 text-xs font-semibold border ${tab === k ? "bg-primary text-primary-foreground border-primary" : "border-border"}`}>{l}</button>
           ))}
-          <div className="relative min-w-[200px] flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Пошук: об'єкт, адреса, замірник"
-              className={crmInput + " pl-9"} />
-          </div>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as any)} className={crmInput + " w-auto"}>
-            <option value="all">Усі статуси</option>
-            {MEASUREMENT_STATUSES.map((s) => <option key={s} value={s}>{MEASUREMENT_STATUS_LABELS[s]}</option>)}
-          </select>
-          <select value={surveyorFilter} onChange={(e) => setSurveyorFilter(e.target.value)} className={crmInput + " w-auto"}>
-            <option value="all">Усі замірники</option>
-            <option value="none">Без замірника</option>
-            {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
-          </select>
         </div>
 
         {isLoading ? <div className="text-sm text-muted-foreground">Завантаження…</div> : null}
 
-        {tab === "board" ? (
-          <MeasurementBoard rows={rows} onOpen={setCardId} onMove={(id, status) => patch.mutate({ id, status })} />
-        ) : tab === "plan" ? (
+        {tab === "plan" ? (
           <CrmPanel className="divide-y divide-border/60">
-            {planned.map((e: any) => {
-              const overdue = e.scheduled_at && new Date(e.scheduled_at).getTime() < Date.now();
-              return (
-                <div key={e.id} className="flex flex-wrap items-center gap-3 px-3 py-2.5 text-sm">
-                  <CalendarClock className={`w-4 h-4 shrink-0 ${overdue ? "text-rose-600" : "text-primary"}`} />
-                  <button onClick={() => setCardId(e.id)} className="min-w-0 flex-1 text-left">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate font-medium">{e.order_name ?? e.address ?? "Замір"}</span>
-                      <MeasurementStatusBadge status={e.status} />
-                      {overdue ? <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[11px] font-semibold text-rose-800">прострочено</span> : null}
-                    </div>
-                    <div className="truncate text-xs text-muted-foreground">
-                      {fmtDT(e.scheduled_at ?? e.created_at)} · {e.surveyor_name ?? "замірник не призначений"} · {e.address ?? e.order_address ?? "адреса не вказана"}
-                    </div>
-                  </button>
-                  <select
-                    value={e.surveyor_id ?? ""}
-                    onChange={(ev) => patch.mutate({ id: e.id, status: (ev.target.value ? "assigned" : "planned") as MeasurementStatus, surveyor_id: ev.target.value || null })}
-                    className="rounded-md border border-border bg-background px-2 py-1 text-xs"
-                    aria-label="Замірник"
-                  >
-                    <option value="">Замірник…</option>
-                    {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-                  </select>
-                  <button onClick={() => setCardId(e.id)} className={`${crmButtonOutline} h-8 shrink-0 text-xs`}>Картка</button>
+            {planned.map((e) => (
+              <div key={e.id} className="px-3 py-2.5 flex items-center gap-3 text-sm flex-wrap">
+                <CalendarClock className="w-4 h-4 shrink-0 text-primary" />
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium truncate">{e.order_name ?? e.address ?? "Замір"}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {fmtDT(e.scheduled_at ?? e.created_at)} · {e.surveyor_name ?? "замірник не призначений"} · {e.address ?? e.order_address ?? "адреса не вказана"}
+                    {!e.event_id ? " · без події календаря" : ""}
+                  </div>
+                  {e.lead_id ? (
+                    <button
+                      type="button"
+                      onClick={() => navigate({ to: "/crm/leads", search: { lead: e.lead_id } as any })}
+                      className="mt-0.5 text-[11px] font-semibold text-primary hover:underline"
+                    >
+                      Відкрити лід
+                    </button>
+                  ) : null}
                 </div>
-              );
-            })}
+                <select
+                  value={e.surveyor_id ?? ""}
+                  onChange={(ev) => {
+                    const surveyor_id = ev.target.value || null;
+                    const status = (surveyor_id && e.status === "planned" ? "assigned" : e.status) as MeasurementStatus;
+                    patch.mutate({ id: e.id, status, surveyor_id });
+                  }}
+                  className="max-w-[150px] rounded-md border border-border bg-background px-2 py-1 text-xs"
+                  title="Замірник"
+                >
+                  <option value="">Замірник…</option>
+                  {(targets?.employees ?? []).map((emp: any) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={e.status}
+                  onChange={(ev) => patch.mutate({ id: e.id, status: ev.target.value as MeasurementStatus })}
+                  className="rounded-md border border-border bg-background px-2 py-1 text-xs font-semibold"
+                >
+                  {MEASUREMENT_STATUSES.map((s) => <option key={s} value={s}>{MEASUREMENT_STATUS_LABELS[s]}</option>)}
+                </select>
+                <button
+                  onClick={() => setResult({ id: e.id, area: e.area ?? "", perimeter: e.perimeter ?? "", notes: e.notes ?? "", address: e.address ?? "" })}
+                  className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-semibold">
+                  Результат
+                </button>
+              </div>
+            ))}
             {!planned.length && !isLoading ? <div className="px-3 py-6 text-center text-sm text-muted-foreground">Запланованих замірів немає</div> : null}
           </CrmPanel>
         ) : (
@@ -277,32 +275,35 @@ function MeasurementsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {rows.map((r: any) => (
-                  <tr key={r.id} className="cursor-pointer hover:bg-accent/40" onClick={() => setCardId(r.id)}>
+                {rows.map((r) => (
+                  <tr key={r.id}>
                     <td className="px-3 py-2 whitespace-nowrap">{fmtDT(r.measured_at ?? r.scheduled_at ?? r.created_at)}</td>
-                    <td className="px-3 py-2 truncate max-w-[280px]">{r.order_number ? `${r.order_number} · ` : ""}{r.order_name ?? r.order_address ?? r.address ?? "—"}</td>
+                    <td className="px-3 py-2 truncate max-w-[280px]">
+                      {r.order_number ? `${r.order_number} · ` : ""}{r.order_name ?? r.order_address ?? r.address ?? "—"}
+                      {r.lead_id ? (
+                        <button type="button" onClick={() => navigate({ to: "/crm/leads", search: { lead: r.lead_id } as any })}
+                          className="ml-2 text-[11px] font-semibold text-primary hover:underline">Лід</button>
+                      ) : null}
+                    </td>
+                    <td className="px-3 py-2">{r.surveyor_name ?? "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{r.area ?? "—"}</td>
                     <td className="px-3 py-2">
-                      <span className="inline-flex items-center gap-1">
-                        {r.surveyor_name ? <User className="h-3 w-3 text-muted-foreground" /> : null}
-                        {r.surveyor_name ?? "—"}
+                      <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${STATUS_TONE[r.status as MeasurementStatus] ?? "bg-muted"}`}>
+                        {MEASUREMENT_STATUS_LABELS[r.status as MeasurementStatus] ?? r.status}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right tabular-nums">{r.area ?? "—"}</td>
-                    <td className="px-3 py-2"><MeasurementStatusBadge status={r.status} /></td>
                     <td className="px-3 py-2">
                       <span className={`inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2 py-0.5 ${r.converted ? "bg-emerald-100 text-emerald-800" : "bg-muted text-muted-foreground"}`}>
                         <Target className="w-3 h-3" />{r.converted ? "так" : "ні"}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right" onClick={(ev) => ev.stopPropagation()}>
+                    <td className="px-3 py-2 text-right">
                       {r.status === "completed" ? (
                         <button onClick={() => setEstimateFor({ id: r.id, module: "screed" })}
                           className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-semibold">
-                          <FileSpreadsheet className="w-3.5 h-3.5" /> Кошторис
+                          <FileSpreadsheet className="w-3.5 h-3.5" /> Створити кошторис
                         </button>
-                      ) : (
-                        <button onClick={() => setCardId(r.id)} className="rounded-md border border-border px-2.5 py-1 text-xs font-semibold">Картка</button>
-                      )}
+                      ) : <span className="text-xs text-muted-foreground">—</span>}
                     </td>
                   </tr>
                 ))}
@@ -314,24 +315,6 @@ function MeasurementsPage() {
           </div>
         )}
       </CrmPage>
-
-      {card ? (
-        <MeasurementCard
-          row={card}
-          employees={employees}
-          busy={busy}
-          onClose={() => setCardId(null)}
-          onStatus={(status) => patch.mutate({ id: card.id, status })}
-          onAssign={(p) => patch.mutate({
-            id: card.id,
-            status: (p.surveyor_id && card.status === "planned" ? "assigned" : card.status) as MeasurementStatus,
-            surveyor_id: p.surveyor_id,
-            scheduled_at: p.scheduled_at,
-          })}
-          onResult={(p) => saveResult.mutate({ id: card.id, ...p })}
-          onEstimate={() => setEstimateFor({ id: card.id, module: "screed" })}
-        />
-      ) : null}
 
       {open ? (
         <Modal title="Запланувати замір" onClose={() => setOpen(false)}>
@@ -355,7 +338,7 @@ function MeasurementsPage() {
           <Field label="Замірник">
             <select className={inp} value={form.employee_id} onChange={(e) => setForm({ ...form, employee_id: e.target.value })}>
               <option value="">Не призначено</option>
-              {employees.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+              {(targets?.employees ?? []).map((e: any) => <option key={e.id} value={e.id}>{e.name}</option>)}
             </select>
           </Field>
           <div className="grid grid-cols-2 gap-3">
@@ -378,14 +361,38 @@ function MeasurementsPage() {
           <Field label="Клієнт">
             <input className={inp} value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
           </Field>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={Boolean(form.already_done)} onChange={(e) => setForm({ ...form, already_done: e.target.checked })} />
-            Замір вже проведено (внести минулою датою)
-          </label>
           <div className="flex gap-2 pt-1">
             <button onClick={() => setOpen(false)} className="flex-1 rounded-md border border-border py-2 text-sm font-semibold">Скасувати</button>
             <button disabled={save.isPending || !form.starts_at} onClick={() => save.mutate(form)}
               className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">Зберегти</button>
+          </div>
+        </Modal>
+      ) : null}
+
+      {result ? (
+        <Modal title="Результат заміру" onClose={() => setResult(null)}>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Площа, м²">
+              <input type="number" min={0} step="0.01" className={inp} value={result.area}
+                onChange={(e) => setResult({ ...result, area: e.target.value })} />
+            </Field>
+            <Field label="Периметр, м">
+              <input type="number" min={0} step="0.01" className={inp} value={result.perimeter}
+                onChange={(e) => setResult({ ...result, perimeter: e.target.value })} />
+            </Field>
+          </div>
+          <Field label="Адреса">
+            <input className={inp} value={result.address} onChange={(e) => setResult({ ...result, address: e.target.value })} />
+          </Field>
+          <Field label="Нотатки">
+            <textarea className={`${inp} min-h-[90px]`} value={result.notes} onChange={(e) => setResult({ ...result, notes: e.target.value })} />
+          </Field>
+          <div className="flex gap-2 pt-1">
+            <button onClick={() => setResult(null)} className="flex-1 rounded-md border border-border py-2 text-sm font-semibold">Скасувати</button>
+            <button disabled={saveResult.isPending} onClick={() => saveResult.mutate(result)}
+              className="flex-1 rounded-md bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50">
+              Зберегти й закрити замір
+            </button>
           </div>
         </Modal>
       ) : null}
@@ -437,58 +444,3 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const BOARD_TONE: Record<string, string> = {
-  planned: "border-t-slate-400", assigned: "border-t-sky-500", confirmed: "border-t-indigo-500",
-  in_progress: "border-t-amber-500", completed: "border-t-emerald-600", canceled: "border-t-rose-500", rescheduled: "border-t-orange-400",
-};
-
-/** Воронка замірів: колонки = статуси, картки перетягуються між етапами. */
-function MeasurementBoard({ rows, onOpen, onMove }: {
-  rows: any[]; onOpen: (id: string) => void; onMove: (id: string, status: MeasurementStatus) => void;
-}) {
-  const [over, setOver] = useState<string | null>(null);
-  return (
-    <div className="scroll-x -mx-1 pb-2">
-      <div className="flex min-w-max gap-3 px-1">
-        {MEASUREMENT_STATUSES.map((s) => {
-          const items = rows.filter((r) => r.status === s);
-          const area = items.reduce((a, r) => a + (Number(r.area) || 0), 0);
-          return (
-            <div key={s}
-              onDragOver={(e) => { e.preventDefault(); setOver(s); }}
-              onDragLeave={() => setOver((v) => (v === s ? null : v))}
-              onDrop={(e) => { e.preventDefault(); setOver(null); const id = e.dataTransfer.getData("text/plain"); const cur = rows.find((r) => r.id === id); if (id && cur && cur.status !== s) onMove(id, s); }}
-              className={`flex w-[270px] shrink-0 flex-col rounded-md border border-border border-t-4 ${BOARD_TONE[s]} bg-card/70 ${over === s ? "ring-2 ring-primary" : ""}`}>
-              <div className="border-b border-border px-3 py-2">
-                <div className="flex items-center justify-between text-sm font-bold">
-                  <span>{MEASUREMENT_STATUS_LABELS[s]}</span><span className="text-muted-foreground">{items.length}</span>
-                </div>
-                <div className="text-[11px] text-muted-foreground">{area ? `${Math.round(area)} м²` : "площа — немає даних"}</div>
-              </div>
-              <div className="flex min-h-[120px] flex-col gap-2 p-2">
-                {items.map((r) => {
-                  const overdue = s !== "completed" && s !== "canceled" && r.scheduled_at && new Date(r.scheduled_at).getTime() < Date.now();
-                  return (
-                    <button key={r.id} draggable onDragStart={(e) => e.dataTransfer.setData("text/plain", r.id)}
-                      onClick={() => onOpen(r.id)}
-                      className="rounded-md border border-border bg-background p-2.5 text-left text-xs shadow-sm hover:border-primary">
-                      <div className="truncate text-sm font-semibold">{r.order_name ?? r.address ?? r.order_address ?? "Замір"}</div>
-                      <div className={`mt-0.5 flex items-center gap-1 ${overdue ? "text-rose-600" : "text-muted-foreground"}`}>
-                        <CalendarClock className="h-3 w-3" /> {fmtDT(r.measured_at ?? r.scheduled_at ?? r.created_at)}{overdue ? " · прострочено" : ""}
-                      </div>
-                      <div className="mt-0.5 flex items-center gap-1 text-muted-foreground"><User className="h-3 w-3" /> {r.surveyor_name ?? "без замірника"}</div>
-                      {r.order_number || r.area != null ? (
-                        <div className="mt-1 text-muted-foreground">{r.order_number ? `№ ${r.order_number}` : ""}{r.order_number && r.area != null ? " · " : ""}{r.area != null ? `${r.area} м²` : ""}</div>
-                      ) : null}
-                    </button>
-                  );
-                })}
-                {!items.length ? <div className="py-4 text-center text-[11px] text-muted-foreground">Перетягніть сюди</div> : null}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}

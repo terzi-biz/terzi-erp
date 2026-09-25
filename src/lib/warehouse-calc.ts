@@ -52,3 +52,78 @@ export const WAREHOUSE_KINDS: Record<string, string> = {
   vehicle: "Авто / бригада",
   order: "Склад на замовленні",
 };
+
+/** Типи документів приходу (inbound). */
+export const RECEIPT_DOC_TYPES = ["in", "return"] as const;
+/** Типи документів видачі (outbound). */
+export const ISSUE_DOC_TYPES = ["out", "writeoff"] as const;
+
+export type ReceiptDocType = (typeof RECEIPT_DOC_TYPES)[number];
+export type IssueDocType = (typeof ISSUE_DOC_TYPES)[number];
+
+export function isReceiptDocType(t: string): boolean {
+  return (RECEIPT_DOC_TYPES as readonly string[]).includes(t);
+}
+export function isIssueDocType(t: string): boolean {
+  return (ISSUE_DOC_TYPES as readonly string[]).includes(t);
+}
+
+/** Календарний місяць YYYY-MM з дати документа (вже бізнес-дата). */
+export function docMonthKey(docDate: string | null | undefined): string {
+  const s = String(docDate ?? "").slice(0, 10);
+  return s.length >= 7 ? s.slice(0, 7) : "";
+}
+
+/** Рядок місячного звіту складу. */
+export type MonthlyStockRow = {
+  month: string; // YYYY-MM
+  inQty: number;
+  inValue: number;
+  outQty: number;
+  outValue: number;
+  netQty: number;
+  netValue: number;
+  docsIn: number;
+  docsOut: number;
+};
+
+/** Агрегація проведених документів за календарним місяцем (Europe/Kyiv date string). */
+export function aggregateMonthlyStock(
+  docs: Array<{
+    status?: string | null;
+    doc_type?: string | null;
+    doc_date?: string | null;
+    total_cost?: number | null;
+    lines?: Array<{ qty?: number | null; price?: number | null }> | null;
+  }>,
+): MonthlyStockRow[] {
+  const map = new Map<string, MonthlyStockRow>();
+  for (const d of docs) {
+    if (d.status !== "posted") continue;
+    const month = docMonthKey(d.doc_date);
+    if (!month) continue;
+    const type = String(d.doc_type ?? "");
+    const qty = (d.lines ?? []).reduce((s, l) => s + (Number(l.qty) || 0), 0);
+    const value = d.total_cost != null
+      ? Number(d.total_cost)
+      : documentTotal((d.lines ?? []).map((line) => ({ qty: Number(line.qty) || 0, price: Number(line.price) || 0 })));
+    const row = map.get(month) ?? {
+      month, inQty: 0, inValue: 0, outQty: 0, outValue: 0, netQty: 0, netValue: 0, docsIn: 0, docsOut: 0,
+    };
+    if (isReceiptDocType(type)) {
+      row.inQty = round3(row.inQty + qty);
+      row.inValue = round2(row.inValue + value);
+      row.docsIn += 1;
+    } else if (isIssueDocType(type)) {
+      row.outQty = round3(row.outQty + qty);
+      row.outValue = round2(row.outValue + value);
+      row.docsOut += 1;
+    } else {
+      continue; // transfer не входить у in/out звіт
+    }
+    row.netQty = round3(row.inQty - row.outQty);
+    row.netValue = round2(row.inValue - row.outValue);
+    map.set(month, row);
+  }
+  return [...map.values()].sort((a, b) => b.month.localeCompare(a.month));
+}

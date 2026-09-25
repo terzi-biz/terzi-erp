@@ -104,7 +104,7 @@ export const saveStockItemApplication = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { itemId, ...rest } = data;
     if (rest.catalog_item_id) {
-      const { data: c } = await context.supabase.from("catalog_items").select("id").eq("id", rest.catalog_item_id).maybeSingle();
+      const { data: c } = await context.supabase.from("catalog_items_public").select("id").eq("id", rest.catalog_item_id).maybeSingle();
       if (!c) throw new Error("Вказана позиція каталогу не існує");
     }
     const { data: out, error } = await context.supabase

@@ -158,8 +158,8 @@ function CrmDashboard() {
             <p className="mt-1 text-sm text-muted-foreground">Лід → замір → замовлення → кошторис</p>
           </div>
           <div className="flex gap-2 flex-wrap">
-             <Button asChild><Link to="/crm/leads" search={{ focus: undefined, stage: undefined, manager: undefined }}>Воронка лідів</Link></Button>
-             <Button asChild variant="outline"><Link to="/crm/measurements">Заміри</Link></Button>
+             <Button asChild><Link to="/crm/leads" search={{ lead: undefined }}>Воронка лідів</Link></Button>
+             <Button asChild variant="outline"><Link to="/crm/measurements" search={{ lead: undefined }}>Заміри</Link></Button>
              <Button asChild variant="outline"><Link to="/crm/calls">Дзвінки</Link></Button>
              <Button asChild variant="outline"><Link to="/crm/tasks">Задачі</Link></Button>
           </div>
@@ -286,7 +286,7 @@ function CrmDashboard() {
                 ))}
                 {!(meas?.planned ?? []).length ? <div className="text-sm text-muted-foreground">Замірів у календарі немає</div> : null}
               </div>
-              <Link to="/crm/measurements" className="mt-3 inline-block text-xs font-semibold text-primary">Відкрити календар замірів →</Link>
+              <Link to="/crm/measurements" search={{ lead: undefined }} className="mt-3 inline-block text-xs font-semibold text-primary">Відкрити календар замірів →</Link>
             </div>
           </div>
         ) : null}

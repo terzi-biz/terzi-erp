@@ -82,11 +82,19 @@ import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsAccessRouteImport } from './routes/settings.access'
 import { Route as SettingsCompanyRouteImport } from './routes/settings.company'
+import { Route as SettingsControlCenterRouteImport } from './routes/settings.control-center'
 import { Route as SettingsFinanceRouteImport } from './routes/settings.finance'
 import { Route as SettingsIntegrationsRouteImport } from './routes/settings.integrations'
 import { Route as SettingsNormsRouteImport } from './routes/settings.norms'
 import { Route as SettingsSalesPlanRouteImport } from './routes/settings.sales-plan'
 import { Route as SettingsSystemRouteImport } from './routes/settings.system'
+import { Route as WarehouseImportRouteImport } from './routes/warehouse.import'
+import { Route as WarehouseIssuesRouteImport } from './routes/warehouse.issues'
+import { Route as WarehouseMonthlyRouteImport } from './routes/warehouse.monthly'
+import { Route as WarehouseNomenclatureRouteImport } from './routes/warehouse.nomenclature'
+import { Route as WarehouseReceiptsRouteImport } from './routes/warehouse.receipts'
+import { Route as WarehouseRefsRouteImport } from './routes/warehouse.refs'
+import { Route as WarehouseReserveRouteImport } from './routes/warehouse.reserve'
 import { Route as DotlovableOauthConsentRouteImport } from './routes/[.]lovable.oauth.consent'
 import { Route as Char91DotmcpChar93InvokeToolToolRouteImport } from './routes/[.mcp]/invoke-tool/$tool'
 import { Route as ApiPublicIntegrationsWorkerRouteImport } from './routes/api/public/integrations/worker'
@@ -473,6 +481,11 @@ const SettingsCompanyRoute = SettingsCompanyRouteImport.update({
   path: '/company',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsControlCenterRoute = SettingsControlCenterRouteImport.update({
+  id: '/control-center',
+  path: '/control-center',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsFinanceRoute = SettingsFinanceRouteImport.update({
   id: '/finance',
   path: '/finance',
@@ -497,6 +510,41 @@ const SettingsSystemRoute = SettingsSystemRouteImport.update({
   id: '/system',
   path: '/system',
   getParentRoute: () => SettingsRoute,
+} as any)
+const WarehouseImportRoute = WarehouseImportRouteImport.update({
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseIssuesRoute = WarehouseIssuesRouteImport.update({
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseMonthlyRoute = WarehouseMonthlyRouteImport.update({
+  id: '/monthly',
+  path: '/monthly',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseNomenclatureRoute = WarehouseNomenclatureRouteImport.update({
+  id: '/nomenclature',
+  path: '/nomenclature',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseReceiptsRoute = WarehouseReceiptsRouteImport.update({
+  id: '/receipts',
+  path: '/receipts',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseRefsRoute = WarehouseRefsRouteImport.update({
+  id: '/refs',
+  path: '/refs',
+  getParentRoute: () => WarehouseRoute,
+} as any)
+const WarehouseReserveRoute = WarehouseReserveRouteImport.update({
+  id: '/reserve',
+  path: '/reserve',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
@@ -622,7 +670,7 @@ export interface FileRoutesByFullPath {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/warehouse': typeof WarehouseRoute
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -663,11 +711,19 @@ export interface FileRoutesByFullPath {
   '/reports/telephony': typeof ReportsTelephonyRoute
   '/settings/access': typeof SettingsAccessRoute
   '/settings/company': typeof SettingsCompanyRoute
+  '/settings/control-center': typeof SettingsControlCenterRoute
   '/settings/finance': typeof SettingsFinanceRoute
   '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/norms': typeof SettingsNormsRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/settings/system': typeof SettingsSystemRoute
+  '/warehouse/import': typeof WarehouseImportRoute
+  '/warehouse/issues': typeof WarehouseIssuesRoute
+  '/warehouse/monthly': typeof WarehouseMonthlyRoute
+  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
+  '/warehouse/receipts': typeof WarehouseReceiptsRoute
+  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse/reserve': typeof WarehouseReserveRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -717,7 +773,7 @@ export interface FileRoutesByTo {
   '/roofing_pvc': typeof Roofing_pvcRoute
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
-  '/warehouse': typeof WarehouseRoute
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -758,11 +814,19 @@ export interface FileRoutesByTo {
   '/reports/telephony': typeof ReportsTelephonyRoute
   '/settings/access': typeof SettingsAccessRoute
   '/settings/company': typeof SettingsCompanyRoute
+  '/settings/control-center': typeof SettingsControlCenterRoute
   '/settings/finance': typeof SettingsFinanceRoute
   '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/norms': typeof SettingsNormsRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/settings/system': typeof SettingsSystemRoute
+  '/warehouse/import': typeof WarehouseImportRoute
+  '/warehouse/issues': typeof WarehouseIssuesRoute
+  '/warehouse/monthly': typeof WarehouseMonthlyRoute
+  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
+  '/warehouse/receipts': typeof WarehouseReceiptsRoute
+  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse/reserve': typeof WarehouseReserveRoute
   '/calc': typeof CalcIndexRoute
   '/clients': typeof ClientsIndexRoute
   '/crm': typeof CrmIndexRoute
@@ -815,7 +879,7 @@ export interface FileRoutesById {
   '/roofing_rub': typeof Roofing_rubRoute
   '/screed': typeof ScreedRoute
   '/settings': typeof SettingsRouteWithChildren
-  '/warehouse': typeof WarehouseRoute
+  '/warehouse': typeof WarehouseRouteWithChildren
   '/works': typeof WorksRoute
   '/.mcp/list-tools': typeof Char91DotmcpChar93ListToolsRoute
   '/.well-known/oauth-protected-resource': typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -856,11 +920,19 @@ export interface FileRoutesById {
   '/reports/telephony': typeof ReportsTelephonyRoute
   '/settings/access': typeof SettingsAccessRoute
   '/settings/company': typeof SettingsCompanyRoute
+  '/settings/control-center': typeof SettingsControlCenterRoute
   '/settings/finance': typeof SettingsFinanceRoute
   '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/norms': typeof SettingsNormsRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/settings/system': typeof SettingsSystemRoute
+  '/warehouse/import': typeof WarehouseImportRoute
+  '/warehouse/issues': typeof WarehouseIssuesRoute
+  '/warehouse/monthly': typeof WarehouseMonthlyRoute
+  '/warehouse/nomenclature': typeof WarehouseNomenclatureRoute
+  '/warehouse/receipts': typeof WarehouseReceiptsRoute
+  '/warehouse/refs': typeof WarehouseRefsRoute
+  '/warehouse/reserve': typeof WarehouseReserveRoute
   '/calc/': typeof CalcIndexRoute
   '/clients/': typeof ClientsIndexRoute
   '/crm/': typeof CrmIndexRoute
@@ -955,11 +1027,19 @@ export interface FileRouteTypes {
     | '/reports/telephony'
     | '/settings/access'
     | '/settings/company'
+    | '/settings/control-center'
     | '/settings/finance'
     | '/settings/integrations'
     | '/settings/norms'
     | '/settings/sales-plan'
     | '/settings/system'
+    | '/warehouse/import'
+    | '/warehouse/issues'
+    | '/warehouse/monthly'
+    | '/warehouse/nomenclature'
+    | '/warehouse/receipts'
+    | '/warehouse/refs'
+    | '/warehouse/reserve'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -1050,11 +1130,19 @@ export interface FileRouteTypes {
     | '/reports/telephony'
     | '/settings/access'
     | '/settings/company'
+    | '/settings/control-center'
     | '/settings/finance'
     | '/settings/integrations'
     | '/settings/norms'
     | '/settings/sales-plan'
     | '/settings/system'
+    | '/warehouse/import'
+    | '/warehouse/issues'
+    | '/warehouse/monthly'
+    | '/warehouse/nomenclature'
+    | '/warehouse/receipts'
+    | '/warehouse/refs'
+    | '/warehouse/reserve'
     | '/calc'
     | '/clients'
     | '/crm'
@@ -1147,11 +1235,19 @@ export interface FileRouteTypes {
     | '/reports/telephony'
     | '/settings/access'
     | '/settings/company'
+    | '/settings/control-center'
     | '/settings/finance'
     | '/settings/integrations'
     | '/settings/norms'
     | '/settings/sales-plan'
     | '/settings/system'
+    | '/warehouse/import'
+    | '/warehouse/issues'
+    | '/warehouse/monthly'
+    | '/warehouse/nomenclature'
+    | '/warehouse/receipts'
+    | '/warehouse/refs'
+    | '/warehouse/reserve'
     | '/calc/'
     | '/clients/'
     | '/crm/'
@@ -1204,7 +1300,7 @@ export interface RootRouteChildren {
   Roofing_rubRoute: typeof Roofing_rubRoute
   ScreedRoute: typeof ScreedRoute
   SettingsRoute: typeof SettingsRouteWithChildren
-  WarehouseRoute: typeof WarehouseRoute
+  WarehouseRoute: typeof WarehouseRouteWithChildren
   WorksRoute: typeof WorksRoute
   Char91DotmcpChar93ListToolsRoute: typeof Char91DotmcpChar93ListToolsRoute
   Char91DotwellKnownChar93OauthProtectedResourceRoute: typeof Char91DotwellKnownChar93OauthProtectedResourceRoute
@@ -1772,6 +1868,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsCompanyRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/control-center': {
+      id: '/settings/control-center'
+      path: '/control-center'
+      fullPath: '/settings/control-center'
+      preLoaderRoute: typeof SettingsControlCenterRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/finance': {
       id: '/settings/finance'
       path: '/finance'
@@ -1806,6 +1909,55 @@ declare module '@tanstack/react-router' {
       fullPath: '/settings/system'
       preLoaderRoute: typeof SettingsSystemRouteImport
       parentRoute: typeof SettingsRoute
+    }
+    '/warehouse/import': {
+      id: '/warehouse/import'
+      path: '/import'
+      fullPath: '/warehouse/import'
+      preLoaderRoute: typeof WarehouseImportRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/issues': {
+      id: '/warehouse/issues'
+      path: '/issues'
+      fullPath: '/warehouse/issues'
+      preLoaderRoute: typeof WarehouseIssuesRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/monthly': {
+      id: '/warehouse/monthly'
+      path: '/monthly'
+      fullPath: '/warehouse/monthly'
+      preLoaderRoute: typeof WarehouseMonthlyRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/nomenclature': {
+      id: '/warehouse/nomenclature'
+      path: '/nomenclature'
+      fullPath: '/warehouse/nomenclature'
+      preLoaderRoute: typeof WarehouseNomenclatureRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/receipts': {
+      id: '/warehouse/receipts'
+      path: '/receipts'
+      fullPath: '/warehouse/receipts'
+      preLoaderRoute: typeof WarehouseReceiptsRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/refs': {
+      id: '/warehouse/refs'
+      path: '/refs'
+      fullPath: '/warehouse/refs'
+      preLoaderRoute: typeof WarehouseRefsRouteImport
+      parentRoute: typeof WarehouseRoute
+    }
+    '/warehouse/reserve': {
+      id: '/warehouse/reserve'
+      path: '/reserve'
+      fullPath: '/warehouse/reserve'
+      preLoaderRoute: typeof WarehouseReserveRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
@@ -1963,6 +2115,7 @@ const ReportsRouteWithChildren =
 interface SettingsRouteChildren {
   SettingsAccessRoute: typeof SettingsAccessRoute
   SettingsCompanyRoute: typeof SettingsCompanyRoute
+  SettingsControlCenterRoute: typeof SettingsControlCenterRoute
   SettingsFinanceRoute: typeof SettingsFinanceRoute
   SettingsIntegrationsRoute: typeof SettingsIntegrationsRoute
   SettingsNormsRoute: typeof SettingsNormsRoute
@@ -1974,6 +2127,7 @@ interface SettingsRouteChildren {
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccessRoute: SettingsAccessRoute,
   SettingsCompanyRoute: SettingsCompanyRoute,
+  SettingsControlCenterRoute: SettingsControlCenterRoute,
   SettingsFinanceRoute: SettingsFinanceRoute,
   SettingsIntegrationsRoute: SettingsIntegrationsRoute,
   SettingsNormsRoute: SettingsNormsRoute,
@@ -1984,6 +2138,30 @@ const SettingsRouteChildren: SettingsRouteChildren = {
 
 const SettingsRouteWithChildren = SettingsRoute._addFileChildren(
   SettingsRouteChildren,
+)
+
+interface WarehouseRouteChildren {
+  WarehouseImportRoute: typeof WarehouseImportRoute
+  WarehouseIssuesRoute: typeof WarehouseIssuesRoute
+  WarehouseMonthlyRoute: typeof WarehouseMonthlyRoute
+  WarehouseNomenclatureRoute: typeof WarehouseNomenclatureRoute
+  WarehouseReceiptsRoute: typeof WarehouseReceiptsRoute
+  WarehouseRefsRoute: typeof WarehouseRefsRoute
+  WarehouseReserveRoute: typeof WarehouseReserveRoute
+}
+
+const WarehouseRouteChildren: WarehouseRouteChildren = {
+  WarehouseImportRoute: WarehouseImportRoute,
+  WarehouseIssuesRoute: WarehouseIssuesRoute,
+  WarehouseMonthlyRoute: WarehouseMonthlyRoute,
+  WarehouseNomenclatureRoute: WarehouseNomenclatureRoute,
+  WarehouseReceiptsRoute: WarehouseReceiptsRoute,
+  WarehouseRefsRoute: WarehouseRefsRoute,
+  WarehouseReserveRoute: WarehouseReserveRoute,
+}
+
+const WarehouseRouteWithChildren = WarehouseRoute._addFileChildren(
+  WarehouseRouteChildren,
 )
 
 const rootRouteChildren: RootRouteChildren = {
@@ -2010,7 +2188,7 @@ const rootRouteChildren: RootRouteChildren = {
   Roofing_rubRoute: Roofing_rubRoute,
   ScreedRoute: ScreedRoute,
   SettingsRoute: SettingsRouteWithChildren,
-  WarehouseRoute: WarehouseRoute,
+  WarehouseRoute: WarehouseRouteWithChildren,
   WorksRoute: WorksRoute,
   Char91DotmcpChar93ListToolsRoute: Char91DotmcpChar93ListToolsRoute,
   Char91DotwellKnownChar93OauthProtectedResourceRoute:
