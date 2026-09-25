@@ -16,6 +16,7 @@ export const REPORT_TABS = [
   { to: "/reports/marketing", label: "Marketing" },
   { to: "/reports/operations", label: "Operations" },
   { to: "/reports/finance", label: "Finance" },
+  { to: "/reports/finance-ceo", label: "Фінанси компанії" },
   { to: "/reports/administration", label: "Administration" },
   { to: "/reports/ceo", label: "CEO" },
 ] as const;
