@@ -518,39 +518,39 @@ const WarehouseIndexRoute = WarehouseIndexRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const WarehouseImportRoute = WarehouseImportRouteImport.update({
-  id: '/warehouse/import',
-  path: '/warehouse/import',
-  getParentRoute: () => rootRouteImport,
+  id: '/import',
+  path: '/import',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseIssuesRoute = WarehouseIssuesRouteImport.update({
-  id: '/warehouse/issues',
-  path: '/warehouse/issues',
-  getParentRoute: () => rootRouteImport,
+  id: '/issues',
+  path: '/issues',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseMonthlyRoute = WarehouseMonthlyRouteImport.update({
-  id: '/warehouse/monthly',
-  path: '/warehouse/monthly',
-  getParentRoute: () => rootRouteImport,
+  id: '/monthly',
+  path: '/monthly',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseNomenclatureRoute = WarehouseNomenclatureRouteImport.update({
-  id: '/warehouse/nomenclature',
-  path: '/warehouse/nomenclature',
-  getParentRoute: () => rootRouteImport,
+  id: '/nomenclature',
+  path: '/nomenclature',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseReceiptsRoute = WarehouseReceiptsRouteImport.update({
-  id: '/warehouse/receipts',
-  path: '/warehouse/receipts',
-  getParentRoute: () => rootRouteImport,
+  id: '/receipts',
+  path: '/receipts',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseRefsRoute = WarehouseRefsRouteImport.update({
-  id: '/warehouse/refs',
-  path: '/warehouse/refs',
-  getParentRoute: () => rootRouteImport,
+  id: '/refs',
+  path: '/refs',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const WarehouseReserveRoute = WarehouseReserveRouteImport.update({
-  id: '/warehouse/reserve',
-  path: '/warehouse/reserve',
-  getParentRoute: () => rootRouteImport,
+  id: '/reserve',
+  path: '/reserve',
+  getParentRoute: () => WarehouseRoute,
 } as any)
 const DotlovableOauthConsentRoute = DotlovableOauthConsentRouteImport.update({
   id: '/.lovable/oauth/consent',
@@ -1340,13 +1340,6 @@ export interface RootRouteChildren {
   OrdersIdRoute: typeof OrdersIdRoute
   OrdersNewRoute: typeof OrdersNewRoute
   ProductionIdRoute: typeof ProductionIdRoute
-  WarehouseImportRoute: typeof WarehouseImportRoute
-  WarehouseIssuesRoute: typeof WarehouseIssuesRoute
-  WarehouseMonthlyRoute: typeof WarehouseMonthlyRoute
-  WarehouseNomenclatureRoute: typeof WarehouseNomenclatureRoute
-  WarehouseReceiptsRoute: typeof WarehouseReceiptsRoute
-  WarehouseRefsRoute: typeof WarehouseRefsRoute
-  WarehouseReserveRoute: typeof WarehouseReserveRoute
   CalcIndexRoute: typeof CalcIndexRoute
   ClientsIndexRoute: typeof ClientsIndexRoute
   CrmIndexRoute: typeof CrmIndexRoute
@@ -1938,52 +1931,52 @@ declare module '@tanstack/react-router' {
     }
     '/warehouse/import': {
       id: '/warehouse/import'
-      path: '/warehouse/import'
+      path: '/import'
       fullPath: '/warehouse/import'
       preLoaderRoute: typeof WarehouseImportRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/issues': {
       id: '/warehouse/issues'
-      path: '/warehouse/issues'
+      path: '/issues'
       fullPath: '/warehouse/issues'
       preLoaderRoute: typeof WarehouseIssuesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/monthly': {
       id: '/warehouse/monthly'
-      path: '/warehouse/monthly'
+      path: '/monthly'
       fullPath: '/warehouse/monthly'
       preLoaderRoute: typeof WarehouseMonthlyRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/nomenclature': {
       id: '/warehouse/nomenclature'
-      path: '/warehouse/nomenclature'
+      path: '/nomenclature'
       fullPath: '/warehouse/nomenclature'
       preLoaderRoute: typeof WarehouseNomenclatureRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/receipts': {
       id: '/warehouse/receipts'
-      path: '/warehouse/receipts'
+      path: '/receipts'
       fullPath: '/warehouse/receipts'
       preLoaderRoute: typeof WarehouseReceiptsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/refs': {
       id: '/warehouse/refs'
-      path: '/warehouse/refs'
+      path: '/refs'
       fullPath: '/warehouse/refs'
       preLoaderRoute: typeof WarehouseRefsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/warehouse/reserve': {
       id: '/warehouse/reserve'
-      path: '/warehouse/reserve'
+      path: '/reserve'
       fullPath: '/warehouse/reserve'
       preLoaderRoute: typeof WarehouseReserveRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WarehouseRoute
     }
     '/.lovable/oauth/consent': {
       id: '/.lovable/oauth/consent'
@@ -2221,13 +2214,6 @@ const rootRouteChildren: RootRouteChildren = {
   OrdersIdRoute: OrdersIdRoute,
   OrdersNewRoute: OrdersNewRoute,
   ProductionIdRoute: ProductionIdRoute,
-  WarehouseImportRoute: WarehouseImportRoute,
-  WarehouseIssuesRoute: WarehouseIssuesRoute,
-  WarehouseMonthlyRoute: WarehouseMonthlyRoute,
-  WarehouseNomenclatureRoute: WarehouseNomenclatureRoute,
-  WarehouseReceiptsRoute: WarehouseReceiptsRoute,
-  WarehouseRefsRoute: WarehouseRefsRoute,
-  WarehouseReserveRoute: WarehouseReserveRoute,
   CalcIndexRoute: CalcIndexRoute,
   ClientsIndexRoute: ClientsIndexRoute,
   CrmIndexRoute: CrmIndexRoute,
