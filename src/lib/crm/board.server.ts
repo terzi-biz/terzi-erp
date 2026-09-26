@@ -179,6 +179,8 @@ export async function saveLeadCard(
   p: { id: string; patch: Record<string, any>; fields?: Record<string, any> },
 ) {
   const patch: Record<string, any> = { ...p.patch };
+  const { data: prevRow } = await sb.from("crm_leads").select("stage_id").eq("id", p.id).maybeSingle();
+  const prevStage = (prevRow?.stage_id as string | null) ?? null;
   if (p.fields) {
     const { data: cur } = await sb.from("crm_leads").select("tags").eq("id", p.id).maybeSingle();
     const tags = (cur?.tags && typeof cur.tags === "object" ? cur.tags : {}) as Record<string, any>;
@@ -189,6 +191,15 @@ export async function saveLeadCard(
   await sb.from("crm_lead_activities").insert({
     lead_id: p.id, actor_id: userId, kind: "update", body: "Картку ліда оновлено",
   });
+  if (patch["stage_id"] && patch["stage_id"] !== prevStage) {
+    try {
+      const { runAutomationRules } = await import("../automation/runner.server");
+      await runAutomationRules(sb as any, {
+        entityType: "lead", entityId: p.id, field: "stage_id",
+        from: prevStage, to: patch["stage_id"], actorId: userId,
+      });
+    } catch (e) { console.error("saveLeadCard automation", e); }
+  }
   const [lead] = await decorate(sb, [data]);
   return lead;
 }

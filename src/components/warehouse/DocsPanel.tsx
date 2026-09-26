@@ -1,12 +1,13 @@
 import { useMutation } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { toast } from "sonner";
 import { Plus, Check, X } from "lucide-react";
 import { formatUah } from "@/lib/screed-calc";
 import { documentTotal, STOCK_DOC_LABELS, STOCK_STATUS_LABELS } from "@/lib/warehouse-calc";
 import { saveStockDocument, postStockDocument, cancelStockDocument } from "@/lib/warehouse.functions";
 import { whBtn, whInput, whLabel } from "./ui";
+import { StockDocFinmap } from "./StockDocFinmap";
 
 type DraftLine = { item_id: string; qty: number; price: number };
 
@@ -33,6 +34,7 @@ export function DocsPanel({
   const post = useServerFn(postStockDocument);
   const cancel = useServerFn(cancelStockDocument);
   const [open, setOpen] = useState(false);
+  const [finmapDoc, setFinmapDoc] = useState<string | null>(null);
   const [doc, setDoc] = useState<any>(null);
 
   const typeEntries = Object.entries(STOCK_DOC_LABELS).filter(
@@ -287,7 +289,8 @@ export function DocsPanel({
                 </tr>
               )}
               {filtered.map((d) => (
-                <tr key={d.id} className="border-t border-border hover:bg-secondary/30">
+                <Fragment key={d.id}>
+                <tr className="border-t border-border hover:bg-secondary/30">
                   <td className="px-3 py-2 font-mono text-xs">{d.number}</td>
                   <td className="px-3 py-2 text-xs">{d.doc_date}</td>
                   <td className="px-3 py-2 text-xs">{STOCK_DOC_LABELS[d.doc_type] ?? d.doc_type}</td>
@@ -307,6 +310,14 @@ export function DocsPanel({
                         <Check className="w-3 h-3" /> Провести
                       </button>
                     )}
+                    {d.doc_type === "in" && d.status !== "cancelled" && (
+                      <button
+                        className="mr-3 text-xs text-primary font-semibold"
+                        onClick={() => setFinmapDoc(finmapDoc === d.id ? null : d.id)}
+                      >
+                        Оплата Finmap
+                      </button>
+                    )}
                     {d.status === "posted" && (
                       <button
                         className="text-xs text-destructive font-semibold"
@@ -318,6 +329,12 @@ export function DocsPanel({
                     )}
                   </td>
                 </tr>
+                {finmapDoc === d.id && (
+                  <tr className="border-t border-border bg-secondary/20">
+                    <td colSpan={8} className="px-3 py-3"><StockDocFinmap docId={d.id} /></td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

@@ -10,6 +10,17 @@ import {
   scheduleMeasurementSchema,
 } from "./crm-analytics.schema";
 import { leadMeasurements, measurementsPayload } from "./measurements.server";
+
+/** Запуск правил Control Center для заміру; помилка правила ніколи не ламає основну дію. */
+async function fireMeasurementRules(sb: any, id: string, from: string | null, to: string, actorId: string) {
+  if (from === to) return;
+  try {
+    const { runAutomationRules } = await import("./automation/runner.server");
+    await runAutomationRules(sb, { entityType: "measurement", entityId: id, field: "status", from, to, actorId });
+  } catch (e) {
+    console.error("measurement automation", e);
+  }
+}
 import { measurementTypeFromEvent } from "./measurement-status";
 import { EVENT_STATUS_BY_MEASUREMENT } from "./measurement-calendar-sync";
 import { kyivRange } from "./kyiv-time";
@@ -94,6 +105,7 @@ export const scheduleMeasurement = createServerFn({ method: "POST" })
       .maybeSingle();
     if (ee) console.error("scheduleMeasurement event", ee);
 
+    await fireMeasurementRules(context.supabase, measurement.id, null, String(measurement.status), context.userId);
     return { measurement, event: event ?? null };
   });
 
@@ -109,6 +121,8 @@ export const setMeasurementStatus = createServerFn({ method: "POST" })
     if (data.status === "confirmed") patch['confirmed_at'] = now;
     if (data.status === "completed") { patch['completed_at'] = now; patch['measured_at'] = now; }
 
+    const { data: prevSt } = await context.supabase
+      .from("order_measurements").select("status").eq("id", data.id).maybeSingle();
     const { data: row, error } = await context.supabase
       .from("order_measurements").update(patch as any).eq("id", data.id).select().maybeSingle();
     if (error) { console.error("setMeasurementStatus", error); throw new Error("Не вдалося оновити статус заміру"); }
@@ -123,6 +137,7 @@ export const setMeasurementStatus = createServerFn({ method: "POST" })
       })
       .eq("measurement_id", data.id);
 
+    await fireMeasurementRules(context.supabase, data.id, (prevSt?.status as string | null) ?? null, data.status, context.userId);
     return row;
   });
 
@@ -139,6 +154,8 @@ export const saveMeasurementResult = createServerFn({ method: "POST" })
     if (data.address !== undefined) patch['address'] = data.address;
     if (data.complete) { patch['status'] = "completed"; patch['completed_at'] = now; patch['measured_at'] = now; }
 
+    const { data: prevRes } = await context.supabase
+      .from("order_measurements").select("status").eq("id", data.id).maybeSingle();
     const { data: row, error } = await context.supabase
       .from("order_measurements").update(patch as any).eq("id", data.id).select().maybeSingle();
     if (error) { console.error("saveMeasurementResult", error); throw new Error("Не вдалося зберегти результат заміру"); }
@@ -146,6 +163,7 @@ export const saveMeasurementResult = createServerFn({ method: "POST" })
 
     if (data.complete) {
       await context.supabase.from("calendar_events").update({ status: "done" }).eq("measurement_id", data.id);
+      await fireMeasurementRules(context.supabase, data.id, (prevRes?.status as string | null) ?? null, "completed", context.userId);
     }
     return row;
   });
