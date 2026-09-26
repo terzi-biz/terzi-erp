@@ -34,7 +34,8 @@ export const ROMI_LABELS: Record<RomiBasis, string> = {
 };
 
 const r2 = (v: number) => Math.round((Number(v) || 0) * 100) / 100;
-const div = (a: number, b: number): number | null => (b > 0 ? r2(a / b) : null);
+/** Питома вартість: без витрат або без кількості — «немає даних», не нуль. */
+const unit = (spend: number, qty: number): number | null => (spend > 0 && qty > 0 ? r2(spend / qty) : null);
 
 /** Сирий зріз одного каналу/кампанії. */
 export type EconomySlice = {
