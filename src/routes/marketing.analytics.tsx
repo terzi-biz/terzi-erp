@@ -108,7 +108,7 @@ function AnalyticsPage() {
                     <td className="text-right tabular-nums">{dash(r.cpql, fmtMoney)}</td>
                     <td className="text-right tabular-nums">{dash(r.cac, fmtMoney)}</td>
                     <td className="text-right tabular-nums">{dash(r.revenueFact, fmtMoney)}</td>
-                    {internal ? <td className="text-right tabular-nums">{fmtMoney(r.directCost)}</td> : null}
+                    {internal ? <td className="text-right tabular-nums">{r.revenueFact === null ? "—" : fmtMoney(r.directCost)}</td> : null}
                     {internal ? <td className="text-right tabular-nums">{dash(r.grossProfit, fmtMoney)}</td> : null}
                     {internal ? <td className="text-right tabular-nums">{dash(r.grossMargin, fmtPct)}</td> : null}
                     <td className={`text-right tabular-nums ${romiClass(r.romiRevenue)}`}>{dash(r.romiRevenue, fmtPct)}</td>
@@ -127,7 +127,7 @@ function AnalyticsPage() {
                     <td className="text-right tabular-nums">{dash(total.cpql, fmtMoney)}</td>
                     <td className="text-right tabular-nums">{dash(total.cac, fmtMoney)}</td>
                     <td className="text-right tabular-nums">{dash(total.revenueFact, fmtMoney)}</td>
-                    {internal ? <td className="text-right tabular-nums">{fmtMoney(total.directCost)}</td> : null}
+                    {internal ? <td className="text-right tabular-nums">{total.revenueFact === null ? "—" : fmtMoney(total.directCost)}</td> : null}
                     {internal ? <td className="text-right tabular-nums">{dash(total.grossProfit, fmtMoney)}</td> : null}
                     {internal ? <td className="text-right tabular-nums">{dash(total.grossMargin, fmtPct)}</td> : null}
                     <td className={`text-right tabular-nums ${romiClass(total.romiRevenue)}`}>{dash(total.romiRevenue, fmtPct)}</td>
