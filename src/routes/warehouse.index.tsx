@@ -7,7 +7,7 @@ import { WarehouseShell, WarehouseKpi } from "@/components/warehouse/WarehouseSh
 import { StockTable } from "@/components/warehouse/StockTable";
 import { useWarehouseData } from "@/components/warehouse/useWarehouseData";
 
-export const Route = createFileRoute("/warehouse")({
+export const Route = createFileRoute("/warehouse/")({
   ssr: false,
   beforeLoad: async () => {
     const { data } = await supabase.auth.getSession();

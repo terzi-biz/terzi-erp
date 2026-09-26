@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
+import { crmButton, crmInput } from "@/components/crm/CrmUi";
 import { saveRule, setRuleEnabled } from "@/lib/automation/automation.functions";
 import { COMMERCIAL_LABELS, COMMERCIAL_STATUSES } from "@/lib/orders.constants";
 import { cn } from "@/lib/utils";
@@ -30,6 +31,25 @@ function formatActions(actions: unknown): string {
     .join(", ");
 }
 
+const MEASUREMENT_STATUSES: Record<string, string> = {
+  planned: "Заплановано",
+  assigned: "Призначено",
+  confirmed: "Підтверджено",
+  in_progress: "В роботі",
+  completed: "Виконано",
+  canceled: "Скасовано",
+  rescheduled: "Перенесено",
+};
+
+type TriggerKind = "order" | "lead" | "measurement";
+const TRIGGERS: Record<TriggerKind, { label: string; entity: TriggerKind; field: string }> = {
+  order: { label: "Статус замовлення (комерційний)", entity: "order", field: "commercial_status" },
+  lead: { label: "Етап ліда у воронці", entity: "lead", field: "stage_id" },
+  measurement: { label: "Статус заміру", entity: "measurement", field: "status" },
+};
+
+let STAGE_NAMES: Record<string, string> = {};
+
 function whenLabel(r: RuleRow): string {
   return `${r.trigger_entity}.${r.trigger_field}`;
 }
@@ -39,7 +59,11 @@ function ifLabel(r: RuleRow): string {
   const toLabel =
     r.trigger_field === "commercial_status"
       ? (COMMERCIAL_LABELS[r.trigger_to] ?? r.trigger_to)
-      : r.trigger_to;
+      : r.trigger_field === "stage_id"
+        ? (STAGE_NAMES[r.trigger_to] ?? r.trigger_to)
+        : r.trigger_entity === "measurement"
+          ? (MEASUREMENT_STATUSES[r.trigger_to] ?? r.trigger_to)
+          : r.trigger_to;
   return `${from}${toLabel}`;
 }
 
@@ -54,7 +78,23 @@ export function RulesEditor({ rules, canWrite }: Props) {
   const enableFn = useServerFn(setRuleEnabled);
 
   const [name, setName] = useState("Нова задача при зміні статусу");
+  const [kind, setKind] = useState<TriggerKind>("order");
   const [triggerTo, setTriggerTo] = useState<string>("contract");
+  const stagesQ = useQuery({
+    queryKey: ["automation-crm-stages"],
+    queryFn: async () => {
+      const { data } = await supabase.from("crm_stages").select("id, name, sort_order, is_active").order("sort_order");
+      return (data ?? []) as { id: string; name: string; is_active: boolean | null }[];
+    },
+  });
+  const stages = stagesQ.data ?? [];
+  STAGE_NAMES = Object.fromEntries(stages.map((s) => [s.id, s.name]));
+  const options: [string, string][] =
+    kind === "order"
+      ? COMMERCIAL_STATUSES.map((s) => [s, COMMERCIAL_LABELS[s] ?? s])
+      : kind === "lead"
+        ? stages.filter((s) => s.is_active !== false).map((s) => [s.id, s.name])
+        : Object.entries(MEASUREMENT_STATUSES);
   const [taskTitle, setTaskTitle] = useState("Обробити {{to}} — {{entity_id}}");
   const [dueHours, setDueHours] = useState(24);
 
@@ -69,8 +109,8 @@ export function RulesEditor({ rules, canWrite }: Props) {
         data: {
           name: name.trim() || "Правило",
           enabled: true,
-          trigger_entity: "order",
-          trigger_field: "commercial_status",
+          trigger_entity: TRIGGERS[kind].entity,
+          trigger_field: TRIGGERS[kind].field,
           trigger_from: null,
           trigger_to: triggerTo,
           condition: {},
@@ -156,20 +196,35 @@ export function RulesEditor({ rules, canWrite }: Props) {
         <section className="space-y-3 rounded-xl border border-border bg-card p-3 md:p-4">
           <h3 className="text-sm font-bold">Нове правило (шаблон)</h3>
           <p className="text-xs text-muted-foreground">
-            Коли <code className="rounded bg-muted px-1">order.commercial_status</code> → якщо значення = … → то create_task + журнал.
+            Коли змінюється вибране поле → якщо нове значення = … → то створити задачу + запис у журналі.
           </p>
           <div className="grid gap-3 md:grid-cols-2">
+            <label className="text-xs">
+              <span className="mb-1 block text-muted-foreground">Коли змінюється</span>
+              <select
+                className={crmInput}
+                value={kind}
+                onChange={(e) => {
+                  const k = e.target.value as TriggerKind;
+                  setKind(k);
+                  setTriggerTo(k === "order" ? "contract" : k === "measurement" ? "completed" : "");
+                }}
+              >
+                {(Object.keys(TRIGGERS) as TriggerKind[]).map((k) => (
+                  <option key={k} value={k}>{TRIGGERS[k].label}</option>
+                ))}
+              </select>
+            </label>
             <label className="text-xs">
               <span className="mb-1 block text-muted-foreground">Назва</span>
               <input className={crmInput} value={name} onChange={(e) => setName(e.target.value)} />
             </label>
             <label className="text-xs">
-              <span className="mb-1 block text-muted-foreground">Якщо статус =</span>
+              <span className="mb-1 block text-muted-foreground">Якщо нове значення =</span>
               <select className={crmInput} value={triggerTo} onChange={(e) => setTriggerTo(e.target.value)}>
-                {COMMERCIAL_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {COMMERCIAL_LABELS[s] ?? s} ({s})
-                  </option>
+                <option value="">—</option>
+                {options.map(([v, l]) => (
+                  <option key={v} value={v}>{l}</option>
                 ))}
               </select>
             </label>
@@ -193,14 +248,11 @@ export function RulesEditor({ rules, canWrite }: Props) {
             <button
               type="button"
               className={crmButton}
-              disabled={createMut.isPending}
+              disabled={createMut.isPending || !triggerTo}
               onClick={() => createMut.mutate()}
             >
               Створити правило
             </button>
-            <span className={crmButtonOutline + " pointer-events-none opacity-60"}>
-              Runner ще не підключений до updateOrderStatus
-            </span>
           </div>
         </section>
       ) : (
