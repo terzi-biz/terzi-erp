@@ -287,7 +287,8 @@ export function DocsPanel({
                 </tr>
               )}
               {filtered.map((d) => (
-                <tr key={d.id} className="border-t border-border hover:bg-secondary/30">
+                <Fragment key={d.id}>
+                <tr className="border-t border-border hover:bg-secondary/30">
                   <td className="px-3 py-2 font-mono text-xs">{d.number}</td>
                   <td className="px-3 py-2 text-xs">{d.doc_date}</td>
                   <td className="px-3 py-2 text-xs">{STOCK_DOC_LABELS[d.doc_type] ?? d.doc_type}</td>
@@ -307,6 +308,14 @@ export function DocsPanel({
                         <Check className="w-3 h-3" /> Провести
                       </button>
                     )}
+                    {d.doc_type === "in" && d.status !== "cancelled" && (
+                      <button
+                        className="mr-3 text-xs text-primary font-semibold"
+                        onClick={() => setFinmapDoc(finmapDoc === d.id ? null : d.id)}
+                      >
+                        Оплата Finmap
+                      </button>
+                    )}
                     {d.status === "posted" && (
                       <button
                         className="text-xs text-destructive font-semibold"
@@ -318,6 +327,12 @@ export function DocsPanel({
                     )}
                   </td>
                 </tr>
+                {finmapDoc === d.id && (
+                  <tr className="border-t border-border bg-secondary/20">
+                    <td colSpan={8} className="px-3 py-3"><StockDocFinmap docId={d.id} /></td>
+                  </tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>
