@@ -87,7 +87,8 @@ function MeasurementsPage() {
   const estimateFn = useServerFn(createEstimateFromMeasurement);
 
   const [from, setFrom] = useState(monthStart());
-  const [to, setTo] = useState(iso(new Date()));
+  // До +30 днів, щоб заплановані наперед заміри були видні у «План».
+  const [to, setTo] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return iso(d); });
   const [tab, setTab] = useState<"plan" | "fact">("plan");
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
