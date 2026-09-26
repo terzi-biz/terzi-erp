@@ -1,11 +1,11 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MarketingShell, Panel, EmptyState, fmtMoney, fmtNum, fmtPct } from "@/components/marketing/MarketingShell";
-import { getMarketingOverview, listMarketingRefs } from "@/lib/marketing.functions";
-import { num, computeKpi } from "@/lib/marketing/kpi";
+import { getMarketingEconomics } from "@/lib/marketing/economics.functions";
+import { TIMING_LABELS, type TimingMode } from "@/lib/marketing/economics";
 
 export const Route = createFileRoute("/marketing/analytics")({
   ssr: false,
@@ -15,9 +15,9 @@ export const Route = createFileRoute("/marketing/analytics")({
   },
   head: () => ({ meta: [
     { title: "Аналітика — Маркетинг TERZI" },
-    { name: "description", content: "Аналітика ефективності реклами TERZI: витрати, CPL, CPQL, ROMI та дохід у розрізі каналів і кампаній." },
+    { name: "description", content: "Наскрізна аналітика TERZI: витрати, CPL, CAC, виручка, валовий прибуток і дві бази ROMI за каналами й кампаніями." },
     { property: "og:title", content: "Аналітика — Маркетинг TERZI" },
-    { property: "og:description", content: "Порівняння каналів і кампаній TERZI за вартістю ліда та окупністю." },
+    { property: "og:description", content: "Шлях від каналу до валового прибутку: когортний і касовий режими." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary" },
   ]}),
@@ -25,88 +25,127 @@ export const Route = createFileRoute("/marketing/analytics")({
 });
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
+/** «Немає даних» — не нуль і не прогноз. */
+const dash = (v: number | null, fmt: (n: number) => string) => (v === null ? "—" : fmt(v));
 
 function AnalyticsPage() {
   const now = new Date();
   const [from, setFrom] = useState(iso(new Date(now.getFullYear(), now.getMonth(), 1)));
   const [to, setTo] = useState(iso(now));
   const [dim, setDim] = useState<"channel" | "campaign">("channel");
+  const [timing, setTiming] = useState<TimingMode>("cohort");
 
-  const overviewFn = useServerFn(getMarketingOverview);
-  const refsFn = useServerFn(listMarketingRefs);
-  const { data: refs } = useQuery({ queryKey: ["mkt", "refs"], queryFn: () => refsFn() });
-  const { data, isLoading } = useQuery({ queryKey: ["mkt", "overview", from, to], queryFn: () => overviewFn({ data: { from, to } }) });
+  const econFn = useServerFn(getMarketingEconomics);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["mkt", "economics", from, to, dim, timing],
+    queryFn: () => econFn({ data: { from, to, dim, timing } }),
+  });
 
-  const rows = useMemo(() => {
-    if (!data) return [];
-    const keyOf = (m: { channel_id: string | null; campaign_id: string | null }) => (dim === "channel" ? m.channel_id : m.campaign_id) ?? "—";
-    const map = new Map<string, { spend: number; clicks: number; impressions: number; leads: number; qualified: number; revenue: number }>();
-    const get = (k: string) => {
-      let v = map.get(k);
-      if (!v) { v = { spend: 0, clicks: 0, impressions: 0, leads: 0, qualified: 0, revenue: 0 }; map.set(k, v); }
-      return v;
-    };
-    for (const m of data.metrics) {
-      const v = get(keyOf(m));
-      v.spend += num(m.spend); v.clicks += num(m.clicks); v.impressions += num(m.impressions);
-    }
-    for (const l of data.leads) {
-      const k = (dim === "channel" ? l.marketing_channel_id : l.marketing_campaign_id) ?? "—";
-      const v = get(k);
-      v.leads += 1;
-      if (l.lead_quality === "цільовий") v.qualified += 1;
-      if (l.status === "won") v.revenue += num(l.budget);
-    }
-    const nameOf = (id: string) => id === "—" ? "Без атрибуції"
-      : (dim === "channel" ? refs?.channels.find((c) => c.id === id)?.name : refs?.campaigns.find((c) => c.id === id)?.name) ?? "—";
-    return [...map.entries()].map(([id, v]) => ({ id, name: nameOf(id), ...v, ...computeKpi(v) }))
-      .sort((a, b) => b.spend - a.spend);
-  }, [data, dim, refs]);
+  const rows = data?.rows ?? [];
+  const total = data?.total ?? null;
+  const internal = data?.internal ?? false;
+
+  const romiClass = (v: number | null) => (v === null ? "" : v < 0 ? "text-destructive" : "text-success");
 
   return (
-    <MarketingShell title="Аналітика" subtitle="Витрати, вартість ліда, вартість цільового ліда та окупність реклами">
-      <div className="flex flex-wrap gap-2">
+    <MarketingShell
+      title="Аналітика"
+      subtitle="Канал → заявка → замір → договір → гроші → валовий прибуток → окупність"
+    >
+      <div className="dashboard-toolbar toolbar-scroll p-2 flex-wrap gap-2">
         <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded-md border border-border bg-background px-2 py-1.5 text-xs" />
         <select value={dim} onChange={(e) => setDim(e.target.value as "channel" | "campaign")} className="rounded-md border border-border bg-background px-2 py-1.5 text-xs">
           <option value="channel">За каналами</option>
           <option value="campaign">За кампаніями</option>
         </select>
+        <select value={timing} onChange={(e) => setTiming(e.target.value as TimingMode)} className="rounded-md border border-border bg-background px-2 py-1.5 text-xs">
+          <option value="cohort">{TIMING_LABELS.cohort}</option>
+          <option value="cash">{TIMING_LABELS.cash}</option>
+        </select>
       </div>
 
-      <Panel title="Ефективність">
-        {isLoading ? <EmptyState text="Завантаження…" /> : rows.length ? (
+      <p className="text-[11px] text-muted-foreground px-1">
+        {timing === "cohort"
+          ? "Когорта: беруться заявки цього періоду разом з усіма їхніми грошима, навіть якщо оплата пройшла пізніше."
+          : "Каса: беруться фактичні надходження й витрати цього періоду, розкручені назад до каналу заявки."}
+        {!internal ? " Собівартість і валовий прибуток доступні лише з фінансовим доступом." : ""}
+      </p>
+
+      <Panel title={`Ефективність — ${TIMING_LABELS[timing]}`}>
+        {isLoading ? <EmptyState text="Завантаження…" /> : isError ? <EmptyState text="Немає доступу до даних аналітики" /> : rows.length ? (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead className="text-muted-foreground">
                 <tr>
                   <th className="text-left py-1">{dim === "channel" ? "Канал" : "Кампанія"}</th>
-                  <th className="text-right">Витрати</th><th className="text-right">Кліки</th><th className="text-right">CTR</th>
-                  <th className="text-right">Ліди</th><th className="text-right">Цільові</th>
-                  <th className="text-right">CPL</th><th className="text-right">CPQL</th>
-                  <th className="text-right">Дохід</th><th className="text-right">ROMI</th>
+                  <th className="text-right">Витрати</th>
+                  <th className="text-right">Заявки</th>
+                  <th className="text-right">Цільові</th>
+                  <th className="text-right">Заміри</th>
+                  <th className="text-right">Договори</th>
+                  <th className="text-right">CPL</th>
+                  <th className="text-right">CPQL</th>
+                  <th className="text-right">CAC</th>
+                  <th className="text-right">Виручка</th>
+                  {internal ? <th className="text-right">Собівартість</th> : null}
+                  {internal ? <th className="text-right">Валовий прибуток</th> : null}
+                  {internal ? <th className="text-right">GP маржа</th> : null}
+                  <th className="text-right">ROMI (виручка)</th>
+                  {internal ? <th className="text-right">ROMI (GP)</th> : null}
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-border/60">
-                    <td className="py-1.5">{r.name}</td>
+                  <tr key={r.key} className="border-t border-border/60">
+                    <td className="py-1.5">{r.label}</td>
                     <td className="text-right tabular-nums">{fmtMoney(r.spend)}</td>
-                    <td className="text-right tabular-nums">{fmtNum(r.clicks)}</td>
-                    <td className="text-right tabular-nums">{fmtPct(r.ctr)}</td>
                     <td className="text-right tabular-nums">{fmtNum(r.leads)}</td>
                     <td className="text-right tabular-nums">{fmtNum(r.qualified)}</td>
-                    <td className="text-right tabular-nums">{fmtMoney(r.cpl)}</td>
-                    <td className="text-right tabular-nums">{fmtMoney(r.cpql)}</td>
-                    <td className="text-right tabular-nums">{fmtMoney(r.revenue)}</td>
-                    <td className={`text-right tabular-nums ${r.romi < 0 ? "text-destructive" : "text-success"}`}>{fmtPct(r.romi)}</td>
+                    <td className="text-right tabular-nums">{fmtNum(r.measurements)}</td>
+                    <td className="text-right tabular-nums">{fmtNum(r.contracts)}</td>
+                    <td className="text-right tabular-nums">{dash(r.cpl, fmtMoney)}</td>
+                    <td className="text-right tabular-nums">{dash(r.cpql, fmtMoney)}</td>
+                    <td className="text-right tabular-nums">{dash(r.cac, fmtMoney)}</td>
+                    <td className="text-right tabular-nums">{dash(r.revenueFact, fmtMoney)}</td>
+                    {internal ? <td className="text-right tabular-nums">{r.revenueFact === null ? "—" : fmtMoney(r.directCost)}</td> : null}
+                    {internal ? <td className="text-right tabular-nums">{dash(r.grossProfit, fmtMoney)}</td> : null}
+                    {internal ? <td className="text-right tabular-nums">{dash(r.grossMargin, fmtPct)}</td> : null}
+                    <td className={`text-right tabular-nums ${romiClass(r.romiRevenue)}`}>{dash(r.romiRevenue, fmtPct)}</td>
+                    {internal ? <td className={`text-right tabular-nums ${romiClass(r.romiGross)}`}>{dash(r.romiGross, fmtPct)}</td> : null}
                   </tr>
                 ))}
+                {total ? (
+                  <tr className="border-t-2 border-border font-semibold">
+                    <td className="py-1.5">Разом</td>
+                    <td className="text-right tabular-nums">{fmtMoney(total.spend)}</td>
+                    <td className="text-right tabular-nums">{fmtNum(total.leads)}</td>
+                    <td className="text-right tabular-nums">{fmtNum(total.qualified)}</td>
+                    <td className="text-right tabular-nums">{fmtNum(total.measurements)}</td>
+                    <td className="text-right tabular-nums">{fmtNum(total.contracts)}</td>
+                    <td className="text-right tabular-nums">{dash(total.cpl, fmtMoney)}</td>
+                    <td className="text-right tabular-nums">{dash(total.cpql, fmtMoney)}</td>
+                    <td className="text-right tabular-nums">{dash(total.cac, fmtMoney)}</td>
+                    <td className="text-right tabular-nums">{dash(total.revenueFact, fmtMoney)}</td>
+                    {internal ? <td className="text-right tabular-nums">{total.revenueFact === null ? "—" : fmtMoney(total.directCost)}</td> : null}
+                    {internal ? <td className="text-right tabular-nums">{dash(total.grossProfit, fmtMoney)}</td> : null}
+                    {internal ? <td className="text-right tabular-nums">{dash(total.grossMargin, fmtPct)}</td> : null}
+                    <td className={`text-right tabular-nums ${romiClass(total.romiRevenue)}`}>{dash(total.romiRevenue, fmtPct)}</td>
+                    {internal ? <td className={`text-right tabular-nums ${romiClass(total.romiGross)}`}>{dash(total.romiGross, fmtPct)}</td> : null}
+                  </tr>
+                ) : null}
               </tbody>
             </table>
           </div>
         ) : <EmptyState text="Немає даних за період" />}
       </Panel>
+
+      {data ? (
+        <p className="text-[10px] text-muted-foreground px-1">
+          Заявок без атрибуції: {fmtNum(data.unattributedLeads)}. Замовлень у вибірці: {fmtNum(data.ordersInPeriod)}.
+          Виручка й собівартість — лише підтверджені рухи Finmap по замовленнях; без оплат показується «—».
+        </p>
+      ) : null}
     </MarketingShell>
   );
 }
