@@ -8,7 +8,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import {
   X, Phone, MessageSquare, CheckSquare, PhoneCall, History, Save, PlayCircle,
-  Loader2, PhoneMissed, PhoneIncoming, PhoneOutgoing, User, Plus, Briefcase,
+  Loader2, PhoneMissed, PhoneIncoming, PhoneOutgoing, User, Plus, Briefcase, Navigation,
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
@@ -16,6 +16,7 @@ import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 import { LeadMeasurementsPanel } from "@/components/crm/LeadMeasurementsPanel";
+import { SourceBadge } from "@/components/crm/SourceBadge";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
 const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";
@@ -116,10 +117,29 @@ export function LeadCardDialog({
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-black/65 p-0 backdrop-blur-[2px]" onClick={onClose}>
-      <div className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden border-l border-border bg-background shadow-2xl"
+    <div className="fixed inset-0 z-50 flex items-end justify-end bg-[#0B1B3A]/55 p-0 backdrop-blur-[2px] md:items-stretch" onClick={onClose}>
+      <div className="flex h-[calc(100%-12px)] w-full max-w-[1180px] flex-col overflow-hidden rounded-t-2xl border-border bg-background shadow-2xl md:h-full md:rounded-none md:border-l"
+        role="dialog" aria-modal="true" aria-label={form.title || "Картка ліда"}
         onClick={(e) => e.stopPropagation()}>
-        <div className="flex flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 md:px-5">
+        {/* Mobile: шапка full-screen sheet */}
+        <div className="border-b border-border bg-card px-4 pb-3 pt-2 md:hidden">
+          <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-border" aria-hidden />
+          <div className="flex items-start gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+                <span className="truncate">Лід{lead?.created_at ? ` · ${new Date(lead.created_at).toLocaleDateString("uk-UA")}` : ""}</span>
+              </div>
+              <input value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })}
+                aria-label="Назва ліда" className="mt-0.5 w-full bg-transparent font-display text-[22px] font-bold leading-tight outline-none" />
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                {stages.find((s) => s.id === form.stage_id) ? <span className="tz-pill tz-pill--gold">● {stages.find((s) => s.id === form.stage_id)!.name}</span> : null}
+                {lead ? <SourceBadge cabinet={lead.cabinet} source={lead.source} /> : null}
+              </div>
+            </div>
+            <button onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-muted" aria-label="Закрити картку"><X className="h-5 w-5" /></button>
+          </div>
+        </div>
+        <div className="hidden flex-wrap items-center gap-3 border-b border-border bg-card px-4 py-3 md:flex md:px-5">
           <div className="min-w-0 flex-1">
             <CrmEyebrow>Картка ліда / Робочий простір</CrmEyebrow>
             <input value={form.title ?? ""} onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -156,11 +176,43 @@ export function LeadCardDialog({
         </div>
 
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-muted-foreground">Завантаження…</div>
+          <div className="flex-1 p-8 text-center text-sm text-muted-foreground">Завантаження…</div>
         ) : (
-          <div className="grid flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[minmax(0,1fr)_420px] lg:overflow-hidden">
             {/* Ліва колонка — дані ліда */}
-            <div className="space-y-4 overflow-y-auto p-4 md:p-5">
+            <div className="flex flex-col gap-4 p-4 md:p-5 lg:overflow-y-auto">
+              {/* Mobile: швидкі дії та зведення */}
+              <div className="order-first space-y-3 md:hidden">
+                <div className="grid grid-cols-3 gap-2">
+                  <a href={form.phone_e164 ? `tel:${form.phone_e164}` : undefined} aria-disabled={!form.phone_e164}
+                    className={`flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3 text-[13px] font-semibold ${form.phone_e164 ? "" : "pointer-events-none opacity-50"}`}>
+                    <Phone className="h-5 w-5" /> Дзвінок
+                  </a>
+                  <a href={form.phone_e164 ? `sms:${form.phone_e164}` : undefined} aria-disabled={!form.phone_e164}
+                    className={`flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3 text-[13px] font-semibold ${form.phone_e164 ? "" : "pointer-events-none opacity-50"}`}>
+                    <MessageSquare className="h-5 w-5" /> Написати
+                  </a>
+                  <a href={form.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.address)}` : undefined} target="_blank" rel="noreferrer" aria-disabled={!form.address}
+                    className={`flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3 text-[13px] font-semibold ${form.address ? "" : "pointer-events-none opacity-50"}`}>
+                    <Navigation className="h-5 w-5" /> Маршрут
+                  </a>
+                </div>
+                <dl className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-xl bg-[#EEF1F6] p-3.5 text-[12px] [&_dd]:mt-0.5 [&_dd]:text-[15px] [&_dd]:font-semibold [&_dd]:text-foreground [&_dt]:text-muted-foreground">
+                  <div><dt>Телефон</dt><dd className="truncate tabular-nums">{form.phone_e164 || "—"}</dd></div>
+                  <div><dt>Адреса</dt><dd className="truncate">{form.address || "—"}</dd></div>
+                  <div><dt>Площа</dt><dd>{form.area ? `${Number(form.area)} м²` : "—"}</dd></div>
+                  <div><dt>Сума</dt><dd className="tabular-nums">{form.budget ? `${new Intl.NumberFormat("uk-UA").format(Number(form.budget))} ₴` : "—"}</dd></div>
+                  <div><dt>Менеджер</dt><dd className="truncate">{lead?.manager_name ?? "—"}</dd></div>
+                  <div><dt>Наступний контакт</dt><dd>{lead?.next_action_at ? new Date(lead.next_action_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}</dd></div>
+                </dl>
+                <label className="block">
+                  <span className={lbl}>Етап</span>
+                  <select value={form.stage_id ?? ""} onChange={(e) => setForm({ ...form, stage_id: e.target.value })} className={`${inp} mt-1 h-11`}>
+                    <option value="">Без етапу</option>
+                    {stages.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </label>
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Section title="Про заявку">
                   <Field label="Джерело"><input className={inp} value={form.source ?? ""} onChange={(e) => setForm({ ...form, source: e.target.value })} /></Field>
@@ -197,11 +249,13 @@ export function LeadCardDialog({
                 </Section>
               </div>
 
+              <div className="max-md:order-first">
               <LeadMeasurementsPanel
                 leadId={leadId}
                 lead={lead}
                 measurements={(data?.measurements ?? []) as any[]}
               />
+              </div>
 
               {LEAD_FIELD_GROUPS.map((g) => (
                 <Section key={g.key} title={g.label}>
@@ -231,7 +285,7 @@ export function LeadCardDialog({
             </div>
 
             {/* Права колонка — комунікації */}
-            <div className="flex min-h-0 flex-col border-t border-border bg-card/95 lg:border-l lg:border-t-0">
+            <div className="flex flex-col border-t border-border bg-card/95 lg:min-h-0 lg:border-l lg:border-t-0">
               <div className="flex gap-1 border-b border-border px-2 py-2">
                 {([["comments", "Коментарі", MessageSquare], ["tasks", "Задачі", CheckSquare],
                    ["calls", "Дзвінки", PhoneCall], ["history", "Історія", History]] as const).map(([k, l, Icon]) => (
@@ -242,7 +296,7 @@ export function LeadCardDialog({
                 ))}
               </div>
 
-              <div className="flex-1 space-y-2 overflow-y-auto p-3">
+              <div className="flex-1 space-y-2 p-3 lg:overflow-y-auto">
                 {tab === "comments" ? (
                   comments.length ? comments.map((a: any) => (
                     <div key={a.id} className="rounded-md border border-border px-3 py-2">
@@ -299,6 +353,16 @@ export function LeadCardDialog({
             </div>
           </div>
         )}
+        {/* Mobile: закріплені дії внизу */}
+        <div className="flex gap-2 border-t border-border bg-card px-4 pt-3 md:hidden" style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}>
+          <button onClick={() => save.mutate()} disabled={save.isPending} className="tz-btn-gold h-12 flex-1 text-[15px]">
+            {save.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Зберегти
+          </button>
+          <button onClick={() => convert.mutate()} disabled={convert.isPending}
+            className="inline-flex h-12 items-center justify-center gap-1.5 rounded-lg border border-border bg-card px-4 text-[14px] font-semibold disabled:opacity-60">
+            {convert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />} Замовлення
+          </button>
+        </div>
       </div>
     </div>
   );

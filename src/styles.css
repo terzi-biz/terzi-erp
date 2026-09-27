@@ -7,8 +7,10 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * TERZI Premium Industrial Design System
- * Graphite, concrete, metal, dark engineering panels with orange construction accent.
+ * TERZI Design System v2 (затверджено CEO 27.09.2026)
+ * Navy #0B1B3A · Gold #D4960A→#E0A21A · Light gold #FBF3E0 · Canvas #F4F6FA · Border #E3E7EF.
+ * Статуси: зелений — виконано, помаранчевий — ризик, червоний — прострочено, сірий — чернетка.
+ * Ніколи не золотий текст на білому; текст на золотому — navy. Шрифти: Manrope (заголовки), Inter (текст).
  */
 
 @theme inline {
@@ -46,69 +48,103 @@
   --color-concrete: var(--concrete);
   --color-gold: var(--gold);
   --color-gold-foreground: var(--gold-foreground);
-  --font-sans: "Manrope", system-ui, -apple-system, sans-serif;
-  --font-display: "Sora", "Manrope", system-ui, sans-serif;
+  --color-gold-2: var(--gold-2);
+  --color-gold-soft: var(--gold-soft);
+  --color-navy: var(--navy);
+  --color-navy-2: var(--navy-2);
+  --color-placeholder: var(--placeholder);
+  --color-status-done: var(--status-done);
+  --color-status-done-soft: var(--status-done-soft);
+  --color-status-done-ink: var(--status-done-ink);
+  --color-status-risk: var(--status-risk);
+  --color-status-risk-soft: var(--status-risk-soft);
+  --color-status-risk-ink: var(--status-risk-ink);
+  --color-status-overdue: var(--status-overdue);
+  --color-status-overdue-soft: var(--status-overdue-soft);
+  --color-status-overdue-ink: var(--status-overdue-ink);
+  --color-status-draft: var(--status-draft);
+  --color-status-draft-soft: var(--status-draft-soft);
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Manrope", "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 :root {
-  --radius: 0.5rem;
+  --radius: 0.625rem; /* 10px картки; md = 8px, sm = 6px */
 
-  /* AmoCRM-style layout in TERZI colors: Oxford navy chrome, light canvas, gold accent */
-  --background: oklch(0.965 0.004 250);          /* light steel canvas */
-  --foreground: oklch(0.25 0.025 250);           /* navy-graphite text */
+  --navy: #0B1B3A;
+  --navy-2: #1F4A8A;
+  --gold-2: #E0A21A;
+  --gold-soft: #FBF3E0;
+  --placeholder: #98A1B3;
 
-  --panel: oklch(1 0 0);
-  --panel-foreground: oklch(0.25 0.025 250);
+  --background: #F4F6FA;          /* canvas */
+  --foreground: #0B1B3A;          /* navy text */
 
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.25 0.025 250);
+  --panel: #FFFFFF;
+  --panel-foreground: #0B1B3A;
 
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.25 0.025 250);
+  --card: #FFFFFF;
+  --card-foreground: #0B1B3A;
 
-  /* Oxford navy — primary action / links */
-  --primary: oklch(0.36 0.075 252);
-  --primary-foreground: oklch(0.99 0 0);
+  --popover: #FFFFFF;
+  --popover-foreground: #0B1B3A;
 
-  /* Premium gold — highlight accent */
-  --gold: oklch(0.735 0.125 78);
-  --gold-foreground: oklch(0.26 0.05 252);
+  /* Navy — основні дії та посилання */
+  --primary: #0B1B3A;
+  --primary-foreground: #FFFFFF;
 
-  --secondary: oklch(0.955 0.006 250);
-  --secondary-foreground: oklch(0.30 0.03 252);
+  /* Gold — акцент (тільки фон/іконки; текст на золотому — navy) */
+  --gold: #D4960A;
+  --gold-foreground: #0B1B3A;
 
-  --muted: oklch(0.958 0.005 250);
-  --muted-foreground: oklch(0.52 0.015 252);
+  --secondary: #EEF1F6;
+  --secondary-foreground: #0B1B3A;
 
-  --accent: oklch(0.945 0.012 250);
-  --accent-foreground: oklch(0.30 0.05 252);
+  --muted: #EEF1F6;
+  --muted-foreground: #5B6478;
 
-  --destructive: oklch(0.58 0.20 27);
-  --destructive-foreground: oklch(0.99 0 0);
+  --accent: #EEF2F8;
+  --accent-foreground: #0B1B3A;
 
-  --success: oklch(0.60 0.14 152);
-  --success-foreground: oklch(0.99 0 0);
+  --destructive: #D93025;
+  --destructive-foreground: #FFFFFF;
 
-  --warning: oklch(0.75 0.14 75);
-  --warning-foreground: oklch(0.20 0 0);
+  --success: #1E9E5A;
+  --success-foreground: #FFFFFF;
 
-  --border: oklch(0.905 0.008 250);
-  --input: oklch(1 0 0);
-  --ring: oklch(0.735 0.125 78);
+  /* Ризик — помаранчевий, не жовтий */
+  --warning: #E8710A;
+  --warning-foreground: #FFFFFF;
 
-  --steel: oklch(0.46 0.045 252);
-  --concrete: oklch(0.72 0.008 248);
+  --status-done: #1E9E5A;
+  --status-done-soft: #E6F5EC;
+  --status-done-ink: #137A43;
+  --status-risk: #E8710A;
+  --status-risk-soft: #FDEEDF;
+  --status-risk-ink: #B85300;
+  --status-overdue: #D93025;
+  --status-overdue-soft: #FCE8E6;
+  --status-overdue-ink: #B3261E;
+  --status-draft: #8A93A6;
+  --status-draft-soft: #EEF1F6;
 
-  /* Dark navy sidebar — AmoCRM-like chrome */
-  --sidebar: oklch(0.30 0.058 252);
-  --sidebar-foreground: oklch(0.94 0.008 90);
-  --sidebar-primary: oklch(0.735 0.125 78);
-  --sidebar-primary-foreground: oklch(0.24 0.05 252);
-  --sidebar-accent: oklch(0.355 0.062 252);
-  --sidebar-accent-foreground: oklch(0.98 0.006 90);
-  --sidebar-border: oklch(0.38 0.055 252);
-  --sidebar-ring: oklch(0.735 0.125 78);
+  --border: #E3E7EF;
+  --input: #FFFFFF;
+  --ring: #D4960A;
+
+  --steel: #3B4A66;
+  --concrete: #A7B0C0;
+
+  /* Navy sidebar */
+  --sidebar: #0B1B3A;
+  --sidebar-foreground: #FFFFFF;
+  --sidebar-primary: #D4960A;
+  --sidebar-primary-foreground: #0B1B3A;
+  --sidebar-accent: rgb(255 255 255 / 0.08);
+  --sidebar-accent-foreground: #FFFFFF;
+  --sidebar-border: rgb(255 255 255 / 0.08);
+  --sidebar-ring: #D4960A;
 
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
@@ -119,13 +155,16 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --gradient-orange: linear-gradient(135deg, oklch(0.78 0.13 80), oklch(0.70 0.13 70));
-  --gradient-blue: linear-gradient(135deg, oklch(0.36 0.075 252), oklch(0.28 0.055 254));
-  --gradient-panel: linear-gradient(180deg, oklch(1 0 0), oklch(1 0 0));
-  --shadow-panel: 0 1px 2px 0 oklch(0.25 0.05 250 / 0.10), 0 1px 1px 0 oklch(0.25 0.05 250 / 0.04);
-  --shadow-glow: 0 0 24px -6px oklch(0.735 0.125 78 / 0.4);
-  --dashboard-grid: color-mix(in oklab, var(--primary) 5%, transparent);
-  --dashboard-rail: color-mix(in oklab, var(--gold) 72%, var(--primary));
+  --gradient-gold: linear-gradient(90deg, #D4960A, #E0A21A);
+  --gradient-orange: linear-gradient(135deg, #D4960A, #E0A21A);
+  --gradient-blue: linear-gradient(135deg, #0B1B3A, #1F4A8A);
+  --gradient-hero: linear-gradient(90deg, #0B1B3A, #1F4A8A);
+  --gradient-panel: linear-gradient(180deg, #FFFFFF, #FFFFFF);
+  --shadow-panel: 0 2px 6px 0 rgb(11 27 58 / 0.04), 0 1px 2px 0 rgb(11 27 58 / 0.04);
+  --shadow-card: 0 2px 6px 0 rgb(11 27 58 / 0.04);
+  --shadow-glow: 0 0 24px -6px rgb(212 150 10 / 0.4);
+  --dashboard-grid: color-mix(in oklab, var(--primary) 4%, transparent);
+  --dashboard-rail: var(--gold);
 }
 
 @layer base {
@@ -139,7 +178,9 @@
     background-image: none;
   }
 
-  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: 0; color: var(--foreground); }
+  h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.01em; color: var(--foreground); }
+  /* Цифри в таблицях і KPI — табличні */
+  .tabular, table, [data-num] { font-variant-numeric: tabular-nums; }
 
   .hatch-accent {
     background-image: repeating-linear-gradient(
@@ -201,7 +242,7 @@
   .crm-kpi__trend { align-self: end; display: flex; height: 2.5rem; align-items: end; gap: 3px; color: var(--primary); opacity: .35; }
   .crm-kpi__trend i { display: block; width: 4px; border-radius: 4px; background: currentColor; }
   .crm-kpi__trend i:nth-child(1) { height: 28%; } .crm-kpi__trend i:nth-child(2) { height: 44%; } .crm-kpi__trend i:nth-child(3) { height: 60%; } .crm-kpi__trend i:nth-child(4) { height: 76%; } .crm-kpi__trend i:nth-child(5) { height: 96%; }
-  .crm-kpi--gold .crm-kpi__icon, .crm-kpi--gold .crm-kpi__trend { background-color: color-mix(in oklab, var(--gold) 13%, var(--card)); color: var(--gold); }
+  .crm-kpi--gold .crm-kpi__icon, .crm-kpi--gold .crm-kpi__trend { background-color: var(--gold-soft); color: var(--navy); }
   .crm-kpi--success .crm-kpi__icon, .crm-kpi--success .crm-kpi__trend { background-color: color-mix(in oklab, var(--success) 12%, var(--card)); color: var(--success); }
   .crm-kpi--danger .crm-kpi__icon, .crm-kpi--danger .crm-kpi__trend { background-color: color-mix(in oklab, var(--destructive) 10%, var(--card)); color: var(--destructive); }
   .dashboard-page {
@@ -392,4 +433,39 @@
   .brand-watermark::before { display: none !important; }
 }
 
+/* ---------- TERZI v2 components ---------- */
+@layer components {
+  .tz-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--card);
+    box-shadow: var(--shadow-card);
+  }
+  .tz-h { font-family: var(--font-display); font-weight: 700; letter-spacing: -0.01em; color: var(--foreground); }
+  .tz-num { font-family: var(--font-display); font-weight: 800; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+  .tz-seg { display: inline-flex; gap: 2px; border: 1px solid var(--border); border-radius: 8px; background: #fff; padding: 3px; }
+  .tz-seg > button { border-radius: 6px; padding: 5px 12px; font-size: 13px; font-weight: 500; color: var(--muted-foreground); white-space: nowrap; }
+  .tz-seg > button[data-on="true"] { background: var(--gold-soft); color: var(--navy); font-weight: 600; }
+  .tz-pill { display: inline-flex; align-items: center; gap: 3px; border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; line-height: 16px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .tz-pill--done { background: var(--status-done-soft); color: var(--status-done-ink); }
+  .tz-pill--risk { background: var(--status-risk-soft); color: var(--status-risk-ink); }
+  .tz-pill--overdue { background: var(--status-overdue-soft); color: var(--status-overdue-ink); }
+  .tz-pill--draft { background: var(--status-draft-soft); color: #5B6478; }
+  .tz-pill--navy { background: #E8ECF4; color: var(--navy); }
+  .tz-pill--gold { background: var(--gold-soft); color: var(--navy); }
+  .tz-btn-gold { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; background: var(--gradient-gold); color: var(--navy); font-weight: 700; }
+  .tz-btn-gold:hover { filter: brightness(1.04); }
+  .tz-btn-gold:disabled { opacity: .55; }
+  .tz-snap-x { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .tz-snap-x::-webkit-scrollbar { display: none; }
+  .tz-snap-x > * { scroll-snap-align: center; flex-shrink: 0; }
+  .tz-login-wave { pointer-events: none; position: absolute; }
+}
+
+@layer base {
+  @media (max-width: 767px) {
+    /* Нижня панель вкладок на мобільному: контент не ховається під неї */
+    .tz-has-tabbar main { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  }
+}
 

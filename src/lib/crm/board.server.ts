@@ -5,6 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { staffNameMap } from "../staff.server";
 import { canonicalMeasurementStatus } from "../measurement-status";
+import { resolveCabinet, type CabinetKey } from "../marketing/cabinets";
 
 type Sb = SupabaseClient<any, any, any>;
 
@@ -30,6 +31,9 @@ export interface BoardLead {
   closed_at: string | null;
   next_action_at: string | null;
   fields: Record<string, string | number | boolean | null>;
+  /** Рекламний кабінет (UI v2): канал → UTM → текст джерела; невідоме → «other». */
+  cabinet: CabinetKey;
+  lost_reason: string | null;
 }
 
 const asFields = (tags: any): Record<string, string | number | boolean | null> =>
@@ -40,7 +44,7 @@ async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
   const clientIds = Array.from(new Set(leads.map((l) => l.client_id).filter(Boolean)));
   const userIds = leads.map((l) => l.assigned_to).filter(Boolean) as string[];
 
-  const [contacts, clients, names] = await Promise.all([
+  const [contacts, clients, names, channels] = await Promise.all([
     contactIds.length
       ? sb.from("crm_contacts").select("id, full_name, phone, phone_e164").in("id", contactIds)
       : Promise.resolve({ data: [] as any[] }),
@@ -48,7 +52,11 @@ async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
       ? sb.from("clients").select("id, name, phone, phone_e164").in("id", clientIds)
       : Promise.resolve({ data: [] as any[] }),
     staffNameMap(userIds),
+    leads.some((l) => l.marketing_channel_id)
+      ? Promise.resolve(sb.from("marketing_channels").select("id, key")).then((r) => r, () => ({ data: [] as any[] }))
+      : Promise.resolve({ data: [] as any[] }),
   ]);
+  const channelKey = new Map(((channels as any).data ?? []).map((c: any) => [c.id, c.key as string]));
 
   const contactById = new Map((contacts.data ?? []).map((c: any) => [c.id, c]));
   const clientById = new Map((clients.data ?? []).map((c: any) => [c.id, c]));
@@ -78,6 +86,12 @@ async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
       closed_at: l.closed_at ?? null,
       next_action_at: l.next_action_at ?? null,
       fields: asFields(l.tags),
+      cabinet: resolveCabinet({
+        channelKey: l.marketing_channel_id ? (channelKey.get(l.marketing_channel_id) as string | undefined) ?? null : null,
+        source: l.source ?? null,
+        utm: l.utm && typeof l.utm === "object" ? l.utm : null,
+      }),
+      lost_reason: l.lost_reason ?? null,
     };
   });
 }

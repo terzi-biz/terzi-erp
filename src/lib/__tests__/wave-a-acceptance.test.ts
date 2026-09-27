@@ -7,7 +7,7 @@ import { resolve } from "node:path";
 import { buildCanonicalResult } from "@/lib/core/index";
 import { toClientDTO, toInternalDTO, hasForbiddenClientKeys } from "@/lib/core/dto";
 import { findBlockingPriceErrors, isZeroApprovalValid } from "@/lib/core/price-policy";
-import { NAV_SECTIONS, navForRoles, activeSectionKey } from "@/components/nav-model";
+import { NAV_SECTIONS, NAV_GROUPS, MOBILE_TABS, navForRoles, activeSectionKey, activeMobileTab } from "@/components/nav-model";
 import { ROLE_LAYOUT, periodRange, roleFromRoles } from "@/lib/dashboard/widgets";
 
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
@@ -98,10 +98,35 @@ describe("Маршрути розрахунків", () => {
 });
 
 describe("Інформаційна архітектура меню", () => {
-  it("перший рівень — рівно 9 розділів", () => {
+  it("перший рівень — рівно 10 розділів (UI v2: + «Склад»)", () => {
     expect(NAV_SECTIONS.map((s) => s.key)).toEqual([
-      "dashboard", "crm", "calc", "estimates", "orders", "calendar", "finance", "analytics", "settings",
+      "dashboard", "crm", "calc", "estimates", "orders", "calendar", "warehouse", "finance", "analytics", "settings",
     ]);
+  });
+
+  it("UI v2: розділи згруповані у блоки Продажі / Операції / Склад / Фінанси / Аналітика / Налаштування", () => {
+    expect(NAV_GROUPS.map((g) => g.label)).toEqual(["Продажі", "Операції", "Склад", "Фінанси", "Аналітика", "Налаштування"]);
+    for (const s of NAV_SECTIONS) {
+      if (s.key === "dashboard") expect(s.group).toBeUndefined();
+      else expect(NAV_GROUPS.some((g) => g.key === s.group)).toBe(true);
+    }
+  });
+
+  it("UI v2: Control Center — у «Налаштуваннях», не в «Аналітиці»", () => {
+    const settings = NAV_SECTIONS.find((s) => s.key === "settings")!;
+    const analytics = NAV_SECTIONS.find((s) => s.key === "analytics")!;
+    expect(settings.children.some((c) => c.to === "/settings/control-center")).toBe(true);
+    expect(analytics.children.some((c) => c.to === "/settings/control-center")).toBe(false);
+    expect(activeSectionKey("/settings/control-center")).toBe("settings");
+  });
+
+  it("UI v2: мобільні вкладки — Дашборд, Ліди, Заміри, Календар, Ще", () => {
+    expect(MOBILE_TABS.map((t) => t.label)).toEqual(["Дашборд", "Ліди", "Заміри", "Календар", "Ще"]);
+    expect(activeMobileTab("/")).toBe("dashboard");
+    expect(activeMobileTab("/crm/leads")).toBe("leads");
+    expect(activeMobileTab("/crm/measurements")).toBe("measurements");
+    expect(activeMobileTab("/operations")).toBe("calendar");
+    expect(activeMobileTab("/finance")).toBeNull();
   });
 
   it("налаштування лише дозволеним ролям", () => {
