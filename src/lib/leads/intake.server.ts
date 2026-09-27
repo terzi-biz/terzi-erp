@@ -135,6 +135,23 @@ export async function handleLeadIntake(
   const hash = dedupeHash(payload, phoneNorm);
   const provider = (payload.provider ?? "web").toLowerCase();
 
+  // 1b. Ідемпотентність за external_id (до резервування dedupe_hash)
+  const extId = (payload.external_id ?? "").trim();
+  if (extId) {
+    const { data: extLead } = await admin
+      .from("crm_leads").select("id")
+      .eq("external_source", provider).eq("external_id", extId)
+      .limit(1).maybeSingle();
+    if (extLead) return { status: "duplicate", leadId: (extLead as { id: string }).id };
+    const { data: extEvent } = await admin
+      .from("lead_intake_events").select("id, lead_id")
+      .eq("provider", provider).eq("status", "accepted").eq("payload->>external_id", extId)
+      .limit(1).maybeSingle();
+    if (extEvent) {
+      return { status: "duplicate", leadId: (extEvent as { lead_id: string | null }).lead_id ?? undefined };
+    }
+  }
+
   // 2. Ідемпотентність: пробуємо зайняти dedupe_hash
   const { data: reserved, error: reserveErr } = await admin
     .from("lead_intake_events")
@@ -167,12 +184,33 @@ export async function handleLeadIntake(
   const eventId = (reserved as { id: string } | null)?.id ?? null;
 
   try {
-    // 3. Контакт за нормалізованим телефоном
+    // 3. Контакт: phone_e164 → легасі phone_norm (лише цифри) → email. Існуючий не оновлюємо.
     let contactId: string | null = null;
+    let contactMatch: "phone_e164" | "phone_norm" | "email" | "new" = "new";
     if (phoneNorm) {
-      const { data: existing } = await admin
-        .from("crm_contacts").select("id").eq("phone_norm", phoneNorm).limit(1).maybeSingle();
-      contactId = (existing as { id: string } | null)?.id ?? null;
+      const { data: byE164 } = await admin
+        .from("crm_contacts").select("id").eq("phone_e164", phoneNorm)
+        .order("created_at", { ascending: true }).limit(1).maybeSingle();
+      contactId = (byE164 as { id: string } | null)?.id ?? null;
+      if (contactId) contactMatch = "phone_e164";
+      if (!contactId) {
+        const digits = phoneNorm.replace(/^\+/, "");
+        const legacy = Array.from(new Set([digits, `0${digits.slice(-9)}`]));
+        const { data: byNorm } = await admin
+          .from("crm_contacts").select("id").in("phone_norm", legacy)
+          .order("created_at", { ascending: true }).limit(1).maybeSingle();
+        contactId = (byNorm as { id: string } | null)?.id ?? null;
+        if (contactId) contactMatch = "phone_norm";
+      }
+    }
+    const emailTrim = (payload.email ?? "").trim();
+    if (!contactId && emailTrim) {
+      const escaped = emailTrim.replace(/[\\%_]/g, (c) => `\\${c}`);
+      const { data: byEmail } = await admin
+        .from("crm_contacts").select("id").ilike("email", escaped)
+        .order("created_at", { ascending: true }).limit(1).maybeSingle();
+      contactId = (byEmail as { id: string } | null)?.id ?? null;
+      if (contactId) contactMatch = "email";
     }
     if (!contactId) {
       const { data: created, error } = await admin
@@ -189,16 +227,27 @@ export async function handleLeadIntake(
       contactId = (created as { id: string } | null)?.id ?? null;
     }
 
-    // 4. Відкритий лід цього контакту за останні 30 днів або новий
+    // 4. Відкритий лід цього контакту (або за phone_e164) за останні 30 днів, або новий
     let leadId: string | null = null;
+    let leadMatch: "contact_open" | "phone_e164_open" | "new" = "new";
+    const since30 = new Date(Date.now() - 30 * 864e5).toISOString();
     if (contactId) {
-      const since = new Date(Date.now() - 30 * 864e5).toISOString();
       const { data: openLead } = await admin
         .from("crm_leads").select("id")
         .eq("contact_id", contactId).eq("status", "open")
-        .gte("created_at", since).order("created_at", { ascending: false })
+        .gte("created_at", since30).order("created_at", { ascending: false })
         .limit(1).maybeSingle();
       leadId = (openLead as { id: string } | null)?.id ?? null;
+      if (leadId) leadMatch = "contact_open";
+    }
+    if (!leadId && phoneNorm) {
+      const { data: openByPhone } = await admin
+        .from("crm_leads").select("id")
+        .eq("phone_e164", phoneNorm).eq("status", "open")
+        .gte("created_at", since30).order("created_at", { ascending: false })
+        .limit(1).maybeSingle();
+      leadId = (openByPhone as { id: string } | null)?.id ?? null;
+      if (leadId) leadMatch = "phone_e164_open";
     }
 
     const touchAt = attribution.last_touch_at ?? new Date().toISOString();
