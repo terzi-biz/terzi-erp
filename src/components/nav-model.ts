@@ -1,9 +1,10 @@
 /**
- * Єдина інформаційна архітектура бокового меню (Prompt №3).
+ * Єдина інформаційна архітектура бокового меню (Prompt №3, UI v2).
  *
- * Перший рівень — 9 розділів (Wave 1: додано «Склад»). Нічого не видалено функціонально:
- * матеріали, роботи, логістика, обладнання, інтеграції, конструктор напрямків
- * тощо перенесені у відповідні підрозділи.
+ * Перший рівень — 10 розділів, згрупованих у блоки меню:
+ * Продажі / Операції / Склад / Фінанси / Аналітика / Налаштування.
+ * Нічого не видалено функціонально: матеріали, роботи, логістика, обладнання,
+ * інтеграції, конструктор напрямків тощо перенесені у відповідні підрозділи.
  */
 
 import { moduleLabel } from "@/lib/modules";
@@ -16,10 +17,24 @@ export interface NavChild {
   search?: Record<string, string>;
 }
 
+export type NavGroupKey = "sales" | "operations" | "warehouse" | "finance" | "analytics" | "settings";
+
+/** Блоки бокового меню (заголовки груп). Порядок = порядок у меню. */
+export const NAV_GROUPS: { key: NavGroupKey; label: string }[] = [
+  { key: "sales", label: "Продажі" },
+  { key: "operations", label: "Операції" },
+  { key: "warehouse", label: "Склад" },
+  { key: "finance", label: "Фінанси" },
+  { key: "analytics", label: "Аналітика" },
+  { key: "settings", label: "Налаштування" },
+];
+
 export interface NavSection {
   key: string;
   label: string;
   to: string;
+  /** Блок меню; без групи — верхній рівень (Дашборд). */
+  group?: NavGroupKey;
   /** Ролі, яким доступний розділ. Порожньо — доступний усім. */
   roles?: string[];
   children: NavChild[];
@@ -40,6 +55,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "crm",
     label: "CRM",
+    group: "sales",
     to: "/crm",
     children: [
       { to: "/crm", label: "Панель CRM" },
@@ -53,6 +69,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "calc",
     label: "Розрахунки",
+    group: "sales",
     to: "/calc",
     children: [
       { to: "/calc", label: "Напрямки розрахунку" },
@@ -62,6 +79,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "estimates",
     label: "Кошториси і КП",
+    group: "sales",
     to: "/history",
     children: [
       { to: "/history", label: "Кошториси і КП" },
@@ -71,6 +89,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "orders",
     label: "Замовлення і виробництво",
+    group: "operations",
     to: "/orders",
     children: [
       { to: "/orders", label: "Замовлення" },
@@ -79,19 +98,9 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
-    key: "warehouse",
-    label: "Склад",
-    to: "/warehouse",
-    children: [
-      { to: "/warehouse", label: "Запаси" },
-      { to: "/warehouse/receipts", label: "Приходи" },
-      { to: "/warehouse/issues", label: "Видачі" },
-      { to: "/warehouse/monthly", label: "Звіт за місяці" },
-    ],
-  },
-  {
     key: "calendar",
     label: "Календар",
+    group: "operations",
     to: "/operations",
     children: [
       { to: "/operations", label: "Усі календарі" },
@@ -103,8 +112,21 @@ export const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    key: "warehouse",
+    label: "Склад",
+    group: "warehouse",
+    to: "/warehouse",
+    children: [
+      { to: "/warehouse", label: "Запаси" },
+      { to: "/warehouse/receipts", label: "Приходи" },
+      { to: "/warehouse/issues", label: "Видачі" },
+      { to: "/warehouse/monthly", label: "Звіт за місяці" },
+    ],
+  },
+  {
     key: "finance",
     label: "Фінанси",
+    group: "finance",
     to: "/finance",
     children: [
       { to: "/finance", label: "Огляд і cash flow", search: { tab: "overview" } },
@@ -123,12 +145,12 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "analytics",
     label: "Аналітика",
+    group: "analytics",
     to: "/reports",
     children: [
       { to: "/reports/ceo", label: "CEO-звіт" },
       { to: "/reports/finance-ceo", label: "Фінанси компанії" },
       { to: "/settings/sales-plan", label: "План продажів" },
-      { to: "/settings/control-center", label: "Control Center (правила)" },
       { to: "/reports", label: "Продажі та виробництво" },
       { to: "/marketing", label: "Маркетинг" },
       { to: "/data-audit", label: "Якість даних" },
@@ -138,6 +160,7 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     key: "settings",
     label: "Налаштування",
+    group: "settings",
     to: "/settings",
     roles: ["admin", "director", "finance"],
     children: [
@@ -151,11 +174,42 @@ export const NAV_SECTIONS: NavSection[] = [
       { to: "/access", label: "Користувачі та ролі" },
       { to: "/integrations", label: "Інтеграції, API, webhooks" },
       { to: "/crm/intake", label: "Вхідні ліди (API webhook)" },
+      { to: "/settings/control-center", label: "Control Center (правила)" },
 
       { to: "/branding", label: "Брендинг" },
     ],
   },
 ];
+
+/** Нижня панель вкладок на мобільному (< md). «Ще» відкриває повне меню. */
+export interface MobileTab {
+  key: "dashboard" | "leads" | "measurements" | "calendar" | "more";
+  label: string;
+  to?: string;
+  /** Шляхи, на яких вкладка вважається активною. */
+  match?: string[];
+}
+
+export const MOBILE_TABS: MobileTab[] = [
+  { key: "dashboard", label: "Дашборд", to: "/", match: ["/"] },
+  { key: "leads", label: "Ліди", to: "/crm/leads", match: ["/crm/leads", "/crm"] },
+  { key: "measurements", label: "Заміри", to: "/crm/measurements", match: ["/crm/measurements"] },
+  { key: "calendar", label: "Календар", to: "/operations", match: ["/operations"] },
+  { key: "more", label: "Ще" },
+];
+
+/** Активна вкладка мобільної панелі за шляхом (найдовший збіг). */
+export function activeMobileTab(pathname: string): MobileTab["key"] | null {
+  if (pathname === "/") return "dashboard";
+  let best: { key: MobileTab["key"]; len: number } | null = null;
+  for (const t of MOBILE_TABS) {
+    for (const m of t.match ?? []) {
+      if (m === "/") continue;
+      if ((pathname === m || pathname.startsWith(`${m}/`)) && (!best || m.length > best.len)) best = { key: t.key, len: m.length };
+    }
+  }
+  return best?.key ?? null;
+}
 
 /** Розділи, доступні набору ролей користувача. */
 export function navForRoles(

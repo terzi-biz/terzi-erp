@@ -76,7 +76,7 @@ export function TerziAiAssistant() {
 
   return <>
     <Button type="button" size="icon" variant="gold"
-      className="fixed bottom-5 right-4 z-40 h-12 w-12 rounded-full shadow-lg md:bottom-6 md:right-6"
+      className="fixed bottom-[calc(88px+env(safe-area-inset-bottom))] right-4 z-40 h-12 w-12 rounded-full shadow-lg md:bottom-6 md:right-6"
       aria-label="Відкрити TZI AI" title="TZI AI" onClick={() => setOpen(true)}>
       <Bot className="h-5 w-5" />
     </Button>

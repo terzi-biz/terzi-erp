@@ -2,14 +2,21 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, User, Phone, Search, CalendarClock, MapPin } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, Phone, Search, CalendarClock, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { listPipelines, listContacts, upsertLead, moveLeadStage } from "@/lib/crm.functions";
 import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
-import { CrmEyebrow, CrmPage, CrmSpec, PayStatus, crmButton, crmButtonOutline, crmInput } from "@/components/crm/CrmUi";
+import { CrmPage, crmButtonOutline } from "@/components/crm/CrmUi";
+import { SourceBadge } from "@/components/crm/SourceBadge";
+import { LeadsFunnelCard } from "@/components/crm/LeadsFunnelCard";
+import { CabinetGlyph } from "@/components/dashboard/v2/CabinetGlyph";
+import { getLeadsFunnel } from "@/lib/marketing/cabinet-funnels.functions";
+import { CABINET_KEYS, cabinetMeta, type CabinetKey } from "@/lib/marketing/cabinets";
+import { kyivToday } from "@/lib/kyiv-time";
+import { MONTHS_NOM, moneyShort } from "@/components/dashboard/v2/format";
 
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
@@ -44,6 +51,22 @@ const emptyFilters = {
   service_type: "", object_type: "", areaFrom: "", areaTo: "",
   object_address: "", client_full_name: "", sumFrom: "", sumTo: "", contract_number: "",
   query: "",
+  cabinet: "" as "" | CabinetKey,
+};
+
+/** Статус-крапка картки за наступним контактом: прострочено / сьогодні / заплановано / немає. */
+function nextTone(next: string | null | undefined): { color: string; label: string } {
+  if (!next) return { color: "#8A93A6", label: "Наступний контакт не заплановано" };
+  const t = new Date(next).getTime();
+  const now = Date.now();
+  if (t < now) return { color: "#D93025", label: "Контакт прострочено" };
+  if (t - now < 24 * 3600e3) return { color: "#E8710A", label: "Контакт протягом доби" };
+  return { color: "#1E9E5A", label: "Контакт заплановано" };
+}
+
+const initials = (name: string | null | undefined) => {
+  const p = String(name ?? "").split(/\s+/).filter(Boolean);
+  return ((p[0]?.[0] ?? "") + (p[1]?.[0] ?? "")).toUpperCase() || "—";
 };
 
 function LeadsPage() {
@@ -75,7 +98,8 @@ function LeadsPage() {
   const allStages = useMemo(
     () => ((pipe?.stages ?? []) as any[])
       .filter((s) => s.pipeline_id === activePipeline)
-      .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+      // Успішний етап — у кінці дошки (у keyCRM він має sort_order 0, як і «Новий лід»).
+      .sort((a, b) => Number(!!a.is_won) - Number(!!b.is_won) || (a.sort_order ?? 0) - (b.sort_order ?? 0)),
     [pipe, activePipeline],
   );
   // У воронці — тільки активні робочі етапи та успішний; закриті/нереалізовані приховані.
@@ -101,7 +125,7 @@ function LeadsPage() {
     return true;
   };
 
-  const filtered = useMemo(() => (leads as any[]).filter((l) => {
+  const baseFiltered = useMemo(() => (leads as any[]).filter((l) => {
     const f = l.fields ?? {};
     if (filters.query && ![l.title, l.phone, l.client_name, l.address, l.source].some((v) => String(v ?? "").toLowerCase().includes(filters.query.toLowerCase()))) return false;
     if (filters.source && !(l.source ?? "").toLowerCase().includes(filters.source.toLowerCase())) return false;
@@ -119,7 +143,44 @@ function LeadsPage() {
     if ((filters.areaFrom || filters.areaTo) && !inRange(f["object_area"] ?? l.area, filters.areaFrom, filters.areaTo)) return false;
     if ((filters.sumFrom || filters.sumTo) && !inRange(f["contract_sum"] ?? l.budget, filters.sumFrom, filters.sumTo)) return false;
     return true;
-  }), [leads, filters]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [leads, filters.query, filters.source, filters.manager, filters.note, filters.createdFrom, filters.createdTo, filters.closedFrom, filters.closedTo, filters.nextFrom, filters.nextTo, filters.utm_source, filters.utm_medium, filters.utm_campaign, filters.utm_term, filters.utm_content, filters.object_address, filters.client_full_name, filters.contract_number, filters.service_type, filters.object_type, filters.areaFrom, filters.areaTo, filters.sumFrom, filters.sumTo]);
+  const filtered = useMemo(() => (filters.cabinet ? baseFiltered.filter((l) => l.cabinet === filters.cabinet) : baseFiltered), [baseFiltered, filters.cabinet]);
+  const stageIds = useMemo(() => new Set(stages.map((s) => s.id)), [stages]);
+  const onBoard = useMemo(() => filtered.filter((l) => stageIds.has(l.stage_id)), [filtered, stageIds]);
+  const chipCounts = useMemo(() => {
+    const c: Record<string, number> = { all: 0 };
+    for (const l of baseFiltered) {
+      if (!stageIds.has(l.stage_id)) continue;
+      c.all += 1;
+      c[l.cabinet] = (c[l.cabinet] ?? 0) + 1;
+    }
+    return c;
+  }, [baseFiltered, stageIds]);
+  const boardSum = onBoard.reduce((a, l) => a + Number(l.budget || 0), 0);
+
+  /* Воронка CRM (права картка): когорта лідів періоду з БД, з урахуванням обраного кабінету */
+  const today = kyivToday();
+  const [funnelRange, setFunnelRange] = useState<"month" | "quarter">("month");
+  const fRange = useMemo(() => {
+    const [y, m] = today.split("-").map(Number);
+    const from = funnelRange === "month"
+      ? `${y}-${String(m).padStart(2, "0")}-01`
+      : new Date(Date.UTC(y, m - 3, 1)).toISOString().slice(0, 10);
+    return { from, to: today };
+  }, [today, funnelRange]);
+  const funnelLabel = funnelRange === "month"
+    ? `${MONTHS_NOM[Number(today.slice(5, 7)) - 1].toLowerCase()} ${today.slice(0, 4)}`
+    : `${fRange.from.slice(8, 10)}.${fRange.from.slice(5, 7)}–${today.slice(8, 10)}.${today.slice(5, 7)}`;
+  const funnelFn = useServerFn(getLeadsFunnel);
+  const funnelQ = useQuery({
+    queryKey: ["crm", "leads-funnel", fRange.from, fRange.to, filters.cabinet || null],
+    queryFn: () => funnelFn({ data: { ...fRange, cabinet: (filters.cabinet || null) as CabinetKey | null } }),
+    retry: 1,
+    throwOnError: false,
+  });
+  const [mobileStage, setMobileStage] = useState<string>("");
+  const activeMobileStage = mobileStage && stages.some((s) => s.id === mobileStage) ? mobileStage : (stages.find((s) => onBoard.some((l) => l.stage_id === s.id))?.id ?? stages[0]?.id ?? "");
 
   const move = useMutation({
     mutationFn: (p: { id: string; stage_id: string }) => moveFn({ data: p }),
@@ -148,38 +209,56 @@ function LeadsPage() {
     if (next) move.mutate({ id: lead.id, stage_id: next.id });
   };
 
-  const PALETTE = ["#99ccfd", "#ffce5a", "#ffdc7f", "#deff81", "#87f2c0", "#a9d8ff", "#ccc8f9", "#f9deff", "#bde0fe", "#c7f9cc"];
 
   return (
     <AppShell>
       <CrmPage className="space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CrmEyebrow>Продажі / Pipeline</CrmEyebrow>
-            <h1 className="mt-1 text-2xl font-bold md:text-3xl">Воронка лідів</h1>
-            <p className="text-sm text-muted-foreground">
-              Показані активні та успішні етапи · {filtered.length} лідів
+          <div className="min-w-0">
+            <h1 className="tz-h text-[26px] leading-tight md:text-[26px]">Воронка лідів</h1>
+            <p className="mt-0.5 text-[13px] text-muted-foreground">
+              {onBoard.length} лідів на дошці · {moneyShort(boardSum)} у воронці{filters.cabinet ? ` · ${cabinetMeta(filters.cabinet).label}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"}>
-              {((pipe?.pipelines ?? []) as any[]).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-            </select>
-            <button onClick={() => setShowFilters((v) => !v)}
-              className={`${crmButtonOutline} ${showFilters ? "border-primary text-primary" : ""}`}>
-              <SlidersHorizontal className="h-4 w-4" /> Фільтри
+            {((pipe?.pipelines ?? []) as any[]).length > 1 ? (
+              <select value={activePipeline} onChange={(e) => setPipelineId(e.target.value)} className={inp + " w-auto"} aria-label="Воронка">
+                {((pipe?.pipelines ?? []) as any[]).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+              </select>
+            ) : null}
+            <button onClick={() => setShowFilters((v) => !v)} aria-expanded={showFilters}
+              className={`${crmButtonOutline} ${showFilters ? "border-[var(--color-primary)] text-[var(--color-primary)]" : ""}`}>
+              <SlidersHorizontal className="h-4 w-4" /> <span className="hidden sm:inline">Фільтри</span>
             </button>
-            <button onClick={() => setCreating(true)} className={crmButton}>
+            <button onClick={() => setCreating(true)} className="tz-btn-gold hidden h-9 px-4 text-[13px] md:inline-flex">
               <Plus className="h-4 w-4" /> Новий лід
             </button>
           </div>
         </div>
 
-        <div className="sticky top-14 z-20 rounded-md border border-border bg-card/95 p-3 shadow-sm backdrop-blur md:top-16">
-          <div className="relative">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative w-full md:w-[260px]">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <input className={`${crmInput} pl-9`} value={filters.query} onChange={(e) => set("query", e.target.value)} placeholder="Пошук за лідом, клієнтом, телефоном, адресою або джерелом…" />
+            <input className="h-9 w-full rounded-lg border border-border bg-card pl-9 pr-3 text-[13px] outline-none focus:border-[var(--color-gold)] focus:shadow-[0_0_0_3px_rgb(212_150_10/0.15)]"
+              value={filters.query} onChange={(e) => set("query", e.target.value)} placeholder="Ім'я, телефон, адреса, джерело" aria-label="Пошук лідів" />
           </div>
+          <div className="-mx-4 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-4 no-scrollbar md:mx-0 md:px-0" role="group" aria-label="Фільтр за джерелом">
+            <button type="button" onClick={() => set("cabinet", "")}
+              className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] ${!filters.cabinet ? "border-[#E8C77A] bg-[var(--color-gold-soft)] font-semibold" : "border-border bg-card"}`}>
+              Усі джерела <span className="tabular-nums text-muted-foreground">{chipCounts.all ?? 0}</span>
+            </button>
+            {CABINET_KEYS.map((k) => (
+              <button key={k} type="button" onClick={() => set("cabinet", filters.cabinet === k ? "" : k)} aria-pressed={filters.cabinet === k}
+                className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-[13px] ${filters.cabinet === k ? "border-[#E8C77A] bg-[var(--color-gold-soft)] font-semibold" : "border-border bg-card"}`}>
+                <CabinetGlyph k={k} size={16} />{cabinetMeta(k).short} <span className="tabular-nums text-muted-foreground">{chipCounts[k] ?? 0}</span>
+              </button>
+            ))}
+          </div>
+          <select value={filters.manager} onChange={(e) => set("manager", e.target.value)} aria-label="Менеджер"
+            className="hidden h-9 rounded-lg border border-border bg-card px-3 text-[13px] md:block">
+            <option value="">Менеджер: усі</option>
+            {(staff as any[]).map((s) => <option key={s.user_id} value={s.user_id}>{s.display_name ?? s.user_id}</option>)}
+          </select>
         </div>
 
         {showFilters ? (
@@ -238,66 +317,94 @@ function LeadsPage() {
           </div>
         ) : null}
 
-          <div className="-mx-4 flex gap-3 overflow-x-auto px-4 pb-4 md:mx-0 md:px-0">
-          {stages.map((s, si) => {
-            const items = filtered.filter((l) => l.stage_id === s.id);
+        {/* Mobile: зведення воронки, чипи етапів, список карток */}
+        <div className="space-y-3 md:hidden">
+          <MobileFunnelSummary data={funnelQ.data} />
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 no-scrollbar" role="tablist" aria-label="Етапи">
+            {stages.map((s) => {
+              const n = onBoard.filter((l) => l.stage_id === s.id).length;
+              const on = s.id === activeMobileStage;
+              return (
+                <button key={s.id} type="button" role="tab" aria-selected={on} onClick={() => setMobileStage(s.id)}
+                  className={`shrink-0 rounded-full border px-3.5 py-2 text-[13px] ${on ? "border-[#E8C77A] bg-[var(--color-gold-soft)] font-semibold" : "border-border bg-card"}`}>
+                  {stageLabel(s.name)} <span className="tabular-nums text-muted-foreground">{n}</span>
+                </button>
+              );
+            })}
+          </div>
+          {(() => {
+            const st = stages.find((s) => s.id === activeMobileStage);
+            const items = onBoard.filter((l) => l.stage_id === activeMobileStage);
             const sum = items.reduce((a, l) => a + Number(l.budget || 0), 0);
-            const color = s.color || PALETTE[si % PALETTE.length];
             return (
-              <div key={s.id} className="crm-stage-column w-[310px] shrink-0" style={{ borderTopColor: color }}>
-                <div className="flex items-start justify-between gap-2 border-b border-border px-3 py-3">
-                  <div><div className="truncate text-[11px] font-extrabold uppercase text-foreground">{s.name}</div><div className="mt-1 font-mono text-[11px] text-muted-foreground">{money(sum)}</div></div>
-                  <span className="grid min-w-7 place-items-center rounded bg-secondary px-1.5 py-1 text-[11px] font-bold">{items.length}</span>
+              <div>
+                <div className="mb-2 flex items-baseline gap-2">
+                  <h2 className="tz-h text-[16px]">{st ? stageLabel(st.name) : "—"}</h2>
+                  <span className="text-[12.5px] text-muted-foreground">{items.length} лідів · {moneyShort(sum)}</span>
                 </div>
-                <div className="min-h-[120px] space-y-2 p-2">
-                  {items.map((l) => (
-                    <article key={l.id} className="crm-lead-card group px-3 py-3"
-                      style={{ borderLeftColor: color }}>
-                      <button onClick={() => setOpenId(l.id)} className="block w-full truncate text-left text-[13px] font-semibold leading-snug hover:text-primary">
-                        {l.title}
-                      </button>
-                      <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                        <User className="h-3 w-3 shrink-0" /><span className="truncate">{l.client_name ?? "Ім'я не вказане"}</span>
-                      </div>
-                      {(l.area || l.direction || l.fields?.["object_type"]) ? (
-                        <div className="mt-1.5 flex flex-wrap gap-1">
-                          {l.area ? <CrmSpec label="Площа" value={`${Number(l.area)} м²`} tone="primary" /> : null}
-                          {l.direction ? <CrmSpec label="Напрям" value={l.direction} tone="gold" /> : null}
-                          {l.fields?.["object_type"] ? <CrmSpec label="Тип об'єкта" value={String(l.fields["object_type"])} /> : null}
-                        </div>
-                      ) : null}
-                      {l.phone ? (
-                        <a href={`tel:${l.phone}`} className="mt-1 flex items-center gap-1.5 text-[11px] text-sky-700 hover:underline">
-                          <Phone className="h-3 w-3 shrink-0" />{l.phone}
-                        </a>
-                      ) : null}
-                      <div className="mt-1 truncate text-xs text-muted-foreground">
-                        Менеджер: {l.manager_name ?? "не призначений"}
-                      </div>
-                      {l.address ? <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground"><MapPin className="h-3 w-3"/><span className="truncate">{l.address}</span></div> : null}
-                      {l.next_action_at ? <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-warning"><CalendarClock className="h-3 w-3"/>{new Date(l.next_action_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}</div> : null}
-                      <div className="mt-2">
-                        <PayStatus total={Number(l.fields?.["contract_sum"] ?? l.budget ?? 0)} paid={Number(l.fields?.["paid_sum"] ?? 0)} />
-                      </div>
-
-                      <div className="mt-2 flex items-center justify-between">
-                        <span className="text-[13px] font-bold">{money(Number(l.budget || 0))}</span>
-                        <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
-                          <button onClick={() => shift(l, -1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronLeft className="h-3 w-3" /></button>
-                          <button onClick={() => shift(l, 1)} className="rounded-sm border border-border p-1 hover:bg-accent"><ChevronRight className="h-3 w-3" /></button>
-                        </span>
-                      </div>
-                      {l.source ? <span className="mt-2 inline-block rounded-sm bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground">{l.source}</span> : null}
-                    </article>
-                  ))}
-                  {!items.length ? <div className="px-1 py-3 text-[11px] text-muted-foreground">Порожньо</div> : null}
+                <div className="space-y-2.5">
+                  {items.map((l) => <LeadCardItem key={l.id} l={l} onOpen={() => setOpenId(l.id)} mobile />)}
+                  {!items.length ? <div className="rounded-lg border border-dashed border-border py-8 text-center text-[13px] text-muted-foreground">На цьому етапі лідів немає</div> : null}
                 </div>
               </div>
             );
-          })}
-          {!stages.length ? <div className="text-sm text-muted-foreground">Немає активних етапів у воронці</div> : null}
+          })()}
+        </div>
+
+        {/* Desktop: канбан + права картка воронки */}
+        <div className="hidden gap-4 md:flex">
+          <div className="min-w-0 flex-1">
+            <div className="flex gap-3 overflow-x-auto pb-4">
+              {stages.map((s) => {
+                const items = onBoard.filter((l) => l.stage_id === s.id);
+                const sum = items.reduce((a, l) => a + Number(l.budget || 0), 0);
+                return (
+                  <div key={s.id} className="flex w-[244px] shrink-0 flex-col rounded-xl bg-[#EBEEF4]/70 p-2">
+                    <div className="flex items-start justify-between gap-2 px-1.5 pb-2 pt-1">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 text-[13px] font-bold text-foreground">
+                          <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: s.is_won ? "#D4960A" : s.color || "#5B6478" }} />
+                          <span className="truncate" title={s.name}>{stageLabel(s.name)}</span>
+                        </div>
+                        <div className="mt-0.5 text-[11.5px] tabular-nums text-muted-foreground">{moneyShort(sum)}</div>
+                      </div>
+                      <span className="text-[12px] font-semibold tabular-nums text-muted-foreground">{items.length}</span>
+                    </div>
+                    <div className="min-h-[120px] space-y-2">
+                      {items.map((l) => (
+                        <LeadCardItem key={l.id} l={l} onOpen={() => setOpenId(l.id)}
+                          onPrev={() => shift(l, -1)} onNext={() => shift(l, 1)} />
+                      ))}
+                      {!items.length ? <div className="px-1.5 py-3 text-[12px] text-muted-foreground">Порожньо</div> : null}
+                    </div>
+                  </div>
+                );
+              })}
+              {!stages.length ? <div className="text-sm text-muted-foreground">Немає активних етапів у воронці</div> : null}
+            </div>
+          </div>
+          <aside className="hidden w-[300px] shrink-0 xl:block">
+            <div className="sticky top-20 space-y-2">
+              <div className="flex justify-end">
+                <div className="tz-seg" role="tablist" aria-label="Період воронки">
+                  <button type="button" data-on={funnelRange === "month"} onClick={() => setFunnelRange("month")} className="!px-2.5 !py-1 !text-[12px]">Місяць</button>
+                  <button type="button" data-on={funnelRange === "quarter"} onClick={() => setFunnelRange("quarter")} className="!px-2.5 !py-1 !text-[12px]">3 міс.</button>
+                </div>
+              </div>
+              {funnelQ.isError ? (
+                <div className="tz-card p-4 text-[12.5px] text-destructive">Не вдалося завантажити воронку: {(funnelQ.error as Error)?.message}</div>
+              ) : (
+                <LeadsFunnelCard data={funnelQ.data} periodLabel={funnelLabel} loading={funnelQ.isLoading} />
+              )}
+            </div>
+          </aside>
         </div>
       </CrmPage>
+
+      <button type="button" onClick={() => setCreating(true)} aria-label="Новий лід"
+        className="tz-btn-gold fixed bottom-[calc(148px+env(safe-area-inset-bottom))] right-4 z-30 h-14 w-14 rounded-full shadow-lg md:hidden">
+        <Plus className="h-6 w-6" />
+      </button>
 
       {creating ? (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 md:items-center md:p-4" onClick={() => setCreating(false)}>
@@ -366,5 +473,78 @@ function Toggle({ on, onClick, labels }: { on: boolean; onClick: () => void; lab
       </span>
       <span className="text-xs font-semibold text-muted-foreground">{on ? labels[1] : labels[0]}</span>
     </button>
+  );
+}
+
+/** Назви етапів keyCRM приходять капсом — показуємо в реченнєвому регістрі. */
+function stageLabel(name: string): string {
+  const n = String(name ?? "").trim();
+  if (!n) return "—";
+  return n === n.toUpperCase() ? n.charAt(0) + n.slice(1).toLowerCase() : n;
+}
+
+function LeadCardItem({ l, onOpen, onPrev, onNext, mobile = false }: {
+  l: any; onOpen: () => void; onPrev?: () => void; onNext?: () => void; mobile?: boolean;
+}) {
+  const tone = nextTone(l.next_action_at);
+  const area = l.area ? `${Number(l.area)} м²` : null;
+  const place = [l.address, area].filter(Boolean).join(" · ");
+  return (
+    <article className="group tz-card relative px-3 py-2.5 transition-shadow hover:shadow-[0_6px_16px_-8px_rgb(11_27_58/0.25)]">
+      <div className="flex items-start gap-2">
+        <button type="button" onClick={onOpen} className={`min-w-0 flex-1 truncate text-left font-semibold leading-snug text-foreground hover:underline ${mobile ? "text-[15px]" : "text-[13.5px]"}`}>
+          {l.client_name || l.title}
+        </button>
+        {mobile ? <span className="shrink-0 text-[14px] font-bold tabular-nums">{l.budget ? moneyShort(Number(l.budget)) : ""}</span>
+          : <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full" style={{ background: tone.color }} title={tone.label} aria-label={tone.label} />}
+      </div>
+      {l.client_name && l.title && l.title !== l.client_name ? <div className="truncate text-[11.5px] text-muted-foreground">{l.title}</div> : null}
+      {place ? <div className="mt-0.5 flex items-center gap-1 text-[12px] text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{place}</span></div> : null}
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+        <SourceBadge cabinet={l.cabinet} source={l.source} />
+        {l.next_action_at ? (
+          <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-[1px] text-[11px] font-semibold" style={{ background: `${tone.color}1A`, color: tone.color === "#8A93A6" ? "#5B6478" : tone.color }}>
+            <CalendarClock className="h-3 w-3" />
+            {new Date(l.next_action_at).toLocaleString("uk-UA", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+          </span>
+        ) : null}
+      </div>
+      <div className={`mt-2 flex items-center justify-between gap-2 ${mobile ? "" : "border-t border-border pt-2"}`}>
+        {!mobile ? <span className="text-[14px] font-bold tabular-nums">{l.budget ? moneyShort(Number(l.budget)) : <span className="text-[12px] font-medium text-muted-foreground">без суми</span>}</span>
+          : l.phone ? <a href={`tel:${l.phone}`} className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-[var(--color-primary)]"><Phone className="h-3.5 w-3.5" />{l.phone}</a> : <span />}
+        <span className="flex items-center gap-1">
+          {onPrev ? (
+            <span className="flex gap-1 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+              <button onClick={onPrev} className="rounded border border-border p-0.5 hover:bg-muted" aria-label="Попередній етап"><ChevronLeft className="h-3 w-3" /></button>
+              <button onClick={onNext} className="rounded border border-border p-0.5 hover:bg-muted" aria-label="Наступний етап"><ChevronRight className="h-3 w-3" /></button>
+            </span>
+          ) : null}
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-[#E8ECF4] text-[10px] font-bold text-[var(--color-primary)]" title={l.manager_name ? `Менеджер: ${l.manager_name}` : "Менеджер не призначений"}>
+            {l.manager_name ? initials(l.manager_name) : "—"}
+          </span>
+        </span>
+      </div>
+    </article>
+  );
+}
+
+function MobileFunnelSummary({ data }: { data: { stages: Array<{ n: number }> } | null | undefined }) {
+  const first = data?.stages[0]?.n ?? 0;
+  const won = data?.stages[data.stages.length - 1]?.n ?? 0;
+  const conv = first ? (won / first) * 100 : null;
+  const widths = [100, 86, 72, 58, 44, 30];
+  return (
+    <div className="tz-card flex items-center gap-3 p-3.5">
+      <div className="min-w-0 flex-1">
+        <div className="text-[12.5px] text-muted-foreground">Конверсія лід → угода · цей місяць</div>
+        <div className="mt-0.5 flex items-baseline gap-2">
+          <span className="tz-num text-[26px] leading-none">{conv == null ? "—" : `${conv.toFixed(1).replace(".", ",")}%`}</span>
+          <span className="text-[12.5px] text-muted-foreground">{data ? `${first} → ${won} угод` : "…"}</span>
+        </div>
+      </div>
+      <div className="flex w-[92px] flex-col items-center gap-[3px]" aria-hidden>
+        {widths.map((w, i) => <span key={w} className="h-[6px] rounded-sm" style={{ width: `${w}%`, background: i === widths.length - 1 ? "#D4960A" : ["#3F6BD8", "#2F57B8", "#244699", "#1B377C", "#132A60"][i] }} />)}
+      </div>
+    </div>
   );
 }

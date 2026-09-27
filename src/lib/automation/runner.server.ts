@@ -1,10 +1,11 @@
 /**
  * Control Center automation runner (server-only).
  *
- * TODO(Wave 3 wire-up after Wave 2): call `runAutomationRules` from:
- *   - `updateOrderStatus` in orders.functions.ts (after successful update; pass from/to for commercial_status etc.)
- *   - `saveLead` / board.server.ts on stage_id or status change
- *   - optionally `setMeasurementStatus` in measurements.functions.ts
+ * Wired (live): `runAutomationRules` is called after a successful change from
+ *   - `updateOrderStatus` (orders.functions.ts) — order status fields, previous value read first;
+ *   - `moveLeadStage` (crm.functions.ts) and `saveLeadCard` (crm/board.server.ts) — lead stage_id;
+ *   - measurement status updates (measurements.functions.ts).
+ * Callers catch errors, so a failing rule never blocks the status change itself.
  * Do NOT import this module from client bundles.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
