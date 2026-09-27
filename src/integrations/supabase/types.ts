@@ -10546,6 +10546,10 @@ export type Database = {
         }[]
       }
       terzi_e164: { Args: { raw: string }; Returns: string }
+      verify_cron_worker_secret: {
+        Args: { p_secret: string }
+        Returns: boolean
+      }
     }
     Enums: {
       access_request_kind:

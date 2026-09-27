@@ -127,6 +127,13 @@
       "when": 1790276002269,
       "tag": "0017_perf_indexes_hot_queries",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790543891817,
+      "tag": "0018_cron_worker_secret_private",
+      "breakpoints": true
     }
   ]
 }
