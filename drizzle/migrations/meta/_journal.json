@@ -134,6 +134,13 @@
       "when": 1790543891817,
       "tag": "0018_cron_worker_secret_private",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1790543948519,
+      "tag": "0019_unschedule_duplicate_cron_worker",
+      "breakpoints": true
     }
   ]
 }
