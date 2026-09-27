@@ -5,23 +5,17 @@ import { createFileRoute } from "@tanstack/react-router";
  * Тільки mode:"incremental" — курсор обмежений у syncOperations,
  * статуси manual/matched/ignored не перетираються. Після операцій — авто-матчинг
  * до замовлень/клієнтів, тому дебіторка й фактична собівартість оновлюються самі.
+ * Авторизація лише через x-terzi-worker-secret (env INTEGRATIONS_WORKER_SECRET
+ * або private.cron_worker_secret через rpc verify_cron_worker_secret);
+ * publishable/anon ключ не приймається.
  */
 export const Route = createFileRoute("/api/public/integrations/finmap/cron")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const eq = (a: string, b: string) => {
-          if (!a || !b || a.length !== b.length) return false;
-          let d = 0;
-          for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i);
-          return d === 0;
-        };
-        const apikey = request.headers.get("apikey") ?? "";
-        const ok =
-          eq(apikey, process.env["SUPABASE_PUBLISHABLE_KEY"] ?? "") ||
-          eq(apikey, process.env["SUPABASE_ANON_KEY"] ?? "") ||
-          eq(request.headers.get("x-terzi-worker-secret") ?? "", process.env["INTEGRATIONS_WORKER_SECRET"] ?? "");
-        if (!ok) return new Response("Unauthorized", { status: 401 });
+        const { authorizeWorkerRequest, workerUnauthorized } = await import("@/lib/integrations/worker-auth.server");
+        if (!(await authorizeWorkerRequest(request, "/api/public/integrations/finmap/cron"))) return workerUnauthorized();
+
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { runFinmapSync } = await import("@/lib/finance/finmap-sync.server");
