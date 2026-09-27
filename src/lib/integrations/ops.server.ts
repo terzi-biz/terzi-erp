@@ -223,6 +223,19 @@ export async function saveWebhookOp(
     secret_ref: input.secretRef ?? null,
     enabled: input.enabled ?? true,
   };
+  // Відкритий inbound-хук без підпису заборонений: переводимо на токен ендпоінта.
+  if (input.direction === "inbound" && payload.signature_mode === "none") {
+    payload.signature_mode = "token";
+    payload.signature_header = "x-endpoint-token";
+    if (input.id) {
+      const { data: existing } = await db.from("integration_webhooks").select("endpoint_token").eq("id", input.id).maybeSingle();
+      if (!(existing as any)?.endpoint_token) {
+        payload.endpoint_token = `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
+      }
+    } else {
+      payload.endpoint_token = `${crypto.randomUUID()}${crypto.randomUUID()}`.replace(/-/g, "");
+    }
+  }
   if (!input.id && input.direction === "inbound") {
     const integration = await loadIntegration(input.integrationId);
     const base = slugify(`${integration?.slug ?? "hook"}`);

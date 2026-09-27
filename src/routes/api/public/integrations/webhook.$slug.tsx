@@ -35,8 +35,24 @@ export const Route = createFileRoute("/api/public/integrations/webhook/$slug")({
         let verified = false;
         if (adapter?.verifyWebhook) {
           verified = await adapter.verifyWebhook(ctx, { rawBody, headers: request.headers, secret, signatureHeader, url: request.url });
-        } else if ((hook as any).signature_mode === "none") {
-          verified = true;
+        } else if ((hook as any).signature_mode === "none" || (hook as any).signature_mode === "token") {
+          // Fail-closed: без endpoint_token запит не приймається.
+          const endpointToken = (hook as any).endpoint_token as string | null | undefined;
+          if (endpointToken) {
+            const url = new URL(request.url);
+            const presented = request.headers.get("x-endpoint-token") ?? url.searchParams.get("token") ?? "";
+            if (presented) {
+              const [a, b] = await Promise.all([
+                crypto.subtle.digest("SHA-256", new TextEncoder().encode(presented)),
+                crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpointToken)),
+              ]);
+              const ba = new Uint8Array(a);
+              const bb = new Uint8Array(b);
+              let diff = 0;
+              for (let i = 0; i < 32; i++) diff |= ba[i] ^ bb[i];
+              verified = diff === 0;
+            }
+          }
         } else if (secret) {
           verified = await verifyHmacSha256(rawBody, request.headers.get(signatureHeader), secret);
         }
