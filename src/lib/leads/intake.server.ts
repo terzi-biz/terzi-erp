@@ -269,6 +269,7 @@ export async function handleLeadIntake(
         .insert({
           title: payload.name || phoneNorm || "Вхідний лід",
           contact_id: contactId,
+          phone_e164: phoneNorm,
           pipeline_id: pipelineId,
           stage_id: stageId,
           source: payload.source ?? provider,
@@ -327,7 +328,11 @@ export async function handleLeadIntake(
         lead_id: leadId,
         status: "new",
         external_id: payload.external_id ?? null,
-        payload: { ...maskPayload(payload), attribution: attributionJson },
+        payload: {
+          ...maskPayload(payload),
+          attribution: attributionJson,
+          dedupe: { contact_match: contactMatch, lead_match: leadMatch },
+        },
       })
       .select("id").maybeSingle();
     if (reqErr) throw reqErr;
