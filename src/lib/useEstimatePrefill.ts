@@ -12,6 +12,7 @@ export function useEstimatePrefill(
   apply: (r: {
     id: string;
     payload: unknown;
+    calculation_json?: unknown;
     client_id?: string | null;
     order_id?: string | null;
     client_name: string | null;
