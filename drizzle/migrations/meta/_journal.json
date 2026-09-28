@@ -155,6 +155,13 @@
       "when": 1790547106925,
       "tag": "0021_cron_remove_apikey_header",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790584040078,
+      "tag": "0022_analytics_overview_orders_value",
+      "breakpoints": true
     }
   ]
 }
