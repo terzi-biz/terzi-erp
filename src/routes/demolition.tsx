@@ -15,6 +15,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
+import { snapshotPrices, snapshotPriceBookVersion } from "@/lib/estimate-snapshot-prices";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   DEFAULT_DEMOLITION_LOGISTICS,
