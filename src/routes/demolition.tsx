@@ -15,6 +15,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
+import { snapshotPrices, snapshotPriceBookVersion } from "@/lib/estimate-snapshot-prices";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   DEFAULT_DEMOLITION_LOGISTICS,
@@ -116,12 +117,15 @@ function DemolitionPage() {
     () => ({
       module: "demolition" as const,
       input: input as unknown as Record<string, unknown>,
-      prices: { materials: materialPrices, works: worksMapped, coeffs: demolitionCoeffs },
+      prices: snapshotPrices(
+        { materials: materialPrices, works: worksMapped, coeffs: demolitionCoeffs },
+        draft.snapshot,
+      ),
       targetMargin,
       amort,
-      priceBookVersion,
+      priceBookVersion: snapshotPriceBookVersion(priceBookVersion, draft.snapshot),
     }),
-    [input, materialPrices, worksMapped, demolitionCoeffs, targetMargin, amort, priceBookVersion],
+    [input, materialPrices, worksMapped, demolitionCoeffs, targetMargin, amort, priceBookVersion, draft.snapshot],
   );
   const preview = useCanonicalPreview(previewReq);
   const result = preview.result as unknown as DemolitionResult;

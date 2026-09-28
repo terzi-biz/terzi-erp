@@ -14,6 +14,7 @@ import { saveEstimate } from "@/lib/estimates.functions";
 import { ENGINE_VERSIONS } from "@/lib/engines/versions";
 import { buildEstimateSnapshot } from "@/lib/estimate-snapshot";
 import { useEstimatePrefill } from "@/lib/useEstimatePrefill";
+import { snapshotPrices, snapshotPriceBookVersion } from "@/lib/estimate-snapshot-prices";
 import { EstimateLinkPicker } from "@/components/EstimateLinkPicker";
 import {
   DEFAULT_PVC_LOGISTICS,
@@ -176,12 +177,15 @@ function PvcPage() {
     () => ({
       module: "roofing_pvc" as const,
       input: input as unknown as Record<string, unknown>,
-      prices: { materials: materialPrices, works: worksMapped, workCosts: workCostPrices },
+      prices: snapshotPrices(
+        { materials: materialPrices, works: worksMapped, workCosts: workCostPrices },
+        draft.snapshot,
+      ),
       targetMargin,
       amort,
-      priceBookVersion,
+      priceBookVersion: snapshotPriceBookVersion(priceBookVersion, draft.snapshot),
     }),
-    [input, materialPrices, worksMapped, workCostPrices, targetMargin, amort, priceBookVersion],
+    [input, materialPrices, worksMapped, workCostPrices, targetMargin, amort, priceBookVersion, draft.snapshot],
   );
   const preview = useCanonicalPreview(previewReq);
   const result = preview.result as unknown as PvcResult;
