@@ -168,6 +168,7 @@ export function useEstimateDraft<I extends object, E extends object = Record<str
     setSavedSig(null);
     setLastSavedAt(null);
     setPending(null);
+    setSnapshot(null);
     cleanSigRef.current = "";
     if (typeof window !== "undefined") {
       try { window.localStorage.removeItem(storageKey); } catch { /* ignore */ }
