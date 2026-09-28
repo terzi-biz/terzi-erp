@@ -205,12 +205,15 @@ function RubPage() {
     () => ({
       module: "roofing_rub" as const,
       input: input as unknown as Record<string, unknown>,
-      prices: { materials: materialPrices, works: worksMapped, workCosts: workCostPrices, coeffs: roofingCoeffs },
+      prices: snapshotPrices(
+        { materials: materialPrices, works: worksMapped, workCosts: workCostPrices, coeffs: roofingCoeffs },
+        draft.snapshot,
+      ),
       targetMargin,
       amort,
-      priceBookVersion,
+      priceBookVersion: snapshotPriceBookVersion(priceBookVersion, draft.snapshot),
     }),
-    [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs, targetMargin, amort, priceBookVersion],
+    [input, materialPrices, worksMapped, workCostPrices, roofingCoeffs, targetMargin, amort, priceBookVersion, draft.snapshot],
   );
   const preview = useCanonicalPreview(previewReq);
   const result = preview.result as unknown as RoofingResult;

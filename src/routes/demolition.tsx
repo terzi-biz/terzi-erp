@@ -116,12 +116,15 @@ function DemolitionPage() {
     () => ({
       module: "demolition" as const,
       input: input as unknown as Record<string, unknown>,
-      prices: { materials: materialPrices, works: worksMapped, coeffs: demolitionCoeffs },
+      prices: snapshotPrices(
+        { materials: materialPrices, works: worksMapped, coeffs: demolitionCoeffs },
+        draft.snapshot,
+      ),
       targetMargin,
       amort,
-      priceBookVersion,
+      priceBookVersion: snapshotPriceBookVersion(priceBookVersion, draft.snapshot),
     }),
-    [input, materialPrices, worksMapped, demolitionCoeffs, targetMargin, amort, priceBookVersion],
+    [input, materialPrices, worksMapped, demolitionCoeffs, targetMargin, amort, priceBookVersion, draft.snapshot],
   );
   const preview = useCanonicalPreview(previewReq);
   const result = preview.result as unknown as DemolitionResult;
