@@ -204,6 +204,7 @@ export function useEstimateDraft<I extends object, E extends object = Record<str
     address?: string | null; manager?: string | null;
     client_id?: string | null; order_id?: string | null;
     payload?: unknown;
+    calculation_json?: unknown;
   }) => {
     setEstimateId(rec.id);
     setEstimateNumber(rec.number);
@@ -213,15 +214,40 @@ export function useEstimateDraft<I extends object, E extends object = Record<str
       address: rec.address ?? "", manager: rec.manager ?? "",
     });
     setLink({ clientId: rec.client_id ?? null, orderId: rec.order_id ?? null });
+
+    // Знімок розрахунку — джерело правди для збереженого кошторису:
+    // ціни, норми та додаткові параметри беремо саме з нього, а не з живого довідника.
+    const snap = (rec.calculation_json && typeof rec.calculation_json === "object"
+      ? (rec.calculation_json as EstimateSnapshotLike)
+      : null);
+    setSnapshot(snap);
+
+    const snapInputs = (snap?.inputs && typeof snap.inputs === "object"
+      ? (snap.inputs as Record<string, unknown>)
+      : null);
+
     if (rec.payload && typeof rec.payload === "object") {
-      setInput({ ...defaultInput, ...(rec.payload as I) });
-      setExtraState((e) => ({ ...e, ...(rec.payload as E) }));
+      setInput({ ...defaultInput, ...(rec.payload as I), ...((snapInputs ?? {}) as Partial<I>) } as I);
+      setExtraState((e) => ({
+        ...e,
+        ...(rec.payload as E),
+        ...((snapInputs ?? {}) as Partial<E>),
+      }));
+    } else if (snapInputs) {
+      setInput({ ...defaultInput, ...(snapInputs as Partial<I>) } as I);
+      setExtraState((e) => ({ ...e, ...(snapInputs as Partial<E>) }));
     }
-    setEditsId(newEditsId());
+
+    // Стабільний ключ правок — щоб ручні правки збереженого кошториса
+    // відновлювались при повторному відкритті, а не губились.
+    setEditsId(`est-${rec.id}`);
     setPending(null);
     cleanSigRef.current = "";
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [defaultInput]);
+
+  /** Перейти зі збережених (заморожених) цін на актуальні ціни довідника. */
+  const useCurrentPrices = useCallback(() => setSnapshot(null), []);
 
   return {
     input, setInput,
@@ -237,6 +263,8 @@ export function useEstimateDraft<I extends object, E extends object = Record<str
     signature,
     savedAt: lastSavedAt,
     pending,
+    snapshot,
+    useCurrentPrices,
     resumePending, discardPending,
     resetAll, markSaved, loadRecord,
     autosaveAllowed: AUTOSAVE_STATUSES.has(status),
