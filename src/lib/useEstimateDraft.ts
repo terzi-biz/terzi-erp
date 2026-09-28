@@ -39,6 +39,17 @@ interface Options<I, E extends object> {
 
 const newEditsId = () => Math.random().toString(36).slice(2, 10);
 
+/** Мінімальна форма знімка розрахунку, потрібна калькуляторам для відтворення цін. */
+export interface EstimateSnapshotLike {
+  inputs?: unknown;
+  prices?: Record<string, unknown>;
+  norms?: Record<string, unknown>;
+  priceSources?: Record<string, string>;
+  priceBookVersion?: number | null;
+  engineVersion?: string;
+  [k: string]: unknown;
+}
+
 /**
  * Єдиний стан чернетки кошторису для калькуляторів.
  *
@@ -69,6 +80,7 @@ export function useEstimateDraft<I extends object, E extends object = Record<str
   const [status, setStatus] = useState<string>("preliminary");
   const [editsId, setEditsId] = useState(() => newEditsId());
   const [editsSig, setEditsSig] = useState("");
+  const [snapshot, setSnapshot] = useState<EstimateSnapshotLike | null>(null);
 
   const [hydrated, setHydrated] = useState(false);
   const [pending, setPending] = useState<StoredDraft<I, E> | null>(null);
