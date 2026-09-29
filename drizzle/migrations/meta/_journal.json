@@ -176,6 +176,13 @@
       "when": 1790710558875,
       "tag": "0024_keycrm_status_map",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1790710686234,
+      "tag": "0025_orders_breakdown_list",
+      "breakpoints": true
     }
   ]
 }
