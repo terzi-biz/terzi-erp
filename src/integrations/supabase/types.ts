@@ -5661,6 +5661,30 @@ export type Database = {
           },
         ]
       }
+      keycrm_status_map: {
+        Row: {
+          commercial_status: Database["public"]["Enums"]["object_commercial_status"]
+          crm_status: string
+          id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          commercial_status: Database["public"]["Enums"]["object_commercial_status"]
+          crm_status: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          commercial_status?: Database["public"]["Enums"]["object_commercial_status"]
+          crm_status?: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kpi_results_shadow: {
         Row: {
           actual: number | null

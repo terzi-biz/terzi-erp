@@ -169,6 +169,13 @@
       "when": 1790665296065,
       "tag": "0023_analytics_overview_ordered_at_active",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790710558875,
+      "tag": "0024_keycrm_status_map",
+      "breakpoints": true
     }
   ]
 }
