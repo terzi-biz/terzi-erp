@@ -636,8 +636,18 @@ async function applyOrder(ctx: AdapterContext, ext: any) {
     "utm",
   ];
 
+  // Статус KeyCRM → комерційний статус ERP за редагованою таблицею відповідностей.
+  // Ручні статуси (усе, крім «new») не перетираються.
+  if (incoming.crm_status) {
+    const { data: map } = await db.from("keycrm_status_map").select("commercial_status").eq("crm_status", String(incoming.crm_status)).maybeSingle();
+    const mapped = (map as any)?.commercial_status as string | undefined;
+    const cur = (current as any)?.commercial_status as string | undefined;
+    if (mapped && (!internalId || !cur || cur === "new")) incoming.commercial_status = mapped;
+  }
+
   if (internalId) {
     const patch: Record<string, unknown> = { ...preservePatch(current, incoming, owned), management_data: managementData };
+    if (incoming.commercial_status && ((current as any)?.commercial_status ?? "new") === "new") patch.commercial_status = incoming.commercial_status;
     if (current?.utm) patch.utm = mergeUtm(current.utm as any, utm as any);
     const { error } = await db.from("orders").update(patch as any).eq("id", internalId);
     if (error) throw error;
