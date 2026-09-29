@@ -1,5 +1,7 @@
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
+import { useState } from "react";
 import { moneyShort, num, pct } from "./format";
+import { OrdersBreakdownDialog, type BreakdownPick } from "./OrdersBreakdownDialog";
 
 export interface HeroData {
   monthLabel: string;
@@ -18,20 +20,24 @@ export interface HeroData {
   ordersActive?: number | null;
   ordersBySource?: Split[];
   ordersByManager?: Split[];
+  periodFrom?: string;
+  periodTo?: string;
 }
 
 export interface Split { label: string; value: number; count: number }
 
-function SplitList({ title, rows, total }: { title: string; rows: Split[]; total: number | null }) {
+function SplitList({ title, rows, total, onPick }: { title: string; rows: Split[]; total: number | null; onPick?: (label: string) => void }) {
   return (
     <div className="min-w-0">
       <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/60">{title}</div>
       {rows.length === 0 ? <div className="text-[12px] text-white/50">немає даних</div> : (
         <ul className="space-y-1">
           {rows.slice(0, 6).map((r) => (
-            <li key={r.label} className="flex items-baseline justify-between gap-2 text-[12.5px]">
-              <span className="truncate text-white/85">{r.label}</span>
-              <span className="shrink-0 tz-num text-white">{moneyShort(r.value)}<span className="ml-1 text-white/50">· {num(r.count)}{total ? ` · ${pct((r.value / total) * 100, 0)}` : ""}</span></span>
+            <li key={r.label}>
+              <button type="button" onClick={() => onPick?.(r.label)} className="flex w-full items-baseline justify-between gap-2 rounded px-1 -mx-1 text-left text-[12.5px] hover:bg-white/10">
+                <span className="truncate text-white/85 underline decoration-white/20 underline-offset-2">{r.label}</span>
+                <span className="shrink-0 tz-num text-white">{moneyShort(r.value)}<span className="ml-1 text-white/50">· {num(r.count)}{total ? ` · ${pct((r.value / total) * 100, 0)}` : ""}</span></span>
+              </button>
             </li>
           ))}
         </ul>
@@ -56,6 +62,7 @@ function Delta({ cur, prev, label, abs = false }: { cur: number | null; prev: nu
 /** Верхня navy-смуга: сума договорів місяця vs план + ключові показники. */
 export function HeroStrip({ d }: { d: HeroData }) {
   const progress = d.plan && d.contractValue != null ? (d.contractValue / d.plan) * 100 : null;
+  const [pick, setPick] = useState<BreakdownPick>(null);
   const need = d.plan && d.contractValue != null ? Math.max(0, d.plan - d.contractValue) : null;
   return (
     <section
@@ -107,10 +114,11 @@ export function HeroStrip({ d }: { d: HeroData }) {
             <div className="tz-num mt-1 text-[26px] leading-tight md:text-[32px]">{d.ordersValue == null ? "немає даних" : moneyShort(d.ordersValue)}</div>
             <div className="mt-1 text-[12px] text-white/60">{d.ordersActive == null ? "" : `${num(d.ordersActive)} замовлень, крім відмов · за датою замовлення`}</div>
           </div>
-          <SplitList title="По каналах" rows={d.ordersBySource ?? []} total={d.ordersValue ?? null} />
-          <SplitList title="По менеджерах" rows={d.ordersByManager ?? []} total={d.ordersValue ?? null} />
+          <SplitList title="По каналах" rows={d.ordersBySource ?? []} total={d.ordersValue ?? null} onPick={(label) => setPick({ kind: "source", label })} />
+          <SplitList title="По менеджерах" rows={d.ordersByManager ?? []} total={d.ordersValue ?? null} onPick={(label) => setPick({ kind: "manager", label })} />
         </div>
       ) : null}
+    {d.periodFrom && d.periodTo ? <OrdersBreakdownDialog pick={pick} from={d.periodFrom} to={d.periodTo} onClose={() => setPick(null)} /> : null}
     </section>
   );
 }

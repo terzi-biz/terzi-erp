@@ -5661,6 +5661,30 @@ export type Database = {
           },
         ]
       }
+      keycrm_status_map: {
+        Row: {
+          commercial_status: Database["public"]["Enums"]["object_commercial_status"]
+          crm_status: string
+          id: string
+          note: string | null
+          updated_at: string
+        }
+        Insert: {
+          commercial_status: Database["public"]["Enums"]["object_commercial_status"]
+          crm_status: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Update: {
+          commercial_status?: Database["public"]["Enums"]["object_commercial_status"]
+          crm_status?: string
+          id?: string
+          note?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       kpi_results_shadow: {
         Row: {
           actual: number | null
@@ -10534,6 +10558,20 @@ export type Database = {
       }
       is_finance_user: { Args: { _uid: string }; Returns: boolean }
       normalize_marketing_source: { Args: { _raw: string }; Returns: string }
+      orders_breakdown_list: {
+        Args: { p_from: string; p_kind: string; p_label: string; p_to: string }
+        Returns: {
+          amount_total: number
+          commercial_status: string
+          id: string
+          manager: string
+          name: string
+          number: string
+          ordered_on: string
+          paid_total: number
+          source: string
+        }[]
+      }
       post_stock_count: { Args: { _count_id: string }; Returns: Json }
       post_stock_document: { Args: { _doc_id: string }; Returns: Json }
       stock_costs: {
