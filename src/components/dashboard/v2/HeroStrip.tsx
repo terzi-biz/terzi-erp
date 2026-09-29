@@ -13,6 +13,31 @@ export interface HeroData {
   /** Підпис порівняння, напр. «до 04.08–31.08» (попередній період тієї ж довжини). */
   prevLabel: string;
   daysLeft: number;
+  /** Сума активних замовлень місяця (усі, крім відмов) за датою замовлення. */
+  ordersValue?: number | null;
+  ordersActive?: number | null;
+  ordersBySource?: Split[];
+  ordersByManager?: Split[];
+}
+
+export interface Split { label: string; value: number; count: number }
+
+function SplitList({ title, rows, total }: { title: string; rows: Split[]; total: number | null }) {
+  return (
+    <div className="min-w-0">
+      <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white/60">{title}</div>
+      {rows.length === 0 ? <div className="text-[12px] text-white/50">немає даних</div> : (
+        <ul className="space-y-1">
+          {rows.slice(0, 6).map((r) => (
+            <li key={r.label} className="flex items-baseline justify-between gap-2 text-[12.5px]">
+              <span className="truncate text-white/85">{r.label}</span>
+              <span className="shrink-0 tz-num text-white">{moneyShort(r.value)}<span className="ml-1 text-white/50">· {num(r.count)}{total ? ` · ${pct((r.value / total) * 100, 0)}` : ""}</span></span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
 }
 
 function Delta({ cur, prev, label, abs = false }: { cur: number | null; prev: number | null; label: string; abs?: boolean }) {
@@ -75,6 +100,17 @@ export function HeroStrip({ d }: { d: HeroData }) {
           </div>
         </div>
       </div>
+      {d.ordersValue !== undefined ? (
+        <div className="relative mt-4 grid gap-4 border-t border-white/10 pt-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] md:gap-8">
+          <div className="min-w-0">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-white/60">Активні замовлення · {d.monthLabel}</div>
+            <div className="tz-num mt-1 text-[26px] leading-tight md:text-[32px]">{d.ordersValue == null ? "немає даних" : moneyShort(d.ordersValue)}</div>
+            <div className="mt-1 text-[12px] text-white/60">{d.ordersActive == null ? "" : `${num(d.ordersActive)} замовлень, крім відмов · за датою замовлення`}</div>
+          </div>
+          <SplitList title="По каналах" rows={d.ordersBySource ?? []} total={d.ordersValue ?? null} />
+          <SplitList title="По менеджерах" rows={d.ordersByManager ?? []} total={d.ordersValue ?? null} />
+        </div>
+      ) : null}
     </section>
   );
 }

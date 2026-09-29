@@ -178,6 +178,10 @@ function Dashboard() {
       prevAvgCheck: pc ? (pcv ?? 0) / pc : null,
       prevLabel: pp ? `до ${dm(pp.from)}–${dm(pp.to)}` : "до попер. періоду",
       daysLeft: Math.max(0, dim - Number(today.slice(8, 10))),
+      ordersValue: k(mCur, "orders_value"),
+      ordersActive: k(mCur, "orders_active"),
+      ordersBySource: ((mCur as any).sources ?? []).map((r: any) => ({ label: String(r.source ?? "Без джерела"), value: Number(r.orders_value ?? 0), count: Number(r.orders_active ?? 0) })).filter((r: any) => r.value > 0).sort((a: any, b: any) => b.value - a.value),
+      ordersByManager: ((mCur as any).managers ?? []).map((r: any) => ({ label: String(r.name ?? "Без менеджера"), value: Number(r.orders_value ?? 0), count: Number(r.orders_active ?? 0) })).filter((r: any) => r.value > 0).sort((a: any, b: any) => b.value - a.value),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mCur, mPrev, companyPlan, monthData?.prevPeriod, today]);
