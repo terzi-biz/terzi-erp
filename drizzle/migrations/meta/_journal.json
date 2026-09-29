@@ -162,6 +162,13 @@
       "when": 1790584040078,
       "tag": "0022_analytics_overview_orders_value",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790665296065,
+      "tag": "0023_analytics_overview_ordered_at_active",
+      "breakpoints": true
     }
   ]
 }
