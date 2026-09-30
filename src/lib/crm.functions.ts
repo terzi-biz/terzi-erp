@@ -136,11 +136,52 @@ export const listLeads = createServerFn({ method: "GET" })
   });
 
 
+/** Пошук наявних клієнтів за телефоном (від 4 цифр) або іменем — для форми нового ліда. */
+export const findClientsQuick = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ q: z.string().max(100) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const num = digits(data.q);
+    const term = likeTerm(data.q);
+    if (num.length < 4 && (!term || term.length < 2)) return [];
+    const parts: string[] = [];
+    if (num.length >= 4) parts.push(`phone_e164.ilike.*${num}*`, `phone.ilike.*${num}*`);
+    if (term && num.length < 4) parts.push(`name.ilike.*${term}*`);
+    const { data: rows, error } = await context.supabase.from("clients")
+      .select("id, name, phone, phone_e164, address").or(parts.join(",")).limit(8);
+    if (error) { console.error("findClientsQuick", error); return []; }
+    return rows ?? [];
+  });
+
 export const upsertLead = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: unknown) => leadInput.parse(d))
+  .inputValidator((d: unknown) => leadInput.extend({
+    client_name: z.string().trim().max(200).optional().nullable(),
+    client_phone: z.string().trim().max(50).optional().nullable(),
+  }).parse(d))
   .handler(async ({ data, context }) => {
-    const { id, ...rest } = data;
+    const { id, client_name, client_phone, ...rest } = data as any;
+    // Новий лід: прив'язуємо наявного клієнта за телефоном E.164 або створюємо картку клієнта одразу.
+    if (!id && !rest.client_id && (client_name || client_phone)) {
+      const { toE164 } = await import("./phone");
+      const e164 = client_phone ? toE164(client_phone) : null;
+      if (client_phone && !e164) throw new Error("Некоректний номер телефону");
+      let clientId: string | null = null;
+      if (e164) {
+        const { data: found } = await context.supabase.from("clients").select("id").eq("phone_e164", e164).limit(1).maybeSingle();
+        clientId = (found?.id as string | undefined) ?? null;
+      }
+      if (!clientId) {
+        const { data: created, error: cErr } = await context.supabase.from("clients").insert({
+          name: client_name || e164 || "Без імені", phone: e164, owner_id: context.userId, status: "lead",
+          address: rest.address ?? null, source: rest.source ?? null,
+        } as any).select("id").single();
+        if (cErr) { console.error("upsertLead client", cErr); throw new Error("Не вдалося створити клієнта"); }
+        clientId = created.id as string;
+      }
+      rest.client_id = clientId;
+      if (e164) rest.phone_e164 = e164;
+    }
     const { data: out, error } = id
       ? await context.supabase.from("crm_leads").update(rest).eq("id", id).select().single()
       : await context.supabase.from("crm_leads").insert({ ...rest, owner_id: context.userId, assigned_to: context.userId }).select().single();
