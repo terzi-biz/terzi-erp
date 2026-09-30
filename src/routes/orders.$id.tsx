@@ -6,6 +6,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall, Radar } from "lucide-react";
 import { OrderAttachments } from "@/components/files/OrderAttachments";
+import { SourceSelect, StaffSelect } from "@/components/crm/RefSelects";
 import { SourceTrace } from "@/components/crm/SourceTrace";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -286,7 +287,7 @@ function OverviewTab({ o }: { o: any }) {
   const m = readManagement(o);
   const [edit, setEdit] = useState(false);
   const [form, setForm] = useState<any>(() => ({
-    address: o.address ?? "", source: o.source ?? "", crm_link: o.crm_link ?? "",
+    address: o.address ?? "", source: o.source ?? "", crm_link: o.crm_link ?? "", manager_id: o.manager_id ?? "",
     planned_start: dateInput(o.planned_start), planned_end: dateInput(o.planned_end),
     services: (o.services ?? []).map((s: any) => s.service),
     estimate_total: m.estimate_total ?? "", contract_total: m.contract_total ?? "",
@@ -303,6 +304,7 @@ function OverviewTab({ o }: { o: any }) {
   const mut = useMutation({
     mutationFn: () => saveFn({ data: {
       id: o.id,
+      manager_id: form.manager_id || null,
       address: strOrNull(form.address),
       source: strOrNull(form.source),
       crm_link: strOrNull(form.crm_link),
@@ -353,16 +355,18 @@ function OverviewTab({ o }: { o: any }) {
         <div className="grid md:grid-cols-2 gap-3">
           <label className="text-xs space-y-1"><span className="text-muted-foreground">Адреса</span>
             <input className={inputCls} value={form.address} onChange={(e) => set("address", e.target.value)} /></label>
+          <label className="text-xs space-y-1"><span className="text-muted-foreground">Менеджер з продажу (рахується на дашборді)</span>
+            <StaffSelect className={inputCls} value={form.manager_id} onChange={(v) => set("manager_id", v)} /></label>
           <label className="text-xs space-y-1"><span className="text-muted-foreground">Джерело</span>
-            <input className={inputCls} value={form.source} onChange={(e) => set("source", e.target.value)} /></label>
+            <SourceSelect className={inputCls} value={form.source} onChange={(v) => set("source", v)} /></label>
           <label className="text-xs space-y-1"><span className="text-muted-foreground">Деталі джерела</span>
             <input className={inputCls} value={form.source_detail} onChange={(e) => set("source_detail", e.target.value)} /></label>
           <label className="text-xs space-y-1"><span className="text-muted-foreground">Посилання KeyCRM</span>
             <input className={inputCls} value={form.crm_link} onChange={(e) => set("crm_link", e.target.value)} placeholder="https://app.key.crm/…" /></label>
-          <label className="text-xs space-y-1"><span className="text-muted-foreground">Відповідальний</span>
-            <input className={inputCls} value={form.responsible_name} onChange={(e) => set("responsible_name", e.target.value)} /></label>
+          <label className="text-xs space-y-1"><span className="text-muted-foreground">Відповідальний за замір</span>
+            <StaffSelect byName className={inputCls} value={form.responsible_name} onChange={(v) => set("responsible_name", v)} /></label>
           <label className="text-xs space-y-1"><span className="text-muted-foreground">Прораб</span>
-            <input className={inputCls} value={form.foreman_name} onChange={(e) => set("foreman_name", e.target.value)} /></label>
+            <StaffSelect byName className={inputCls} value={form.foreman_name} onChange={(v) => set("foreman_name", v)} /></label>
           <label className="text-xs space-y-1 md:col-span-2"><span className="text-muted-foreground">Мітки видів робіт (через кому)</span>
             <input className={inputCls} value={form.work_tags} onChange={(e) => set("work_tags", e.target.value)} placeholder="стяжка, покрівля, демонтаж" /></label>
         </div>
