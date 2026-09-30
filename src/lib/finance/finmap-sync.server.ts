@@ -315,7 +315,8 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
       startDate = Math.min(Date.parse(st.cursor), tomorrow, Date.now() - 86_400_000);
     }
   }
-  const endDate = opts.to ? Date.parse(kyivDayBoundary(opts.to, true)) : undefined;
+  // Без явного кінця Finmap повертає лише операції до «зараз»; беремо горизонт +60 днів, щоб майбутні/перенесені дати теж оновлювались.
+  const endDate = opts.to ? Date.parse(kyivDayBoundary(opts.to, true)) : Date.now() + 60 * 86_400_000;
 
   // Довідники для локальних зв'язків
   const [{ data: accs }, { data: cats }, { data: cps }, { data: projs }] = await Promise.all([
