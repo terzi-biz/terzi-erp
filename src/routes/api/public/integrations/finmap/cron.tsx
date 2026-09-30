@@ -21,8 +21,10 @@ export const Route = createFileRoute("/api/public/integrations/finmap/cron")({
         const { runFinmapSync } = await import("@/lib/finance/finmap-sync.server");
         try {
           const results = await runFinmapSync(supabaseAdmin, { mode: "incremental" });
-          const summary = results.map((r) => ({ entity: r.entity, status: r.status, inserted: r.inserted, updated: r.updated }));
-          return Response.json({ ok: results.every((r) => r.status !== "error"), summary });
+          const { reconcileFinmapDeletions } = await import("@/lib/finance/finmap-sync.server");
+          const rec = await reconcileFinmapDeletions(supabaseAdmin);
+          const summary = [...results, rec].map((r) => ({ entity: r.entity, status: r.status, inserted: r.inserted, updated: r.updated }));
+          return Response.json({ ok: results.every((r) => r.status !== "error") && rec.status !== "error", summary });
         } catch (e) {
           console.error("finmap cron", e);
           return Response.json({ ok: false }, { status: 200 });

@@ -113,7 +113,7 @@ async function loadPayables(supabase: any, today: string): Promise<{ payables: P
     supabase
       .from("finance_transactions")
       .select("id,kind,amount,amount_uah,op_date,payment_date,state,counterparty_id,order_id")
-      .eq("kind", "expense"),
+      .neq("state", "deleted_in_finmap").eq("kind", "expense"),
     supabase.from("finance_transaction_links").select("transaction_id,entity_type,entity_id,status").eq("entity_type", "supplier_obligation"),
     supabase.from("finance_counterparties").select("id,name,kind"),
     supabase.from("finmap_invoices").select("id,finmap_id,number,counterparty_id,counterparty_name,amount,amount_uah,issue_date,due_date,status,order_id,match_status"),

@@ -28,7 +28,7 @@ export const getMarketingCalculatorFacts = createServerFn({ method: "POST" })
     const { data: fcats } = await db.from("finance_categories").select("id").eq("cost_class", "financing");
     const excluded = new Set((fcats ?? []).map((c) => c.id));
     const { data: income, error: incErr } = await db.from("finance_transactions")
-      .select("op_date,amount_uah,amount,category_id").eq("kind", "income")
+      .select("op_date,amount_uah,amount,category_id").eq("state", "actual").eq("kind", "income")
       .gte("op_date", startOf(firstPrev)).lt("op_date", startOf(month)).limit(10000);
     const byMonth = new Map<string, number>();
     for (const t of income ?? []) {

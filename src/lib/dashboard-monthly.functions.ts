@@ -83,7 +83,7 @@ export const getMonthlySummary = createServerFn({ method: "GET" })
 
     if (isFin) {
       const [tx, cats] = await Promise.all([
-        fetchAll<any>((a, b) => sb.from("finance_transactions").select("kind,op_date,amount_uah,category_id")
+        fetchAll<any>((a, b) => sb.from("finance_transactions").select("kind,op_date,amount_uah,category_id").eq("state", "actual")
           .gte("op_date", startDate).lte("op_date", today).in("kind", ["income", "expense"]).range(a, b)),
         fetchAll<any>((a, b) => sb.from("finance_categories").select("id,name").range(a, b)),
       ]);

@@ -25,7 +25,7 @@ export const getCeoFinance = createServerFn({ method: "POST" })
     }
 
     const [txR, ordersR, estR, svcR, catR, accR, invR, anR, perR] = await Promise.all([
-      sb.from("finance_transactions").select("order_id,kind,amount,amount_uah,category_id").gte("op_date", data.from).lte("op_date", data.to).limit(50000),
+      sb.from("finance_transactions").select("order_id,kind,amount,amount_uah,category_id").eq("state", "actual").gte("op_date", data.from).lte("op_date", data.to).limit(50000),
       sb.from("orders").select("id,production_status").limit(10000),
       sb.from("estimates").select("id,order_id,total_client,total_cost,status,created_at,approved_at").not("order_id", "is", null).limit(30000),
       sb.from("order_services").select("order_id,service").limit(30000),

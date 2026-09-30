@@ -2,13 +2,14 @@
  * Finmap → TERZI: ідемпотентна синхронізація довідників і операцій.
  * Finmap — джерело фактичного руху грошей; ERP не створює дублікатів банківських операцій.
  */
+import { kyivDayBoundary, kyivToday } from "@/lib/kyiv-time";
 import { finmap, FinmapError, type FinmapOperation, type FinmapRef } from "./finmap-client.server";
 
 type Db = any;
 
 export type SyncEntity =
   | "health" | "currencies" | "accounts" | "categories" | "projects"
-  | "counterparties" | "operations" | "invoices" | "match";
+  | "counterparties" | "operations" | "invoices" | "match" | "reconcile";
 
 export type SyncResult = {
   entity: SyncEntity;
@@ -123,12 +124,13 @@ export async function syncCounterparties(db: Db): Promise<SyncResult> {
 
 /* ---------- Хелпери збагаченої моделі операцій ---------- */
 
-/** Будь-яке представлення дати Finmap → YYYY-MM-DD (UTC). */
-function isoDay(v: unknown): string | null {
+/** Будь-яке представлення дати Finmap → YYYY-MM-DD за календарем Europe/Kyiv. */
+export function isoDay(v: unknown): string | null {
   if (v == null || v === "") return null;
+  if (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
   const n = typeof v === "number" ? v : Number(v);
   const d = Number.isFinite(n) ? new Date(n) : new Date(String(v));
-  return Number.isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
+  return Number.isNaN(d.getTime()) ? null : kyivToday(d);
 }
 
 /**
@@ -140,7 +142,7 @@ function operationState(raw: any): "actual" | "scheduled" {
   if (["planned", "scheduled", "future", "expected"].includes(explicit)) return "scheduled";
   if (raw?.approved === false) return "scheduled";
   const pay = isoDay(raw?.dateOfPayment ?? raw?.paymentDate ?? raw?.date);
-  const today = new Date().toISOString().slice(0, 10);
+  const today = kyivToday();
   if (pay && pay > today && raw?.approved !== true) return "scheduled";
   return "actual";
 }
@@ -303,7 +305,7 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
   const maxPages = opts.maxPages ?? 300;
 
   let startDate: number | undefined;
-  if (opts.from) startDate = Date.parse(`${opts.from}T00:00:00Z`);
+  if (opts.from) startDate = Date.parse(kyivDayBoundary(opts.from));
   else {
     const { data: st } = await db.from("finmap_sync_state").select("cursor").eq("entity", "operations").maybeSingle();
     if (st?.cursor) {
@@ -313,7 +315,8 @@ export async function syncOperations(db: Db, opts: { from?: string; to?: string;
       startDate = Math.min(Date.parse(st.cursor), tomorrow, Date.now() - 86_400_000);
     }
   }
-  const endDate = opts.to ? Date.parse(`${opts.to}T23:59:59Z`) : undefined;
+  // Без явного кінця Finmap повертає лише операції до «зараз»; беремо горизонт +60 днів, щоб майбутні/перенесені дати теж оновлювались.
+  const endDate = opts.to ? Date.parse(kyivDayBoundary(opts.to, true)) : Date.now() + 60 * 86_400_000;
 
   // Довідники для локальних зв'язків
   const [{ data: accs }, { data: cats }, { data: cps }, { data: projs }] = await Promise.all([
@@ -461,4 +464,144 @@ export async function runFinmapSync(
     }
   }
   return results;
+}
+
+/* ---------- Звірка видалених у Finmap операцій ---------- */
+
+export type FinmapReconcileResult = SyncResult & { deleted: string[]; restored: string[]; from: string; to: string };
+
+/** Усі операції Finmap за вікно [fromMs, toMs] з пагінацією. */
+export async function fetchFinmapOperations(fromMs: number, toMs: number, pageSize = 100, maxPages = 500): Promise<FinmapOperation[]> {
+  const out: FinmapOperation[] = [];
+  for (let page = 0; page < maxPages; page++) {
+    const { list, total } = await finmap.operations({ startDate: fromMs, endDate: toMs, limit: pageSize, offset: page * pageSize });
+    const ops = list ?? [];
+    out.push(...ops);
+    if (ops.length < pageSize || (total && out.length >= total)) break;
+  }
+  return out;
+}
+
+/**
+ * Soft-delete операцій, яких більше немає у Finmap (state='deleted_in_finmap'),
+ * і відновлення, якщо вони знову з'явились. Фізично нічого не видаляється; у Finmap нічого не пишеться.
+ * Вікно Finmap береться на добу ширше з обох боків, щоб межові операції не позначались хибно.
+ */
+export async function reconcileFinmapDeletions(
+  db: Db,
+  opts: { from?: string; to?: string; userId?: string | null } = {},
+): Promise<FinmapReconcileResult> {
+  const t0 = Date.now();
+  const to = opts.to ?? kyivToday();
+  const from = opts.from ?? kyivToday(new Date(Date.now() - 120 * 86_400_000));
+  const res: FinmapReconcileResult = { entity: "reconcile", status: "ok", fetched: 0, inserted: 0, updated: 0, skipped: 0, deleted: [], restored: [], from, to };
+  try {
+    const ops = await fetchFinmapOperations(Date.parse(kyivDayBoundary(from)) - 86_400_000, Date.parse(kyivDayBoundary(to, true)) + 86_400_000);
+    res.fetched = ops.length;
+    const live = new Set(ops.map((o) => o.id));
+
+    const erp: any[] = [];
+    for (let a = 0; ; a += 1000) {
+      const { data, error } = await db.from("finance_transactions")
+        .select("id,finmap_id,state,payload").not("finmap_id", "is", null)
+        .gte("op_date", from).lte("op_date", to).range(a, a + 999);
+      if (error) throw new Error(`finance_transactions: ${error.message}`);
+      erp.push(...(data ?? []));
+      if ((data ?? []).length < 1000) break;
+    }
+    const now = new Date().toISOString();
+    for (const t of erp) {
+      if (!live.has(t.finmap_id) && t.state !== "deleted_in_finmap") {
+        const payload = { ...(t.payload ?? {}), _terzi_prev_state: t.state, _terzi_deleted_detected_at: now };
+        const { error } = await db.from("finance_transactions")
+          .update({ state: "deleted_in_finmap", sync_status: "deleted_in_finmap", payload, synced_at: now }).eq("id", t.id);
+        if (error) throw new Error(error.message);
+        res.deleted.push(t.finmap_id);
+      }
+    }
+    // Відновлення: операція знову є у Finmap, а в ERP позначена видаленою (включно з тими, чия дата змінилась).
+    const liveIds = [...live];
+    for (let i = 0; i < liveIds.length; i += 300) {
+      const { data } = await db.from("finance_transactions").select("id,finmap_id,payload,approved")
+        .eq("state", "deleted_in_finmap").in("finmap_id", liveIds.slice(i, i + 300));
+      for (const t of data ?? []) {
+        const op = ops.find((o) => o.id === t.finmap_id);
+        const state = operationState(op ?? t.payload);
+        const { error } = await db.from("finance_transactions")
+          .update({ state, sync_status: "synced", payload: op ?? t.payload, synced_at: now }).eq("id", t.id);
+        if (error) throw new Error(error.message);
+        res.restored.push(t.finmap_id);
+      }
+    }
+    res.updated = res.deleted.length + res.restored.length;
+    res.skipped = erp.length;
+    res.message = `Вікно ${from}…${to}: Finmap ${ops.length}, ERP ${erp.length}; позначено видаленими ${res.deleted.length}` +
+      (res.deleted.length ? ` [${res.deleted.slice(0, 50).join(",")}]` : "") +
+      `; відновлено ${res.restored.length}` + (res.restored.length ? ` [${res.restored.slice(0, 50).join(",")}]` : "");
+  } catch (e: any) {
+    res.status = "error";
+    res.message = String(e?.message ?? e);
+  }
+  await logSync(db, res, "reconcile", Date.now() - t0, opts.userId);
+  return res;
+}
+
+/* ---------- Помісячна звірка ERP ↔ Finmap (живий запит) ---------- */
+
+type Bucket = { count: number; sum: number };
+export type MonthCompare = {
+  month: string;
+  erp: Record<"income" | "expense" | "transfer", Bucket>;
+  finmap: Record<"income" | "expense" | "transfer", Bucket>;
+  ok: boolean;
+  diffIds: { finmap_id: string; issue: string }[];
+};
+
+const kindOf = (t: string) => (t === "income" ? "income" : t === "transfer" ? "transfer" : "expense") as "income" | "expense" | "transfer";
+const emptyB = () => ({ income: { count: 0, sum: 0 }, expense: { count: 0, sum: 0 }, transfer: { count: 0, sum: 0 } });
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/** Порівняння фактичних (approved, не видалених) операцій за місяцями у Europe/Kyiv. */
+export async function compareFinmapMonths(db: Db, from: string, to: string): Promise<MonthCompare[]> {
+  const ops = await fetchFinmapOperations(Date.parse(kyivDayBoundary(from)), Date.parse(kyivDayBoundary(to, true)));
+  const fm = new Map<string, { month: string; kind: string; sum: number }>();
+  for (const o of ops) {
+    if ((o as any).approved !== true) continue;
+    const day = isoDay(o.date);
+    if (!day || day < from || day > to) continue;
+    fm.set(o.id, { month: day.slice(0, 7), kind: kindOf(o.type), sum: Math.abs(Number(o.companyCurrencySum ?? o.sum) || 0) });
+  }
+  const er = new Map<string, { month: string; kind: string; sum: number }>();
+  for (let a = 0; ; a += 1000) {
+    const { data, error } = await db.from("finance_transactions")
+      .select("finmap_id,kind,op_date,amount,amount_uah,approved").eq("state", "actual").not("finmap_id", "is", null)
+      .gte("op_date", from).lte("op_date", to).range(a, a + 999);
+    if (error) throw new Error(error.message);
+    for (const t of data ?? []) {
+      if (t.approved === false) continue;
+      er.set(t.finmap_id, { month: String(t.op_date).slice(0, 7), kind: t.kind, sum: Math.abs(Number(t.amount_uah ?? t.amount) || 0) });
+    }
+    if ((data ?? []).length < 1000) break;
+  }
+  const months = new Map<string, MonthCompare>();
+  const get = (m: string) => {
+    if (!months.has(m)) months.set(m, { month: m, erp: emptyB(), finmap: emptyB(), ok: true, diffIds: [] });
+    return months.get(m)!;
+  };
+  for (const v of fm.values()) { const b = get(v.month).finmap[v.kind as "income"]; b.count++; b.sum += v.sum; }
+  for (const v of er.values()) { const b = get(v.month).erp[v.kind as "income"]; b.count++; b.sum += v.sum; }
+  for (const [id, f] of fm) {
+    const e = er.get(id);
+    if (!e) get(f.month).diffIds.push({ finmap_id: id, issue: "немає в ERP" });
+    else if (e.month !== f.month) get(f.month).diffIds.push({ finmap_id: id, issue: `інший місяць в ERP (${e.month})` });
+    else if (e.kind !== f.kind) get(f.month).diffIds.push({ finmap_id: id, issue: `тип ${e.kind} ≠ ${f.kind}` });
+    else if (Math.abs(e.sum - f.sum) > 0.01) get(f.month).diffIds.push({ finmap_id: id, issue: `сума ${r2(e.sum)} ≠ ${r2(f.sum)}` });
+  }
+  for (const [id, e] of er) if (!fm.has(id)) get(e.month).diffIds.push({ finmap_id: id, issue: "немає серед фактичних у Finmap" });
+  const out = [...months.values()].sort((a, b) => a.month.localeCompare(b.month));
+  for (const m of out) {
+    for (const k of ["income", "expense", "transfer"] as const) { m.erp[k].sum = r2(m.erp[k].sum); m.finmap[k].sum = r2(m.finmap[k].sum); }
+    m.ok = m.diffIds.length === 0;
+  }
+  return out;
 }

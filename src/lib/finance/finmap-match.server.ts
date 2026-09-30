@@ -271,7 +271,7 @@ export async function backfillTransactionLinks(db: Db, opts: MatchOptions = {}):
     const { data: rows } = await db
       .from("finance_transactions")
       .select("id,kind,amount,amount_uah,order_id,client_id,finance_project_id,counterparty_id,comment,op_date,match_status")
-      .or("order_id.is.null,client_id.is.null")
+      .neq("state", "deleted_in_finmap").or("order_id.is.null,client_id.is.null")
       .range(from, from + PAGE - 1);
     const list = (rows ?? []) as any[];
     if (!list.length) break;

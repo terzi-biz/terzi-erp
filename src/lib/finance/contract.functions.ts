@@ -37,7 +37,7 @@ async function loadReceivables(context: any, orderId: string) {
     context.supabase
       .from("finance_transactions")
       .select("id,kind,amount,amount_uah,op_date,counterparty:counterparty_id(client_id,name)")
-      .eq("order_id", orderId),
+      .eq("order_id", orderId).eq("state", "actual"),
   ]);
   if (!order) throw new Error("Замовлення не знайдено");
 

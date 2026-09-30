@@ -1,4 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
+import { FinmapMonthlyReconcile } from "@/components/finance/FinmapMonthlyReconcile";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
@@ -211,6 +212,7 @@ function FinancePage() {
         {tab === "planfact" && <PlanFactSection period={period} />}
         {tab === "reconcile" && (
           <div className="space-y-4">
+            <FinmapMonthlyReconcile />
             <ManagementReconcileBlock />
             <AllocationReviewSection />
             <ReconcileSection period={period} />
