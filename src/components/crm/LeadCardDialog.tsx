@@ -17,6 +17,9 @@ import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 import { LeadMeasurementsPanel } from "@/components/crm/LeadMeasurementsPanel";
 import { SourceBadge } from "@/components/crm/SourceBadge";
+import { MessengerLinks } from "@/components/crm/MessengerLinks";
+import { OrderReceivables } from "@/components/finance/OrderReceivables";
+import { Calculator } from "lucide-react";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
 const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";
@@ -231,20 +234,48 @@ export function LeadCardDialog({
                     <span className="font-semibold">{lead?.client_name ?? "Ім'я не вказане"}</span>
                   </div>
                   <Field label="Телефон"><input className={inp} value={form.phone_e164 ?? ""} onChange={(e) => setForm({ ...form, phone_e164: e.target.value })} /></Field>
-                  <div className="flex gap-2">
+                  <div className="hidden md:block space-y-2">
                     <a href={form.phone_e164 ? `tel:${form.phone_e164}` : undefined}
-                      className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-semibold ${form.phone_e164 ? "bg-sky-600 text-white" : "pointer-events-none bg-muted text-muted-foreground"}`}>
+                      className={`inline-flex w-full items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold ${form.phone_e164 ? "bg-primary text-primary-foreground" : "pointer-events-none bg-muted text-muted-foreground"}`}>
                       <Phone className="h-4 w-4" /> Подзвонити
                     </a>
-                    <a href={form.phone_e164 ? `sms:${form.phone_e164}` : undefined}
-                      className={`inline-flex flex-1 items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-semibold ${form.phone_e164 ? "border-border" : "pointer-events-none border-border text-muted-foreground"}`}>
-                      <MessageSquare className="h-4 w-4" /> Написати
-                    </a>
+                    <MessengerLinks phone={form.phone_e164} />
                   </div>
                   <Field label="Адреса"><input className={inp} value={form.address ?? ""} onChange={(e) => setForm({ ...form, address: e.target.value })} /></Field>
                   <Field label="Замітка"><textarea rows={3} className={inp} value={form.notes ?? ""} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
                 </Section>
               </div>
+
+              <Section title="Замовлення, кошторис і оплати">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                  <button type="button" onClick={() => { sessionStorage.setItem("terzi.pendingLead", leadId); navigate({ to: "/calc" }); }}
+                    className={`${crmButtonOutline} justify-center`}>
+                    <Calculator className="h-4 w-4" /> Розрахувати кошторис
+                  </button>
+                  {lead?.order_id ? (
+                    <button type="button" onClick={() => navigate({ to: "/orders/$id", params: { id: lead.order_id } })}
+                      className={`${crmButtonOutline} justify-center`}>
+                      <Briefcase className="h-4 w-4" /> Картка замовлення
+                    </button>
+                  ) : (
+                    <button type="button" onClick={() => convert.mutate()} disabled={convert.isPending}
+                      className={`${crmButtonOutline} justify-center disabled:opacity-60`}>
+                      {convert.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />} Створити замовлення
+                    </button>
+                  )}
+                  {lead?.client_id ? (
+                    <button type="button" onClick={() => navigate({ to: "/clients/$id", params: { id: lead.client_id } })}
+                      className={`${crmButtonOutline} justify-center`}>
+                      <User className="h-4 w-4" /> Картка клієнта
+                    </button>
+                  ) : null}
+                </div>
+                {lead?.order_id ? (
+                  <div className="mt-3"><OrderReceivables orderId={lead.order_id} /></div>
+                ) : (
+                  <p className="mt-2 text-xs text-muted-foreground">Договір, оплати з Finmap і борг зʼявляться після створення замовлення.</p>
+                )}
+              </Section>
 
               <div className="max-md:order-first">
               <LeadMeasurementsPanel
@@ -253,6 +284,7 @@ export function LeadCardDialog({
                 measurements={(data?.measurements ?? []) as any[]}
               />
               </div>
+
 
               {LEAD_FIELD_GROUPS.map((g) => (
                 <Section key={g.key} title={g.label}>
