@@ -37,7 +37,7 @@ export const getOrderFinance = createServerFn({ method: "POST" })
         context.supabase
           .from("finance_transactions")
           .select("id,kind,amount,amount_uah,op_date,comment,category:category_id(name,cost_class),counterparty:counterparty_id(name),account:account_id(name)")
-          .eq("order_id", orderId)
+          .eq("order_id", orderId).eq("state", "actual")
           .order("op_date", { ascending: false }),
         context.supabase
           .from("payroll_items")
@@ -220,7 +220,7 @@ export const listOrdersFinance = createServerFn({ method: "POST" })
 
     let txq = context.supabase
       .from("finance_transactions")
-      .select("order_id,kind,amount,amount_uah,op_date,category_id")
+      .select("order_id,kind,amount,amount_uah,op_date,category_id").eq("state", "actual")
       .not("order_id", "is", null)
       .limit(20000);
     if (data.from) txq = txq.gte("op_date", data.from);

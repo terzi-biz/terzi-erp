@@ -195,7 +195,7 @@ export const reconcilePayrollPayments = createServerFn({ method: "POST" })
       context.supabase.from("payroll_calculations").select("id,employee_id,total_payable,paid_amount").eq("period_id", p.id),
       context.supabase.from("finance_transactions")
         .select("id,amount,amount_uah,op_date,counterparty_id,counterparty:counterparty_id(employee_id)")
-        .eq("kind", "expense").gte("op_date", monthStart).lte("op_date", monthEnd),
+        .eq("state", "actual").eq("kind", "expense").gte("op_date", monthStart).lte("op_date", monthEnd),
     ]);
 
     let matched = 0;

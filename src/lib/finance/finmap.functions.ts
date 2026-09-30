@@ -147,7 +147,7 @@ export const getFinanceOverview = createServerFn({ method: "POST" })
     await assertFinance(context);
     const [{ data: accounts }, { data: tx }, { data: invoices }, { data: payroll }, { data: categories }] = await Promise.all([
       context.supabase.from("finance_accounts").select("id,name,currency,opening_balance,actual_balance,balance_synced_at,source").eq("archived", false).order("name"),
-      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,order_id,client_id,counterparty_id,category_id,match_status").gte("op_date", data.from).lte("op_date", data.to),
+      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,op_date,order_id,client_id,counterparty_id,category_id,match_status").eq("state", "actual").gte("op_date", data.from).lte("op_date", data.to),
       context.supabase.from("invoices").select("id,total,paid,status,due_date,client_id,order_id"),
       context.supabase
         .from("payroll_calculations")
@@ -379,7 +379,7 @@ export const getPlanFact = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertFinance(context);
     const [{ data: tx }, { data: cats }, { data: estimates }] = await Promise.all([
-      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,category_id,order_id").gte("op_date", data.from).lte("op_date", data.to),
+      context.supabase.from("finance_transactions").select("kind,amount,amount_uah,category_id,order_id").eq("state", "actual").gte("op_date", data.from).lte("op_date", data.to),
       context.supabase.from("finance_categories").select("id,name,kind,plan_article"),
       context.supabase.from("estimates").select("id,order_id,total_client,total_cost,internal_lines,created_at").gte("created_at", `${data.from}T00:00:00Z`).lte("created_at", `${data.to}T23:59:59Z`),
     ]);
@@ -437,7 +437,7 @@ export const getFinanceReconciliation = createServerFn({ method: "POST" })
 
     let txq = context.supabase
       .from("finance_transactions")
-      .select("id,kind,amount,amount_uah,op_date,order_id,client_id,match_status,comment,category:category_id(id,name,cost_class),counterparty:counterparty_id(name)")
+      .select("id,kind,amount,amount_uah,op_date,order_id,client_id,match_status,comment,category:category_id(id,name,cost_class),counterparty:counterparty_id(name)").eq("state", "actual")
       .limit(20000);
     if (data.from) txq = txq.gte("op_date", data.from);
     if (data.to) txq = txq.lte("op_date", data.to);
@@ -514,4 +514,30 @@ export const saveCategoryCostClass = createServerFn({ method: "POST" })
       old_value: { cost_class: before?.cost_class ?? null }, new_value: { cost_class: data.cost_class },
     });
     return { ok: true };
+  });
+
+// ---------------- Звірка з Finmap: помісячно + видалені операції ----------------
+
+const monthRange = z.object({
+  from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+
+export const getFinmapMonthlyReconciliation = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => monthRange.parse(d))
+  .handler(async ({ context, data }) => {
+    await assertFinance(context);
+    const { compareFinmapMonths } = await import("./finmap-sync.server");
+    return { months: await compareFinmapMonths(context.supabase, data.from, data.to) };
+  });
+
+export const runFinmapReconcileNow = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => monthRange.partial().parse(d ?? {}))
+  .handler(async ({ context, data }) => {
+    await assertFinance(context);
+    const { reconcileFinmapDeletions } = await import("./finmap-sync.server");
+    const r = await reconcileFinmapDeletions(context.supabase, { ...data, userId: context.userId });
+    return { status: r.status, from: r.from, to: r.to, fetched: r.fetched, deleted: r.deleted, restored: r.restored, message: r.message };
   });

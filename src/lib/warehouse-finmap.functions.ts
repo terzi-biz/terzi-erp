@@ -31,7 +31,7 @@ export const getStockDocFinmap = createServerFn({ method: "POST" })
     const { data: tx } = await sb
       .from("finance_transactions")
       .select("id, op_date, amount_uah, amount, comment, kind")
-      .eq("kind", "expense").gte("op_date", from).lte("op_date", to)
+      .eq("state", "actual").eq("kind", "expense").gte("op_date", from).lte("op_date", to)
       .order("op_date", { ascending: false }).limit(200);
     const total = Number(doc.total_cost) || 0;
     const linked = new Set((links ?? []).map((l: any) => l.transaction_id));

@@ -168,6 +168,7 @@ export const getCounterpartyCashflow = createServerFn({ method: "POST" })
         "id,kind,amount,amount_uah,op_date,comment,order_id,match_status,counterparty_id," +
           "counterparty:counterparty_id(id,name,kind,client_id),category:category_id(name),account:account_id(name)",
       )
+      .eq("state", "actual")
       .order("op_date", { ascending: false })
       .limit(data.limit ?? 300);
 
@@ -222,7 +223,7 @@ export const listCounterpartyLedger = createServerFn({ method: "POST" })
     for (let from = 0; ; from += 1000) {
       const { data: page, error } = await sb
         .from("finance_transactions")
-        .select("id,kind,amount,amount_uah,op_date,order_id,counterparty_id,client_id,counterparty:counterparty_id(id,name,kind,client_id,match_source,client:client_id(name))")
+        .select("id,kind,amount,amount_uah,op_date,order_id,counterparty_id,client_id,counterparty:counterparty_id(id,name,kind,client_id,match_source,client:client_id(name))").eq("state", "actual")
         .gte("op_date", data.from)
         .lte("op_date", data.to)
         .range(from, from + 999);
