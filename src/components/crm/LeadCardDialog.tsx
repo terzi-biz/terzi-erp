@@ -156,7 +156,6 @@ export function LeadCardDialog({
               {form.direction ? <CrmSpec label="Напрям" value={form.direction} tone="gold" /> : null}
               {fields["object_type"] ? <CrmSpec label="Тип об'єкта" value={String(fields["object_type"])} /> : null}
               <span className="min-w-[140px]">
-                <PayStatus total={Number(fields["contract_sum"] ?? form.budget ?? 0)} paid={Number(fields["paid_sum"] ?? 0)} />
               </span>
             </div>
 
