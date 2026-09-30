@@ -1,9 +1,10 @@
 import { useBlocker } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RotateCcw, Save, Check, CloudOff, Loader2, History, Lock, X } from "lucide-react";
+import { RotateCcw, Save, Check, CloudOff, Loader2, History, Lock, X, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { OrderAttachments } from "@/components/files/OrderAttachments";
 import { recordDraftVersion, listEstimateVersions, getEstimateVersion } from "@/lib/estimates.functions";
 
 interface DraftLike {
@@ -20,6 +21,7 @@ interface DraftLike {
   loadRecord?: (rec: any) => void;
   snapshot?: { savedAt?: unknown; createdAt?: unknown; [k: string]: unknown } | null;
   useCurrentPrices?: () => void;
+  link?: { orderId: string | null };
 }
 
 const KIND_LABEL: Record<string, string> = { draft: "Робоча", approved: "Затверджена", production: "Виробнича" };
@@ -53,6 +55,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
   const [askReset, setAskReset] = useState(false);
   const savingRef = useRef(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [showFiles, setShowFiles] = useState(false);
   const qc = useQueryClient();
   const recordFn = useServerFn(recordDraftVersion);
   const listFn = useServerFn(listEstimateVersions);
@@ -145,6 +148,11 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
             <History className="w-3.5 h-3.5" />Історія версій ({versions.length})
           </button>
         )}
+        {estId && (
+          <button type="button" onClick={() => setShowFiles(true)} className={btn}>
+            <Paperclip className="w-3.5 h-3.5" />Файли
+          </button>
+        )}
         <button type="button" onClick={() => setAskReset(true)} className={btn}>
           <RotateCcw className="w-3.5 h-3.5" />Скинути
         </button>
@@ -159,6 +167,19 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
           <span className="flex-1 min-w-[180px]">Ціни й норми зафіксовані на момент збереження кошторису.</span>
           <button type="button" onClick={() => { draft.useCurrentPrices?.(); toast.info("Підставлено актуальні ціни довідника"); }}
             className="px-3 py-1.5 rounded-md bg-secondary font-semibold">Оновити до актуальних цін</button>
+        </div>
+      )}
+
+      {showFiles && estId && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70" onClick={() => setShowFiles(false)}>
+          <div className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto bg-card border border-border rounded-t-2xl sm:rounded-lg shadow-xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto h-1.5 w-10 rounded-full bg-muted sm:hidden" />
+            <div className="flex items-center justify-between">
+              <h2 className="font-black text-base">Документи кошторису</h2>
+              <button onClick={() => setShowFiles(false)} className="h-10 w-10 grid place-items-center rounded-md hover:bg-muted" aria-label="Закрити"><X className="w-5 h-5" /></button>
+            </div>
+            <OrderAttachments orderId={draft.link?.orderId ?? null} estimateId={estId} scope="estimate" />
+          </div>
         </div>
       )}
 

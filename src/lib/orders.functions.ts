@@ -541,6 +541,11 @@ export const saveOrderFile = createServerFn({ method: "POST" })
     file_name: z.string().max(300).optional().nullable(),
     category: z.string().max(60).optional().nullable(),
     note: z.string().max(1000).optional().nullable(),
+    measurement_id: z.string().uuid().optional().nullable(),
+    estimate_id: z.string().uuid().optional().nullable(),
+    storage_path: z.string().max(600).optional().nullable(),
+    mime_type: z.string().max(120).optional().nullable(),
+    size_bytes: z.number().int().nonnegative().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { data: out, error } = await context.supabase.from("order_files").insert({
@@ -550,11 +555,31 @@ export const saveOrderFile = createServerFn({ method: "POST" })
     return out;
   });
 
+export const listLinkedFiles = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({
+    order_id: z.string().uuid().optional().nullable(),
+    measurement_id: z.string().uuid().optional().nullable(),
+    estimate_id: z.string().uuid().optional().nullable(),
+  }).parse(d))
+  .handler(async ({ data, context }) => {
+    let q = context.supabase.from("order_files").select("*").order("created_at", { ascending: false }).limit(300);
+    if (data.measurement_id) q = q.eq("measurement_id", data.measurement_id);
+    else if (data.estimate_id) q = q.eq("estimate_id", data.estimate_id);
+    else if (data.order_id) q = q.eq("order_id", data.order_id);
+    else return [];
+    const { data: rows, error } = await q;
+    if (error) { console.error("listLinkedFiles", error); throw new Error("Не вдалося завантажити файли"); }
+    return rows ?? [];
+  });
+
 export const deleteOrderFile = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d: unknown) => z.object({ id: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
+    const { data: row } = await context.supabase.from("order_files").select("storage_path").eq("id", data.id).maybeSingle();
     const { error } = await context.supabase.from("order_files").delete().eq("id", data.id);
+    if (!error && row?.storage_path) await context.supabase.storage.from("order-files").remove([row.storage_path]);
     if (error) { console.error("deleteOrderFile", error); throw new Error("Не вдалося видалити файл"); }
     return { ok: true };
   });

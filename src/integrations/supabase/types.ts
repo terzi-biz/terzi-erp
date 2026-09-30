@@ -7514,10 +7514,15 @@ export type Database = {
         Row: {
           category: string | null
           created_at: string
+          estimate_id: string | null
           file_name: string | null
           id: string
+          measurement_id: string | null
+          mime_type: string | null
           note: string | null
           order_id: string
+          size_bytes: number | null
+          storage_path: string | null
           uploaded_by: string | null
           url: string
           zone_id: string | null
@@ -7525,10 +7530,15 @@ export type Database = {
         Insert: {
           category?: string | null
           created_at?: string
+          estimate_id?: string | null
           file_name?: string | null
           id?: string
+          measurement_id?: string | null
+          mime_type?: string | null
           note?: string | null
           order_id: string
+          size_bytes?: number | null
+          storage_path?: string | null
           uploaded_by?: string | null
           url: string
           zone_id?: string | null
@@ -7536,10 +7546,15 @@ export type Database = {
         Update: {
           category?: string | null
           created_at?: string
+          estimate_id?: string | null
           file_name?: string | null
           id?: string
+          measurement_id?: string | null
+          mime_type?: string | null
           note?: string | null
           order_id?: string
+          size_bytes?: number | null
+          storage_path?: string | null
           uploaded_by?: string | null
           url?: string
           zone_id?: string | null
@@ -7557,6 +7572,20 @@ export type Database = {
             columns: ["zone_id"]
             isOneToOne: false
             referencedRelation: "order_zones"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_files_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_files_measurement_id_fkey"
+            columns: ["measurement_id"]
+            isOneToOne: false
+            referencedRelation: "order_measurements"
             referencedColumns: ["id"]
           },
         ]

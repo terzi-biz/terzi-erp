@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { ArrowLeft, MapPin, User, Phone, Trash2, Plus, MessageSquare, Ruler, Calculator, FileText, Calendar, DollarSign, Image as ImageIcon, ListChecks, History as HistoryIcon, LayoutGrid, Pencil, ExternalLink, Save, X, PhoneCall, Radar } from "lucide-react";
+import { OrderAttachments } from "@/components/files/OrderAttachments";
 import { SourceTrace } from "@/components/crm/SourceTrace";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
@@ -1089,10 +1090,11 @@ function FilesTab({ o }: { o: any }) {
     } catch (e: any) { toast.error(e?.message ?? "Помилка"); }
   };
 
-  const files = (o.files ?? []) as any[];
+  const files = ((o.files ?? []) as any[]).filter((f) => !f.storage_path);
 
   return (
     <div className="space-y-3">
+      <OrderAttachments orderId={o.id} scope="order" showAllOfOrder title="Файли замовлення (заміри, кошториси, документи)" />
       <div className="border border-border rounded p-3 space-y-2 bg-secondary/20">
         <div className="text-xs text-muted-foreground">Додати посилання на документ, фото або креслення (в т.ч. з KeyCRM чи Google Drive).</div>
         <input className={inputCls} placeholder="URL файлу *" value={form.url} onChange={(e) => setForm({ ...form, url: e.target.value })} />
