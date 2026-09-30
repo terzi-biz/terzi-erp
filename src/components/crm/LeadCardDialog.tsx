@@ -15,6 +15,7 @@ import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
 import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CrmEyebrow, CrmSpec, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
+import { LeadZonesPanel } from "@/components/crm/LeadZonesPanel";
 import { LeadMeasurementsPanel } from "@/components/crm/LeadMeasurementsPanel";
 import { SourceBadge } from "@/components/crm/SourceBadge";
 import { MessengerLinks } from "@/components/crm/MessengerLinks";
@@ -47,6 +48,7 @@ export function LeadCardDialog({
   const lead = data?.lead ?? null;
   const [form, setForm] = useState<any>({});
   const [fields, setFields] = useState<Record<string, any>>({});
+  const [zones, setZones] = useState<any[]>([]);
   const [tab, setTab] = useState<"comments" | "tasks" | "calls" | "history">("comments");
   const [note, setNote] = useState("");
   const [taskTitle, setTaskTitle] = useState("");
@@ -62,6 +64,7 @@ export function LeadCardDialog({
       assigned_to: lead.assigned_to ?? "", next_action_at: lead.next_action_at?.slice(0, 16) ?? "",
     });
     setFields({ ...(lead.fields ?? {}) });
+    setZones([...(lead.zones ?? [])]);
   }, [lead?.id]);
 
   const save = useMutation({
@@ -83,6 +86,7 @@ export function LeadCardDialog({
             next_action_at: form.next_action_at ? new Date(form.next_action_at).toISOString() : null,
           },
           fields,
+          zones: zones.filter((z) => String(z.name ?? "").trim()),
           client: form.client_name?.trim()
             ? { name: form.client_name.trim(), email: form.client_email || null, company: form.client_company || null }
             : undefined,
@@ -277,6 +281,8 @@ export function LeadCardDialog({
                   <p className="mt-2 text-xs text-muted-foreground">Договір, оплати з Finmap і борг зʼявляться після створення замовлення.</p>
                 )}
               </Section>
+
+              <LeadZonesPanel zones={zones} onChange={setZones} />
 
               <div className="max-md:order-first">
               <LeadMeasurementsPanel
