@@ -64,7 +64,8 @@ export function EstimateLinkPicker({
   // Привʼязка з картки ліда: /calc?lead=<id>
   useEffect(() => {
     if (typeof window === "undefined" || value.clientId || value.orderId) return;
-    const leadId = new URLSearchParams(window.location.search).get("lead");
+    const leadId = new URLSearchParams(window.location.search).get("lead") ?? sessionStorage.getItem("terzi.pendingLead");
+    sessionStorage.removeItem("terzi.pendingLead");
     if (!leadId) return;
     searchFn({ data: { kind: "leads", q: "" } }).then((rows) => {
       const h = rows.find((r) => r.id === leadId);

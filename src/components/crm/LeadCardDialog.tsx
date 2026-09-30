@@ -183,20 +183,17 @@ export function LeadCardDialog({
             <div className="flex flex-col gap-4 p-4 md:p-5 lg:overflow-y-auto">
               {/* Mobile: швидкі дії та зведення */}
               <div className="order-first space-y-3 md:hidden">
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   <a href={form.phone_e164 ? `tel:${form.phone_e164}` : undefined} aria-disabled={!form.phone_e164}
                     className={`flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3 text-[13px] font-semibold ${form.phone_e164 ? "" : "pointer-events-none opacity-50"}`}>
                     <Phone className="h-5 w-5" /> Дзвінок
-                  </a>
-                  <a href={form.phone_e164 ? `sms:${form.phone_e164}` : undefined} aria-disabled={!form.phone_e164}
-                    className={`flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3 text-[13px] font-semibold ${form.phone_e164 ? "" : "pointer-events-none opacity-50"}`}>
-                    <MessageSquare className="h-5 w-5" /> Написати
                   </a>
                   <a href={form.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(form.address)}` : undefined} target="_blank" rel="noreferrer" aria-disabled={!form.address}
                     className={`flex flex-col items-center gap-1 rounded-xl border border-border bg-card py-3 text-[13px] font-semibold ${form.address ? "" : "pointer-events-none opacity-50"}`}>
                     <Navigation className="h-5 w-5" /> Маршрут
                   </a>
                 </div>
+                <MessengerLinks phone={form.phone_e164} />
                 <dl className="grid grid-cols-2 gap-x-3 gap-y-3 rounded-xl bg-[#EEF1F6] p-3.5 text-[12px] [&_dd]:mt-0.5 [&_dd]:text-[15px] [&_dd]:font-semibold [&_dd]:text-foreground [&_dt]:text-muted-foreground">
                   <div><dt>Телефон</dt><dd className="truncate tabular-nums">{form.phone_e164 || "—"}</dd></div>
                   <div><dt>Адреса</dt><dd className="truncate">{form.address || "—"}</dd></div>
