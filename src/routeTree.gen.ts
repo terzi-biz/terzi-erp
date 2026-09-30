@@ -81,11 +81,13 @@ import { Route as ReportsTasksRouteImport } from './routes/reports.tasks'
 import { Route as ReportsTelephonyRouteImport } from './routes/reports.telephony'
 import { Route as SettingsIndexRouteImport } from './routes/settings.index'
 import { Route as SettingsAccessRouteImport } from './routes/settings.access'
+import { Route as SettingsCatalogRouteImport } from './routes/settings.catalog'
 import { Route as SettingsCompanyRouteImport } from './routes/settings.company'
 import { Route as SettingsControlCenterRouteImport } from './routes/settings.control-center'
 import { Route as SettingsFinanceRouteImport } from './routes/settings.finance'
 import { Route as SettingsIntegrationsRouteImport } from './routes/settings.integrations'
 import { Route as SettingsNormsRouteImport } from './routes/settings.norms'
+import { Route as SettingsProcessesRouteImport } from './routes/settings.processes'
 import { Route as SettingsSalesPlanRouteImport } from './routes/settings.sales-plan'
 import { Route as SettingsSystemRouteImport } from './routes/settings.system'
 import { Route as WarehouseIndexRouteImport } from './routes/warehouse.index'
@@ -478,6 +480,11 @@ const SettingsAccessRoute = SettingsAccessRouteImport.update({
   path: '/access',
   getParentRoute: () => SettingsRoute,
 } as any)
+const SettingsCatalogRoute = SettingsCatalogRouteImport.update({
+  id: '/catalog',
+  path: '/catalog',
+  getParentRoute: () => SettingsRoute,
+} as any)
 const SettingsCompanyRoute = SettingsCompanyRouteImport.update({
   id: '/company',
   path: '/company',
@@ -501,6 +508,11 @@ const SettingsIntegrationsRoute = SettingsIntegrationsRouteImport.update({
 const SettingsNormsRoute = SettingsNormsRouteImport.update({
   id: '/norms',
   path: '/norms',
+  getParentRoute: () => SettingsRoute,
+} as any)
+const SettingsProcessesRoute = SettingsProcessesRouteImport.update({
+  id: '/processes',
+  path: '/processes',
   getParentRoute: () => SettingsRoute,
 } as any)
 const SettingsSalesPlanRoute = SettingsSalesPlanRouteImport.update({
@@ -723,11 +735,13 @@ export interface FileRoutesByFullPath {
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
   '/settings/access': typeof SettingsAccessRoute
+  '/settings/catalog': typeof SettingsCatalogRoute
   '/settings/company': typeof SettingsCompanyRoute
   '/settings/control-center': typeof SettingsControlCenterRoute
   '/settings/finance': typeof SettingsFinanceRoute
   '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/norms': typeof SettingsNormsRoute
+  '/settings/processes': typeof SettingsProcessesRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/settings/system': typeof SettingsSystemRoute
   '/warehouse/import': typeof WarehouseImportRoute
@@ -828,11 +842,13 @@ export interface FileRoutesByTo {
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
   '/settings/access': typeof SettingsAccessRoute
+  '/settings/catalog': typeof SettingsCatalogRoute
   '/settings/company': typeof SettingsCompanyRoute
   '/settings/control-center': typeof SettingsControlCenterRoute
   '/settings/finance': typeof SettingsFinanceRoute
   '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/norms': typeof SettingsNormsRoute
+  '/settings/processes': typeof SettingsProcessesRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/settings/system': typeof SettingsSystemRoute
   '/warehouse/import': typeof WarehouseImportRoute
@@ -936,11 +952,13 @@ export interface FileRoutesById {
   '/reports/tasks': typeof ReportsTasksRoute
   '/reports/telephony': typeof ReportsTelephonyRoute
   '/settings/access': typeof SettingsAccessRoute
+  '/settings/catalog': typeof SettingsCatalogRoute
   '/settings/company': typeof SettingsCompanyRoute
   '/settings/control-center': typeof SettingsControlCenterRoute
   '/settings/finance': typeof SettingsFinanceRoute
   '/settings/integrations': typeof SettingsIntegrationsRoute
   '/settings/norms': typeof SettingsNormsRoute
+  '/settings/processes': typeof SettingsProcessesRoute
   '/settings/sales-plan': typeof SettingsSalesPlanRoute
   '/settings/system': typeof SettingsSystemRoute
   '/warehouse/import': typeof WarehouseImportRoute
@@ -1045,11 +1063,13 @@ export interface FileRouteTypes {
     | '/reports/tasks'
     | '/reports/telephony'
     | '/settings/access'
+    | '/settings/catalog'
     | '/settings/company'
     | '/settings/control-center'
     | '/settings/finance'
     | '/settings/integrations'
     | '/settings/norms'
+    | '/settings/processes'
     | '/settings/sales-plan'
     | '/settings/system'
     | '/warehouse/import'
@@ -1150,11 +1170,13 @@ export interface FileRouteTypes {
     | '/reports/tasks'
     | '/reports/telephony'
     | '/settings/access'
+    | '/settings/catalog'
     | '/settings/company'
     | '/settings/control-center'
     | '/settings/finance'
     | '/settings/integrations'
     | '/settings/norms'
+    | '/settings/processes'
     | '/settings/sales-plan'
     | '/settings/system'
     | '/warehouse/import'
@@ -1257,11 +1279,13 @@ export interface FileRouteTypes {
     | '/reports/tasks'
     | '/reports/telephony'
     | '/settings/access'
+    | '/settings/catalog'
     | '/settings/company'
     | '/settings/control-center'
     | '/settings/finance'
     | '/settings/integrations'
     | '/settings/norms'
+    | '/settings/processes'
     | '/settings/sales-plan'
     | '/settings/system'
     | '/warehouse/import'
@@ -1894,6 +1918,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SettingsAccessRouteImport
       parentRoute: typeof SettingsRoute
     }
+    '/settings/catalog': {
+      id: '/settings/catalog'
+      path: '/catalog'
+      fullPath: '/settings/catalog'
+      preLoaderRoute: typeof SettingsCatalogRouteImport
+      parentRoute: typeof SettingsRoute
+    }
     '/settings/company': {
       id: '/settings/company'
       path: '/company'
@@ -1927,6 +1958,13 @@ declare module '@tanstack/react-router' {
       path: '/norms'
       fullPath: '/settings/norms'
       preLoaderRoute: typeof SettingsNormsRouteImport
+      parentRoute: typeof SettingsRoute
+    }
+    '/settings/processes': {
+      id: '/settings/processes'
+      path: '/processes'
+      fullPath: '/settings/processes'
+      preLoaderRoute: typeof SettingsProcessesRouteImport
       parentRoute: typeof SettingsRoute
     }
     '/settings/sales-plan': {
@@ -2163,11 +2201,13 @@ const ReportsRouteWithChildren =
 
 interface SettingsRouteChildren {
   SettingsAccessRoute: typeof SettingsAccessRoute
+  SettingsCatalogRoute: typeof SettingsCatalogRoute
   SettingsCompanyRoute: typeof SettingsCompanyRoute
   SettingsControlCenterRoute: typeof SettingsControlCenterRoute
   SettingsFinanceRoute: typeof SettingsFinanceRoute
   SettingsIntegrationsRoute: typeof SettingsIntegrationsRoute
   SettingsNormsRoute: typeof SettingsNormsRoute
+  SettingsProcessesRoute: typeof SettingsProcessesRoute
   SettingsSalesPlanRoute: typeof SettingsSalesPlanRoute
   SettingsSystemRoute: typeof SettingsSystemRoute
   SettingsIndexRoute: typeof SettingsIndexRoute
@@ -2175,11 +2215,13 @@ interface SettingsRouteChildren {
 
 const SettingsRouteChildren: SettingsRouteChildren = {
   SettingsAccessRoute: SettingsAccessRoute,
+  SettingsCatalogRoute: SettingsCatalogRoute,
   SettingsCompanyRoute: SettingsCompanyRoute,
   SettingsControlCenterRoute: SettingsControlCenterRoute,
   SettingsFinanceRoute: SettingsFinanceRoute,
   SettingsIntegrationsRoute: SettingsIntegrationsRoute,
   SettingsNormsRoute: SettingsNormsRoute,
+  SettingsProcessesRoute: SettingsProcessesRoute,
   SettingsSalesPlanRoute: SettingsSalesPlanRoute,
   SettingsSystemRoute: SettingsSystemRoute,
   SettingsIndexRoute: SettingsIndexRoute,
