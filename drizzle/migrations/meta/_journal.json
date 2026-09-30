@@ -183,6 +183,13 @@
       "when": 1790710686234,
       "tag": "0025_orders_breakdown_list",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790733432630,
+      "tag": "0026_snapshot_kind_draft",
+      "breakpoints": true
     }
   ]
 }

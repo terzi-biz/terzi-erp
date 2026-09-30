@@ -1,7 +1,10 @@
 import { useBlocker } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RotateCcw, Save, Check, CloudOff, Loader2, History } from "lucide-react";
+import { RotateCcw, Save, Check, CloudOff, Loader2, History, Lock, X } from "lucide-react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { recordDraftVersion, listEstimateVersions, getEstimateVersion } from "@/lib/estimates.functions";
 
 interface DraftLike {
   dirty: boolean;
@@ -14,7 +17,12 @@ interface DraftLike {
   discardPending: () => void;
   resetAll: () => void;
   markSaved: (id?: string) => void;
+  loadRecord?: (rec: any) => void;
+  snapshot?: { savedAt?: unknown; createdAt?: unknown; [k: string]: unknown } | null;
+  useCurrentPrices?: () => void;
 }
+
+const KIND_LABEL: Record<string, string> = { draft: "Робоча", approved: "Затверджена", production: "Виробнича" };
 
 interface Props {
   draft: DraftLike;
@@ -44,6 +52,26 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
   const [error, setError] = useState<string | null>(null);
   const [askReset, setAskReset] = useState(false);
   const savingRef = useRef(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const qc = useQueryClient();
+  const recordFn = useServerFn(recordDraftVersion);
+  const listFn = useServerFn(listEstimateVersions);
+  const getVerFn = useServerFn(getEstimateVersion);
+  const estId = draft.estimateId;
+  const versionsQ = useQuery({
+    queryKey: ["estimate-versions", estId],
+    queryFn: () => listFn({ data: { estimate_id: estId! } }),
+    enabled: !!estId,
+  });
+  const versions = versionsQ.data ?? [];
+  const restore = async (versionId: string, no: number) => {
+    try {
+      const v: any = await getVerFn({ data: { id: versionId } });
+      draft.loadRecord?.({ ...(v.snapshot ?? {}), id: v.estimate_id });
+      setShowHistory(false);
+      toast.success(`Відновлено версію ${no}. Збережіть, щоб зробити її поточною.`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : "Не вдалося відновити"); }
+  };
 
   const btn = buttonClass
     ?? "px-3 py-2 rounded-md bg-secondary text-xs font-semibold inline-flex items-center gap-2 disabled:opacity-50";
@@ -61,6 +89,13 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
     try {
       const row = (await onSave()) as { id?: string } | undefined;
       draft.markSaved(row?.id);
+      const id = row?.id ?? draft.estimateId;
+      if (id) {
+        try {
+          const r = await recordFn({ data: { estimate_id: id, mode: silent ? "auto" : "manual" } });
+          if (r.created) qc.invalidateQueries({ queryKey: ["estimate-versions", id] });
+        } catch { /* версія не блокує збереження */ }
+      }
       if (!silent) toast.success("Кошторис збережено");
       return true;
     } catch (e) {
@@ -72,7 +107,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
       savingRef.current = false;
       setSaving(false);
     }
-  }, [draft, onSave, blockReason]);
+  }, [draft, onSave, blockReason, recordFn, qc]);
 
   // Автозбереження з дебаунсом
   useEffect(() => {
@@ -105,6 +140,11 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
             {stateLabel.icon}{stateLabel.text}
           </span>
         )}
+        {estId && (
+          <button type="button" onClick={() => setShowHistory(true)} className={btn}>
+            <History className="w-3.5 h-3.5" />Історія версій ({versions.length})
+          </button>
+        )}
         <button type="button" onClick={() => setAskReset(true)} className={btn}>
           <RotateCcw className="w-3.5 h-3.5" />Скинути
         </button>
@@ -112,6 +152,42 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
           <Save className="w-3.5 h-3.5" />{saving ? "…" : "Зберегти"}
         </button>
       </div>
+
+      {draft.snapshot && draft.useCurrentPrices && (
+        <div className="w-full mt-2 flex flex-wrap items-center gap-2 rounded-md border border-primary/30 bg-primary/5 px-3 py-2 text-xs">
+          <Lock className="w-3.5 h-3.5 text-primary shrink-0" />
+          <span className="flex-1 min-w-[180px]">Ціни й норми зафіксовані на момент збереження кошторису.</span>
+          <button type="button" onClick={() => { draft.useCurrentPrices?.(); toast.info("Підставлено актуальні ціни довідника"); }}
+            className="px-3 py-1.5 rounded-md bg-secondary font-semibold">Оновити до актуальних цін</button>
+        </div>
+      )}
+
+      {showHistory && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70" onClick={() => setShowHistory(false)}>
+          <div className="w-full sm:max-w-md max-h-[85vh] overflow-y-auto bg-card border border-border rounded-t-2xl sm:rounded-lg shadow-xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
+            <div className="mx-auto h-1.5 w-10 rounded-full bg-muted sm:hidden" />
+            <div className="flex items-center justify-between">
+              <h2 className="font-black text-base">Історія версій</h2>
+              <button onClick={() => setShowHistory(false)} className="h-10 w-10 grid place-items-center rounded-md hover:bg-muted" aria-label="Закрити"><X className="w-5 h-5" /></button>
+            </div>
+            {versionsQ.isLoading && <p className="text-sm text-muted-foreground">Завантаження…</p>}
+            {!versionsQ.isLoading && versions.length === 0 && <p className="text-sm text-muted-foreground">Версій ще немає — вони з'являться після збереження.</p>}
+            <ul className="space-y-2">
+              {versions.map((v: any, i: number) => (
+                <li key={v.id} className="flex items-center gap-3 rounded-md border border-border p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold">Версія {v.version_no}{i === 0 ? " · остання" : ""}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {KIND_LABEL[v.snapshot_kind] ?? v.snapshot_kind} · {v.approved_by_name || "—"} · {fmtDateTime(new Date(v.created_at).getTime())}
+                    </div>
+                  </div>
+                  <button onClick={() => void restore(v.id, v.version_no)} className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-xs font-bold">Відновити</button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       {/* Плашка «є незавершена чернетка» */}
       {draft.hydrated && draft.pending && (

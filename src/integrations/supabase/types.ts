@@ -10720,7 +10720,7 @@ export type Database = {
         | "detailed_only"
         | "condensed_only"
         | "never"
-      snapshot_kind: "approved" | "production"
+      snapshot_kind: "approved" | "production" | "draft"
       stock_doc_status: "draft" | "posted" | "cancelled"
       stock_doc_type: "in" | "out" | "transfer" | "writeoff" | "return"
     }
@@ -10988,7 +10988,7 @@ export const Constants = {
         "condensed_only",
         "never",
       ],
-      snapshot_kind: ["approved", "production"],
+      snapshot_kind: ["approved", "production", "draft"],
       stock_doc_status: ["draft", "posted", "cancelled"],
       stock_doc_type: ["in", "out", "transfer", "writeoff", "return"],
     },

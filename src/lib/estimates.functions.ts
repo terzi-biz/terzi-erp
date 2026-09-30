@@ -699,3 +699,48 @@ export const updateFactLine = createServerFn({ method: "POST" })
     if (!out) throw new Error("Немає прав на редагування версії");
     return out;
   });
+
+/* ============================================================
+   Робочі версії (draft) — фіксуються при кожному збереженні з калькулятора
+   ============================================================ */
+const AUTO_VERSION_GAP_MS = 10 * 60 * 1000;
+
+export const recordDraftVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) =>
+    z.object({ estimate_id: z.string().uuid(), mode: z.enum(["manual", "auto"]) }).parse(d))
+  .handler(async ({ data, context }) => {
+    const snap = await snapshotEstimate(context.supabase, data.estimate_id);
+    const { data: last } = await context.supabase
+      .from("estimate_versions")
+      .select("version_no,snapshot,created_at")
+      .eq("estimate_id", data.estimate_id)
+      .order("version_no", { ascending: false }).limit(1).maybeSingle();
+
+    const sig = (s: any) => JSON.stringify([
+      s?.payload ?? null, s?.calculation_json ?? null, s?.total_client ?? null,
+      s?.area ?? null, s?.client_id ?? null, s?.order_id ?? null,
+    ]);
+    if (last && sig(last.snapshot) === sig(snap)) return { created: false, version_no: last.version_no };
+    if (data.mode === "auto" && last && Date.now() - new Date(last.created_at).getTime() < AUTO_VERSION_GAP_MS) {
+      return { created: false, version_no: last.version_no };
+    }
+
+    const { data: prof } = await context.supabase
+      .from("profiles").select("display_name,email").eq("user_id", context.userId).maybeSingle();
+    const actor = (prof?.display_name || prof?.email || null) as string | null;
+    const nextNo = (last?.version_no ?? 0) + 1;
+    const { error } = await context.supabase.from("estimate_versions").insert({
+      estimate_id: data.estimate_id,
+      version_no: nextNo,
+      snapshot_kind: "draft" as any,
+      snapshot: snap,
+      engine_version: (snap as any)?.calculation_json?.engineVersion ?? null,
+      price_book_version: (snap as any)?.calculation_json?.priceBookVersion ?? null,
+      approved_by: context.userId,
+      approved_by_name: actor,
+      note: data.mode === "auto" ? "Автозбереження" : "Збереження",
+    });
+    if (error) { console.error("recordDraftVersion", error); throw new Error("Не вдалося зафіксувати версію"); }
+    return { created: true, version_no: nextNo };
+  });
