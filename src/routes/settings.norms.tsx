@@ -3,6 +3,7 @@ import { useState } from "react";
 import { CalcNormsEditor } from "@/components/settings/CalcNormsEditor";
 import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
 import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
+import { ConsumablesAdmin } from "@/components/settings/ConsumablesAdmin";
 import { useSettingsAccess } from "@/lib/useSettingsAccess";
 
 export const Route = createFileRoute("/settings/norms")({
@@ -21,6 +22,7 @@ const TABS = [
   { id: "common", label: "Загальні норми" },
   { id: "screed", label: "Стяжка: марки і фібра" },
   { id: "roofing", label: "Руберойд: газ, праймер, нахлести" },
+  { id: "consumables", label: "Витратні матеріали і гази" },
 ] as const;
 
 function NormsPage() {
@@ -54,6 +56,7 @@ function NormsPage() {
       {tab === "common" && <CalcNormsEditor canEdit={canManageSettings} />}
       {tab === "screed" && <ScreedGradesAdmin canEdit={canManageSettings} />}
       {tab === "roofing" && <RoofingNormsAdmin canEdit={canManageSettings} />}
+      {tab === "consumables" && <ConsumablesAdmin canEdit={canManageSettings} />}
     </div>
   );
 }
