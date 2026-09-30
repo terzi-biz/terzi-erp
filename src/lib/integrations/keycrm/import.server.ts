@@ -158,9 +158,10 @@ export async function importChunk(
       const res = await applyExternal(ctx, entity, item, mode as any, { force: opts.force });
       if (res.skipped) skipped += 1;
       else applied += 1;
-      // Дочірні сутності (коментарі, файли, задачі, оплати) імпортуємо разом із карткою.
-      if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
-      if (!res.skipped && entity === "lead_cards") await extractLeadChildren(ctx, item);
+      // Дочірні сутності (коментарі, файли, задачі, оплати) імпортуємо завжди — навіть коли
+      // сама картка без змін, щоб повторний імпорт дотягував пропущені вкладення (idempotent upsert).
+      if (entity === "orders") await extractOrderChildren(ctx, item);
+      if (entity === "lead_cards") await extractLeadChildren(ctx, item);
     } catch (e: any) {
       failed += 1;
       await logAttempt({

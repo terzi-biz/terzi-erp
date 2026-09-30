@@ -1125,8 +1125,8 @@ export async function pollEntity(
       const res = await applyExternal(ctx, entity, item, opts.mode, { force: opts.force });
       if (res.skipped) skipped += 1;
       else applied += 1;
-      if (!res.skipped && entity === "orders") await extractOrderChildren(ctx, item);
-      if (!res.skipped && entity === "lead_cards") await extractLeadChildren(ctx, item);
+      if (entity === "orders") await extractOrderChildren(ctx, item);
+      if (entity === "lead_cards") await extractLeadChildren(ctx, item);
     } catch (e: any) {
       failed += 1;
       await logAttempt({

@@ -1,5 +1,13 @@
 import { useBlocker } from "@tanstack/react-router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+/** Рендер вікон у body, щоб їх не обрізали батьківські контейнери з transform/overflow. */
+function BodyPortal({ children }: { children: ReactNode }) {
+  const [ok, setOk] = useState(false);
+  useEffect(() => setOk(true), []);
+  return ok ? createPortal(children, document.body) : null;
+}
 import { RotateCcw, Save, Check, CloudOff, Loader2, History, Lock, X, Paperclip } from "lucide-react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
@@ -170,8 +178,9 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
         </div>
       )}
 
+      <BodyPortal>
       {showFiles && estId && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70" onClick={() => setShowFiles(false)}>
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-background/70" onClick={() => setShowFiles(false)}>
           <div className="w-full sm:max-w-lg max-h-[85vh] overflow-y-auto bg-card border border-border rounded-t-2xl sm:rounded-lg shadow-xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto h-1.5 w-10 rounded-full bg-muted sm:hidden" />
             <div className="flex items-center justify-between">
@@ -184,7 +193,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
       )}
 
       {showHistory && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-background/70" onClick={() => setShowHistory(false)}>
+        <div className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center bg-background/70" onClick={() => setShowHistory(false)}>
           <div className="w-full sm:max-w-md max-h-[85vh] overflow-y-auto bg-card border border-border rounded-t-2xl sm:rounded-lg shadow-xl p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
             <div className="mx-auto h-1.5 w-10 rounded-full bg-muted sm:hidden" />
             <div className="flex items-center justify-between">
@@ -228,7 +237,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
 
       {/* Підтвердження скидання */}
       {askReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/70 p-4">
           <div className="max-w-sm w-full p-5 space-y-4 bg-card border border-border rounded-lg shadow-xl">
             <h2 className="font-black text-base">Скинути розрахунок?</h2>
             <p className="text-sm text-muted-foreground">
@@ -246,7 +255,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
 
       {/* Незбережені зміни при переході */}
       {blocker.status === "blocked" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 p-4">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-background/70 p-4">
           <div className="max-w-sm w-full p-5 space-y-4 bg-card border border-border rounded-lg shadow-xl">
             <h2 className="font-black text-base">Незбережені зміни</h2>
             <p className="text-sm text-muted-foreground">У розрахунку є незбережені зміни. Зберегти перед переходом?</p>
@@ -261,6 +270,7 @@ export function EstimateDraftControls({ draft, onSave, canAutosave = true, block
           </div>
         </div>
       )}
+      </BodyPortal>
     </>
   );
 }
