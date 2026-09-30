@@ -58,6 +58,7 @@ export function LeadCardDialog({
       title: lead.title ?? "", phone_e164: lead.phone ?? "", budget: lead.budget ?? "",
       area: lead.area ?? "", address: lead.address ?? "", source: lead.source ?? "",
       direction: lead.direction ?? "", notes: lead.notes ?? "", stage_id: lead.stage_id ?? "",
+      client_name: lead.client_name ?? "", client_email: lead.client_email ?? "", client_company: lead.client_company ?? "",
       assigned_to: lead.assigned_to ?? "", next_action_at: lead.next_action_at?.slice(0, 16) ?? "",
     });
     setFields({ ...(lead.fields ?? {}) });
@@ -82,6 +83,9 @@ export function LeadCardDialog({
             next_action_at: form.next_action_at ? new Date(form.next_action_at).toISOString() : null,
           },
           fields,
+          client: form.client_name?.trim()
+            ? { name: form.client_name.trim(), email: form.client_email || null, company: form.client_company || null }
+            : undefined,
         },
       }),
     onSuccess: () => {
@@ -226,10 +230,10 @@ export function LeadCardDialog({
                 </Section>
 
                 <Section title="Контактні дані">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="grid h-9 w-9 place-items-center rounded-full bg-muted"><User className="h-4 w-4" /></span>
-                    <span className="font-semibold">{lead?.client_name ?? "Ім'я не вказане"}</span>
-                  </div>
+                  <Field label="Імʼя та прізвище клієнта"><input className={inp} placeholder="Напр. Олександр Петренко" value={form.client_name ?? ""} onChange={(e) => setForm({ ...form, client_name: e.target.value })} /></Field>
+                  <Field label="Email"><input type="email" className={inp} value={form.client_email ?? ""} onChange={(e) => setForm({ ...form, client_email: e.target.value })} /></Field>
+                  <Field label="Компанія"><input className={inp} value={form.client_company ?? ""} onChange={(e) => setForm({ ...form, client_company: e.target.value })} /></Field>
+                  {!lead?.client_id && <p className="text-[11px] text-muted-foreground">Після збереження імені буде створено картку клієнта.</p>}
                   <Field label="Телефон"><input className={inp} value={form.phone_e164 ?? ""} onChange={(e) => setForm({ ...form, phone_e164: e.target.value })} /></Field>
                   <div className="hidden md:block space-y-2">
                     <a href={form.phone_e164 ? `tel:${form.phone_e164}` : undefined}

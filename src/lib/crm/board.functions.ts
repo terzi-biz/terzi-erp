@@ -36,6 +36,11 @@ const patchSchema = z.object({
     lost_reason: z.string().max(500).nullable().optional(),
   }).default({}),
   fields: z.record(z.string(), z.any()).optional(),
+  client: z.object({
+    name: z.string().trim().max(200).optional(),
+    email: z.string().trim().max(200).nullable().optional(),
+    company: z.string().trim().max(200).nullable().optional(),
+  }).optional(),
 });
 
 /** Збереження змін із картки ліда. */
