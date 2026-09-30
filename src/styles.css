@@ -469,3 +469,30 @@
   }
 }
 
+
+/* Mobile: every dialog becomes a bottom sheet (full width, scrollable, thumb-reachable). */
+@media (max-width: 639px) {
+  .tz-dialog {
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: 92dvh !important;
+    overflow-y: auto !important;
+    transform: none !important;
+    border-radius: 1rem 1rem 0 0 !important;
+    padding: 1.25rem 1rem calc(1rem + env(safe-area-inset-bottom)) !important;
+  }
+  .tz-dialog::before {
+    content: "";
+    display: block;
+    width: 2.5rem;
+    height: 0.25rem;
+    margin: -0.5rem auto 0.25rem;
+    border-radius: 9999px;
+    background: var(--border);
+  }
+  .tz-dialog > button.absolute { width: 2.75rem; height: 2.75rem; top: 0.5rem; right: 0.5rem; display: grid; place-items: center; }
+}
