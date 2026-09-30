@@ -1,21 +1,31 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { CalcNormsEditor } from "@/components/settings/CalcNormsEditor";
+import { ScreedGradesAdmin } from "@/components/ScreedGradesAdmin";
+import { RoofingNormsAdmin } from "@/components/RoofingNormsAdmin";
 import { useSettingsAccess } from "@/lib/useSettingsAccess";
 
 export const Route = createFileRoute("/settings/norms")({
   component: NormsPage,
   head: () => ({ meta: [
     { title: "Норми витрат і коефіцієнти — TERZI ERP" },
-    { name: "description", content: "Норми праймеру й газу, мінімалка бригади, коефіцієнти, амортизація та спільні параметри кошторисів TERZI." },
+    { name: "description", content: "Норми праймеру й газу, марки стяжки, нормативи руберойду, мінімалка бригади, амортизація та спільні параметри кошторисів TERZI." },
     { property: "og:title", content: "Норми витрат і коефіцієнти — TERZI ERP" },
-    { property: "og:description", content: "Редагування company-wide норм, що миттєво застосовуються до нових кошторисів." },
+    { property: "og:description", content: "Усі норми калькуляторів TERZI в одному місці — діють одразу для нових кошторисів." },
     { property: "og:type", content: "website" },
     { name: "twitter:card", content: "summary_large_image" },
   ] }),
 });
 
+const TABS = [
+  { id: "common", label: "Загальні норми" },
+  { id: "screed", label: "Стяжка: марки і фібра" },
+  { id: "roofing", label: "Руберойд: газ, праймер, нахлести" },
+] as const;
+
 function NormsPage() {
   const { query, canManageSettings } = useSettingsAccess();
+  const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("common");
 
   if (query.isPending) return <div className="h-64 rounded-md bg-muted animate-pulse" aria-busy="true" />;
   if (query.isError) {
@@ -33,7 +43,17 @@ function NormsPage() {
       <p className="text-xs text-muted-foreground mb-3">
         Норми діють для всієї компанії. Збережені значення застосовуються до нових розрахунків і кошторисів; збережені раніше кошториси не перераховуються.
       </p>
-      <CalcNormsEditor canEdit={canManageSettings} />
+      <div className="flex gap-1 mb-3 overflow-x-auto pb-1">
+        {TABS.map((t) => (
+          <button key={t.id} onClick={() => setTab(t.id)}
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold whitespace-nowrap ${tab === t.id ? "bg-foreground text-background" : "bg-secondary hover:bg-accent"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {tab === "common" && <CalcNormsEditor canEdit={canManageSettings} />}
+      {tab === "screed" && <ScreedGradesAdmin canEdit={canManageSettings} />}
+      {tab === "roofing" && <RoofingNormsAdmin canEdit={canManageSettings} />}
     </div>
   );
 }

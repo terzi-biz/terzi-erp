@@ -1,29 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  ArrowLeftRight,
-  ArrowRight,
-  Blocks,
-  Boxes,
-  BriefcaseBusiness,
-  Cable,
-  Megaphone,
-  PackageOpen,
-  Paintbrush,
-  Ruler,
-} from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, Megaphone, Paintbrush } from "lucide-react";
 import { SETTINGS_NAV } from "./settings";
 
 const RELATED_SCREENS = [
-  { to: "/materials", label: "Матеріали", description: "Каталог матеріалів, цін і характеристик.", icon: PackageOpen },
-  { to: "/works", label: "Роботи", description: "Довідник робіт і ставок виконання.", icon: BriefcaseBusiness },
-  { to: "/logistics", label: "Логістика", description: "Тарифи та правила доставки матеріалів.", icon: Boxes },
-  { to: "/equipment", label: "Обладнання", description: "Обладнання, витрати та правила амортизації.", icon: Ruler },
-  { to: "/directions-editor", label: "Напрямки (конструктор)", description: "Налаштування напрямків робіт і розрахунків.", icon: Blocks },
   { to: "/branding", label: "Брендинг", description: "Логотипи та оформлення документів.", icon: Paintbrush },
-  { to: "/crm/intake", label: "Вхідні ліди", description: "Перегляд і налаштування вхідних заявок.", icon: Cable },
-  { to: "/data-exchange", label: "Обмін даними", description: "Імпорт та експорт даних ERP.", icon: ArrowLeftRight },
   { to: "/marketing/integrations", label: "Маркетинг: інтеграції", description: "Підключення маркетингових джерел і каналів.", icon: Megaphone },
-  { to: "/crm/leads", label: "Воронки та етапи CRM", description: "Етапи воронки лідів редагуються в самій воронці.", icon: Blocks },
   { to: "/reports/finance-ceo", label: "Фінанси компанії", description: "Результат фінансових правил: прибуток по компанії та напрямках.", icon: BriefcaseBusiness },
 ] as const;
 
