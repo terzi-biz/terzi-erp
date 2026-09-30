@@ -6,7 +6,8 @@ import { Plus, X, ChevronLeft, ChevronRight, SlidersHorizontal, Phone, Search, C
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
-import { listPipelines, listContacts, upsertLead, moveLeadStage } from "@/lib/crm.functions";
+import { listPipelines, listContacts, upsertLead, moveLeadStage, findClientsQuick } from "@/lib/crm.functions";
+import { SourceSelect, DirectionSelect } from "@/components/crm/RefSelects";
 import { listBoardLeads, listCrmStaff } from "@/lib/crm/board.functions";
 import { LeadCardDialog } from "@/components/crm/LeadCardDialog";
 import { CrmPage, crmButtonOutline } from "@/components/crm/CrmUi";
@@ -39,7 +40,44 @@ export const Route = createFileRoute("/crm/leads")({
 });
 
 const money = (n: number) => new Intl.NumberFormat("uk-UA", { maximumFractionDigits: 0 }).format(n || 0) + " ₴";
-const emptyLead = { title: "", budget: "", area: "", address: "", source: "", direction: "", contact_id: "", notes: "" };
+const emptyLead = { title: "", budget: "", area: "", address: "", source: "", direction: "", contact_id: "", notes: "", client_id: "", client_name: "", client_phone: "", client_label: "" };
+
+/** Клієнт нового ліда: вводимо імʼя + телефон; якщо номер уже є в базі — пропонуємо обрати наявного. */
+function NewLeadClient({ form, setForm }: { form: any; setForm: (f: any) => void }) {
+  const findFn = useServerFn(findClientsQuick);
+  const q = form.client_phone?.replace(/\D/g, "").length >= 4 ? form.client_phone : (form.client_name?.length >= 3 ? form.client_name : "");
+  const { data: hits = [] } = useQuery({
+    queryKey: ["crm", "client-quick", q], enabled: !!q && !form.client_id,
+    queryFn: () => findFn({ data: { q } }), staleTime: 30_000,
+  });
+  if (form.client_id) {
+    return (
+      <div className="flex items-center justify-between rounded-md border border-primary/40 bg-primary/5 p-2.5 text-sm">
+        <div><div className={lbl}>Клієнт (наявний)</div><div className="font-semibold">{form.client_label}</div></div>
+        <button type="button" className="text-xs underline" onClick={() => setForm({ ...form, client_id: "", client_label: "" })}>Змінити</button>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      <label className="block"><span className={lbl}>Телефон клієнта</span>
+        <input type="tel" inputMode="tel" placeholder="+380…" value={form.client_phone} onChange={(e) => setForm({ ...form, client_phone: e.target.value })} className={inp + " mt-1 h-11"} /></label>
+      <label className="block"><span className={lbl}>Імʼя та прізвище</span>
+        <input value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} className={inp + " mt-1 h-11"} /></label>
+      {(hits as any[]).length ? (
+        <div className="rounded-md border border-border">
+          <div className="px-2.5 pt-2 text-[11px] font-semibold text-muted-foreground">Вже є в базі — оберіть, щоб не створювати дубль:</div>
+          {(hits as any[]).map((c) => (
+            <button key={c.id} type="button" className="block w-full px-2.5 py-2 text-left text-sm hover:bg-muted"
+              onClick={() => setForm({ ...form, client_id: c.id, client_label: `${c.name ?? "Без імені"} · ${c.phone_e164 ?? c.phone ?? ""}`, address: form.address || c.address || "" })}>
+              <span className="font-semibold">{c.name || "Без імені"}</span> <span className="text-muted-foreground">{c.phone_e164 ?? c.phone ?? ""}</span>
+            </button>
+          ))}
+        </div>
+      ) : q ? <div className="text-[11.5px] text-muted-foreground">Новий клієнт — картку буде створено автоматично.</div> : null}
+    </div>
+  );
+}
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-1.5 text-sm";
 const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";
 
@@ -194,9 +232,14 @@ function LeadsPage() {
   });
 
   const submitNew = () => {
-    if (!form.title.trim()) { toast.error("Вкажіть назву ліда"); return; }
+    const title = form.title.trim() || form.client_name?.trim() || form.client_phone?.trim() || "";
+    if (!form.client_id && !form.client_name?.trim() && !form.client_phone?.trim()) { toast.error("Вкажіть імʼя або телефон клієнта"); return; }
+    if (!title) { toast.error("Вкажіть назву ліда"); return; }
     save.mutate({
-      title: form.title.trim(), pipeline_id: activePipeline || null, stage_id: stages[0]?.id ?? null,
+      title, pipeline_id: activePipeline || null, stage_id: stages[0]?.id ?? null,
+      client_id: form.client_id || null,
+      client_name: form.client_id ? null : form.client_name?.trim() || null,
+      client_phone: form.client_id ? null : form.client_phone?.trim() || null,
       contact_id: form.contact_id || null, source: form.source || null, direction: form.direction || null,
       address: form.address || null, notes: form.notes || null,
       budget: form.budget ? Number(form.budget) : null, area: form.area ? Number(form.area) : null,
@@ -413,21 +456,25 @@ function LeadsPage() {
               <h2 className="text-lg font-black">Новий лід</h2>
               <button onClick={() => setCreating(false)}><X className="h-5 w-5" /></button>
             </div>
-            {[{ k: "title", label: "Назва *" }, { k: "budget", label: "Бюджет, ₴", type: "number" },
-              { k: "area", label: "Площа, м²", type: "number" }, { k: "address", label: "Адреса" },
-              { k: "source", label: "Джерело" }, { k: "direction", label: "Напрям робіт" }].map((f) => (
-              <label key={f.k} className="block">
-                <span className={lbl}>{f.label}</span>
-                <input type={f.type ?? "text"} value={form[f.k]} onChange={(e) => setForm({ ...form, [f.k]: e.target.value })} className={inp + " mt-1"} />
-              </label>
-            ))}
-            <label className="block">
-              <span className={lbl}>Контакт</span>
-              <select value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })} className={inp + " mt-1"}>
-                <option value="">—</option>
-                {(contacts as any[]).map((c) => <option key={c.id} value={c.id}>{c.full_name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
-              </select>
-            </label>
+            <NewLeadClient form={form} setForm={setForm} />
+            <label className="block"><span className={lbl}>Адреса обʼєкта</span>
+              <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={inp + " mt-1"} /></label>
+            <label className="block"><span className={lbl}>Вид робіт</span>
+              <DirectionSelect value={form.direction} onChange={(v) => setForm({ ...form, direction: v })} className={inp + " mt-1"} /></label>
+            <label className="block"><span className={lbl}>Джерело</span>
+              <SourceSelect value={form.source} onChange={(v) => setForm({ ...form, source: v })} className={inp + " mt-1"} /></label>
+            <details className="rounded-md border border-border p-2">
+              <summary className="cursor-pointer text-sm font-semibold">Додатково</summary>
+              <div className="mt-2 space-y-3">
+                {[{ k: "title", label: "Назва ліда (за замовчуванням — імʼя клієнта)" }, { k: "budget", label: "Бюджет, ₴", type: "number" },
+                  { k: "area", label: "Площа, м²", type: "number" }].map((f) => (
+                  <label key={f.k} className="block">
+                    <span className={lbl}>{f.label}</span>
+                    <input type={f.type ?? "text"} value={form[f.k]} onChange={(e) => setForm({ ...form, [f.k]: e.target.value })} className={inp + " mt-1"} />
+                  </label>
+                ))}
+              </div>
+            </details>
             <label className="block">
               <span className={lbl}>Нотатки</span>
               <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} rows={3} className={inp + " mt-1"} />
