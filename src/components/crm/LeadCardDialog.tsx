@@ -17,6 +17,7 @@ import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CrmEyebrow, CrmSpec, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 import { LeadZonesPanel } from "@/components/crm/LeadZonesPanel";
+import { StatusHistory } from "@/components/crm/StatusHistory";
 import { LeadMeasurementsPanel } from "@/components/crm/LeadMeasurementsPanel";
 import { SourceBadge } from "@/components/crm/SourceBadge";
 import { MessengerLinks } from "@/components/crm/MessengerLinks";
@@ -284,6 +285,8 @@ export function LeadCardDialog({
               </Section>
 
               <LeadZonesPanel zones={zones} onChange={setZones} />
+
+              <StatusHistory entity="lead" id={leadId} />
 
               <div className="max-md:order-first">
               <LeadMeasurementsPanel
