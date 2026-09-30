@@ -14,7 +14,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
 import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
-import { CrmEyebrow, CrmSpec, PayStatus, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
+import { CrmEyebrow, CrmSpec, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
 import { LeadMeasurementsPanel } from "@/components/crm/LeadMeasurementsPanel";
 import { SourceBadge } from "@/components/crm/SourceBadge";
 import { MessengerLinks } from "@/components/crm/MessengerLinks";
@@ -155,8 +155,6 @@ export function LeadCardDialog({
               {form.area ? <CrmSpec label="Площа" value={`${Number(form.area)} м²`} tone="primary" /> : null}
               {form.direction ? <CrmSpec label="Напрям" value={form.direction} tone="gold" /> : null}
               {fields["object_type"] ? <CrmSpec label="Тип об'єкта" value={String(fields["object_type"])} /> : null}
-              <span className="min-w-[140px]">
-              </span>
             </div>
 
           </div>
@@ -252,7 +250,7 @@ export function LeadCardDialog({
                     <Calculator className="h-4 w-4" /> Розрахувати кошторис
                   </button>
                   {lead?.order_id ? (
-                    <button type="button" onClick={() => navigate({ to: "/orders/$id", params: { id: lead.order_id } })}
+                    <button type="button" onClick={() => navigate({ to: "/orders/$id", params: { id: lead.order_id! } })}
                       className={`${crmButtonOutline} justify-center`}>
                       <Briefcase className="h-4 w-4" /> Картка замовлення
                     </button>
@@ -263,7 +261,7 @@ export function LeadCardDialog({
                     </button>
                   )}
                   {lead?.client_id ? (
-                    <button type="button" onClick={() => navigate({ to: "/clients/$id", params: { id: lead.client_id } })}
+                    <button type="button" onClick={() => navigate({ to: "/clients/$id", params: { id: lead.client_id! } })}
                       className={`${crmButtonOutline} justify-center`}>
                       <User className="h-4 w-4" /> Картка клієнта
                     </button>
