@@ -312,7 +312,7 @@ export const getLeadsFunnel = createServerFn({ method: "POST" })
 
 /**
  * План/факт продажів по місяцях року + денні ряди періоду для KPI-спарклайнів.
- * Факт = сума договорів (`orders` зі статусом договору, за датою створення — як у analytics_overview).
+ * Факт = сума договорів (`orders` зі статусом договору, за датою замовлення, інакше створення — як у analytics_overview).
  * План = `sales_plan_months.company_target` (місяці без плану → null, не 0).
  */
 export const getSalesPlanFactYear = createServerFn({ method: "POST" })
@@ -322,10 +322,10 @@ export const getSalesPlanFactYear = createServerFn({ method: "POST" })
     const sb: Sb = context.supabase;
     const y = data.year;
     const [orders, plans, meas] = await Promise.all([
-      readAll<{ created_at: string; amount_total: number | null }>((a, b) =>
-        sb.from("orders").select("created_at, amount_total")
+      readAll<{ created_at: string; ordered_at: string | null; amount_total: number | null }>((a, b) =>
+        sb.from("orders").select("created_at, ordered_at, amount_total")
           .in("commercial_status", CONTRACT_STATUSES)
-          .gte("created_at", `${y}-01-01T00:00:00.000Z`).lt("created_at", `${y + 1}-01-01T00:00:00.000Z`)
+          .or(`created_at.gte.${y}-01-01,ordered_at.gte.${y}-01-01`)
           .range(a, b)),
       soft<{ month: string; company_target: number | null }>(sb.from("sales_plan_months").select("month, company_target").gte("month", `${y}-01-01`).lte("month", `${y}-12-31`)),
       readAll<{ created_at: string; completed_at: string | null; status: string | null }>((a, b) =>
@@ -339,9 +339,11 @@ export const getSalesPlanFactYear = createServerFn({ method: "POST" })
     const fact = Array.from({ length: 12 }, () => 0);
     const contractsByDay = new Map<string, number>();
     for (const o of orders) {
-      const d = new Date(o.created_at);
-      fact[d.getUTCMonth()] += num(o.amount_total);
-      const day = o.created_at.slice(0, 10);
+      // Дата договору = дата замовлення (keyCRM), інакше дата створення в ERP.
+      const when = String(o.ordered_at ?? o.created_at);
+      if (Number(when.slice(0, 4)) !== y) continue;
+      fact[Number(when.slice(5, 7)) - 1] += num(o.amount_total);
+      const day = when.slice(0, 10);
       if (day >= data.from && day <= data.to) contractsByDay.set(day, (contractsByDay.get(day) ?? 0) + num(o.amount_total));
     }
     const plan: Array<number | null> = Array.from({ length: 12 }, () => null);
