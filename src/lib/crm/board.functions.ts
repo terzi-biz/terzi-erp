@@ -36,6 +36,16 @@ const patchSchema = z.object({
     lost_reason: z.string().max(500).nullable().optional(),
   }).default({}),
   fields: z.record(z.string(), z.any()).optional(),
+  zones: z.array(z.object({
+    id: z.string().max(60),
+    name: z.string().trim().min(1).max(200),
+    service: z.string().max(40).nullable().optional(),
+    area: z.number().nonnegative().nullable().optional(),
+    perimeter: z.number().nonnegative().nullable().optional(),
+    thickness_cm: z.number().nonnegative().nullable().optional(),
+    foreman: z.string().max(200).nullable().optional(),
+    notes: z.string().max(1000).nullable().optional(),
+  })).max(50).optional(),
   client: z.object({
     name: z.string().trim().max(200).optional(),
     email: z.string().trim().max(200).nullable().optional(),

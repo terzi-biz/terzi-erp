@@ -464,7 +464,7 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const sb = context.supabase;
     const { data: lead, error: le } = await sb.from("crm_leads")
-      .select("id, title, client_id, contact_id, order_id, address, district, phone_e164, source, assigned_to, budget, area, notes, utm, direction, campaign, external_source, external_id, marketing_channel_id, marketing_campaign_id")
+      .select("id, title, client_id, contact_id, order_id, address, district, phone_e164, source, assigned_to, budget, area, notes, utm, direction, campaign, external_source, external_id, marketing_channel_id, marketing_campaign_id, tags")
       .eq("id", data.lead_id).maybeSingle();
 
     if (le || !lead) throw new Error("Лід не знайдено");
@@ -523,6 +523,17 @@ export const convertLeadToOrder = createServerFn({ method: "POST" })
       owner_id: context.userId,
     } as any).select("id, number").single();
     if (oe || !order) { console.error("convertLeadToOrder order", oe); throw new Error("Не вдалося створити замовлення"); }
+
+    // Зони ліда (поверхи / частини об'єкта) стають зонами замовлення.
+    const leadZones = Array.isArray((lead as any).tags?.zones) ? (lead as any).tags.zones as any[] : [];
+    if (leadZones.length) {
+      const { error: ze } = await sb.from("order_zones").insert(leadZones.map((z) => ({
+        order_id: order.id, name: String(z.name), service: z.service || null,
+        area: z.area ?? null, perimeter: z.perimeter ?? null, thickness_cm: z.thickness_cm ?? null,
+        payload: { from_lead: lead.id, foreman: z.foreman ?? null, notes: z.notes ?? null },
+      })) as any);
+      if (ze) console.error("convertLeadToOrder zones", ze);
+    }
 
     // Заміри ліда стають замірами замовлення.
     await sb.from("order_measurements").update({ order_id: order.id, client_id: clientId } as any)
