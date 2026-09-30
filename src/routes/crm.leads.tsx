@@ -18,6 +18,7 @@ import { getLeadsFunnel } from "@/lib/marketing/cabinet-funnels.functions";
 import { CABINET_KEYS, cabinetMeta, type CabinetKey } from "@/lib/marketing/cabinets";
 import { kyivToday } from "@/lib/kyiv-time";
 import { MONTHS_NOM, moneyShort } from "@/components/dashboard/v2/format";
+import { SourceBreakdown } from "@/components/crm/SourceBreakdown";
 
 export const Route = createFileRoute("/crm/leads")({
   ssr: false,
@@ -359,6 +360,16 @@ function LeadsPage() {
             </div>
           </div>
         ) : null}
+
+        <SourceBreakdown
+          title="Заявки за фільтром"
+          personLabel="За менеджерами"
+          rows={filtered.map((l: any) => ({
+            source: l.source,
+            person: (staff as any[]).find((s) => s.user_id === l.assigned_to)?.display_name ?? null,
+            won: l.status === "won", lost: l.status === "lost", value: Number(l.budget || 0),
+          }))}
+        />
 
         {/* Mobile: зведення воронки, чипи етапів, список карток */}
         <div className="space-y-3 md:hidden">
