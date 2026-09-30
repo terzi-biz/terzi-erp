@@ -36,6 +36,8 @@ export interface MeasurementRow {
   event_id: string | null;
   /** Замір призвів до договору/продажу. */
   converted: boolean;
+  /** Джерело ліда (канал), якщо замір прив'язаний до ліда. */
+  lead_source?: string | null;
 }
 
 export interface MeasurementFunnel {
@@ -88,6 +90,8 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
   const orderById = new Map<string, any>();
   const nameByUser = new Map<string, string>();
   const eventByMeasurement = new Map<string, string>();
+  const leadIds = Array.from(new Set(measurements.map((m) => m.lead_id).filter(Boolean))) as string[];
+  const sourceByLead = new Map<string, string | null>();
 
   await Promise.all([
     orderIds.length
@@ -106,6 +110,10 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
     ids.length
       ? sb.from("calendar_events").select("id, measurement_id").in("measurement_id", ids)
           .then(({ data }) => { for (const e of data ?? []) if ((e as any).measurement_id) eventByMeasurement.set((e as any).measurement_id, (e as any).id); })
+      : Promise.resolve(),
+    leadIds.length
+      ? sb.from("crm_leads").select("id, source").in("id", leadIds)
+          .then(({ data }) => { for (const l of data ?? []) sourceByLead.set((l as any).id, (l as any).source ?? null); })
       : Promise.resolve(),
   ]);
 
@@ -134,6 +142,7 @@ export async function measurementsPayload(sb: Sb, p: { from: string; to: string 
       order_commercial_status: o?.commercial_status ?? null,
       event_id: eventByMeasurement.get(m.id) ?? null,
       converted: Boolean(o && CONTRACT_STATUSES.includes(o.commercial_status)),
+      lead_source: m.lead_id ? sourceByLead.get(m.lead_id) ?? null : null,
     };
   });
 
