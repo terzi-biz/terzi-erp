@@ -1,0 +1,1 @@
+ALTER TYPE public.snapshot_kind ADD VALUE IF NOT EXISTS 'draft';
