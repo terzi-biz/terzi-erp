@@ -190,16 +190,47 @@ export async function leadCard(sb: Sb, leadId: string): Promise<LeadCard> {
 export async function saveLeadCard(
   sb: Sb,
   userId: string,
-  p: { id: string; patch: Record<string, any>; fields?: Record<string, any> },
+  p: {
+    id: string; patch: Record<string, any>; fields?: Record<string, any>;
+    client?: { name?: string; email?: string | null; company?: string | null };
+  },
 ) {
   const patch: Record<string, any> = { ...p.patch };
-  const { data: prevRow } = await sb.from("crm_leads").select("stage_id").eq("id", p.id).maybeSingle();
+  const { data: prevRow } = await sb.from("crm_leads").select("stage_id, client_id, phone_e164, address, source").eq("id", p.id).maybeSingle();
   const prevStage = (prevRow?.stage_id as string | null) ?? null;
   if (p.fields) {
     const { data: cur } = await sb.from("crm_leads").select("tags").eq("id", p.id).maybeSingle();
     const tags = (cur?.tags && typeof cur.tags === "object" ? cur.tags : {}) as Record<string, any>;
     patch["tags"] = { ...tags, fields: { ...(tags["fields"] ?? {}), ...p.fields } };
   }
+
+  // Картка клієнта: оновлюємо існуючу або знаходимо за телефоном / створюємо нову й привʼязуємо.
+  const clientName = p.client?.name?.trim();
+  if (p.client && clientName) {
+    const clientPatch: Record<string, any> = { name: clientName };
+    if (p.client.email !== undefined) clientPatch["email"] = p.client.email || null;
+    if (p.client.company !== undefined) clientPatch["company"] = p.client.company || null;
+    let clientId = (prevRow?.client_id as string | null) ?? null;
+    const phone = (patch["phone_e164"] ?? prevRow?.phone_e164 ?? null) as string | null;
+    if (!clientId && phone) {
+      const { data: found } = await sb.from("clients").select("id").eq("phone_e164", phone).limit(1).maybeSingle();
+      clientId = (found?.id as string | undefined) ?? null;
+    }
+    if (clientId) {
+      const { error: cErr } = await sb.from("clients").update(clientPatch).eq("id", clientId);
+      if (cErr) { console.error("saveLeadCard client update", cErr); throw new Error("Не вдалося оновити картку клієнта"); }
+    } else {
+      const { data: created, error: cErr } = await sb.from("clients").insert({
+        ...clientPatch, owner_id: userId, status: "lead",
+        phone: phone, address: patch["address"] ?? prevRow?.address ?? null,
+        source: patch["source"] ?? prevRow?.source ?? null,
+      } as any).select("id").single();
+      if (cErr) { console.error("saveLeadCard client insert", cErr); throw new Error("Не вдалося створити картку клієнта"); }
+      clientId = created.id as string;
+    }
+    patch["client_id"] = clientId;
+  }
+
   const { data, error } = await sb.from("crm_leads").update(patch).eq("id", p.id).select().single();
   if (error) { console.error("saveLeadCard", error); throw new Error("Не вдалося зберегти лід"); }
   await sb.from("crm_lead_activities").insert({
