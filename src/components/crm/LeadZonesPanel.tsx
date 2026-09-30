@@ -1,11 +1,11 @@
 /**
- * Зони об'єкта в картці ліда: поверхи / частини будинку з власним видом робіт,
  * площею, периметром, товщиною і прорабом. Зберігаються разом із лідом,
  * при створенні замовлення переходять у зони замовлення.
  */
 import { Plus, Trash2, Layers } from "lucide-react";
 import { ORDER_SERVICES, SERVICE_LABELS } from "@/lib/orders.constants";
 import type { LeadZone } from "@/lib/crm/board.server";
+import { StaffSelect } from "./RefSelects";
 
 const inp = "w-full rounded-md border border-border bg-background px-2.5 py-2 text-sm";
 const lbl = "text-[11px] uppercase tracking-wider text-muted-foreground";

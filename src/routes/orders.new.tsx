@@ -12,6 +12,7 @@ import {
 } from "@/lib/orders.constants";
 
 import { toast } from "sonner";
+import { SourceSelect, StaffSelect } from "@/components/crm/RefSelects";
 
 export const Route = createFileRoute("/orders/new")({
   ssr: false,
@@ -52,7 +53,7 @@ function NewObjectPage() {
   const [form, setForm] = useState({
     name: "", address: "", district: "", order_type: "",
     floor: "" as string, has_lift: false, distance_km: "" as string,
-    source: "", crm_link: "", notes: "",
+    source: "", manager_id: "", crm_link: "", notes: "",
   });
   const [services, setServices] = useState<string[]>([]);
   const [nextAction, setNextAction] = useState<NextAction | "">("");
@@ -98,6 +99,7 @@ function NewObjectPage() {
         has_lift: form.has_lift,
         distance_km: form.distance_km ? Number(form.distance_km) : null,
         source: form.source || null,
+        manager_id: form.manager_id || null,
         crm_link: form.crm_link || null,
         notes: form.notes || null,
         client_id: cid,
@@ -214,7 +216,8 @@ function NewObjectPage() {
                 </div>
                 <Input label="Відстань, км" value={form.distance_km} onChange={(v) => setForm({ ...form, distance_km: v })} type="number" />
               </div>
-              <Input label="Джерело ліду" value={form.source} onChange={(v) => setForm({ ...form, source: v })} placeholder="Google, рекомендація…" />
+              <div><label className="text-xs text-muted-foreground">Джерело ліду</label><SourceSelect value={form.source} onChange={(v) => setForm({ ...form, source: v })} /></div>
+              <div><label className="text-xs text-muted-foreground">Менеджер з продажу</label><StaffSelect value={form.manager_id} onChange={(v) => setForm({ ...form, manager_id: v })} /></div>
               <Input label="Посилання CRM" value={form.crm_link} onChange={(v) => setForm({ ...form, crm_link: v })} />
               <Textarea label="Коментар" value={form.notes} onChange={(v) => setForm({ ...form, notes: v })} />
             </div>
