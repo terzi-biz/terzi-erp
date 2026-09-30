@@ -33,10 +33,18 @@ export interface BoardLead {
   closed_at: string | null;
   next_action_at: string | null;
   fields: Record<string, string | number | boolean | null>;
+  zones: LeadZone[];
   /** Рекламний кабінет (UI v2): канал → UTM → текст джерела; невідоме → «other». */
   cabinet: CabinetKey;
   lost_reason: string | null;
 }
+
+/** Зона об'єкта на етапі ліда (поверх / частина будинку); при створенні замовлення переходить у зони замовлення. */
+export interface LeadZone {
+  id: string; name: string; service?: string | null; area?: number | null; perimeter?: number | null;
+  thickness_cm?: number | null; foreman?: string | null; notes?: string | null;
+}
+const asZones = (tags: any): LeadZone[] => (tags && Array.isArray(tags.zones) ? tags.zones : []);
 
 const asFields = (tags: any): Record<string, string | number | boolean | null> =>
   tags && typeof tags === "object" && tags.fields && typeof tags.fields === "object" ? tags.fields : {};
@@ -90,6 +98,7 @@ async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
       closed_at: l.closed_at ?? null,
       next_action_at: l.next_action_at ?? null,
       fields: asFields(l.tags),
+      zones: asZones(l.tags),
       cabinet: resolveCabinet({
         channelKey: l.marketing_channel_id ? (channelKey.get(l.marketing_channel_id) as string | undefined) ?? null : null,
         source: l.source ?? null,
@@ -197,15 +206,20 @@ export async function saveLeadCard(
   p: {
     id: string; patch: Record<string, any>; fields?: Record<string, any>;
     client?: { name?: string; email?: string | null; company?: string | null };
+    zones?: LeadZone[];
   },
 ) {
   const patch: Record<string, any> = { ...p.patch };
   const { data: prevRow } = await sb.from("crm_leads").select("stage_id, client_id, phone_e164, address, source").eq("id", p.id).maybeSingle();
   const prevStage = (prevRow?.stage_id as string | null) ?? null;
-  if (p.fields) {
+  if (p.fields || p.zones) {
     const { data: cur } = await sb.from("crm_leads").select("tags").eq("id", p.id).maybeSingle();
     const tags = (cur?.tags && typeof cur.tags === "object" ? cur.tags : {}) as Record<string, any>;
-    patch["tags"] = { ...tags, fields: { ...(tags["fields"] ?? {}), ...p.fields } };
+    patch["tags"] = {
+      ...tags,
+      ...(p.fields ? { fields: { ...(tags["fields"] ?? {}), ...p.fields } } : {}),
+      ...(p.zones ? { zones: p.zones } : {}),
+    };
   }
 
   // Картка клієнта: оновлюємо існуючу або знаходимо за телефоном / створюємо нову й привʼязуємо.
