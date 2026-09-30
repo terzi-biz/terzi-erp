@@ -90,6 +90,7 @@ function MeasurementsPage() {
   // До +30 днів, щоб заплановані наперед заміри були видні у «План».
   const [to, setTo] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return iso(d); });
   const [tab, setTab] = useState<"plan" | "fact">("plan");
+  const [surveyorFilter, setSurveyorFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState<MeasurementStatus | null>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
@@ -111,7 +112,9 @@ function MeasurementsPage() {
 
   const f = data?.funnel;
   const planned = data?.planned ?? [];
-  const rows = data?.rows ?? [];
+  const allRows = data?.rows ?? [];
+  const surveyors = Array.from(new Set(allRows.map((r) => r.surveyor_name).filter(Boolean))) as string[];
+  const rows = surveyorFilter ? allRows.filter((r) => (r.surveyor_name ?? "") === surveyorFilter) : allRows;
   const shown = statusFilter ? rows.filter((r) => r.status === statusFilter) : rows;
   const bySource = (() => {
     const m = new Map<string, { source: string; total: number; done: number; canceled: number; contracts: number }>();
@@ -189,6 +192,10 @@ function MeasurementsPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} />
             <input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} />
+            <select value={surveyorFilter} onChange={(e) => setSurveyorFilter(e.target.value)} className={inp} aria-label="Замірник">
+              <option value="">Усі замірники</option>
+              {surveyors.map((s) => <option key={s} value={s}>{s}</option>)}
+            </select>
             <button onClick={() => { setForm(emptyForm); setOpen(true); }}
               className={crmButton}>
               <Plus className="w-4 h-4" /> Запланувати замір
