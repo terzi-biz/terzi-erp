@@ -1,11 +1,11 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
-import { Calculator, Grid3x3, Wallet, Building2, ShieldCheck, Cable, LayoutGrid, Target } from "lucide-react";
+import { Calculator, Grid3x3, Wallet, Building2, ShieldCheck, Cable, LayoutGrid, Target, PackageOpen, Workflow } from "lucide-react";
 
 export const Route = createFileRoute("/settings")({
   component: SettingsLayout,
   head: () => ({ meta: [
     { title: "Налаштування TERZI ERP" },
-    { name: "description", content: "Центр налаштувань TERZI ERP: норми витрат, модулі, фінанси, компанія, доступи й інтеграції." },
+    { name: "description", content: "Центр налаштувань TERZI ERP: ціни, норми витрат, процеси, фінанси, компанія, доступи й інтеграції." },
     { property: "og:title", content: "Налаштування TERZI ERP" },
     { property: "og:description", content: "Єдиний центр налаштувань TERZI ERP з company-wide нормами калькуляторів." },
     { property: "og:type", content: "website" },
@@ -14,7 +14,7 @@ export const Route = createFileRoute("/settings")({
 });
 
 type SettingsNavItem = {
-  to: "/settings" | "/settings/norms" | "/settings/system" | "/settings/finance" | "/settings/sales-plan" | "/settings/company" | "/settings/access" | "/settings/integrations";
+  to: "/settings" | "/settings/catalog" | "/settings/norms" | "/settings/processes" | "/settings/system" | "/settings/finance" | "/settings/sales-plan" | "/settings/company" | "/settings/access" | "/settings/integrations";
   label: string;
   icon: typeof Calculator;
   description: string;
@@ -23,13 +23,15 @@ type SettingsNavItem = {
 
 export const SETTINGS_NAV: SettingsNavItem[] = [
   { to: "/settings", label: "Огляд", icon: LayoutGrid, exact: true, description: "Усі розділи налаштувань в одному місці." },
-  { to: "/settings/norms", label: "Норми і коефіцієнти", icon: Calculator, description: "Праймер, газ, мінімалка бригади, амортизація, ПДВ — діє одразу для кошторисів." },
-  { to: "/settings/system", label: "Система і модулі", icon: Grid3x3, description: "Модулі, кастомні поля, довідники, марки стяжки й нормативи руберойду." },
+  { to: "/settings/catalog", label: "Ціни і матеріали", icon: PackageOpen, description: "Матеріали, закупівельні й продажні ціни, ставки бригад, логістика, обладнання." },
+  { to: "/settings/norms", label: "Норми і коефіцієнти", icon: Calculator, description: "Загальні норми, марки стяжки й фібра, газ/праймер/нахлести руберойду." },
+  { to: "/settings/processes", label: "Воронки і задачі", icon: Workflow, description: "Етапи воронок, типи й пріоритети задач, автоматизації." },
+  { to: "/settings/integrations", label: "Інтеграції", icon: Cable, description: "Усі джерела лідів, витрат і оплат: де підключати і стан." },
+  { to: "/settings/system", label: "Система і модулі", icon: Grid3x3, description: "Модулі, кастомні поля, довідники." },
   { to: "/settings/finance", label: "Фінанси", icon: Wallet, description: "Фінансові правила, зарплата і KPI." },
   { to: "/settings/sales-plan", label: "План продажів", icon: Target, description: "Плани по місяцях і менеджерах." },
   { to: "/settings/company", label: "Компанія", icon: Building2, description: "Реквізити, причини закриття, брендинг, напрямки." },
   { to: "/settings/access", label: "Доступи і безпека", icon: ShieldCheck, description: "Користувачі, ролі, права, журнал дій." },
-  { to: "/settings/integrations", label: "Інтеграції", icon: Cable, description: "Підключення сервісів і обмін даними." },
 ];
 
 function SettingsLayout() {
