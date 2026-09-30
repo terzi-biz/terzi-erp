@@ -16,6 +16,7 @@ import { getCabinetFunnels, getSalesPlanFactYear } from "@/lib/marketing/cabinet
 import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } from "@/components/dashboard/panels";
 import { DashboardV2View, type DashRange, type KpiBlock } from "@/components/dashboard/v2/DashboardV2View";
 import { DashboardDetails, type Overview, type FinanceSummary } from "@/components/dashboard/v2/DashboardDetails";
+import { MonthlySourcesPanel } from "@/components/dashboard/v2/MonthlySourcesPanel";
 import type { HeroData } from "@/components/dashboard/v2/HeroStrip";
 import type { ManagerRow } from "@/components/dashboard/v2/ManagersPlan";
 import { delta, MONTHS_NOM } from "@/components/dashboard/v2/format";
@@ -277,6 +278,7 @@ function Dashboard() {
         statusSlot={statusSlot}
         onDrill={(metric, title) => setDrill({ metric, title })}
       />
+      <div className="mx-auto max-w-[1500px] px-4 pb-6"><MonthlySourcesPanel /></div>
       <DrilldownDialog metric={drill?.metric ?? null} title={drill?.title ?? ""} from={from} to={to} onClose={() => setDrill(null)} />
       <LeadMatchDialog open={matchOpen} onClose={() => setMatchOpen(false)} />
     </>

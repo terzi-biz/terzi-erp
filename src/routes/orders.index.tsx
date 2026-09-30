@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plus, Search, Building2, MapPin, Phone, ExternalLink, CalendarDays, User } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { SourceBreakdown, channelLabel } from "@/components/crm/SourceBreakdown";
 import { Pagination } from "@/components/Pagination";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { DEFAULT_PAGE_SIZE } from "@/lib/pagination";
@@ -61,6 +62,8 @@ function OrdersPage() {
   const [service, setService] = useState("all");
   const [manager, setManager] = useState("all");
   const [risk, setRisk] = useState("all");
+  const [foreman, setForeman] = useState("all");
+  const [source, setSource] = useState("all");
   const [tag, setTag] = useState("all");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
@@ -82,6 +85,9 @@ function OrdersPage() {
     [data],
   );
 
+  const foremen = useMemo(() => Array.from(new Set(data.map((r) => r.management_data?.foreman_name).filter(Boolean))).sort() as string[], [data]);
+  const sources = useMemo(() => Array.from(new Set(data.map((r) => channelLabel(r.source)))).sort(), [data]);
+
   const tags = useMemo(
     () => Array.from(new Set(data.flatMap((r) => r.work_tags ?? []))).sort(),
     [data],
@@ -93,15 +99,17 @@ function OrdersPage() {
     if (manager !== "all" && r.manager_display !== manager) return false;
     if (service !== "all" && !(r.services ?? []).includes(service)) return false;
     if (tag !== "all" && !(r.work_tags ?? []).includes(tag)) return false;
+    if (foreman !== "all" && r.management_data?.foreman_name !== foreman) return false;
+    if (source !== "all" && channelLabel(r.source) !== source) return false;
     const created = r.ordered_at ?? r.created_at;
     if (from && (!created || created.slice(0, 10) < from)) return false;
     if (to && (!created || created.slice(0, 10) > to)) return false;
     return true;
-  }), [data, prod, service, manager, risk, tag, from, to]);
+  }), [data, prod, service, manager, risk, tag, from, to, foreman, source]);
 
   const resetFilters = () => {
     setQ(""); setStatus("all"); setProd("all"); setService("all");
-    setManager("all"); setRisk("all"); setTag("all"); setFrom(""); setTo("");
+    setManager("all"); setRisk("all"); setForeman("all"); setSource("all"); setTag("all"); setFrom(""); setTo("");
   };
 
   const selectCls = "rounded-md border border-input bg-background text-xs px-2.5 py-2";
@@ -148,7 +156,15 @@ function OrdersPage() {
               {Object.entries(RISK_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <select value={foreman} onChange={(e) => setForeman(e.target.value)} className={selectCls}>
+              <option value="all">Прораб: всі</option>
+              {foremen.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
+            <select value={source} onChange={(e) => setSource(e.target.value)} className={selectCls}>
+              <option value="all">Джерело: всі</option>
+              {sources.map((m) => <option key={m} value={m}>{m}</option>)}
+            </select>
             <select value={tag} onChange={(e) => setTag(e.target.value)} className={selectCls}>
               <option value="all">Мітки робіт: всі</option>
               {tags.map((t) => <option key={t as string} value={t as string}>{t as string}</option>)}
@@ -168,6 +184,12 @@ function OrdersPage() {
             <span>Показано: <b className="text-foreground">{rows.length}</b> · знайдено всього {total}</span>
           </div>
         </CrmPanel>
+
+        <SourceBreakdown
+          title="Замовлення за фільтром"
+          personLabel="За менеджерами"
+          rows={rows.map((r) => ({ source: r.source, person: r.manager_display ?? null, won: ["contract", "awaiting_prepayment", "sold"].includes(r.commercial_status), lost: r.commercial_status === "refused", value: Number(r.amount_total || 0) }))}
+        />
 
         {isLoading ? (
           <div className="p-8 text-center text-sm text-muted-foreground">Завантаження…</div>
