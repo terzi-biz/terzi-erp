@@ -90,6 +90,7 @@ function MeasurementsPage() {
   // До +30 днів, щоб заплановані наперед заміри були видні у «План».
   const [to, setTo] = useState(() => { const d = new Date(); d.setDate(d.getDate() + 30); return iso(d); });
   const [tab, setTab] = useState<"plan" | "fact">("plan");
+  const [statusFilter, setStatusFilter] = useState<MeasurementStatus | null>(null);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [result, setResult] = useState<any>(null);
@@ -111,6 +112,20 @@ function MeasurementsPage() {
   const f = data?.funnel;
   const planned = data?.planned ?? [];
   const rows = data?.rows ?? [];
+  const shown = statusFilter ? rows.filter((r) => r.status === statusFilter) : rows;
+  const bySource = (() => {
+    const m = new Map<string, { source: string; total: number; done: number; canceled: number; contracts: number }>();
+    for (const r of rows) {
+      const k = (r as any).lead_source || (r.lead_id ? "Не вказано" : "Без ліда");
+      const e = m.get(k) ?? { source: k, total: 0, done: 0, canceled: 0, contracts: 0 };
+      e.total++;
+      if (r.status === "completed") e.done++;
+      if (r.status === "canceled") e.canceled++;
+      if (r.converted) e.contracts++;
+      m.set(k, e);
+    }
+    return [...m.values()].sort((a, b) => b.total - a.total);
+  })();
   const refresh = () => {
     qc.invalidateQueries({ queryKey: ["measurements"] });
     qc.invalidateQueries({ queryKey: ["crm", "lead-card"] });
@@ -189,6 +204,56 @@ function MeasurementsPage() {
           <CrmKpi label="Замір → договір" value={pctText(f?.measureToContract ?? null)} />
           <CrmKpi label="Лід → договір" value={pctText(f?.leadToContract ?? null)} />
         </div>
+
+        <CrmPanel className="p-3 space-y-2">
+          <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Етапи воронки замірів · натисніть, щоб відфільтрувати</div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {MEASUREMENT_STATUSES.map((s) => {
+              const cnt = rows.filter((r) => r.status === s).length;
+              const active = statusFilter === s;
+              return (
+                <button key={s} type="button"
+                  onClick={() => { setStatusFilter(active ? null : s); setTab("fact"); }}
+                  className={`shrink-0 min-w-[110px] rounded-md border px-3 py-2 text-left transition ${active ? "border-primary ring-2 ring-primary/30" : "border-border hover:border-primary/50"}`}>
+                  <span className={`inline-block text-[11px] font-semibold rounded-full px-2 py-0.5 ${STATUS_TONE[s]}`}>{MEASUREMENT_STATUS_LABELS[s]}</span>
+                  <div className="mt-1 text-xl font-bold tabular-nums">{cnt}</div>
+                </button>
+              );
+            })}
+          </div>
+        </CrmPanel>
+
+        <CrmPanel className="p-3">
+          <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Заміри за джерелами ліда</div>
+          {bySource.length ? (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="text-xs text-muted-foreground">
+                  <tr>
+                    <th className="text-left py-1">Джерело</th>
+                    <th className="text-right">Заміри</th>
+                    <th className="text-right">Виконано</th>
+                    <th className="text-right">Скасовано</th>
+                    <th className="text-right">Договори</th>
+                    <th className="text-right">Замір → договір</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {bySource.map((s) => (
+                    <tr key={s.source}>
+                      <td className="py-1.5">{s.source}</td>
+                      <td className="text-right tabular-nums">{s.total}</td>
+                      <td className="text-right tabular-nums">{s.done}</td>
+                      <td className="text-right tabular-nums">{s.canceled}</td>
+                      <td className="text-right tabular-nums">{s.contracts}</td>
+                      <td className="text-right tabular-nums">{s.done ? `${Math.round((s.contracts / s.done) * 100)}%` : "немає даних"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : <div className="text-sm text-muted-foreground">Немає замірів за період</div>}
+        </CrmPanel>
 
         {f && (f.overduePlanned > 0 || f.withoutSurveyor > 0) ? (
           <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 flex items-start gap-2">
@@ -276,7 +341,7 @@ function MeasurementsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
-                {rows.map((r) => (
+                {shown.map((r) => (
                   <tr key={r.id}>
                     <td className="px-3 py-2 whitespace-nowrap">{fmtDT(r.measured_at ?? r.scheduled_at ?? r.created_at)}</td>
                     <td className="px-3 py-2 truncate max-w-[280px]">
