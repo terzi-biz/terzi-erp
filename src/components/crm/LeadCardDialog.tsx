@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { getLeadCard, saveLead, listCrmStaff } from "@/lib/crm/board.functions";
+import { SourceSelect, DirectionSelect } from "./RefSelects";
 import { addLeadNote, upsertTask, getCallRecording, convertLeadToOrder } from "@/lib/crm.functions";
 import { LEAD_CUSTOM_FIELDS, LEAD_FIELD_GROUPS } from "@/lib/crm/lead-fields";
 import { CrmEyebrow, CrmSpec, crmButton, crmButtonOutline } from "@/components/crm/CrmUi";
@@ -220,8 +221,8 @@ export function LeadCardDialog({
               </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Section title="Про заявку">
-                  <Field label="Джерело"><input className={inp} value={form.source ?? ""} onChange={(e) => setForm({ ...form, source: e.target.value })} /></Field>
-                  <Field label="Напрям робіт"><input className={inp} value={form.direction ?? ""} onChange={(e) => setForm({ ...form, direction: e.target.value })} /></Field>
+                  <Field label="Джерело"><SourceSelect className={inp} value={form.source} onChange={(v) => setForm({ ...form, source: v })} /></Field>
+                  <Field label="Напрям робіт"><DirectionSelect className={inp} value={form.direction} onChange={(v) => setForm({ ...form, direction: v })} /></Field>
                   <Field label="Відповідальний менеджер">
                     <select className={inp} value={form.assigned_to ?? ""} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}>
                       <option value="">—</option>

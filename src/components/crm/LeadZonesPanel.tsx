@@ -52,7 +52,7 @@ export function LeadZonesPanel({ zones, onChange }: { zones: LeadZone[]; onChang
                 <label><span className={lbl}>Площа, м²</span><input type="number" inputMode="decimal" className={inp} value={z.area ?? ""} onChange={(e) => set(z.id, { area: num(e.target.value) })} /></label>
                 <label><span className={lbl}>Периметр, м</span><input type="number" inputMode="decimal" className={inp} value={z.perimeter ?? ""} onChange={(e) => set(z.id, { perimeter: num(e.target.value) })} /></label>
                 <label><span className={lbl}>Товщина, см</span><input type="number" inputMode="decimal" className={inp} value={z.thickness_cm ?? ""} onChange={(e) => set(z.id, { thickness_cm: num(e.target.value) })} /></label>
-                <label className="col-span-2 md:col-span-1"><span className={lbl}>Прораб</span><input className={inp} value={z.foreman ?? ""} onChange={(e) => set(z.id, { foreman: e.target.value })} /></label>
+                <label className="col-span-2 md:col-span-1"><span className={lbl}>Прораб</span><StaffSelect byName className={inp} value={z.foreman} onChange={(v) => set(z.id, { foreman: v })} /></label>
               </div>
             </div>
           ))}
