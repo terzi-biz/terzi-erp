@@ -80,6 +80,12 @@ const TABS = [
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
 const TAB_KEYS = TABS.map((t) => t.key) as readonly string[];
+const TAB_GROUPS = [
+  { key: "summary", label: "Огляд", keys: ["overview", "planfact", "pnl", "services", "objects"] },
+  { key: "money", label: "Гроші", keys: ["operations", "payments", "expenses", "invoices", "accounts", "projects"] },
+  { key: "debts", label: "Борги", keys: ["receivables", "payables", "upcoming"] },
+  { key: "control", label: "Контроль", keys: ["reconcile", "finmap", "payroll", "categories"] },
+] as const;
 
 const input = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm";
 const label = "text-[11px] uppercase tracking-wider text-muted-foreground";
@@ -163,20 +169,34 @@ function FinancePage() {
           <span className="text-[11px] text-muted-foreground">Період впливає на Огляд, Операції, План/факт і Звірку</span>
         </div>
 
-        <div className="scroll-x -mx-4 px-4 md:mx-0 md:px-0">
-          <div className="flex gap-2 w-max md:w-full md:flex-wrap">
-            {TABS.map((t) => (
-              <button key={t.key} onClick={() => setTab(t.key)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold border whitespace-nowrap transition-colors ${
-                  tab === t.key
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "border-border bg-card text-muted-foreground hover:text-foreground hover:bg-secondary/60"
-                }`}>
-                <t.icon className="w-4 h-4" />{t.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        {(() => {
+          const activeGroup = TAB_GROUPS.find((g) => (g.keys as readonly string[]).includes(tab)) ?? TAB_GROUPS[0];
+          const groupTabs = TABS.filter((t) => (activeGroup.keys as readonly string[]).includes(t.key));
+          return (
+            <div className="space-y-2">
+              <div className="grid grid-cols-4 gap-1 rounded-xl border border-border bg-card p-1">
+                {TAB_GROUPS.map((g) => (
+                  <button key={g.key} type="button" onClick={() => setTab(g.keys[0] as TabKey)}
+                    className={`min-h-11 rounded-lg px-1 text-xs font-bold transition-colors sm:text-sm ${
+                      g.key === activeGroup.key ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                    }`}>{g.label}</button>
+                ))}
+              </div>
+              <div className="scroll-x -mx-4 px-4 md:mx-0 md:px-0">
+                <div className="flex w-max gap-2 md:w-full md:flex-wrap">
+                  {groupTabs.map((t) => (
+                    <button key={t.key} type="button" onClick={() => setTab(t.key)}
+                      className={`inline-flex min-h-10 items-center gap-2 whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition-colors ${
+                        tab === t.key ? "border-primary bg-primary/10 text-primary" : "border-border bg-card text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
+                      }`}>
+                      <t.icon className="h-4 w-4" />{t.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {tab === "overview" && (
           <div className="space-y-4">
