@@ -27,6 +27,8 @@ export interface BoardLead {
   assigned_to: string | null;
   manager_name: string | null;
   client_name: string | null;
+  client_email: string | null;
+  client_company: string | null;
   created_at: string | null;
   closed_at: string | null;
   next_action_at: string | null;
@@ -49,7 +51,7 @@ async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
       ? sb.from("crm_contacts").select("id, full_name, phone, phone_e164").in("id", contactIds)
       : Promise.resolve({ data: [] as any[] }),
     clientIds.length
-      ? sb.from("clients").select("id, name, phone, phone_e164").in("id", clientIds)
+      ? sb.from("clients").select("id, name, phone, phone_e164, email, company").in("id", clientIds)
       : Promise.resolve({ data: [] as any[] }),
     staffNameMap(userIds),
     leads.some((l) => l.marketing_channel_id)
@@ -82,6 +84,8 @@ async function decorate(sb: Sb, leads: any[]): Promise<BoardLead[]> {
       assigned_to: l.assigned_to ?? null,
       manager_name: l.assigned_to ? names.get(l.assigned_to) ?? null : null,
       client_name: client?.name ?? contact?.full_name ?? null,
+      client_email: client?.email ?? null,
+      client_company: client?.company ?? null,
       created_at: l.created_at ?? null,
       closed_at: l.closed_at ?? null,
       next_action_at: l.next_action_at ?? null,
