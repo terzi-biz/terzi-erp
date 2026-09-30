@@ -20,6 +20,7 @@ import {
 import { ObjectAnalyticsSection } from "@/components/finance/ObjectAnalytics";
 import { AllocationReviewSection } from "@/components/finance/AllocationReview";
 import { getManagementKpi } from "@/lib/finance/management.functions";
+import { FinanceReportsSection } from "@/components/finance/FinanceReports";
 
 
 
@@ -61,6 +62,7 @@ export const Route = createFileRoute("/finance")({
 
 const TABS = [
   { key: "overview", label: "Огляд", icon: Gauge },
+  { key: "reports", label: "Звіти по місяцях", icon: TrendingUp },
   { key: "operations", label: "Операції", icon: ListChecks },
   { key: "objects", label: "Об'єкти", icon: Layers },
   { key: "planfact", label: "План/факт", icon: Scale },
@@ -82,7 +84,7 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 const TAB_KEYS = TABS.map((t) => t.key) as readonly string[];
 const TAB_GROUPS = [
-  { key: "summary", label: "Огляд", keys: ["overview", "planfact", "pnl", "services", "objects"] },
+  { key: "summary", label: "Огляд", keys: ["overview", "reports", "planfact", "pnl", "services", "objects"] },
   { key: "money", label: "Гроші", keys: ["operations", "payments", "expenses", "invoices", "accounts", "projects"] },
   { key: "debts", label: "Борги", keys: ["receivables", "payables", "upcoming"] },
   { key: "control", label: "Контроль", keys: ["reconcile", "finmap", "payroll", "categories"] },
@@ -206,6 +208,7 @@ function FinancePage() {
             <OverviewSection period={period} onDrill={(k) => { setOpsKind(k); setTab("operations"); }} />
           </div>
         )}
+        {tab === "reports" && <FinanceReportsSection period={period} onPeriod={setPeriod} />}
         {tab === "services" && <ServiceEconomicsSection period={period} />}
         {tab === "upcoming" && <UpcomingSection />}
         {tab === "operations" && <OperationsSection period={period} initialKind={opsKind} />}
