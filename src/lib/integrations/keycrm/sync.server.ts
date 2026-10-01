@@ -373,17 +373,29 @@ async function upsertContact(
   const e164 = toE164(input.phone);
   const phoneNorm = normPhone(input.phone);
 
+  // ID контактів і покупців keyCRM — різні простори номерів. Контакти зберігаємо з префіксом,
+  // щоб контакт #2240 ніколи не склеївся з покупцем #2240.
+  const storedExtId = input.entity === "contacts" ? `contact:${input.externalId}` : input.externalId;
+  const phoneConflicts = async (id: string | null) => {
+    if (!id || !e164) return false;
+    const { data } = await db.from("crm_contacts").select("phone_e164").eq("id", id).maybeSingle();
+    const cur = (data as any)?.phone_e164 as string | null;
+    return !!cur && cur !== e164;
+  };
+
   const link = await getLink(ctx.integration.id, input.entity, input.externalId);
   let contactId: string | null = link?.internal_id ?? null;
+  if (await phoneConflicts(contactId)) contactId = null;
   if (!contactId) {
     const { data: byExt } = await db
       .from("crm_contacts")
       .select("id")
       .eq("external_source", "keycrm")
-      .eq("external_id", input.externalId)
+      .eq("external_id", storedExtId)
       .limit(1)
       .maybeSingle();
     contactId = (byExt as any)?.id ?? null;
+    if (await phoneConflicts(contactId)) contactId = null;
   }
   if (!contactId && e164) {
     const { data: byE164 } = await db
@@ -432,12 +444,13 @@ async function upsertContact(
     email: input.email,
     company: input.company ?? null,
     external_source: "keycrm",
-    external_id: input.externalId,
+    external_id: storedExtId,
     client_id: clientId,
   };
 
   if (contactId) {
-    const patch = preservePatch(current, incoming, ["phone_e164", "phone_norm", "external_source", "external_id"]);
+    // keyCRM — джерело істини для імені/телефону/e-mail контакту (порожні значення не затирають).
+    const patch = preservePatch(current, incoming, ["full_name", "phone", "email", "phone_e164", "phone_norm", "external_source", "external_id", "client_id"]);
     if (Object.keys(patch).length) {
       const { error } = await db.from("crm_contacts").update(patch as any).eq("id", contactId);
       if (error) throw error;
