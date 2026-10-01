@@ -17,6 +17,7 @@ import { DrilldownDialog, TasksPanel, LeadMatchDialog, type DrilldownMetric } fr
 import { DashboardV2View, type DashRange, type KpiBlock } from "@/components/dashboard/v2/DashboardV2View";
 import { DashboardDetails, type Overview, type FinanceSummary } from "@/components/dashboard/v2/DashboardDetails";
 import { MonthlySourcesPanel } from "@/components/dashboard/v2/MonthlySourcesPanel";
+import { TaskAlertsCard } from "@/components/tasks/TaskAlerts";
 import { PlanVsFactPanel } from "@/components/dashboard/v2/PlanVsFactPanel";
 import type { HeroData } from "@/components/dashboard/v2/HeroStrip";
 import type { ManagerRow } from "@/components/dashboard/v2/ManagersPlan";
@@ -265,7 +266,7 @@ function Dashboard() {
         currentMonth={monthIdx + 1}
         managers={managers}
         monthLabel={`${MONTHS_NOM[monthIdx]} ${year}`}
-        tasksSlot={<TasksPanel />}
+        tasksSlot={<div className="space-y-4"><TaskAlertsCard /><TasksPanel /></div>}
         detailsSlot={cur ? (
           <DashboardDetails
             cur={cur}

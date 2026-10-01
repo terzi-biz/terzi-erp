@@ -1,4 +1,5 @@
 import { Link, useLocation } from "@tanstack/react-router";
+import { TaskBell } from "@/components/tasks/TaskAlerts";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { useI18n } from "@/lib/i18n";
@@ -185,6 +186,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
           <Link to="/" aria-label="TERZI ERP — дашборд" className="min-w-0">
             {compact ? <BrandMark size={34} /> : <BrandWordmark tone="white" width={176} />}
           </Link>
+          {!compact && mode !== "drawer" ? <TaskBell tone="dark" /> : null}
           {mode === "drawer" ? (
             <button type="button" onClick={() => setMobileOpen(false)} className="shrink-0 rounded p-1.5 hover:bg-white/10" aria-label="Закрити меню">
               <X className="h-5 w-5" />
@@ -254,6 +256,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
               <Bell className="h-5 w-5" /><span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-[var(--color-gold)]" />
             </Link>
           ) : null}
+          <TaskBell tone="dark" />
           <button type="button" onClick={() => setMobileOpen(true)} aria-label="Профіль і меню"><Avatar url={profile?.avatar_url} name={displayName} size={34} tone="light" /></button>
         </div>
       </div>
@@ -290,6 +293,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
                 <Bell className="h-[18px] w-[18px]" /><span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-[var(--color-destructive)]" />
               </Link>
             ) : null}
+            <TaskBell />
             <Link to="/calc" className={buttonVariants({ variant: "gold", size: "sm" }) + " gap-1.5 font-semibold"}>
               <Plus className="h-3.5 w-3.5" /> Розрахунок
             </Link>
