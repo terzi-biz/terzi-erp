@@ -305,15 +305,48 @@ export const upsertTask = createServerFn({ method: "POST" })
     priority: z.enum(["low", "normal", "high", "critical"]).default("normal"),
     status: z.enum(["open", "done", "cancelled"]).default("open"),
     lead_id: z.string().uuid().optional().nullable(),
+    order_id: z.string().uuid().optional().nullable(),
+    assigned_to: z.string().uuid().optional().nullable(),
+    co_assignees: z.array(z.string().uuid()).max(20).optional(),
+    remind_at: z.string().optional().nullable(),
   }).parse(d))
   .handler(async ({ data, context }) => {
     const { id, ...rest } = data;
-    const patch = { ...rest, completed_at: rest.status === "done" ? new Date().toISOString() : null };
+    const patch: Record<string, any> = { ...rest, completed_at: rest.status === "done" ? new Date().toISOString() : null };
+    for (const k of Object.keys(patch)) if (patch[k] === undefined) delete patch[k];
     const { data: out, error } = id
-      ? await context.supabase.from("crm_tasks").update(patch).eq("id", id).select().single()
-      : await context.supabase.from("crm_tasks").insert({ ...patch, owner_id: context.userId, assigned_to: context.userId }).select().single();
+      ? await context.supabase.from("crm_tasks").update(patch as any).eq("id", id).select().single()
+      : await context.supabase.from("crm_tasks").insert({ ...patch, owner_id: context.userId, assigned_to: rest.assigned_to ?? context.userId } as any).select().single();
     if (error) { console.error("upsertTask", error); throw new Error("Не вдалося зберегти задачу"); }
     return out;
+  });
+
+/** Нагадування поточного користувача: прострочені, на сьогодні та ті, де настав час нагадування. */
+export const listMyTaskAlerts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const uid = context.userId;
+    const { data, error } = await context.supabase.from("crm_tasks")
+      .select("id,title,kind,priority,due_at,remind_at,assigned_to,co_assignees,owner_id")
+      .eq("status", "open")
+      .or(`assigned_to.eq.${uid},co_assignees.cs.{${uid}}`)
+      .order("due_at", { ascending: true, nullsFirst: false }).limit(200);
+    if (error) { console.error("listMyTaskAlerts", error); throw new Error("Не вдалося завантажити задачі"); }
+    const now = Date.now();
+    const { kyivToday, kyivDayBoundary } = await import("./kyiv-time");
+    const endToday = new Date(kyivDayBoundary(kyivToday(), true)).getTime();
+    const rows = (data ?? []).map((t: any) => {
+      const due = t.due_at ? new Date(t.due_at).getTime() : null;
+      const rem = t.remind_at ? new Date(t.remind_at).getTime() : null;
+      const state = due !== null && due < now ? "overdue" : rem !== null && rem <= now ? "remind" : due !== null && due <= endToday ? "today" : "later";
+      return { ...t, state };
+    });
+    const alerts = rows.filter((r) => r.state !== "later");
+    return {
+      alerts,
+      upcoming: rows.filter((r) => r.state === "later").slice(0, 5),
+      counts: { overdue: rows.filter((r) => r.state === "overdue").length, today: rows.filter((r) => r.state === "today").length, remind: rows.filter((r) => r.state === "remind").length, open: rows.length },
+    };
   });
 
 /* ---------------- Requests & calls ---------------- */
