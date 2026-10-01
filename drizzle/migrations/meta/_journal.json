@@ -204,6 +204,13 @@
       "when": 1790795176272,
       "tag": "0028_finmap_deleted_state",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790813414547,
+      "tag": "0029_sales_plan_foremen",
+      "breakpoints": true
     }
   ]
 }

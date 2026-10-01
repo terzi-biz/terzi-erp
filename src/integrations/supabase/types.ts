@@ -9255,6 +9255,33 @@ export type Database = {
           },
         ]
       }
+      sales_plan_foremen: {
+        Row: {
+          foreman_name: string
+          month: string
+          target: number
+          target_orders: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          foreman_name: string
+          month: string
+          target?: number
+          target_orders?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          foreman_name?: string
+          month?: string
+          target?: number
+          target_orders?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       sales_plan_managers: {
         Row: {
           month: string
