@@ -13,6 +13,7 @@ import {
   upsertCompanySalesTarget,
   upsertManagerSalesTargets,
 } from "@/lib/sales-plan.functions";
+import { ForemenPlanEditor } from "@/components/settings/ForemenPlanEditor";
 
 export const Route = createFileRoute("/settings/sales-plan")({
   ssr: false,
@@ -270,6 +271,7 @@ function SalesPlanPage() {
                 Зберегти плани менеджерів
               </button>
             </section>
+            <ForemenPlanEditor month={month} editableWindow={editable} />
           </>
         )}
     </div>
