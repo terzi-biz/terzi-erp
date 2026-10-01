@@ -32,7 +32,7 @@ function Row({ t }: { t: any }) {
 }
 
 /** Дзвіночок: лічильник + випадаючий список; спливаюче повідомлення про нові нагадування. */
-export function TaskBell({ tone = "light" }: { tone?: "light" | "dark" }) {
+export function TaskBell({ tone = "light", align = "right" }: { tone?: "light" | "dark"; align?: "left" | "right" }) {
   const q = useTaskAlerts();
   const [open, setOpen] = useState(false);
   const seen = useRef<Set<string>>(new Set());
@@ -54,7 +54,7 @@ export function TaskBell({ tone = "light" }: { tone?: "light" | "dark" }) {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-2 w-[min(320px,90vw)] rounded-lg border border-border bg-card p-3 text-foreground shadow-xl">
+          <div className={`absolute ${align === "left" ? "left-0" : "right-0"} z-50 mt-2 w-[min(320px,90vw)] rounded-lg border border-border bg-card p-3 text-foreground shadow-xl`}>
             <div className="mb-2 flex items-center justify-between text-sm font-bold">Мої задачі <Link to="/crm/tasks" onClick={() => setOpen(false)} className="text-xs font-semibold text-primary">Усі →</Link></div>
             <div className="max-h-80 space-y-1.5 overflow-auto">
               {n ? alerts.map((t) => <Row key={t.id} t={t} />) : <p className="py-3 text-center text-xs text-muted-foreground">Термінових задач немає</p>}

@@ -186,7 +186,7 @@ function AppShellLayout({ children }: { children: ReactNode }) {
           <Link to="/" aria-label="TERZI ERP — дашборд" className="min-w-0">
             {compact ? <BrandMark size={34} /> : <BrandWordmark tone="white" width={176} />}
           </Link>
-          {!compact && mode !== "drawer" ? <TaskBell tone="dark" /> : null}
+          {!compact && mode !== "drawer" ? <TaskBell tone="dark" align="left" /> : null}
           {mode === "drawer" ? (
             <button type="button" onClick={() => setMobileOpen(false)} className="shrink-0 rounded p-1.5 hover:bg-white/10" aria-label="Закрити меню">
               <X className="h-5 w-5" />
