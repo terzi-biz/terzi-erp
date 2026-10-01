@@ -2,6 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { ArrowRight, Copy } from "lucide-react";
 import { toast } from "sonner";
+import { CredentialsPanel } from "@/components/integrations/CredentialsPanel";
 
 export const Route = createFileRoute("/settings/integrations")({
   component: IntegrationsSettingsPage,
@@ -49,6 +50,7 @@ function IntegrationsSettingsPage() {
 
   return (
     <div className="space-y-4">
+      <CredentialsPanel />
       {GROUPS.map((g) => (
         <section key={g.title}>
           <h2 className="text-xs uppercase tracking-widest text-primary font-bold mb-2">{g.title}</h2>

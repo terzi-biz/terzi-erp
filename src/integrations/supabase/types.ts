@@ -2636,6 +2636,7 @@ export type Database = {
         Row: {
           assigned_to: string | null
           client_id: string | null
+          co_assignees: string[]
           completed_at: string | null
           contact_id: string | null
           created_at: string
@@ -2648,6 +2649,7 @@ export type Database = {
           order_id: string | null
           owner_id: string
           priority: Database["public"]["Enums"]["crm_task_priority"]
+          remind_at: string | null
           status: Database["public"]["Enums"]["crm_task_status"]
           title: string
           updated_at: string
@@ -2655,6 +2657,7 @@ export type Database = {
         Insert: {
           assigned_to?: string | null
           client_id?: string | null
+          co_assignees?: string[]
           completed_at?: string | null
           contact_id?: string | null
           created_at?: string
@@ -2667,6 +2670,7 @@ export type Database = {
           order_id?: string | null
           owner_id?: string
           priority?: Database["public"]["Enums"]["crm_task_priority"]
+          remind_at?: string | null
           status?: Database["public"]["Enums"]["crm_task_status"]
           title: string
           updated_at?: string
@@ -2674,6 +2678,7 @@ export type Database = {
         Update: {
           assigned_to?: string | null
           client_id?: string | null
+          co_assignees?: string[]
           completed_at?: string | null
           contact_id?: string | null
           created_at?: string
@@ -2686,6 +2691,7 @@ export type Database = {
           order_id?: string | null
           owner_id?: string
           priority?: Database["public"]["Enums"]["crm_task_priority"]
+          remind_at?: string | null
           status?: Database["public"]["Enums"]["crm_task_status"]
           title?: string
           updated_at?: string
@@ -4731,6 +4737,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      integration_credentials: {
+        Row: {
+          ciphertext: string
+          hint: string | null
+          iv: string
+          name: string
+          provider: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          ciphertext: string
+          hint?: string | null
+          iv: string
+          name: string
+          provider: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          ciphertext?: string
+          hint?: string | null
+          iv?: string
+          name?: string
+          provider?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
       }
       integration_event_logs: {
         Row: {

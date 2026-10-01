@@ -270,6 +270,11 @@ export const saveEstimate = createServerFn({ method: "POST" })
     const gateError = financialGate(data, isAdmin);
     if (gateError) throw new Error(gateError);
     const links = await checkLinks(context.supabase, data as any);
+    // Авто-привʼязка: у клієнта рівно одне замовлення → кошторис належить йому.
+    if (!links.order_id && links.client_id) {
+      const { data: ords } = await context.supabase.from("orders").select("id").eq("client_id", links.client_id).limit(2);
+      if (ords?.length === 1) links.order_id = ords[0].id;
+    }
     const row = { ...data, ...links, owner_id: context.userId };
 
     let before: any = null;
@@ -290,6 +295,14 @@ export const saveEstimate = createServerFn({ method: "POST" })
       }
     } else {
       await logAudit(context.supabase, context.userId, out.id, "created", { number: out.number, module: out.module });
+    }
+    // Сума кошторису → замовлення, якщо сума замовлення ще порожня (ручні суми не перетираємо).
+    if (out.order_id && Number(out.total_client) > 0) {
+      const { data: ord } = await context.supabase.from("orders").select("amount_total").eq("id", out.order_id).maybeSingle();
+      if (ord && !(Number(ord.amount_total) > 0)) {
+        const { error: oe } = await context.supabase.from("orders").update({ amount_total: Number(out.total_client) }).eq("id", out.order_id);
+        if (oe) console.error("estimate→order amount", oe.message);
+      }
     }
     try { const { syncOrderToPayroll } = await import("./payroll-bridge.server"); await syncOrderToPayroll(out.order_id, "estimate", context.userId); } catch { /* не блокує ERP */ }
     return out;
