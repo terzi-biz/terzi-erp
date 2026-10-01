@@ -128,3 +128,7 @@ lint / typecheck / unit / build зелені; жоден маршрут не 404
 Вхідні вебхуки — `src/routes/api/public/integrations/webhook.$slug.tsx` з перевіркою
 підпису/токена ДО обробки. Порядок провайдерів: Binotel → keyCRM → Meta → Google Ads
 → WordPress → Telegram. Деталі — `docs/INTEGRATIONS.md`.
+
+## Ключі інтеграцій з UI
+
+- Ключі, введені в «Налаштування → Інтеграції», шифруються AES-GCM і зберігаються в `integration_credentials` (лише service_role); request-middleware підставляє їх у `process.env`, секрети середовища мають пріоритет — адаптери читають `process.env` без змін.
