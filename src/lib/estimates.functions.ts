@@ -270,6 +270,11 @@ export const saveEstimate = createServerFn({ method: "POST" })
     const gateError = financialGate(data, isAdmin);
     if (gateError) throw new Error(gateError);
     const links = await checkLinks(context.supabase, data as any);
+    // Авто-привʼязка: у клієнта рівно одне замовлення → кошторис належить йому.
+    if (!links.order_id && links.client_id) {
+      const { data: ords } = await context.supabase.from("orders").select("id").eq("client_id", links.client_id).limit(2);
+      if (ords?.length === 1) links.order_id = ords[0].id;
+    }
     const row = { ...data, ...links, owner_id: context.userId };
 
     let before: any = null;
