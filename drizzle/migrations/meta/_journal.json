@@ -211,6 +211,13 @@
       "when": 1790813414547,
       "tag": "0029_sales_plan_foremen",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1790850715717,
+      "tag": "0030_tasks_coassignees_reminders_and_integration_credentials",
+      "breakpoints": true
     }
   ]
 }
