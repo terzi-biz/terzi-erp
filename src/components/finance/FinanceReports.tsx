@@ -50,6 +50,8 @@ export function FinanceReportsSection({ period, onPeriod }: { period: Period; on
           <button key={x.label} type="button" onClick={() => onPeriod(x.p())}
             className="min-h-9 rounded-full border border-border bg-card px-3 text-xs font-semibold hover:bg-secondary/60">{x.label}</button>
         ))}
+        <label className="flex items-center gap-1 text-xs">з <input type="date" value={period.from} onChange={(e) => e.target.value && onPeriod({ ...period, from: e.target.value })} className="min-h-9 rounded-md border border-border bg-background px-2" /></label>
+        <label className="flex items-center gap-1 text-xs">по <input type="date" value={period.to} onChange={(e) => e.target.value && onPeriod({ ...period, to: e.target.value })} className="min-h-9 rounded-md border border-border bg-background px-2" /></label>
         <span className="self-center text-[11px] text-muted-foreground">Дата = дата проведення операції у Finmap (Київ), тільки фактичні</span>
       </div>
       <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-card p-1 sm:grid-cols-4">
