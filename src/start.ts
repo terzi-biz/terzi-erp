@@ -5,6 +5,9 @@ import { attachSupabaseAuth } from "@/integrations/supabase/auth-attacher";
 
 const errorMiddleware = createMiddleware().server(async ({ next }) => {
   try {
+    // Ключі інтеграцій, введені в налаштуваннях, підставляються в env (кеш 60 с).
+    const { hydrateCredentials } = await import("./lib/integrations/credentials.server");
+    await hydrateCredentials();
     return await next();
   } catch (error) {
     // Готову відповідь (401/redirect тощо) віддаємо як є — інакше фреймворк

@@ -43,7 +43,7 @@ export const saveCredential = createServerFn({ method: "POST" })
       ...enc, hint, updated_by: context.userId, updated_at: new Date().toISOString(),
     });
     if (error) throw new Error("Не вдалося зберегти ключ");
-    await db.from("audit_logs").insert({ actor_id: context.userId, action: "integration_credential_saved", entity: "integration_credentials", entity_id: data.name } as never);
+    await db.from("audit_logs").insert({ actor_id: context.userId, action: "integration_credential_saved", module: "integrations", entity_type: "integration_credentials", is_critical: true, entity_id: data.name } as never);
     await hydrateCredentials(true);
     return { ok: true };
   });
@@ -57,7 +57,7 @@ export const deleteCredential = createServerFn({ method: "POST" })
     const { admin } = await import("@/lib/access.server");
     const db = await admin();
     await db.from("integration_credentials").delete().eq("name", data.name);
-    await db.from("audit_logs").insert({ actor_id: context.userId, action: "integration_credential_deleted", entity: "integration_credentials", entity_id: data.name } as never);
+    await db.from("audit_logs").insert({ actor_id: context.userId, action: "integration_credential_deleted", module: "integrations", entity_type: "integration_credentials", is_critical: true, entity_id: data.name } as never);
     const { hydrateCredentials } = await import("./credentials.server");
     await hydrateCredentials(true);
     return { ok: true };
