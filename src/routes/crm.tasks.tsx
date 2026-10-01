@@ -134,7 +134,7 @@ function TasksPage() {
 
       {open ? (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-end md:items-center justify-center p-0 md:p-6">
-          <div className="w-full md:max-w-md bg-card rounded-t-2xl md:rounded-2xl border border-border p-4 space-y-3">
+          <div className="w-full md:max-w-md max-h-[92vh] overflow-y-auto bg-card rounded-t-2xl md:rounded-2xl border border-border p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="font-bold">{form.id ? "Редагувати задачу" : "Нова задача"}</div>
               <button onClick={() => setOpen(false)}><X className="w-5 h-5" /></button>
