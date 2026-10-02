@@ -6,8 +6,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { CalendarClock, Plus, Ruler, Loader2, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  createEstimateFromMeasurement,
   listMeasurementTargets,
   saveMeasurementResult,
   scheduleMeasurement,
@@ -125,6 +126,18 @@ export function LeadMeasurementsPanel({
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося зберегти результат"),
   });
 
+  const estimateFn = useServerFn(createEstimateFromMeasurement);
+  const navigate = useNavigate();
+  const toEstimate = useMutation({
+    mutationFn: (p: { id: string; module: string }) => estimateFn({ data: { measurement_id: p.id, module: p.module as any } }),
+    onSuccess: (r: any) => {
+      invalidate();
+      toast.success(`Кошторис ${r.number} створено — сума підставиться в замовлення після збереження`);
+      navigate({ to: `/${r.module}` as any, search: { estimate: r.estimate_id } as any });
+    },
+    onError: (e: any) => toast.error(e?.message ?? "Не вдалося створити кошторис"),
+  });
+
   const fmt = (v?: string | null) =>
     v
       ? new Date(v).toLocaleString("uk-UA", {
@@ -222,6 +235,27 @@ export function LeadMeasurementsPanel({
               >
                 Результат
               </button>
+              {["completed", "done"].includes(String(m.status)) ? (
+                <span className="inline-flex items-center gap-1">
+                  <select id={`mod-${m.id}`} defaultValue="screed" className="rounded-md border border-border bg-background px-1.5 py-1 text-xs">
+                    <option value="screed">Стяжка</option>
+                    <option value="roofing">Покрівля</option>
+                    <option value="insulation">Утеплення</option>
+                    <option value="demolition">Демонтаж</option>
+                  </select>
+                  <button
+                    type="button"
+                    disabled={toEstimate.isPending}
+                    onClick={() => {
+                      const mod = (document.getElementById(`mod-${m.id}`) as HTMLSelectElement | null)?.value ?? "screed";
+                      toEstimate.mutate({ id: m.id, module: mod });
+                    }}
+                    className="rounded-md bg-primary px-2 py-1 text-xs font-semibold text-primary-foreground"
+                  >
+                    Створити кошторис
+                  </button>
+                </span>
+              ) : null}
               {m.event_id ? (
                 <Link
                   to="/operations"

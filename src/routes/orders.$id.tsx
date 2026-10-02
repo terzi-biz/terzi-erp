@@ -131,6 +131,19 @@ function ObjectDetailPage() {
               {o.address && <div className="text-sm text-muted-foreground flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" />{o.address}</div>}
             </div>
             <div className="flex items-center gap-3">
+              {o.financial_status === "paid" ? (
+                <span className="text-xs font-semibold rounded-md px-2.5 py-1 bg-success/15 text-success">✓ Оплачено</span>
+              ) : (
+                <button
+                  disabled={statusMut.isPending}
+                  onClick={() => {
+                    const msg = o.amount_total ? `Позначити оплаченим на ${formatUah(Number(o.amount_total))}?` : "Сума замовлення не вказана — позначити оплаченим лише статусом?";
+                    if (confirm(msg)) statusMut.mutate({ mark_paid: true }, { onSuccess: () => qc.invalidateQueries() });
+                  }}
+                  className="text-xs font-semibold rounded-md px-3 py-1.5 bg-primary text-primary-foreground">
+                  Оплачено
+                </button>
+              )}
               {crm && (
                 <a href={crm} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline inline-flex items-center gap-1">
                   Відкрити в KeyCRM <ExternalLink className="w-3 h-3" />
