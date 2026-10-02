@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { CalendarClock, Ruler, Plus, X, AlertTriangle, Target, FileSpreadsheet } from "lucide-react";
 import { toast } from "sonner";
 import { AppShell } from "@/components/AppShell";
+import { MeasurementCard, type MeasurementCardRow } from "@/components/crm/MeasurementCard";
 import { supabase } from "@/integrations/supabase/client";
 import {
   createEstimateFromMeasurement,
@@ -95,6 +96,7 @@ function MeasurementsPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState<any>(emptyForm);
   const [result, setResult] = useState<any>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [estimateFor, setEstimateFor] = useState<{ id: string; module: string } | null>(null);
 
   const search = Route.useSearch();
@@ -152,7 +154,7 @@ function MeasurementsPage() {
   });
 
   const patch = useMutation({
-    mutationFn: (p: { id: string; status: MeasurementStatus; surveyor_id?: string | null }) => statusFn({ data: p }),
+    mutationFn: (p: { id: string; status: MeasurementStatus; surveyor_id?: string | null; scheduled_at?: string | null }) => statusFn({ data: p }),
     onSuccess: () => { refresh(); toast.success("Статус заміру оновлено"); },
     onError: (e: any) => toast.error(e?.message ?? "Помилка"),
   });
@@ -164,7 +166,7 @@ function MeasurementsPage() {
       perimeter: p.perimeter === "" || p.perimeter == null ? null : Number(p.perimeter),
       notes: p.notes || null,
       address: p.address || null,
-      complete: true,
+      complete: p.complete ?? true,
     } }),
     onSuccess: () => { refresh(); setResult(null); toast.success("Результат заміру збережено"); },
     onError: (e: any) => toast.error(e?.message ?? "Не вдалося зберегти результат"),
@@ -324,6 +326,7 @@ function MeasurementsPage() {
                 >
                   {MEASUREMENT_STATUSES.map((s) => <option key={s} value={s}>{MEASUREMENT_STATUS_LABELS[s]}</option>)}
                 </select>
+                <button onClick={() => setEditId(e.id)} className="shrink-0 rounded-md bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground">Редагувати</button>
                 <button
                   onClick={() => setResult({ id: e.id, area: e.area ?? "", perimeter: e.perimeter ?? "", notes: e.notes ?? "", address: e.address ?? "" })}
                   className="shrink-0 rounded-md border border-border px-2.5 py-1 text-xs font-semibold">
@@ -370,7 +373,8 @@ function MeasurementsPage() {
                         <Target className="w-3 h-3" />{r.converted ? "так" : "ні"}
                       </span>
                     </td>
-                    <td className="px-3 py-2 text-right">
+                    <td className="px-3 py-2 text-right whitespace-nowrap">
+                      <button onClick={() => setEditId(r.id)} className="mr-1 rounded-md border border-border px-2.5 py-1 text-xs font-semibold">Редагувати</button>
                       {r.status === "completed" ? (
                         <button onClick={() => setEstimateFor({ id: r.id, module: "screed" })}
                           className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-xs font-semibold">
@@ -387,6 +391,22 @@ function MeasurementsPage() {
             </table>
           </div>
         )}
+      {(() => {
+        const c = [...planned, ...allRows].find((x: any) => x.id === editId) as MeasurementCardRow | undefined;
+        if (!c) return null;
+        return (
+          <MeasurementCard
+            row={c}
+            employees={(targets?.employees ?? []) as any}
+            busy={patch.isPending || saveResult.isPending}
+            onClose={() => setEditId(null)}
+            onStatus={(status) => patch.mutate({ id: c.id, status })}
+            onAssign={(p) => patch.mutate({ id: c.id, status: (p.surveyor_id && c.status === "planned" ? "assigned" : c.status) as MeasurementStatus, surveyor_id: p.surveyor_id, scheduled_at: p.scheduled_at })}
+            onResult={(p) => saveResult.mutate({ id: c.id, ...p })}
+            onEstimate={() => { setEditId(null); setEstimateFor({ id: c.id, module: "screed" }); }}
+          />
+        );
+      })()}
       </CrmPage>
 
       {open ? (
