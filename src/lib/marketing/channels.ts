@@ -36,6 +36,7 @@ export const CANONICAL_CHANNELS: CanonicalChannel[] = [
   { key: "viber", label: "Viber", kind: "messenger", paid: false, provider: "viber", hints: ["viber", "вайбер"] },
   { key: "whatsapp", label: "WhatsApp", kind: "messenger", paid: false, provider: "whatsapp", hints: ["whatsapp", "whats app", "вотсап", "ватсап"] },
   { key: "direct", label: "Direct", kind: "direct", paid: false, provider: null, hints: ["direct", "прямий", "прямой", "none", "(none)"] },
+  { key: "outdoor", label: "Зовнішня реклама", kind: "ads", paid: true, provider: null, hints: ["зовнішня реклама", "наружная реклама", "наружка", "білборд", "билборд", "outdoor", "сітілайт", "банер"] },
   { key: "referral", label: "Referral", kind: "referral", paid: false, provider: null, hints: ["referral", "рекоменд", "сарафан", "знайом"] },
 ];
 
