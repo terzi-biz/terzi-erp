@@ -199,11 +199,19 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
     production_status: z.enum(PRODUCTION_STATUSES).optional(),
     financial_status: z.enum(FINANCIAL_STATUSES).optional(),
     risk_level: z.enum(RISK_LEVELS).optional(),
+    mark_paid: z.boolean().optional(),
   }).parse(d))
   .handler(async ({ data, context }) => {
-    const { id, ...patch } = data;
+    const { id, mark_paid, ...patch } = data;
     const cleaned: any = {};
     for (const [k, v] of Object.entries(patch)) if (v !== undefined) cleaned[k] = v;
+    if (mark_paid) {
+      // «Оплачено»: оплата = сума замовлення. Без суми — тільки статус (нічого не вигадуємо).
+      const { data: cur } = await context.supabase.from("orders").select("amount_total,paid_total").eq("id", id).maybeSingle();
+      cleaned.financial_status = "paid";
+      const amt = Number((cur as any)?.amount_total ?? 0);
+      if (amt > 0 && Number((cur as any)?.paid_total ?? 0) < amt) cleaned.paid_total = amt;
+    }
     if (!Object.keys(cleaned).length) return { ok: true };
 
     // Read previous values before the update so automation receives an accurate `from`.
